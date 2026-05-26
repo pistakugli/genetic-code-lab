@@ -332,6 +332,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-deep-blackbox-relu-nd-region-sampler',
+    name: 'NN deep black-box ReLU ND region sampler',
+    status: 'production',
+    summary: 'Recovers output-equivalent affine-region samplers for controlled 3D/4D folded two-layer ReLU black boxes using random local-gradient oracle probes and query-free kNN region assignment.',
+    scope: 'Black-box deep ReLU teacher benchmark; proves benchmark-scoped equivalent-function recovery for controlled 3D/4D folded ReLU MLPs with query-budget accounting and a global-linear baseline gap. This does not claim unique hidden-layer weights, exact layer attribution, topology-perfect region merging, noisy ND deep recovery, or arbitrary production API extraction.',
+    run: { label: 'NN deep black-box ReLU ND region-sampler benchmark', command: 'npm', args: ['run', 'benchmark:nn-deep-blackbox-relu-nd-region-sampler'] },
+    proofs: [
+      { label: 'NN deep black-box ReLU ND region-sampler benchmark', command: 'npm', args: ['run', 'benchmark:nn-deep-blackbox-relu-nd-region-sampler'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-deep-blackbox-relu-nd-region-sampler/3d-4d-seed-sweep/report.json',
+      'benchmarks/release/nn-deep-blackbox-relu-nd-region-sampler/3d-4d-seed-sweep/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

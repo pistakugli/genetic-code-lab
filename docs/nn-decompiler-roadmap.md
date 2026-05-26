@@ -68,9 +68,15 @@ Phase 3: compact/adaptive/topology boundary extraction.
 
 Phase 4: deep ND folded recovery.
 
-- Next target after compact 2D: generalize folded region recovery beyond 2D.
+- Status: first release-gated foundation via
+  `benchmark:nn-deep-blackbox-relu-nd-region-sampler`.
+- Current proof: controlled 3D/4D folded two-layer ReLU teachers recovered as
+  output-equivalent affine-region samplers from oracle-only random local-gradient
+  probes, with query-free kNN region assignment, query-budget accounting, and a
+  global-linear baseline gap.
 - Required gates: deterministic randomized ND teachers, query-budget accounting,
-  and baseline comparison against shallow/linear approximations.
+  and baseline comparison against shallow/linear approximations. Next hardening
+  step is noisy/adaptive adversarial deep ND and stronger query reduction.
 
 Phase 5: layer attribution only with extra observability.
 
@@ -126,6 +132,7 @@ folded recovery.
 
 Target commands:
 
+- `npm run benchmark:nn-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`
 - `npm run benchmark:nn-noisy-deep-blackbox-relu2d-region-graph`
@@ -258,6 +265,19 @@ Current status:
   4-hidden / 1-output folded ReLU MLPs.
 - Topology-boundary passed teachers: 3/3.
 - Topology-boundary fallback segments: 0.
+- Deep ND region-sampler benchmark PASS on 2026-05-26.
+- Deep ND teachers: 4 deterministic 3D/4D folded two-layer ReLU MLPs.
+- Deep ND visibility: oracle calls only, `f(vector)`, no hidden activations,
+  layer widths, or teacher weights.
+- Deep ND passed teachers: 4/4.
+- Deep ND minimum recovered regions: `40`.
+- Deep ND minimum deep-only region estimate: `35`.
+- Deep ND max MAE: `0.011095250643373489`.
+- Deep ND min R2: `0.998534063321796`.
+- Deep ND min global-linear MAE improvement ratio: `42.81846369086524`.
+- Deep ND total raw oracle calls: `315800`.
+- Deep ND artifact:
+  `benchmarks/release/nn-deep-blackbox-relu-nd-region-sampler/3d-4d-seed-sweep/report.json`
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.

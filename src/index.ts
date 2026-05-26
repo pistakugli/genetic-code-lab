@@ -18,6 +18,7 @@ export * from './solvers/blackbox-relu3d-decompiler';
 export * from './solvers/blackbox-relu-nd-line-probe';
 export * from './solvers/deep-blackbox-relu1d-decompiler';
 export * from './solvers/deep-blackbox-relu2d-region-graph';
+export * from './solvers/deep-blackbox-relu-nd-region-sampler';
 export * from './solvers/noisy-blackbox-relu-decompiler';
 export * from './solvers/noisy-blackbox-relu2d-decompiler';
 export * from './solvers/noisy-blackbox-relu3d-decompiler';

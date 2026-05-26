@@ -1,0 +1,183 @@
+{
+  "generatedAt": "2026-05-26T11:41:58.738Z",
+  "task": "deep black-box ReLU ND output-equivalent affine-region sampling",
+  "blackBox": {
+    "type": "3D/4D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(vector), not hidden activations, layer widths, or teacher weights"
+  },
+  "claimScope": {
+    "proves": "benchmark-scoped output-equivalent affine-region recovery in 3D/4D using random local-gradient probes and query-free kNN region assignment",
+    "doesNotClaim": "unique hidden-layer recovery, exact layer attribution, topology-perfect region merging, noisy ND deep recovery, or arbitrary production API extraction"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "dimensionsCovered": true,
+    "deepOnlyRegionsAbove20": true,
+    "retainedSamplesAbove97Percent": true,
+    "regionFitRmseBelow1eMinus7": true,
+    "maeBelow0018": true,
+    "r2Above998": true,
+    "beatsLinearBy5x": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 4,
+    "passedTeachers": 4,
+    "dimensions": [
+      3,
+      4
+    ],
+    "minRegionCount": 40,
+    "minDeepOnlyRegionEstimate": 35,
+    "minRetainedSampleRatio": 0.9972307692307693,
+    "maxRegionFitRmse": 1.2211343227402162e-8,
+    "maxMae": 0.011095250643373489,
+    "minR2": 0.998534063321796,
+    "minLinearMaeImprovementRatio": 42.81846369086524,
+    "totalRawOracleCalls": 315800
+  },
+  "results": [
+    {
+      "teacherId": "deep-3d-11",
+      "seed": 11,
+      "dimension": 3,
+      "pass": true,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 40,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 35,
+        "retainedSampleCount": 6500,
+        "droppedSampleCount": 0,
+        "maxRegionFitRmse": 1.1763100133136143e-9,
+        "neighborCount": 11
+      },
+      "metrics": {
+        "mae": 0.002430047386382316,
+        "rmse": 0.011400186044361346,
+        "r2": 0.999809260995288
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.3942185084817401,
+          "rmse": 0.49810540188149166,
+          "r2": 0.6358685942811169
+        },
+        "linearMaeImprovementRatio": 162.2266753689215
+      },
+      "queryBudget": {
+        "rawOracleCalls": 47700,
+        "samplerFitSamples": 6500,
+        "validationSamples": 2200,
+        "finiteDifferenceCallsPerSample": 7
+      }
+    },
+    {
+      "teacherId": "deep-3d-29",
+      "seed": 29,
+      "dimension": 3,
+      "pass": true,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 42,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 37,
+        "retainedSampleCount": 6482,
+        "droppedSampleCount": 18,
+        "maxRegionFitRmse": 2.8692085419217e-10,
+        "neighborCount": 11
+      },
+      "metrics": {
+        "mae": 0.0038965794152928937,
+        "rmse": 0.016210314313286248,
+        "r2": 0.9997521846260714
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.500048333402195,
+          "rmse": 0.6363060595482493,
+          "r2": 0.6181634546560115
+        },
+        "linearMaeImprovementRatio": 128.33007623036164
+      },
+      "queryBudget": {
+        "rawOracleCalls": 47700,
+        "samplerFitSamples": 6500,
+        "validationSamples": 2200,
+        "finiteDifferenceCallsPerSample": 7
+      }
+    },
+    {
+      "teacherId": "deep-4d-11",
+      "seed": 11,
+      "dimension": 4,
+      "pass": true,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 47,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 42,
+        "retainedSampleCount": 11978,
+        "droppedSampleCount": 22,
+        "maxRegionFitRmse": 3.975276128948011e-10,
+        "neighborCount": 15
+      },
+      "metrics": {
+        "mae": 0.011095250643373489,
+        "rmse": 0.04241482124756541,
+        "r2": 0.998534063321796
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.5614313392808276,
+          "rmse": 0.7009382368514623,
+          "r2": 0.5996503688963942
+        },
+        "linearMaeImprovementRatio": 50.60105060502946
+      },
+      "queryBudget": {
+        "rawOracleCalls": 110200,
+        "samplerFitSamples": 12000,
+        "validationSamples": 2200,
+        "finiteDifferenceCallsPerSample": 9
+      }
+    },
+    {
+      "teacherId": "deep-4d-29",
+      "seed": 29,
+      "dimension": 4,
+      "pass": true,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 46,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 41,
+        "retainedSampleCount": 11985,
+        "droppedSampleCount": 15,
+        "maxRegionFitRmse": 1.2211343227402162e-8,
+        "neighborCount": 15
+      },
+      "metrics": {
+        "mae": 0.00794338030550133,
+        "rmse": 0.027698301189685255,
+        "r2": 0.9995218599549637
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.34012334119384274,
+          "rmse": 0.4579781133579913,
+          "r2": 0.8692811258887869
+        },
+        "linearMaeImprovementRatio": 42.81846369086524
+      },
+      "queryBudget": {
+        "rawOracleCalls": 110200,
+        "samplerFitSamples": 12000,
+        "validationSamples": 2200,
+        "finiteDifferenceCallsPerSample": 9
+      }
+    }
+  ],
+  "runtimeMs": 2012
+}

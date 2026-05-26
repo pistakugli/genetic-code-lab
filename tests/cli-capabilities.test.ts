@@ -40,6 +40,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'gcl-hybrid-basis',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-deep-blackbox-relu-nd-region-sampler',
+        status: 'production'
       })
     ]));
   });
