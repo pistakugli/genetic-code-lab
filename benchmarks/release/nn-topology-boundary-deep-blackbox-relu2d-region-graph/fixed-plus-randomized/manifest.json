@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T11:07:47.671Z",
+  "lane": "nn-topology-boundary-deep-blackbox-relu2d-region-graph",
+  "variant": "fixed-plus-randomized",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-topology-boundary-deep-blackbox-relu2d-region-graph.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-topology-boundary-deep-blackbox-relu2d-region-graph",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-topology-boundary-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.json",
+    "reportMarkdown": "benchmarks/release/nn-topology-boundary-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.md",
+    "manifest": "benchmarks/release/nn-topology-boundary-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 3,
+    "passedTeachers": 3,
+    "minCompressionRatio": 10.022222222222222,
+    "maxEndpointLineResidual": 4.440892098500626e-16,
+    "maxBoundaryFitRmse": 0.09840228024815051,
+    "maxFallbackSegmentCount": 0,
+    "minTopologySegmentLength": 0.07019353281511473,
+    "maxMae": 0.0006392577698390062,
+    "minR2": 0.9999797025890232,
+    "totalRawOracleCalls": 48735
+  },
+  "notes": [
+    "This benchmark verifies boundary topology geometry without changing the recovered adjacency graph.",
+    "Topology endpoints are line-clipped against contact corridors and must lie on the affine equality line.",
+    "This is not a claim of topology-perfect true-region merging or hidden-layer identity."
+  ]
+}

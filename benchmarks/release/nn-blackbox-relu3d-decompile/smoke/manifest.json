@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:53:36.459Z",
+  "lane": "nn-blackbox-relu3d-decompile",
+  "variant": "smoke",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-blackbox-relu3d-decompile.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-blackbox-relu3d-decompile",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-blackbox-relu3d-decompile/smoke/report.json",
+    "reportMarkdown": "benchmarks/release/nn-blackbox-relu3d-decompile/smoke/report.md",
+    "manifest": "benchmarks/release/nn-blackbox-relu3d-decompile/smoke/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "terms": 3,
+    "mae": 6.683337645343181e-16,
+    "r2": 1,
+    "maxDeltaError": 1.4432899320127035e-15,
+    "maxAlphaYError": 1.27675647831893e-15,
+    "maxAlphaZError": 1.4710455076283324e-15,
+    "maxBetaError": 1.7763568394002505e-15
+  },
+  "notes": [
+    "This benchmark tests 3D black-box ReLU hyperplane stitching from oracle calls only.",
+    "It recovers non-vertical hyperplanes visible through z-indexed 2D slices, not arbitrary high-dimensional or deep networks."
+  ]
+}

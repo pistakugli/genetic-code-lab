@@ -1,0 +1,683 @@
+{
+  "generatedAt": "2026-05-26T11:07:34.827Z",
+  "task": "deep black-box ReLU 2D folded region-graph decompilation",
+  "blackBox": {
+    "type": "2-input / 4-hidden / 4-hidden / 1-output two-layer ReLU MLP teacher",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(x,y), not hidden activations, layer widths, or teacher weights"
+  },
+  "claimScope": {
+    "proves": "output-equivalent affine-region graph recovery for a deep folded 2D ReLU black-box teacher",
+    "doesNotClaim": "unique original hidden-layer weight recovery, exact layer attribution, arbitrary deep ND network extraction, or stochastic API decompilation"
+  },
+  "config": {
+    "xRange": [
+      -2,
+      2
+    ],
+    "yRange": [
+      -2,
+      2
+    ],
+    "gridWidth": 101,
+    "gridHeight": 101,
+    "testRows": 13431
+  },
+  "auditTeacherCircuit": {
+    "seed": 1,
+    "l1": [
+      {
+        "w": [
+          -1.4999765222891948,
+          -1.105386636783729
+        ],
+        "b": 0.6134527729949475
+      },
+      {
+        "w": [
+          -1.358866152687805,
+          0.5365941501563363
+        ],
+        "b": 0.43031137364945504
+      },
+      {
+        "w": [
+          1.3040786877312498,
+          -0.34949376839165924
+        ],
+        "b": 0.04659929242599681
+      },
+      {
+        "w": [
+          0.992896038100958,
+          -1.3962836697663028
+        ],
+        "b": -1.0716920769509786
+      }
+    ],
+    "l2": [
+      {
+        "w": [
+          0.08316054072525403,
+          0.479218274987506,
+          -1.3784450799026013,
+          -0.3264361786902288
+        ],
+        "b": -0.7796839732487537
+      },
+      {
+        "w": [
+          -0.23103927227765264,
+          0.5229635942009869,
+          0.24913459946320815,
+          1.2052221851472016
+        ],
+        "b": 0.6231004027864898
+      },
+      {
+        "w": [
+          0.07540057662446098,
+          -1.142498307062777,
+          0.43097309398555494,
+          -0.2352018015787023
+        ],
+        "b": 0.36214306974983124
+      },
+      {
+        "w": [
+          1.1488983252541147,
+          0.7341545108092524,
+          -0.6651316187019753,
+          -1.2670993628605263
+        ],
+        "b": 0.4249473920324326
+      }
+    ],
+    "out": {
+      "w": [
+        -0.4122378580386171,
+        0.3183325625195472,
+        0.615385166011178,
+        1.1784897252716957
+      ],
+      "b": -0.053864531827964385,
+      "base": [
+        -0.05059222295004151,
+        0.0965100572411996
+      ]
+    }
+  },
+  "foldingEvidence": {
+    "firstLayerUnitCount": 4,
+    "secondLayerUnitCount": 4,
+    "recoveredRegionCount": 21,
+    "deepOnlyRegionCount": 16,
+    "adjacencyEdgeCount": 46,
+    "kinkCellBoundaryCount": 964
+  },
+  "baselines": {
+    "plane": {
+      "coefficients": [
+        3.085658686073956,
+        -1.888716144046797,
+        -0.3812410546083828
+      ],
+      "metrics": {
+        "mae": 0.8308132909366797,
+        "rmse": 0.9943923306587844,
+        "r2": 0.8263469269529247
+      }
+    },
+    "firstLayerOnly": {
+      "coefficients": [
+        -0.13406245140687667,
+        2.6215725800752434,
+        -0.9127229880644121,
+        1.2241468808798572,
+        2.918593777789393,
+        -1.0669805657556246,
+        -0.669831683152998
+      ],
+      "metrics": {
+        "mae": 0.23087571025808865,
+        "rmse": 0.3493680362403501,
+        "r2": 0.9785645167677037
+      }
+    }
+  },
+  "gcl": {
+    "recoveryKind": "output-equivalent-region-graph",
+    "expression": "region_graph( regions=21 adjacency=46 boundaries=46 grid=101x101 )",
+    "regions": [
+      {
+        "id": 0,
+        "intercept": 2.090075808106391,
+        "slopeX": -3.053221085575448,
+        "slopeY": -0.8333687850062037,
+        "support": 3051,
+        "centroid": [
+          -1.3692248280875305,
+          0.1754853951471841
+        ]
+      },
+      {
+        "id": 1,
+        "intercept": 3.1350106938262337,
+        "slopeX": -4.0213272516022,
+        "slopeY": 0.5280535377628688,
+        "support": 76,
+        "centroid": [
+          -1.336633663366336,
+          -1.8223032829598749
+        ]
+      },
+      {
+        "id": 2,
+        "intercept": 3.063851527379059,
+        "slopeX": -4.474809318614083,
+        "slopeY": 0.7840609481111943,
+        "support": 204,
+        "centroid": [
+          -0.8576975344593276,
+          -1.6592894583575997
+        ]
+      },
+      {
+        "id": 3,
+        "intercept": 3.1677480228840516,
+        "slopeX": -3.7327334237574905,
+        "slopeY": 0.5576015060500363,
+        "support": 97,
+        "centroid": [
+          -0.5266918444421758,
+          -1.5363886904154322
+        ]
+      },
+      {
+        "id": 4,
+        "intercept": 3.147275617147507,
+        "slopeX": -4.305652585159384,
+        "slopeY": 0.7111441400172279,
+        "support": 123,
+        "centroid": [
+          -0.3045963132898654,
+          -1.358448039925943
+        ]
+      },
+      {
+        "id": 5,
+        "intercept": 3.0058781493370974,
+        "slopeX": -3.8591381665326185,
+        "slopeY": 0.5348228558474873,
+        "support": 539,
+        "centroid": [
+          0.09522584911552373,
+          -1.330002387993902
+        ]
+      },
+      {
+        "id": 6,
+        "intercept": 0.1106966531153899,
+        "slopeX": 0.6766359401636912,
+        "slopeY": -0.32749298221789364,
+        "support": 906,
+        "centroid": [
+          0.9116342097785929,
+          -1.420103599763948
+        ]
+      },
+      {
+        "id": 7,
+        "intercept": 0.12735001089925616,
+        "slopeX": 0.6359161866761334,
+        "slopeY": -0.35750083280052236,
+        "support": 1214,
+        "centroid": [
+          1.5445870781476794,
+          -0.5978436393886487
+        ]
+      },
+      {
+        "id": 8,
+        "intercept": 1.8746997338732654,
+        "slopeX": -3.373089776457804,
+        "slopeY": -0.7652583627215787,
+        "support": 779,
+        "centroid": [
+          -0.43452509564178365,
+          -0.16136453183187374
+        ]
+      },
+      {
+        "id": 9,
+        "intercept": 1.823479839425932,
+        "slopeX": -2.4873023982212166,
+        "slopeY": -1.1938154878089318,
+        "support": 26,
+        "centroid": [
+          -0.31226199543031236,
+          -0.8469154607768474
+        ]
+      },
+      {
+        "id": 10,
+        "intercept": 1.803007434439266,
+        "slopeX": -3.0602215696110786,
+        "slopeY": -1.0402728495563314,
+        "support": 193,
+        "centroid": [
+          0.03980916226337664,
+          -0.322782537321089
+        ]
+      },
+      {
+        "id": 11,
+        "intercept": 1.6616099663351118,
+        "slopeX": -2.6137071496424022,
+        "slopeY": -1.2165941341806594,
+        "support": 109,
+        "centroid": [
+          0.31973839585793457,
+          -0.33281860296121335
+        ]
+      },
+      {
+        "id": 12,
+        "intercept": 1.8418685228921563,
+        "slopeX": -4.2918694294494815,
+        "slopeY": -0.5190249375219174,
+        "support": 32,
+        "centroid": [
+          0.03465346534653469,
+          0.11633663366336638
+        ]
+      },
+      {
+        "id": 13,
+        "intercept": 0.36674722148165834,
+        "slopeX": 0.4394114554150507,
+        "slopeY": 0.006109574257865183,
+        "support": 10,
+        "centroid": [
+          0.5544554455445546,
+          -0.24158415841584163
+        ]
+      },
+      {
+        "id": 14,
+        "intercept": 0.38340057548845136,
+        "slopeX": 0.39869171091273514,
+        "slopeY": -0.02389827133648459,
+        "support": 1468,
+        "centroid": [
+          1.2880729489842693,
+          0.9595327380149455
+        ]
+      },
+      {
+        "id": 15,
+        "intercept": 0.8476698184086466,
+        "slopeX": -0.6235113819657156,
+        "slopeY": 0.25005269053270723,
+        "support": 47,
+        "centroid": [
+          0.5106382978723407,
+          0.3716031177585846
+        ]
+      },
+      {
+        "id": 16,
+        "intercept": 0.9890672871666674,
+        "slopeX": -1.0700258037156876,
+        "slopeY": 0.4263739757611979,
+        "support": 332,
+        "centroid": [
+          0.600381724919479,
+          1.1078372897530726
+        ]
+      },
+      {
+        "id": 17,
+        "intercept": 1.0563928273677752,
+        "slopeX": -2.3712731867100705,
+        "slopeY": 0.8963315154519774,
+        "support": 206,
+        "centroid": [
+          0.41526482745361853,
+          1.2921272709795255
+        ]
+      },
+      {
+        "id": 18,
+        "intercept": 1.0892240383933638,
+        "slopeX": -1.452493515574211,
+        "slopeY": 0.6500980844596139,
+        "support": 509,
+        "centroid": [
+          0.03244568071738415,
+          1.360539983271408
+        ]
+      },
+      {
+        "id": 19,
+        "intercept": 1.3256304534774839,
+        "slopeX": -1.184046904590479,
+        "slopeY": 0.5440928824030491,
+        "support": 267,
+        "centroid": [
+          -0.529091111358326,
+          1.7127600400489496
+        ]
+      },
+      {
+        "id": 20,
+        "intercept": 0.15249547039709094,
+        "slopeX": 1.1278593789184543,
+        "slopeY": -0.3118347332781702,
+        "support": 13,
+        "centroid": [
+          0.9718202589489722,
+          1.6999238385376998
+        ]
+      }
+    ],
+    "adjacency": [
+      {
+        "a": 0,
+        "b": 1,
+        "boundaryLength": 1.2277227722772281,
+        "contacts": 31
+      },
+      {
+        "a": 0,
+        "b": 2,
+        "boundaryLength": 0.07920792079207921,
+        "contacts": 2
+      },
+      {
+        "a": 0,
+        "b": 8,
+        "boundaryLength": 3.089108910891091,
+        "contacts": 78
+      },
+      {
+        "a": 0,
+        "b": 19,
+        "boundaryLength": 1.465346534653466,
+        "contacts": 37
+      },
+      {
+        "a": 1,
+        "b": 2,
+        "boundaryLength": 0.7920792079207922,
+        "contacts": 20
+      },
+      {
+        "a": 2,
+        "b": 3,
+        "boundaryLength": 1.1089108910891092,
+        "contacts": 28
+      },
+      {
+        "a": 2,
+        "b": 8,
+        "boundaryLength": 0.7920792079207922,
+        "contacts": 20
+      },
+      {
+        "a": 3,
+        "b": 4,
+        "boundaryLength": 1.2673267326732678,
+        "contacts": 32
+      },
+      {
+        "a": 3,
+        "b": 8,
+        "boundaryLength": 0.07920792079207921,
+        "contacts": 2
+      },
+      {
+        "a": 3,
+        "b": 9,
+        "boundaryLength": 0.23762376237623764,
+        "contacts": 6
+      },
+      {
+        "a": 4,
+        "b": 5,
+        "boundaryLength": 1.7029702970297038,
+        "contacts": 43
+      },
+      {
+        "a": 4,
+        "b": 9,
+        "boundaryLength": 0.039603960396039604,
+        "contacts": 1
+      },
+      {
+        "a": 4,
+        "b": 10,
+        "boundaryLength": 0.5148514851485148,
+        "contacts": 13
+      },
+      {
+        "a": 5,
+        "b": 6,
+        "boundaryLength": 1.9405940594059417,
+        "contacts": 49
+      },
+      {
+        "a": 5,
+        "b": 10,
+        "boundaryLength": 0.039603960396039604,
+        "contacts": 1
+      },
+      {
+        "a": 5,
+        "b": 11,
+        "boundaryLength": 0.9108910891089111,
+        "contacts": 23
+      },
+      {
+        "a": 6,
+        "b": 7,
+        "boundaryLength": 2.8910891089108928,
+        "contacts": 73
+      },
+      {
+        "a": 6,
+        "b": 11,
+        "boundaryLength": 0.039603960396039604,
+        "contacts": 1
+      },
+      {
+        "a": 6,
+        "b": 13,
+        "boundaryLength": 0.07920792079207921,
+        "contacts": 2
+      },
+      {
+        "a": 7,
+        "b": 13,
+        "boundaryLength": 0.039603960396039604,
+        "contacts": 1
+      },
+      {
+        "a": 7,
+        "b": 14,
+        "boundaryLength": 2.297029702970298,
+        "contacts": 58
+      },
+      {
+        "a": 8,
+        "b": 9,
+        "boundaryLength": 0.8316831683168319,
+        "contacts": 21
+      },
+      {
+        "a": 8,
+        "b": 10,
+        "boundaryLength": 0.27722772277227725,
+        "contacts": 7
+      },
+      {
+        "a": 8,
+        "b": 12,
+        "boundaryLength": 0.9504950495049508,
+        "contacts": 24
+      },
+      {
+        "a": 8,
+        "b": 17,
+        "boundaryLength": 0.039603960396039604,
+        "contacts": 1
+      },
+      {
+        "a": 8,
+        "b": 18,
+        "boundaryLength": 1.1881188118811885,
+        "contacts": 30
+      },
+      {
+        "a": 8,
+        "b": 19,
+        "boundaryLength": 0.039603960396039604,
+        "contacts": 1
+      },
+      {
+        "a": 9,
+        "b": 10,
+        "boundaryLength": 0.5544554455445544,
+        "contacts": 14
+      },
+      {
+        "a": 10,
+        "b": 11,
+        "boundaryLength": 1.1089108910891092,
+        "contacts": 28
+      },
+      {
+        "a": 10,
+        "b": 12,
+        "boundaryLength": 0.9108910891089111,
+        "contacts": 23
+      },
+      {
+        "a": 10,
+        "b": 15,
+        "boundaryLength": 0.039603960396039604,
+        "contacts": 1
+      },
+      {
+        "a": 10,
+        "b": 16,
+        "boundaryLength": 0.3564356435643564,
+        "contacts": 9
+      },
+      {
+        "a": 11,
+        "b": 13,
+        "boundaryLength": 0.3564356435643564,
+        "contacts": 9
+      },
+      {
+        "a": 11,
+        "b": 14,
+        "boundaryLength": 0.07920792079207921,
+        "contacts": 2
+      },
+      {
+        "a": 11,
+        "b": 15,
+        "boundaryLength": 0.19801980198019803,
+        "contacts": 5
+      },
+      {
+        "a": 12,
+        "b": 16,
+        "boundaryLength": 0.039603960396039604,
+        "contacts": 1
+      },
+      {
+        "a": 12,
+        "b": 17,
+        "boundaryLength": 0.15841584158415842,
+        "contacts": 4
+      },
+      {
+        "a": 13,
+        "b": 14,
+        "boundaryLength": 0.396039603960396,
+        "contacts": 10
+      },
+      {
+        "a": 14,
+        "b": 15,
+        "boundaryLength": 1.2277227722772281,
+        "contacts": 31
+      },
+      {
+        "a": 14,
+        "b": 16,
+        "boundaryLength": 0.6336633663366337,
+        "contacts": 16
+      },
+      {
+        "a": 14,
+        "b": 20,
+        "boundaryLength": 0.7920792079207922,
+        "contacts": 20
+      },
+      {
+        "a": 15,
+        "b": 16,
+        "boundaryLength": 1.2277227722772281,
+        "contacts": 31
+      },
+      {
+        "a": 16,
+        "b": 17,
+        "boundaryLength": 2.2574257425742585,
+        "contacts": 57
+      },
+      {
+        "a": 16,
+        "b": 20,
+        "boundaryLength": 0.7524752475247526,
+        "contacts": 19
+      },
+      {
+        "a": 17,
+        "b": 18,
+        "boundaryLength": 1.9405940594059417,
+        "contacts": 49
+      },
+      {
+        "a": 18,
+        "b": 19,
+        "boundaryLength": 1.1881188118811885,
+        "contacts": 30
+      }
+    ],
+    "metrics": {
+      "mae": 0.0001484863217943268,
+      "rmse": 0.0018504541069685639,
+      "r2": 0.9999993986551745
+    }
+  },
+  "queryBudget": {
+    "rawOracleCalls": 51005,
+    "gridCells": 10201
+  },
+  "gates": {
+    "pass": true,
+    "recoveredAtLeast18Regions": true,
+    "recoveredDeepOnlyRegions": true,
+    "adjacencyAtLeast35": true,
+    "kinkCellBoundaryAtLeast850": true,
+    "maeBelow001": true,
+    "r2Above99999": true,
+    "beatsFirstLayerOnlyBy100x": true,
+    "beatsPlaneBy1000x": true
+  },
+  "runtimeMs": 34
+}

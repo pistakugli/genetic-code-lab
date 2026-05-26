@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-05-26T10:53:15.452Z",
+  "task": "fixed tanh MLP teacher output distillation",
+  "blackBox": {
+    "type": "3-input/3-hidden tanh MLP teacher",
+    "visibilityToGcl": "input-output only; weights are not passed to the solver"
+  },
+  "config": {
+    "stages": 4,
+    "population": 450,
+    "generations": 90,
+    "stagnationLimit": 40,
+    "seed": 4242
+  },
+  "rows": {
+    "train": 405,
+    "test": 256
+  },
+  "baselines": {
+    "linear": {
+      "coefficients": [
+        0.10381180496561669,
+        0.6615974501746631,
+        -0.5212208842843948,
+        0.43540302613357107
+      ],
+      "metrics": {
+        "mae": 0.32495630294098055,
+        "rmse": 0.38215008121626004,
+        "r2": 0.8774599275863244
+      }
+    }
+  },
+  "gcl": {
+    "stagesRequested": 4,
+    "stagesAccepted": 4,
+    "expression": "0.57531830 * ((add (add (add (add (add (add (add (mul const(0.3172760109531353) (sub x x1)) (mul const(0.3773204868457117) (add x x2))) (mul const(0.00003080244461619857) (div (mul x x1) (sqrt x1)))) (mul const(0.000027698347613278363) (div (cos x) (sqrt x1)))) (mul const(-0.000014235957392534995) (div (mul x1 x2) (sqrt (sub x x1))))) (mul const(0.2726750584394589) (sin (add (add (add (add (add (sin (add (add (add (add (add (add (add (mul const(0.3172760109531353) (sub x x1)) (mul const(-0.000023512951058430727) (add x1 x2))) (mul const(0.00003080244461619857) (div (mul x x1) (sqrt x1)))) (sub x (sin x1))) (div const(-0.000014235957392534995) (div x2 (sqrt x)))) (mul const(0.2726750584394589) (sin (sub const(0.3172760109531353) x1)))) (mul const(0.3773204868457117) (sin (add x x2)))) (mul const(-0.000023512951058430727) (div (sin x1) (sqrt x))))) (mul const(0.000027698347613278363) (div x2 (sqrt x1)))) (mul const(-0.000014235957392534995) (div (mul const(0.3773204868457117) x2) (sqrt x)))) (mul const(0.2726750584394589) (sin x))) (mul const(0.17102712163883932) (sin (add x x2)))) (mul const(-0.000023512951058430727) (div (sin x1) (sqrt x))))))) (mul const(0.17102712163883932) (sin (add x x2)))) (mul const(-0.000023512951058430727) (div (sin x1) (sqrt x))))) + 0.68923595 * ((add (add (add (add (add (add (add (mul const(-0.00002658484639095959) (div (sin x1) (sqrt x))) (mul const(0.1440008825886489) (add x x2))) (mul const(0.4757283718851092) (sin (sub x x1)))) (mul const(0.12228324515109568) (cos (add x1 (sin x2))))) (mul const(0.000029359629285642663) (div (mul x x1) (sqrt x)))) (mul const(0.18764009729765552) (cos (add const(1.0010943323667785) x)))) (mul const(0.12431514339447809) (sin (add x1 x2)))) (mul const(-0.000011695684105614602) (div (mul x1 x2) (sqrt (add const(0.12228324515109568) x)))))) + 1.1073061 * ((add (mul const(0.9942859524988662) (add (add (add (add (add (add (add (mul const(-0.000028279868062770277) (div (sin x1) (sqrt x))) (mul const(0.0000277960444390483) (div (mul x x1) (sqrt x)))) (mul const(0.12698641364827112) (sin (sub x x1)))) (mul const(-0.00001317836297536685) (div (mul x1 x2) (sqrt x)))) (mul const(0.09157578540712194) (sqrt (sqrt x2)))) (mul const(0.000010353232958282482) (div (mul x1 x2) (mul x x)))) (mul const(0.0000062975981031585324) (div (sqrt x1) (mul (sin (sub x x1)) x2)))) (mul const(0.03779739494632774) (sin (add x x2))))) (mul const(-0.003392153344614218) (sin x1)))) + 2.9584860 * ((add (mul const(0.9959325674179446) (add (add (add (add (add (add (add (mul const(0.000027267851653293964) (div (mul x x1) (sqrt x))) (mul const(-0.000015360792554476693) (div (mul x1 x2) (sqrt x)))) (mul const(-0.000019368536942012474) (div (sin x1) (sqrt x)))) (mul const(0.000012160868030459742) (div (mul x1 x2) (div x (sub const(0.000012160868030459742) (div (mul x1 x2) (div x x1))))))) (mul const(0.000005302483682172471) (div (mul x x1) (sqrt x2)))) (mul const(0.0000010987389994894852) (div (mul x1 x1) (sqrt x2)))) (mul const(0.000006162542017740873) (div x2 (sub x1 x)))) (mul const(-0.045061471136354725) (sin (add x x1))))) (mul const(-0.009270237554311698) (sub x1 x))))",
+    "featureUsage": {
+      "x": 43,
+      "x1": 42,
+      "x2": 24
+    },
+    "metrics": {
+      "mae": 0.21382258105179863,
+      "rmse": 0.31198709724592527,
+      "r2": 0.9183260637062951
+    },
+    "stages": [
+      {
+        "stage": 1,
+        "expression": "(add (add (add (add (add (add (add (mul const(0.3172760109531353) (sub x x1)) (mul const(0.3773204868457117) (add x x2))) (mul const(0.00003080244461619857) (div (mul x x1) (sqrt x1)))) (mul const(0.000027698347613278363) (div (cos x) (sqrt x1)))) (mul const(-0.000014235957392534995) (div (mul x1 x2) (sqrt (sub x x1))))) (mul const(0.2726750584394589) (sin (add (add (add (add (add (sin (add (add (add (add (add (add (add (mul const(0.3172760109531353) (sub x x1)) (mul const(-0.000023512951058430727) (add x1 x2))) (mul const(0.00003080244461619857) (div (mul x x1) (sqrt x1)))) (sub x (sin x1))) (div const(-0.000014235957392534995) (div x2 (sqrt x)))) (mul const(0.2726750584394589) (sin (sub const(0.3172760109531353) x1)))) (mul const(0.3773204868457117) (sin (add x x2)))) (mul const(-0.000023512951058430727) (div (sin x1) (sqrt x))))) (mul const(0.000027698347613278363) (div x2 (sqrt x1)))) (mul const(-0.000014235957392534995) (div (mul const(0.3773204868457117) x2) (sqrt x)))) (mul const(0.2726750584394589) (sin x))) (mul const(0.17102712163883932) (sin (add x x2)))) (mul const(-0.000023512951058430727) (div (sin x1) (sqrt x))))))) (mul const(0.17102712163883932) (sin (add x x2)))) (mul const(-0.000023512951058430727) (div (sin x1) (sqrt x))))",
+        "coefficient": 0.5753182957020311,
+        "fitness": 0.9210645074564405,
+        "generationsRun": 90,
+        "trainResidualMaeBefore": 0.965651609822673,
+        "trainResidualMaeAfter": 0.48123680386623513,
+        "validationResidualMaeBefore": 1.2561423489328905,
+        "validationResidualMaeAfter": 0.7330511883223316,
+        "accepted": true
+      },
+      {
+        "stage": 2,
+        "expression": "(add (add (add (add (add (add (add (mul const(-0.00002658484639095959) (div (sin x1) (sqrt x))) (mul const(0.1440008825886489) (add x x2))) (mul const(0.4757283718851092) (sin (sub x x1)))) (mul const(0.12228324515109568) (cos (add x1 (sin x2))))) (mul const(0.000029359629285642663) (div (mul x x1) (sqrt x)))) (mul const(0.18764009729765552) (cos (add const(1.0010943323667785) x)))) (mul const(0.12431514339447809) (sin (add x1 x2)))) (mul const(-0.000011695684105614602) (div (mul x1 x2) (sqrt (add const(0.12228324515109568) x)))))",
+        "coefficient": 0.689235952737991,
+        "fitness": 0.9318970671336854,
+        "generationsRun": 90,
+        "trainResidualMaeBefore": 0.48123680386623513,
+        "trainResidualMaeAfter": 0.32190993292829834,
+        "validationResidualMaeBefore": 0.7330511883223316,
+        "validationResidualMaeAfter": 0.46036981301942287,
+        "accepted": true
+      },
+      {
+        "stage": 3,
+        "expression": "(add (mul const(0.9942859524988662) (add (add (add (add (add (add (add (mul const(-0.000028279868062770277) (div (sin x1) (sqrt x))) (mul const(0.0000277960444390483) (div (mul x x1) (sqrt x)))) (mul const(0.12698641364827112) (sin (sub x x1)))) (mul const(-0.00001317836297536685) (div (mul x1 x2) (sqrt x)))) (mul const(0.09157578540712194) (sqrt (sqrt x2)))) (mul const(0.000010353232958282482) (div (mul x1 x2) (mul x x)))) (mul const(0.0000062975981031585324) (div (sqrt x1) (mul (sin (sub x x1)) x2)))) (mul const(0.03779739494632774) (sin (add x x2))))) (mul const(-0.003392153344614218) (sin x1)))",
+        "coefficient": 1.1073061335060008,
+        "fitness": 0.9386159850417893,
+        "generationsRun": 90,
+        "trainResidualMaeBefore": 0.32190993292829834,
+        "trainResidualMaeAfter": 0.25359287234655425,
+        "validationResidualMaeBefore": 0.46036981301942287,
+        "validationResidualMaeAfter": 0.39448546430513276,
+        "accepted": true
+      },
+      {
+        "stage": 4,
+        "expression": "(add (mul const(0.9959325674179446) (add (add (add (add (add (add (add (mul const(0.000027267851653293964) (div (mul x x1) (sqrt x))) (mul const(-0.000015360792554476693) (div (mul x1 x2) (sqrt x)))) (mul const(-0.000019368536942012474) (div (sin x1) (sqrt x)))) (mul const(0.000012160868030459742) (div (mul x1 x2) (div x (sub const(0.000012160868030459742) (div (mul x1 x2) (div x x1))))))) (mul const(0.000005302483682172471) (div (mul x x1) (sqrt x2)))) (mul const(0.0000010987389994894852) (div (mul x1 x1) (sqrt x2)))) (mul const(0.000006162542017740873) (div x2 (sub x1 x)))) (mul const(-0.045061471136354725) (sin (add x x1))))) (mul const(-0.009270237554311698) (sub x1 x)))",
+        "coefficient": 2.958486049942511,
+        "fitness": 0.9450785372916269,
+        "generationsRun": 90,
+        "trainResidualMaeBefore": 0.25359287234655425,
+        "trainResidualMaeAfter": 0.2331260441160478,
+        "validationResidualMaeBefore": 0.39448546430513276,
+        "validationResidualMaeAfter": 0.3485771189398282,
+        "accepted": true
+      }
+    ]
+  },
+  "gates": {
+    "pass": true,
+    "beatsLinearBy20Percent": true,
+    "r2Above085": true
+  },
+  "runtimeMs": 19929
+}

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:54:03.108Z",
+  "lane": "nn-noisy-blackbox-relu3d-decompile",
+  "variant": "smoke",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-noisy-blackbox-relu3d-decompile.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-noisy-blackbox-relu3d-decompile",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-noisy-blackbox-relu3d-decompile/smoke/report.json",
+    "reportMarkdown": "benchmarks/release/nn-noisy-blackbox-relu3d-decompile/smoke/report.md",
+    "manifest": "benchmarks/release/nn-noisy-blackbox-relu3d-decompile/smoke/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "terms": 3,
+    "mae": 0.00028232076982607715,
+    "r2": 0.9999999102709146,
+    "maxDeltaError": 0.0004460461446891273,
+    "maxAlphaYError": 0.00016852573069658927,
+    "maxAlphaZError": 0.0007093441718995508,
+    "maxBetaError": 0.00022297219013078795
+  },
+  "notes": [
+    "This benchmark tests 3D black-box ReLU hyperplane stitching from repeated noisy and quantized oracle calls only.",
+    "It recovers non-vertical hyperplanes visible through z-indexed noisy 2D slices, not arbitrary high-dimensional, deep, or production API decompilation."
+  ]
+}

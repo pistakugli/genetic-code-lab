@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-05-26T10:54:01.551Z",
+  "task": "noise-tolerant 2D black-box ReLU circuit decompilation",
+  "blackBox": {
+    "type": "2-input/3-hidden non-crossing non-vertical ReLU MLP teacher with noisy quantized oracle",
+    "visibilityToGcl": "oracle calls only: repeated noisy f(x,y), no hidden activations and no teacher weights"
+  },
+  "profile": "non-crossing",
+  "noise": {
+    "seed": 260524,
+    "noiseStd": 0.01,
+    "quantization": 0.0025,
+    "querySamples": 25,
+    "aggregation": "median"
+  },
+  "config": {
+    "xRange": [
+      -3,
+      3
+    ],
+    "yRange": [
+      -1.5,
+      1.5
+    ],
+    "samplesPerSlice": 321,
+    "testRows": 2745,
+    "maxTerms": 3
+  },
+  "auditTeacherCircuit": {
+    "bias": 0.2,
+    "base": [
+      0.3,
+      -0.15
+    ],
+    "hidden": [
+      {
+        "alphaY": -0.35,
+        "beta": -1.25,
+        "readout": 0.9
+      },
+      {
+        "alphaY": 0.25,
+        "beta": 0.15,
+        "readout": -0.55
+      },
+      {
+        "alphaY": -0.15,
+        "beta": 1.25,
+        "readout": 0.35
+      }
+    ]
+  },
+  "baselines": {
+    "plane": {
+      "expression": "1.264580413768836 + 0.8353780824330508 * x + 0.15556190283750432 * y",
+      "metrics": {
+        "mae": 0.1838771444547356,
+        "rmse": 0.2363100430605352,
+        "r2": 0.9724288684313305
+      }
+    }
+  },
+  "gcl": {
+    "expression": "0.200289327 + 0.3000990737 * x + -0.1505816989 * y + 0.8993241673 * max(0, x + 0.3502862537 * y + 1.250020355) + -0.5496739539 * max(0, x - 0.2504428012 * y - 0.1502571277) + 0.3500862165 * max(0, x + 0.150899179 * y - 1.249938713)",
+    "baseIntercept": 0.20028932698736027,
+    "baseSlopeX": 0.3000990737482599,
+    "baseSlopeY": -0.15058169894692094,
+    "terms": [
+      {
+        "alphaY": -0.350286253690116,
+        "beta": -1.2500203551097366,
+        "deltaSlopeX": 0.8993241672863378,
+        "support": 13
+      },
+      {
+        "alphaY": 0.2504428011535159,
+        "beta": 0.1502571277495435,
+        "deltaSlopeX": -0.5496739538858993,
+        "support": 13
+      },
+      {
+        "alphaY": -0.1508991789921732,
+        "beta": 1.2499387130373543,
+        "deltaSlopeX": 0.3500862165306735,
+        "support": 13
+      }
+    ],
+    "metrics": {
+      "mae": 0.0005994631506945556,
+      "rmse": 0.0006836764119056478,
+      "r2": 0.999999769223584
+    }
+  },
+  "gates": {
+    "pass": true,
+    "maxDeltaError": 0.0006758327136622277,
+    "maxAlphaError": 0.0008991789921732052,
+    "maxBetaError": 0.0002571277495435065,
+    "allKinkLinesRecoveredWithin008": true,
+    "maeBelow004": true,
+    "r2Above0998": true,
+    "beatsPlaneBy80Percent": true
+  },
+  "runtimeMs": 139
+}

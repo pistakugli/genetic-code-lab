@@ -1,0 +1,216 @@
+{
+  "generatedAt": "2026-05-26T10:50:15.801Z",
+  "benchmark": "archive-emergence",
+  "task": {
+    "name": "Closed-loop bivariate fragment composition",
+    "formula": "0.7*sin(x0) + 1.3*x1*x1 - 0.4*x0*x1",
+    "trainCases": 110,
+    "testCases": 156
+  },
+  "budget": {
+    "seeds": [
+      3,
+      9,
+      11
+    ],
+    "populationSize": 160,
+    "generations": 100,
+    "successLift": 1.1,
+    "note": "Positive-use-case gate. Runs the real EvolutionEngine twice per seed with regression basis seed disabled. Archive-off leaves the semantic refiner active but disables cross-generation archive injection; archive-on enables archive recording and candidate injection."
+  },
+  "summary": {
+    "successRate": 1,
+    "meanOffMae": 0.3052948890471255,
+    "meanOnMae": 0.24159056549518865,
+    "meanLiftRatio": 1.8303750896571016,
+    "totalArchiveInjections": 17
+  },
+  "pairs": [
+    {
+      "seed": 3,
+      "off": {
+        "mode": "archive-off",
+        "seed": 3,
+        "metrics": {
+          "mae": 0.32639676057490313,
+          "rmse": 0.5163470313544745,
+          "r2": 0.9346332402022128,
+          "maxAbsError": 2.143573546342939
+        },
+        "runtimeMs": 983.712158,
+        "generationsRun": 100,
+        "fitness": 0.8516309229688823,
+        "archive": {
+          "recordCycles": 0,
+          "injectionAttempts": 0,
+          "injectionSuccesses": 0,
+          "size": 0,
+          "retainedKeys": []
+        }
+      },
+      "on": {
+        "mode": "archive-on",
+        "seed": 3,
+        "metrics": {
+          "mae": 0.2694343304376024,
+          "rmse": 0.4027041502715768,
+          "r2": 0.9602400527334543,
+          "maxAbsError": 1.7885427996166374
+        },
+        "runtimeMs": 1101.624425,
+        "generationsRun": 100,
+        "fitness": 0.8733900403541427,
+        "archive": {
+          "recordCycles": 12,
+          "injectionAttempts": 12,
+          "injectionSuccesses": 2,
+          "size": 256,
+          "retainedKeys": [
+            "mul(mul(sin(x1),add(x1,x1)),cos(div(cos(x0),add(x1,x1))))",
+            "mul(sin(x1),add(x1,x1))",
+            "cos(div(cos(x0),add(x1,x1)))",
+            "x0",
+            "add(add(add(add(mul(c:1.4578462,mul(mul(sin(x1),add(x1,x1)),cos(div(cos(x0),add(x1,x1))))),mul(c:0.40902086,x0)),mul(c:-0.38620843,cos(div(cos(x0),add(x1,x1))))),mul(c:-0.52057179,mul(sin(x1),add(x1,x0)))),mul(c:0.11402916,cos(mul(sin(x1),add(x1,x1)))))",
+            "add(add(add(mul(c:1.5779048,mul(mul(sin(x1),add(x1,x1)),cos(div(x1,add(x1,x1))))),mul(c:0.41464586,x0)),mul(c:-0.33015374,cos(div(cos(x0),add(x1,x1))))),mul(c:-0.51494679,mul(sin(x1),add(x1,x0))))",
+            "add(add(add(mul(c:1.3887642,mul(mul(sin(x1),add(x1,x1)),cos(div(cos(x0),add(x1,x1))))),mul(c:0.40269273,x0)),mul(c:-0.30675531,cos(div(cos(x0),add(x1,x1))))),mul(c:-0.51345265,mul(sin(x1),add(x1,x0))))",
+            "add(add(add(add(mul(c:1.5779048,mul(mul(sin(x1),add(x1,x1)),cos(div(x1,add(x1,x1))))),mul(c:0.41464586,x0)),mul(c:-0.33015374,cos(div(cos(x0),add(x1,x1))))),mul(c:-0.51494679,mul(sin(x1),add(x1,x0)))),mul(c:-0.17229896,cos(x0)))",
+            "add(add(add(add(mul(c:1.3887642,mul(mul(sin(x1),add(x1,x1)),cos(div(cos(x0),add(x1,x1))))),mul(c:0.40269273,x0)),mul(c:-0.30675531,cos(div(cos(x0),add(x1,x1))))),mul(c:-0.51345265,mul(sin(x1),add(x1,x0)))),mul(c:0.028413927,cos(x0)))",
+            "add(add(add(mul(c:1.4578462,mul(mul(sin(x1),add(x1,x1)),cos(div(cos(x0),add(x1,x1))))),mul(c:0.40902086,x0)),mul(c:-0.38620843,cos(div(cos(x0),add(x1,x1))))),mul(c:-0.52057179,mul(sin(x1),add(x1,x0))))",
+            "add(add(add(add(mul(c:1.4838110,mul(mul(sin(x1),add(x1,x1)),cos(div(cos(x0),add(x1,x1))))),mul(c:0.42519664,x0)),mul(c:-0.24855902,cos(div(cos(x0),add(x1,x1))))),mul(c:-0.56599757,mul(sin(x1),add(x1,x0)))),mul(c:0.31258678,cos(add(sin(x1),add(x1,x1)))))",
+            "add(mul(c:1.0203696,add(add(add(add(mul(c:1.4587954,mul(mul(sin(x1),add(x1,x1)),cos(div(c:0.81487099,add(x1,x1))))),mul(c:0.43269224,x0)),c:-0.19251361),mul(c:-0.55574959,mul(sin(sub(add(x1,x0),x0)),add(x1,x0)))),mul(c:0.68325021,cos(add(sin(x1),add(x1,x1)))))),mul(c:0.29905014,cos(div(c:1.0196850,add(x1,x1)))))",
+            "add(add(add(add(mul(c:1.4823189,mul(mul(sin(x1),add(x1,x1)),cos(div(c:0.81089514,add(x1,x1))))),mul(c:0.40631383,x0)),c:-0.16342201),mul(c:-0.55042726,mul(sin(x1),add(x1,x0)))),mul(c:0.46107311,cos(add(sin(x1),add(x1,x1)))))",
+            "mul(c:1.0397936,add(add(add(add(mul(c:1.4823189,mul(mul(sin(x1),add(x1,x1)),cos(div(c:0.81089514,add(x1,x1))))),mul(c:0.40631383,x0)),c:-0.16342201),mul(c:-0.55042726,mul(sin(x1),add(x1,x0)))),mul(c:0.46107311,cos(add(sin(x1),add(x1,x1))))))",
+            "add(add(add(add(mul(c:1.5014048,mul(mul(sin(x1),add(x1,x1)),cos(div(c:0.66897326,add(x1,x1))))),mul(c:0.41257164,x0)),mul(c:-0.25702777,cos(div(x1,add(x1,x1))))),mul(c:-0.55537257,mul(sin(x1),add(x1,x0)))),mul(c:0.48243053,cos(add(sin(x1),add(x1,x1)))))",
+            "add(add(add(add(mul(c:1.4615220,mul(mul(sin(x1),add(x1,x1)),cos(div(c:0.81448817,add(x1,x1))))),mul(c:0.42923912,x0)),c:-0.19213861),mul(c:-0.55808563,mul(sin(x1),add(x1,x0)))),mul(c:0.65135959,cos(add(sin(x1),add(x1,x1)))))"
+          ]
+        }
+      },
+      "liftRatio": 1.2114148929900102,
+      "success": true
+    },
+    {
+      "seed": 9,
+      "off": {
+        "mode": "archive-off",
+        "seed": 9,
+        "metrics": {
+          "mae": 0.06416885381733621,
+          "rmse": 0.09867991334962564,
+          "r2": 0.9976125674664088,
+          "maxAbsError": 0.34413487161285516
+        },
+        "runtimeMs": 951.944747,
+        "generationsRun": 100,
+        "fitness": 0.9675445749123461,
+        "archive": {
+          "recordCycles": 0,
+          "injectionAttempts": 0,
+          "injectionSuccesses": 0,
+          "size": 0,
+          "retainedKeys": []
+        }
+      },
+      "on": {
+        "mode": "archive-on",
+        "seed": 9,
+        "metrics": {
+          "mae": 0.020898360543109406,
+          "rmse": 0.0348241585586744,
+          "r2": 0.9997026726556442,
+          "maxAbsError": 0.12650568944126928
+        },
+        "runtimeMs": 873.000543,
+        "generationsRun": 100,
+        "fitness": 0.9922978602181961,
+        "archive": {
+          "recordCycles": 12,
+          "injectionAttempts": 12,
+          "injectionSuccesses": 3,
+          "size": 223,
+          "retainedKeys": [
+            "add(mul(cos(cos(div(sub(x0,mul(sin(x1),add(mul(x1,x1),x1))),x1))),sin(add(c:6.4995037,sin(sin(x0))))),mul(x1,x1))",
+            "add(mul(cos(cos(div(sub(x0,mul(sin(x1),add(mul(x1,x1),x1))),x1))),sin(x0)),mul(x1,x1))",
+            "mul(x1,x1)",
+            "add(mul(x1,x1),x1)",
+            "x0",
+            "mul(cos(cos(div(sub(x0,mul(sin(x1),add(mul(x1,x1),x1))),x1))),sin(add(c:6.4995037,sin(sin(x0)))))",
+            "sin(sin(x0))",
+            "mul(cos(cos(div(sub(x0,mul(sin(x1),add(mul(x1,x1),x1))),x1))),sin(x0))",
+            "add(mul(c:0.83702361,add(add(mul(c:1.2806095,add(mul(c:0.78675108,sin(x0)),mul(x1,x1))),mul(c:-0.43408192,div(mul(x0,mul(sin(x1),x1)),x1))),mul(c:-0.39462991,sin(x0)))),mul(c:-0.11365747,mul(x0,mul(sin(x1),mul(x1,x1)))))",
+            "add(add(mul(c:1.2686334,add(mul(cos(cos(div(sub(x0,mul(sin(x1),add(mul(x1,x1),x1))),x1))),sin(x0)),mul(x1,x1))),mul(c:-0.53258284,div(mul(x0,mul(sin(x1),x1)),x1))),mul(c:-0.29456697,sin(x0)))",
+            "add(c:6.4995037,sin(sin(x0)))",
+            "add(mul(c:1.2659141,add(mul(cos(cos(div(sub(x0,mul(sin(x1),add(mul(x1,x1),x1))),x1))),sin(x0)),mul(x1,x1))),mul(c:-0.50252425,div(mul(x0,mul(sin(x1),add(cos(cos(add(c:1.2659141,x0))),x1))),x1)))",
+            "add(mul(c:1.2686334,add(mul(cos(cos(div(sub(x0,mul(sin(x1),add(mul(x1,x1),x1))),x1))),sin(x0)),mul(x1,x1))),mul(c:-0.53258284,div(mul(x0,mul(sin(x1),x1)),x1)))",
+            "add(mul(c:0.83702434,add(add(mul(c:1.2806104,add(mul(c:0.78675108,sin(x0)),mul(x1,x1))),mul(c:-0.43408114,div(mul(x0,mul(sin(x1),x1)),x1))),mul(c:-0.39451839,sin(x0)))),mul(c:-0.11365762,mul(x0,mul(sin(x1),mul(x1,x1)))))",
+            "sin(x0)",
+            "sin(add(c:6.4995037,sin(sin(x0))))"
+          ]
+        }
+      },
+      "liftRatio": 3.0705209475627466,
+      "success": true
+    },
+    {
+      "seed": 11,
+      "off": {
+        "mode": "archive-off",
+        "seed": 11,
+        "metrics": {
+          "mae": 0.525319052749137,
+          "rmse": 0.9416799964066672,
+          "r2": 0.7825896181305638,
+          "maxAbsError": 5.197249314751731
+        },
+        "runtimeMs": 1021.022568,
+        "generationsRun": 100,
+        "fitness": 0.7880213818790803,
+        "archive": {
+          "recordCycles": 0,
+          "injectionAttempts": 0,
+          "injectionSuccesses": 0,
+          "size": 0,
+          "retainedKeys": []
+        }
+      },
+      "on": {
+        "mode": "archive-on",
+        "seed": 11,
+        "metrics": {
+          "mae": 0.4344390055048542,
+          "rmse": 0.8541561070882159,
+          "r2": 0.8211256413872791,
+          "maxAbsError": 5.200521232800163
+        },
+        "runtimeMs": 693.402273,
+        "generationsRun": 100,
+        "fitness": 0.8892312093581953,
+        "archive": {
+          "recordCycles": 12,
+          "injectionAttempts": 12,
+          "injectionSuccesses": 12,
+          "size": 218,
+          "retainedKeys": [
+            "mul(mul(div(x1,x0),add(sin(x1),sin(x1))),x0)",
+            "mul(mul(div(x1,x0),add(sin(sub(x1,c:0.39143807)),sin(x1))),x0)",
+            "mul(mul(div(x1,x0),x1),x0)",
+            "x0",
+            "add(add(mul(c:1.2997902,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:0.013565126,x0),x1),x0),add(mul(c:-0.53705749,mul(mul(div(x1,x0),mul(div(c:0.013565126,x0),x1)),x0)),mul(c:-0.00067569682,x0)))),x1))),mul(c:0.43518368,x0))",
+            "add(add(mul(c:1.2998029,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:0.013565126,x0),x1),x0),add(mul(c:-0.53705749,mul(mul(div(x1,x0),mul(div(c:0.013565126,x0),x1)),x0)),mul(c:-0.00067569682,x0)))),x1))),mul(c:0.43518368,x0))",
+            "add(add(mul(c:1.3001541,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:0.013682314,x0),x1),x0),add(mul(c:-0.52018249,mul(mul(div(x1,x0),mul(div(c:0.013682314,x0),x1)),x0)),mul(c:-0.00079288432,x0)))),x1))),mul(c:0.43799618,x0))",
+            "add(mul(c:1.2997902,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:0.013565126,x0),x1),x0),add(mul(c:-0.53705749,mul(mul(div(x1,x0),mul(div(c:0.013565126,x0),x1)),x0)),mul(c:-0.00067569682,x0)))),x1)))",
+            "add(mul(c:1.2998029,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:0.013565126,x0),x1),x0),add(mul(c:-0.53705749,mul(mul(div(x1,x0),mul(div(c:0.013565126,x0),x1)),x0)),mul(c:-0.00067569682,x0)))),x1)))",
+            "add(mul(c:1.3001541,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:0.013682314,x0),x1),x0),add(mul(c:-0.52018249,mul(mul(div(x1,x0),mul(div(c:0.013682314,x0),x1)),x0)),mul(c:-0.00079288432,x0)))),x1)))",
+            "add(add(mul(c:1.3001541,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:-0.012489561,x0),x1),x0),add(mul(c:-0.42127624,mul(div(c:-0.012489561,x0),x1)),mul(c:0.019402428,x0)))),x1))),mul(c:0.49174618,x0))",
+            "add(mul(c:1.3001541,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:-0.012489561,x0),x1),x0),add(mul(c:-0.42127624,mul(div(c:-0.012489561,x0),x1)),mul(c:0.019402428,x0)))),x1)))",
+            "add(add(mul(c:1.3001541,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,x0),x1))),mul(c:0.46518368,x0))",
+            "add(add(mul(c:1.3051541,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,x0),x1))),mul(c:0.46517680,x0))",
+            "add(add(mul(c:1.3103416,mul(mul(div(x1,x0),x1),x0)),mul(c:0.00013000943,mul(div(x1,mul(mul(mul(div(c:0.012565126,x0),x1),x0),add(mul(c:-1.4219585,mul(mul(div(x1,x0),div(div(c:0.012565126,x1),x1)),x1)),mul(c:0.00032430318,x1)))),x1))),mul(c:0.46330868,x0))",
+            "mul(c:-19.881776,mul(mul(c:0.0000065541530,x1),x1))"
+          ]
+        }
+      },
+      "liftRatio": 1.2091894284185478,
+      "success": true
+    }
+  ]
+}

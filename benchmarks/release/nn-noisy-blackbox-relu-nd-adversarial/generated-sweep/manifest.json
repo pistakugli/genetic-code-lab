@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:53:51.836Z",
+  "lane": "nn-noisy-blackbox-relu-nd-adversarial",
+  "variant": "generated-sweep",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-noisy-blackbox-relu-nd-adversarial.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-noisy-blackbox-relu-nd-adversarial",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-noisy-blackbox-relu-nd-adversarial/generated-sweep/report.json",
+    "reportMarkdown": "benchmarks/release/nn-noisy-blackbox-relu-nd-adversarial/generated-sweep/report.md",
+    "manifest": "benchmarks/release/nn-noisy-blackbox-relu-nd-adversarial/generated-sweep/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 4,
+    "passedTeachers": 4,
+    "profiles": [
+      "near-parallel",
+      "offset-collision",
+      "low-amplitude",
+      "oblique-weak-support"
+    ],
+    "dimensions": [
+      4,
+      5
+    ],
+    "maxMae": 0.0008970392040552175,
+    "minR2": 0.9999937818210483,
+    "maxLinearMae": 0.3095276108024665,
+    "maxPlaneError": 0.006256808745416724,
+    "minKinkPointCount": 339,
+    "minTermSupport": 75,
+    "totalRawOracleCalls": 3775200,
+    "maxRawOracleCallsPerTeacher": 1275230
+  },
+  "notes": [
+    "This benchmark broadens noisy ND line-probe proof from a fixed seed sweep to generated adversarial shallow-ReLU profiles.",
+    "The solver receives only repeated noisy f(vector) samples; no teacher weights or hidden activations are passed to GCL."
+  ]
+}

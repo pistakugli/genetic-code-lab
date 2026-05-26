@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:53:58.989Z",
+  "lane": "nn-noisy-blackbox-relu-nd-adaptive-adversary",
+  "variant": "adaptive-search",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-noisy-blackbox-relu-nd-adaptive-adversary.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-noisy-blackbox-relu-nd-adaptive-adversary",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-noisy-blackbox-relu-nd-adaptive-adversary/adaptive-search/report.json",
+    "reportMarkdown": "benchmarks/release/nn-noisy-blackbox-relu-nd-adaptive-adversary/adaptive-search/report.md",
+    "manifest": "benchmarks/release/nn-noisy-blackbox-relu-nd-adaptive-adversary/adaptive-search/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 4,
+    "passedTeachers": 4,
+    "profiles": [
+      "mixed",
+      "mixed",
+      "near-parallel",
+      "near-parallel"
+    ],
+    "dimensions": [
+      4,
+      5
+    ],
+    "maxDifficultyScore": 50.13859806164727,
+    "minDifficultyScore": 40.48103390342163,
+    "maxMae": 0.0016959558489471093,
+    "minR2": 0.9998286294723496,
+    "maxLinearMae": 0.20354883441943708,
+    "maxPlaneError": 0.008612701190351582,
+    "minKinkPointCount": 366,
+    "minTermSupport": 72,
+    "totalRawOracleCalls": 3708980,
+    "maxRawOracleCallsPerTeacher": 1275230
+  },
+  "notes": [
+    "This benchmark selects hard noisy ND shallow-ReLU teachers from an adaptive adversarial candidate pool before running the solver.",
+    "The solver receives only repeated noisy f(vector) samples; no teacher weights or hidden activations are passed to GCL."
+  ]
+}

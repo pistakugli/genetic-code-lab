@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T11:07:37.699Z",
+  "lane": "nn-noisy-deep-blackbox-relu2d-region-graph",
+  "variant": "seed-sweep",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-noisy-deep-blackbox-relu2d-region-graph.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-noisy-deep-blackbox-relu2d-region-graph",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-noisy-deep-blackbox-relu2d-region-graph/seed-sweep/report.json",
+    "reportMarkdown": "benchmarks/release/nn-noisy-deep-blackbox-relu2d-region-graph/seed-sweep/report.md",
+    "manifest": "benchmarks/release/nn-noisy-deep-blackbox-relu2d-region-graph/seed-sweep/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 2,
+    "passedTeachers": 2,
+    "seeds": [
+      29,
+      83
+    ],
+    "minRegionCount": 125,
+    "minDeepOnlyRegionCount": 120,
+    "minAdjacencyEdges": 304,
+    "minKinkCellBoundaryCount": 2061,
+    "maxMae": 0.002394670345958939,
+    "minR2": 0.9999458398613055,
+    "maxPlaneMae": 0.9955250371622982,
+    "maxFirstLayerOnlyMae": 0.22297945356819124,
+    "totalRawOracleCalls": 1377810,
+    "maxRawOracleCallsPerTeacher": 688905
+  },
+  "notes": [
+    "This benchmark is the first noisy/quantized deep folded 2D region-graph recovery lane.",
+    "The solver receives repeated noisy f(x,y) oracle calls only; no teacher weights, layer widths, or hidden activations are passed to GCL."
+  ]
+}

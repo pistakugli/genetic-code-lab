@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T11:07:41.435Z",
+  "lane": "nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph",
+  "variant": "adaptive-search",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph/adaptive-search/report.json",
+    "reportMarkdown": "benchmarks/release/nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph/adaptive-search/report.md",
+    "manifest": "benchmarks/release/nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph/adaptive-search/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "poolSize": 12,
+    "selectedCount": 4,
+    "passedCandidates": 12,
+    "selectedPassed": 4,
+    "profiles": {
+      "near-parallel-fold": 2,
+      "offset-collision-fold": 2,
+      "cancellation-fold": 2,
+      "low-amplitude-fold": 2,
+      "boundary-grazing-fold": 2,
+      "mixed-oblique-fold": 2
+    },
+    "selectedProfiles": [
+      "boundary-grazing-fold",
+      "near-parallel-fold",
+      "offset-collision-fold"
+    ],
+    "selectedTeacherIds": [
+      "adaptive-deep-2d-offset-collision-fold-260698",
+      "adaptive-deep-2d-boundary-grazing-fold-260989",
+      "adaptive-deep-2d-near-parallel-fold-260601",
+      "adaptive-deep-2d-offset-collision-fold-261280"
+    ],
+    "poolFailures": [],
+    "selectedFailures": [],
+    "minSelectedRegionCount": 75,
+    "minSelectedDeepOnlyRegionCount": 70,
+    "minSelectedAdjacencyEdges": 246,
+    "minSelectedKinkCellBoundaryCount": 1984,
+    "maxSelectedMae": 0.006061807867996213,
+    "minSelectedR2": 0.9989576605269184,
+    "maxSelectedFirstLayerOnlyMae": 0.06812229480717275,
+    "maxSelectedPlaneMae": 0.3922917064513333,
+    "maxSelectedFirstLayerMaeRatio": 0.12621348237546748,
+    "maxSelectedPlaneMaeRatio": 0.021423702003724152,
+    "totalRawOracleCalls": 9313740,
+    "maxRawOracleCallsPerCandidate": 1005780,
+    "refinedCandidates": 8,
+    "maxSelectedDifficultyScore": 20.33088669894025,
+    "minSelectedDifficultyScore": 17.053990498986522
+  },
+  "notes": [
+    "This benchmark makes hard-case selection adaptive: the generated candidate pool is screened, hard/failing cases receive refined probing, the hardest cases are selected, and any final candidate failure fails the benchmark.",
+    "The solver receives only repeated noisy f(x,y) oracle calls; no teacher weights, layer widths, hidden activations, or adversarial profile labels are passed to GCL."
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T11:07:36.099Z",
+  "lane": "nn-deep-blackbox-relu2d-region-graph-randomized",
+  "variant": "seed-sweep",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-deep-blackbox-relu2d-region-graph-randomized.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-deep-blackbox-relu2d-region-graph:randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-deep-blackbox-relu2d-region-graph-randomized/seed-sweep/report.json",
+    "reportMarkdown": "benchmarks/release/nn-deep-blackbox-relu2d-region-graph-randomized/seed-sweep/report.md",
+    "manifest": "benchmarks/release/nn-deep-blackbox-relu2d-region-graph-randomized/seed-sweep/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 4,
+    "passedTeachers": 4,
+    "seeds": [
+      11,
+      29,
+      47,
+      83
+    ],
+    "minRegionCount": 20,
+    "minDeepOnlyRegionCount": 15,
+    "minAdjacencyEdges": 40,
+    "minKinkCellBoundaryCount": 839,
+    "maxMae": 0.00018896210525840208,
+    "minR2": 0.9999965825698692,
+    "maxPlaneMae": 0.9954580934841456,
+    "maxFirstLayerOnlyMae": 0.22314525767873503,
+    "totalRawOracleCalls": 204020,
+    "maxRawOracleCallsPerTeacher": 51005
+  },
+  "notes": [
+    "This benchmark broadens the deep/folded 2D region-graph lane from one fixed teacher to a deterministic randomized seed sweep.",
+    "The solver receives only f(x,y) oracle calls; no teacher weights, layer widths, or hidden activations are passed to GCL."
+  ]
+}

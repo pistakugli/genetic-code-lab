@@ -1,0 +1,251 @@
+{
+  "generatedAt": "2026-05-26T10:54:12.129Z",
+  "task": "noisy 3D black-box ReLU near-collision/cancellation hard-case recovery",
+  "blackBox": {
+    "type": "3-input/3-hidden ReLU MLP teachers with close opposite-sign kink pairs, stochastic output noise, and quantization",
+    "visibilityToGcl": "oracle calls only: repeated noisy f(x,y,z), no hidden activations and no teacher weights"
+  },
+  "claimScope": {
+    "proves": "transparent output-equivalent symbolic 3D ReLU surface recovery on noisy near-cancellation cases that break slice-only stitching",
+    "doesNotClaim": "unique recovery of the original hidden-unit parameterization for cancelling near-collision pairs; equivalent circuits can be functionally indistinguishable under noisy black-box outputs"
+  },
+  "noise": {
+    "noiseStd": 0.005,
+    "quantization": 0.002,
+    "querySamples": 15,
+    "aggregation": "median"
+  },
+  "config": {
+    "xRange": [
+      -3,
+      3
+    ],
+    "yRange": [
+      -1.35,
+      1.35
+    ],
+    "zRange": [
+      -1.15,
+      1.15
+    ],
+    "restarts": 96,
+    "testRowsPerTeacher": 4095
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 2,
+    "passedTeachers": 2,
+    "maxRefinedMae": 0.002460569507680907,
+    "minRefinedR2": 0.9998556667060545,
+    "maxSliceOnlyMae": 0.09238225180212382,
+    "maxLinearMae": 0.2418874721820714,
+    "worstRefinedVsSliceRatio": 0.030106170881203917
+  },
+  "results": [
+    {
+      "teacherId": "close-opposite-kink-pair-a",
+      "pass": true,
+      "teacher": {
+        "id": "close-opposite-kink-pair-a",
+        "bias": 0.12,
+        "base": [
+          0.18,
+          -0.09,
+          0.06
+        ],
+        "hidden": [
+          {
+            "alphaY": -0.344,
+            "alphaZ": -0.135,
+            "beta": -0.351,
+            "readout": 0.786
+          },
+          {
+            "alphaY": 0.21045,
+            "alphaZ": -0.23107,
+            "beta": 0.47786,
+            "readout": -0.54557
+          },
+          {
+            "alphaY": 0.07408,
+            "alphaZ": -0.05761,
+            "beta": 0.44405,
+            "readout": 0.38307
+          }
+        ],
+        "note": "Two nearby opposite-sign kinks partially cancel, causing slice-only noisy stitching to miss structure."
+      },
+      "baselines": {
+        "linearHyperplane": {
+          "metrics": {
+            "mae": 0.2418874721820714,
+            "rmse": 0.28699070335494675,
+            "r2": 0.9208666757931967
+          }
+        },
+        "sliceOnlyStitching": {
+          "expression": "0.1202926821 + 0.1800938388 * x + -0.09005974644 * y + 0.05876383836 * z + 0.7844805163 * max(0, x + 0.3430741399 * y + 0.1361131625 * z + 0.3516926115)",
+          "terms": [
+            {
+              "alphaY": -0.3430741398573823,
+              "alphaZ": -0.13611316245997054,
+              "beta": -0.3516926115453664,
+              "deltaSlopeX": 0.784480516341907,
+              "support": 7
+            }
+          ],
+          "metrics": {
+            "mae": 0.08172973964009173,
+            "rmse": 0.15014629372522023,
+            "r2": 0.9783402726600711
+          }
+        }
+      },
+      "gclGlobalRefiner": {
+        "expression": "0.1194148939 + 0.179588844 * x + -0.08954519985 * y + 0.06033155673 * z + 0.7850428263 * max(0, x + 0.3458323891 * y + 0.1464684992 * z + 0.3438916965) + 0.1104803888 * max(0, x + 0.05111139502 * y - 0.38 * z - 0.2876007704) + -0.2731696754 * max(0, x - 0.286 * y + 0.2607527103 * z - 0.4856086423)",
+        "terms": [
+          {
+            "alphaY": -0.3458323891487274,
+            "alphaZ": -0.1464684992064428,
+            "beta": -0.34389169648000206,
+            "deltaSlopeX": 0.7850428262788435,
+            "support": 441
+          },
+          {
+            "alphaY": -0.05111139501548506,
+            "alphaZ": 0.38,
+            "beta": 0.28760077043771853,
+            "deltaSlopeX": 0.11048038880524569,
+            "support": 441
+          },
+          {
+            "alphaY": 0.2860000000000001,
+            "alphaZ": -0.26075271028629754,
+            "beta": 0.48560864231047074,
+            "deltaSlopeX": -0.2731696753760048,
+            "support": 441
+          }
+        ],
+        "metrics": {
+          "mae": 0.002460569507680907,
+          "rmse": 0.0062996441940388935,
+          "r2": 0.9999618709666925
+        },
+        "trainingMse": 0.000019758086007788947,
+        "sampleCount": 441,
+        "restarts": 96,
+        "objectiveEvaluations": 20724
+      },
+      "gates": {
+        "termCountMatches": true,
+        "maeBelow0012": true,
+        "r2Above0999": true,
+        "beatsLinearBy85Percent": true,
+        "beatsSliceOnlyBy70Percent": true
+      }
+    },
+    {
+      "teacherId": "close-opposite-kink-pair-b",
+      "pass": true,
+      "teacher": {
+        "id": "close-opposite-kink-pair-b",
+        "bias": -0.08,
+        "base": [
+          -0.14,
+          0.07,
+          -0.05
+        ],
+        "hidden": [
+          {
+            "alphaY": 0.28,
+            "alphaZ": 0.18,
+            "beta": -0.62,
+            "readout": 0.72
+          },
+          {
+            "alphaY": -0.12,
+            "alphaZ": 0.23,
+            "beta": 0.28,
+            "readout": -0.5
+          },
+          {
+            "alphaY": -0.02,
+            "alphaZ": 0.08,
+            "beta": 0.33,
+            "readout": 0.36
+          }
+        ],
+        "note": "Second close opposite-sign pair with different orientation checks that the fix is not seed-specific."
+      },
+      "baselines": {
+        "linearHyperplane": {
+          "metrics": {
+            "mae": 0.19990688176210367,
+            "rmse": 0.2400386304673305,
+            "r2": 0.7825876904033511
+          }
+        },
+        "sliceOnlyStitching": {
+          "expression": "-0.0800152356 + -0.1400008779 * x + 0.06985680364 * y + -0.05012161661 * z + 0.7196373645 * max(0, x - 0.279779519 * y - 0.1801177678 * z + 0.620200371)",
+          "terms": [
+            {
+              "alphaY": 0.2797795189865905,
+              "alphaZ": 0.18011776776104294,
+              "beta": -0.6202003710471432,
+              "deltaSlopeX": 0.7196373644837192,
+              "support": 7
+            }
+          ],
+          "metrics": {
+            "mae": 0.09238225180212382,
+            "rmse": 0.15870286588985028,
+            "r2": 0.9049632911950473
+          }
+        }
+      },
+      "gclGlobalRefiner": {
+        "expression": "-0.07884254028 + -0.139522019 * x + 0.0706194467 * y + -0.04966101433 * z + 0.723651669 * max(0, x - 0.2839925309 * y - 0.1766659938 * z + 0.614901007) + -0.3010017293 * max(0, x + 0.175 * y - 0.209 * z - 0.324) + 0.1575037608 * max(0, x + 0.018 * y + 0.134 * z - 0.4933356955)",
+        "terms": [
+          {
+            "alphaY": 0.28399253090935994,
+            "alphaZ": 0.17666599377027337,
+            "beta": -0.6149010069993329,
+            "deltaSlopeX": 0.7236516689596612,
+            "support": 441
+          },
+          {
+            "alphaY": -0.17499999999999993,
+            "alphaZ": 0.20899999999999996,
+            "beta": 0.32400000000000007,
+            "deltaSlopeX": -0.3010017292630778,
+            "support": 441
+          },
+          {
+            "alphaY": -0.018000000000000058,
+            "alphaZ": -0.13399999999999995,
+            "beta": 0.4933356955073176,
+            "deltaSlopeX": 0.15750376078517592,
+            "support": 441
+          }
+        ],
+        "metrics": {
+          "mae": 0.0018730347739272534,
+          "rmse": 0.006184752673426203,
+          "r2": 0.9998556667060545
+        },
+        "trainingMse": 0.000007899408809559386,
+        "sampleCount": 441,
+        "restarts": 96,
+        "objectiveEvaluations": 20814
+      },
+      "gates": {
+        "termCountMatches": true,
+        "maeBelow0012": true,
+        "r2Above0999": true,
+        "beatsLinearBy85Percent": true,
+        "beatsSliceOnlyBy70Percent": true
+      }
+    }
+  ],
+  "runtimeMs": 4061
+}

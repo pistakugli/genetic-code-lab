@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-22T12:47:06.153Z",
+  "lane": "open-source-symbolic-regression",
+  "variant": "wide",
+  "status": "generated",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-open-source.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:opensource",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCH_GENERATIONS": "80",
+    "GCL_BENCH_POPULATION": "300",
+    "GCL_BENCH_SEEDS": "1337,2026,4242",
+    "GCL_BENCH_TASK_SET": "wide",
+    "GCL_OPEN_SOURCE_PYTHON": "/tmp/gcl-open-source-bench-venv/bin/python"
+  },
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/open-source-symbolic-regression/wide/report.json",
+    "reportMarkdown": "benchmarks/release/open-source-symbolic-regression/wide/report.md",
+    "manifest": "benchmarks/release/open-source-symbolic-regression/wide/manifest.json"
+  },
+  "summary": {
+    "pureGclVsExternal": {
+      "status": "positive-smoke",
+      "taskCount": 8,
+      "winRate": 0.875,
+      "comparableRate": 1,
+      "failures": []
+    },
+    "hybridVsPureGcl": {
+      "status": "production-candidate",
+      "taskCount": 8,
+      "winRate": 0.5,
+      "regressionCount": 0,
+      "successRegressionCount": 0,
+      "solvedRate": 1,
+      "failures": [],
+      "recommendation": "gcl-hybrid has earned production capability status for the gated benchmark, but remains separate from pure-GCL public claims."
+    }
+  },
+  "notes": [
+    "Raw benchmark report; benchmark-open-source-gate decides hard pass/fail status."
+  ]
+}

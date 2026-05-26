@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:53:38.953Z",
+  "lane": "nn-blackbox-relu-nd-line-probe",
+  "variant": "four-dimensional",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-blackbox-relu-nd-line-probe.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-blackbox-relu-nd-line-probe",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-blackbox-relu-nd-line-probe/four-dimensional/report.json",
+    "reportMarkdown": "benchmarks/release/nn-blackbox-relu-nd-line-probe/four-dimensional/report.md",
+    "manifest": "benchmarks/release/nn-blackbox-relu-nd-line-probe/four-dimensional/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "dimension": 4,
+    "termCount": 4,
+    "recoveredTerms": 4,
+    "mae": 4.888829006335568e-13,
+    "r2": 1,
+    "linearMae": 0.28844512061458333,
+    "maxPlaneError": 6.884235200344658e-13,
+    "kinkPointCount": 351,
+    "oracleCalls": 198860
+  },
+  "notes": [
+    "This benchmark proves the first general-ND random-direction probing lane on a 4D shallow ReLU oracle.",
+    "The solver receives only f(vector) oracle calls; no teacher weights or hidden activations are passed to GCL."
+  ]
+}

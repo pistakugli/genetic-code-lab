@@ -1,0 +1,775 @@
+{
+  "generatedAt": "2026-05-26T10:54:23.621Z",
+  "task": "noisy 3D black-box ReLU adversarial sweep with query-budget accounting",
+  "blackBox": {
+    "type": "3-input/3-hidden ReLU MLP teachers with adversarial 3D hyperplane geometry, stochastic output noise, and quantization",
+    "visibilityToGcl": "oracle calls only: repeated noisy f(x,y,z), no hidden activations and no teacher weights"
+  },
+  "claimScope": {
+    "proves": "output-equivalent symbolic 3D ReLU surface recovery across a wider adversarial shallow-3D sweep with explicit query-budget accounting",
+    "doesNotClaim": "general-ND recovery, deep ReLU composition recovery, or superiority over external piecewise-linear extraction methods"
+  },
+  "noise": {
+    "noiseStd": 0.005,
+    "quantization": 0.002,
+    "aggregation": "median"
+  },
+  "config": {
+    "xRange": [
+      -3,
+      3
+    ],
+    "yRange": [
+      -1.35,
+      1.35
+    ],
+    "zRange": [
+      -1.15,
+      1.15
+    ],
+    "restarts": 80,
+    "sliceQuerySamples": 17,
+    "refinerQuerySamples": 13,
+    "testRowsPerTeacher": 4095
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 6,
+    "passedTeachers": 6,
+    "profiles": [
+      "near-parallel",
+      "beta-collision",
+      "cancellation",
+      "oblique-wide",
+      "low-amplitude-mixed"
+    ],
+    "maxRefinedMae": 0.002762764344437899,
+    "minRefinedR2": 0.9998664161844988,
+    "maxSliceOnlyMae": 0.0923745312743197,
+    "maxLinearMae": 0.2418874721820714,
+    "worstRefinedVsSliceRatio": 1.226164419413925,
+    "totalOracleCalls": 2398452,
+    "maxOracleCallsPerTeacher": 399742
+  },
+  "results": [
+    {
+      "teacherId": "near-parallel-separated-offsets",
+      "profile": "near-parallel",
+      "pass": true,
+      "teacher": {
+        "id": "near-parallel-separated-offsets",
+        "profile": "near-parallel",
+        "bias": 0.08,
+        "base": [
+          0.16,
+          -0.07,
+          0.04
+        ],
+        "hidden": [
+          {
+            "alphaY": -0.26,
+            "alphaZ": 0.18,
+            "beta": -0.95,
+            "readout": 0.78
+          },
+          {
+            "alphaY": -0.22,
+            "alphaZ": 0.16,
+            "beta": 0.05,
+            "readout": -0.46
+          },
+          {
+            "alphaY": -0.18,
+            "alphaZ": 0.14,
+            "beta": 1.05,
+            "readout": 0.32
+          }
+        ]
+      },
+      "baselines": {
+        "linearHyperplane": {
+          "metrics": {
+            "mae": 0.15255584365003952,
+            "rmse": 0.1915553533212451,
+            "r2": 0.9630864608095449
+          }
+        },
+        "sliceOnlyStitching": {
+          "expression": "0.07998569576 + 0.1599724827 * x + -0.06988263456 * y + 0.03970566816 * z + 0.779930776 * max(0, x + 0.2598765078 * y - 0.1797959807 * z + 0.9500832767) + -0.4596882147 * max(0, x + 0.2199781545 * y - 0.1598226091 * z - 0.04987961305) + 0.319742188 * max(0, x + 0.180045232 * y - 0.1404273982 * z - 1.050195856)",
+          "terms": [
+            {
+              "alphaY": -0.25987650781713995,
+              "alphaZ": 0.17979598068319047,
+              "beta": -0.9500832766533923,
+              "deltaSlopeX": 0.7799307759532448,
+              "support": 7
+            },
+            {
+              "alphaY": -0.21997815449407412,
+              "alphaZ": 0.1598226091128624,
+              "beta": 0.04987961305239369,
+              "deltaSlopeX": -0.4596882146674224,
+              "support": 7
+            },
+            {
+              "alphaY": -0.18004523198378694,
+              "alphaZ": 0.14042739821128933,
+              "beta": 1.0501958559116857,
+              "deltaSlopeX": 0.31974218799705106,
+              "support": 7
+            }
+          ],
+          "metrics": {
+            "mae": 0.00016633362979827796,
+            "rmse": 0.00020296131145805586,
+            "r2": 0.9999999585596304
+          }
+        }
+      },
+      "gclGlobalRefiner": {
+        "expression": "0.07939674143 + 0.1597256641 * x + -0.06994266666 * y + 0.04003136516 * z + 0.7812431072 * max(0, x + 0.2598765078 * y - 0.1797959807 * z + 0.9500832767) + -0.4614976428 * max(0, x + 0.2199781545 * y - 0.1598226091 * z - 0.04987961305) + 0.3203797706 * max(0, x + 0.180045232 * y - 0.1404273982 * z - 1.050195856)",
+        "terms": [
+          {
+            "alphaY": -0.25987650781713995,
+            "alphaZ": 0.17979598068319047,
+            "beta": -0.9500832766533923,
+            "deltaSlopeX": 0.7812431071907863,
+            "support": 441
+          },
+          {
+            "alphaY": -0.21997815449407412,
+            "alphaZ": 0.1598226091128624,
+            "beta": 0.04987961305239369,
+            "deltaSlopeX": -0.4614976427823053,
+            "support": 441
+          },
+          {
+            "alphaY": -0.18004523198378694,
+            "alphaZ": 0.14042739821128933,
+            "beta": 1.0501958559116857,
+            "deltaSlopeX": 0.32037977064723727,
+            "support": 441
+          }
+        ],
+        "metrics": {
+          "mae": 0.00020395237861061622,
+          "rmse": 0.00026353550405037866,
+          "r2": 0.9999999301324741
+        },
+        "trainingMse": 0.000003279323645178798,
+        "sampleCount": 441,
+        "restarts": 80,
+        "objectiveEvaluations": 17216
+      },
+      "queryBudget": {
+        "sliceOracleCalls": 394009,
+        "refinerOracleCalls": 5733,
+        "totalOracleCalls": 399742,
+        "sliceQuerySamples": 17,
+        "refinerQuerySamples": 13,
+        "testRows": 4095
+      },
+      "gates": {
+        "termCountMatches": true,
+        "maeBelow002": true,
+        "r2Above09985": true,
+        "beatsLinearBy75Percent": true,
+        "sliceImprovementOrNoRegression": true
+      }
+    },
+    {
+      "teacherId": "same-offset-crossing-hyperplanes",
+      "profile": "beta-collision",
+      "pass": true,
+      "teacher": {
+        "id": "same-offset-crossing-hyperplanes",
+        "profile": "beta-collision",
+        "bias": -0.04,
+        "base": [
+          -0.12,
+          0.05,
+          0.03
+        ],
+        "hidden": [
+          {
+            "alphaY": 0.34,
+            "alphaZ": -0.22,
+            "beta": -0.15,
+            "readout": 0.64
+          },
+          {
+            "alphaY": -0.31,
+            "alphaZ": 0.25,
+            "beta": -0.12,
+            "readout": -0.42
+          },
+          {
+            "alphaY": 0.05,
+            "alphaZ": 0.1,
+            "beta": 0.95,
+            "readout": 0.25
+          }
+        ]
+      },
+      "baselines": {
+        "linearHyperplane": {
+          "metrics": {
+            "mae": 0.18675766404300573,
+            "rmse": 0.22511566597069313,
+            "r2": 0.396557013904971
+          }
+        },
+        "sliceOnlyStitching": {
+          "expression": "-0.03989816606 + -0.1199674573 * x + 0.04997220276 * y + 0.02991024232 * z + 0.6364752768 * max(0, x - 0.339606149 * y + 0.220894957 * z + 0.1507101341) + -0.4107078271 * max(0, x + 0.3111690964 * y - 0.249423842 * z + 0.1165832045) + 0.2497203696 * max(0, x - 0.04980414414 * y - 0.1001810033 * z - 0.9498914418)",
+          "terms": [
+            {
+              "alphaY": 0.33960614899523717,
+              "alphaZ": -0.2208949569929163,
+              "beta": -0.15071013408437536,
+              "deltaSlopeX": 0.6364752768498256,
+              "support": 7
+            },
+            {
+              "alphaY": -0.31116909639079404,
+              "alphaZ": 0.2494238420109549,
+              "beta": -0.11658320445529943,
+              "deltaSlopeX": -0.41070782710356407,
+              "support": 7
+            },
+            {
+              "alphaY": 0.04980414413739104,
+              "alphaZ": 0.10018100332165225,
+              "beta": 0.9498914417888124,
+              "deltaSlopeX": 0.2497203696100716,
+              "support": 7
+            }
+          ],
+          "metrics": {
+            "mae": 0.005562448911472209,
+            "rmse": 0.008666146110720158,
+            "r2": 0.9991057132013549
+          }
+        }
+      },
+      "gclGlobalRefiner": {
+        "expression": "-0.0403835523 + -0.1201973782 * x + 0.04983023276 * y + 0.02983210131 * z + 0.6390256002 * max(0, x - 0.339606149 * y + 0.220894957 * z + 0.1507101341) + -0.4203965757 * max(0, x + 0.3111690964 * y - 0.249423842 * z + 0.1165832045) + 0.2516868948 * max(0, x - 0.04980414414 * y - 0.1001810033 * z - 0.9498914418)",
+        "terms": [
+          {
+            "alphaY": 0.33960614899523717,
+            "alphaZ": -0.2208949569929163,
+            "beta": -0.15071013408437536,
+            "deltaSlopeX": 0.6390256002330701,
+            "support": 441
+          },
+          {
+            "alphaY": -0.31116909639079404,
+            "alphaZ": 0.2494238420109549,
+            "beta": -0.11658320445529943,
+            "deltaSlopeX": -0.4203965756522648,
+            "support": 441
+          },
+          {
+            "alphaY": 0.04980414413739104,
+            "alphaZ": 0.10018100332165225,
+            "beta": 0.9498914417888124,
+            "deltaSlopeX": 0.251686894840895,
+            "support": 441
+          }
+        ],
+        "metrics": {
+          "mae": 0.0002623725869483261,
+          "rmse": 0.0003671243742572602,
+          "r2": 0.9999983950879253
+        },
+        "trainingMse": 0.0000031660942264770126,
+        "sampleCount": 441,
+        "restarts": 80,
+        "objectiveEvaluations": 17126
+      },
+      "queryBudget": {
+        "sliceOracleCalls": 394009,
+        "refinerOracleCalls": 5733,
+        "totalOracleCalls": 399742,
+        "sliceQuerySamples": 17,
+        "refinerQuerySamples": 13,
+        "testRows": 4095
+      },
+      "gates": {
+        "termCountMatches": true,
+        "maeBelow002": true,
+        "r2Above09985": true,
+        "beatsLinearBy75Percent": true,
+        "sliceImprovementOrNoRegression": true
+      }
+    },
+    {
+      "teacherId": "close-opposite-kink-pair-a",
+      "profile": "cancellation",
+      "pass": true,
+      "teacher": {
+        "id": "close-opposite-kink-pair-a",
+        "profile": "cancellation",
+        "bias": 0.12,
+        "base": [
+          0.18,
+          -0.09,
+          0.06
+        ],
+        "hidden": [
+          {
+            "alphaY": -0.344,
+            "alphaZ": -0.135,
+            "beta": -0.351,
+            "readout": 0.786
+          },
+          {
+            "alphaY": 0.21045,
+            "alphaZ": -0.23107,
+            "beta": 0.47786,
+            "readout": -0.54557
+          },
+          {
+            "alphaY": 0.07408,
+            "alphaZ": -0.05761,
+            "beta": 0.44405,
+            "readout": 0.38307
+          }
+        ],
+        "requiresSliceImprovement": true
+      },
+      "baselines": {
+        "linearHyperplane": {
+          "metrics": {
+            "mae": 0.2418874721820714,
+            "rmse": 0.28699070335494675,
+            "r2": 0.9208666757931967
+          }
+        },
+        "sliceOnlyStitching": {
+          "expression": "0.1193373506 + 0.1797752809 * x + -0.08980728962 * y + 0.05983970533 * z + 0.7844163972 * max(0, x + 0.3431420322 * y + 0.1359421809 * z + 0.3516195588)",
+          "terms": [
+            {
+              "alphaY": -0.34314203216613803,
+              "alphaZ": -0.1359421808942168,
+              "beta": -0.3516195587892628,
+              "deltaSlopeX": 0.7844163971753917,
+              "support": 7
+            }
+          ],
+          "metrics": {
+            "mae": 0.0810675847183798,
+            "rmse": 0.14928009119560295,
+            "r2": 0.9785894641846752
+          }
+        }
+      },
+      "gclGlobalRefiner": {
+        "expression": "0.120785386 + 0.1801699462 * x + -0.08896817022 * y + 0.06023537751 * z + 0.7868554966 * max(0, x + 0.330970393 * y + 0.1530914862 * z + 0.3444982428) + 0.1061530975 * max(0, x + 0.109001088 * y - 0.405 * z - 0.2273718873) + -0.2708956494 * max(0, x - 0.308 * y + 0.2783925053 * z - 0.4483280401)",
+        "terms": [
+          {
+            "alphaY": -0.3309703929638214,
+            "alphaZ": -0.15309148616911045,
+            "beta": -0.34449824278382424,
+            "deltaSlopeX": 0.7868554966220737,
+            "support": 441
+          },
+          {
+            "alphaY": -0.10900108801573606,
+            "alphaZ": 0.4049999999999999,
+            "beta": 0.22737188731168545,
+            "deltaSlopeX": 0.10615309747942425,
+            "support": 441
+          },
+          {
+            "alphaY": 0.30799999999999994,
+            "alphaZ": -0.2783925052875582,
+            "beta": 0.4483280401428489,
+            "deltaSlopeX": -0.2708956494294943,
+            "support": 441
+          }
+        ],
+        "metrics": {
+          "mae": 0.002762764344437899,
+          "rmse": 0.007142202967319591,
+          "r2": 0.9999509896134097
+        },
+        "trainingMse": 0.000025010181364243325,
+        "sampleCount": 441,
+        "restarts": 80,
+        "objectiveEvaluations": 17252
+      },
+      "queryBudget": {
+        "sliceOracleCalls": 394009,
+        "refinerOracleCalls": 5733,
+        "totalOracleCalls": 399742,
+        "sliceQuerySamples": 17,
+        "refinerQuerySamples": 13,
+        "testRows": 4095
+      },
+      "gates": {
+        "termCountMatches": true,
+        "maeBelow002": true,
+        "r2Above09985": true,
+        "beatsLinearBy75Percent": true,
+        "sliceImprovementOrNoRegression": true
+      }
+    },
+    {
+      "teacherId": "close-opposite-kink-pair-b",
+      "profile": "cancellation",
+      "pass": true,
+      "teacher": {
+        "id": "close-opposite-kink-pair-b",
+        "profile": "cancellation",
+        "bias": -0.08,
+        "base": [
+          -0.14,
+          0.07,
+          -0.05
+        ],
+        "hidden": [
+          {
+            "alphaY": 0.28,
+            "alphaZ": 0.18,
+            "beta": -0.62,
+            "readout": 0.72
+          },
+          {
+            "alphaY": -0.12,
+            "alphaZ": 0.23,
+            "beta": 0.28,
+            "readout": -0.5
+          },
+          {
+            "alphaY": -0.02,
+            "alphaZ": 0.08,
+            "beta": 0.33,
+            "readout": 0.36
+          }
+        ],
+        "requiresSliceImprovement": true
+      },
+      "baselines": {
+        "linearHyperplane": {
+          "metrics": {
+            "mae": 0.19990688176210367,
+            "rmse": 0.2400386304673305,
+            "r2": 0.7825876904033511
+          }
+        },
+        "sliceOnlyStitching": {
+          "expression": "-0.08031749816 + -0.140108877 * x + 0.0702798426 * y + -0.0499228751 * z + 0.7198242897 * max(0, x - 0.2801035413 * y - 0.1799609064 * z + 0.6200362741)",
+          "terms": [
+            {
+              "alphaY": 0.2801035413306837,
+              "alphaZ": 0.17996090636431653,
+              "beta": -0.620036274149198,
+              "deltaSlopeX": 0.719824289651846,
+              "support": 7
+            }
+          ],
+          "metrics": {
+            "mae": 0.0923745312743197,
+            "rmse": 0.15859928441874846,
+            "r2": 0.9050873069721915
+          }
+        }
+      },
+      "gclGlobalRefiner": {
+        "expression": "-0.08117710133 + -0.1404840156 * x + 0.06992832535 * y + -0.04813823616 * z + 0.7098623403 * max(0, x - 0.2736030238 * y - 0.198009734 * z + 0.629911626) + -0.256692118 * max(0, x + 0.19 * y - 0.216 * z - 0.2167894219) + 0.1271469342 * max(0, x - 0.09065229331 * y + 0.314 * z - 0.2640865946)",
+        "terms": [
+          {
+            "alphaY": 0.27360302377749907,
+            "alphaZ": 0.1980097340106622,
+            "beta": -0.6299116259841242,
+            "deltaSlopeX": 0.7098623402978479,
+            "support": 441
+          },
+          {
+            "alphaY": -0.19000000000000003,
+            "alphaZ": 0.21600000000000003,
+            "beta": 0.2167894218571384,
+            "deltaSlopeX": -0.25669211797316915,
+            "support": 441
+          },
+          {
+            "alphaY": 0.09065229331203949,
+            "alphaZ": -0.31399999999999983,
+            "beta": 0.2640865946375642,
+            "deltaSlopeX": 0.1271469342288883,
+            "support": 441
+          }
+        ],
+        "metrics": {
+          "mae": 0.002348974909388104,
+          "rmse": 0.0059499867332556255,
+          "r2": 0.9998664161844988
+        },
+        "trainingMse": 0.00001317690355453212,
+        "sampleCount": 441,
+        "restarts": 80,
+        "objectiveEvaluations": 17288
+      },
+      "queryBudget": {
+        "sliceOracleCalls": 394009,
+        "refinerOracleCalls": 5733,
+        "totalOracleCalls": 399742,
+        "sliceQuerySamples": 17,
+        "refinerQuerySamples": 13,
+        "testRows": 4095
+      },
+      "gates": {
+        "termCountMatches": true,
+        "maeBelow002": true,
+        "r2Above09985": true,
+        "beatsLinearBy75Percent": true,
+        "sliceImprovementOrNoRegression": true
+      }
+    },
+    {
+      "teacherId": "oblique-wide-orientation-spread",
+      "profile": "oblique-wide",
+      "pass": true,
+      "teacher": {
+        "id": "oblique-wide-orientation-spread",
+        "profile": "oblique-wide",
+        "bias": 0.03,
+        "base": [
+          0.11,
+          0.04,
+          -0.08
+        ],
+        "hidden": [
+          {
+            "alphaY": -0.48,
+            "alphaZ": 0.42,
+            "beta": -0.7,
+            "readout": 0.68
+          },
+          {
+            "alphaY": 0.52,
+            "alphaZ": -0.37,
+            "beta": 0.18,
+            "readout": -0.52
+          },
+          {
+            "alphaY": -0.12,
+            "alphaZ": -0.44,
+            "beta": 0.85,
+            "readout": 0.31
+          }
+        ]
+      },
+      "baselines": {
+        "linearHyperplane": {
+          "metrics": {
+            "mae": 0.2264730318236575,
+            "rmse": 0.27850093266995635,
+            "r2": 0.8883810358218038
+          }
+        },
+        "sliceOnlyStitching": {
+          "expression": "0.03001998233 + 0.1100213714 * x + 0.04000227932 * y + -0.07993101553 * z + 0.6760118253 * max(0, x + 0.4804826538 * y - 0.419950963 * z + 0.6997625632) + -0.5047325554 * max(0, x - 0.5213702153 * y + 0.3684169448 * z - 0.1792276576) + 0.3014931423 * max(0, x + 0.1219480223 * y + 0.4395595177 * z - 0.8490455671)",
+          "terms": [
+            {
+              "alphaY": -0.48048265379360827,
+              "alphaZ": 0.41995096299437884,
+              "beta": -0.699762563181272,
+              "deltaSlopeX": 0.6760118253043323,
+              "support": 7
+            },
+            {
+              "alphaY": 0.5213702152507814,
+              "alphaZ": -0.3684169447809227,
+              "beta": 0.17922765760154988,
+              "deltaSlopeX": -0.5047325554408191,
+              "support": 7
+            },
+            {
+              "alphaY": -0.12194802234375902,
+              "alphaZ": -0.43955951770827495,
+              "beta": 0.8490455671490256,
+              "deltaSlopeX": 0.3014931422914053,
+              "support": 6
+            }
+          ],
+          "metrics": {
+            "mae": 0.00410389889913657,
+            "rmse": 0.006713049259846977,
+            "r2": 0.9999351478545369
+          }
+        }
+      },
+      "gclGlobalRefiner": {
+        "expression": "0.02999869815 + 0.1099985428 * x + 0.04006277228 * y + -0.08043356092 * z + 0.6794380956 * max(0, x + 0.4804826538 * y - 0.419950963 * z + 0.6997625632) + -0.5179072532 * max(0, x - 0.5213702153 * y + 0.3684169448 * z - 0.1792276576) + 0.3082562751 * max(0, x + 0.1219480223 * y + 0.4395595177 * z - 0.8490455671)",
+        "terms": [
+          {
+            "alphaY": -0.48048265379360827,
+            "alphaZ": 0.41995096299437884,
+            "beta": -0.699762563181272,
+            "deltaSlopeX": 0.6794380955715862,
+            "support": 441
+          },
+          {
+            "alphaY": 0.5213702152507814,
+            "alphaZ": -0.3684169447809227,
+            "beta": 0.17922765760154988,
+            "deltaSlopeX": -0.5179072531791659,
+            "support": 441
+          },
+          {
+            "alphaY": -0.12194802234375902,
+            "alphaZ": -0.43955951770827495,
+            "beta": 0.8490455671490256,
+            "deltaSlopeX": 0.30825627506758135,
+            "support": 441
+          }
+        ],
+        "metrics": {
+          "mae": 0.00036068058378987034,
+          "rmse": 0.00046777957213853325,
+          "r2": 0.9999996851039704
+        },
+        "trainingMse": 0.000003347569261735237,
+        "sampleCount": 441,
+        "restarts": 80,
+        "objectiveEvaluations": 17180
+      },
+      "queryBudget": {
+        "sliceOracleCalls": 394009,
+        "refinerOracleCalls": 5733,
+        "totalOracleCalls": 399742,
+        "sliceQuerySamples": 17,
+        "refinerQuerySamples": 13,
+        "testRows": 4095
+      },
+      "gates": {
+        "termCountMatches": true,
+        "maeBelow002": true,
+        "r2Above09985": true,
+        "beatsLinearBy75Percent": true,
+        "sliceImprovementOrNoRegression": true
+      }
+    },
+    {
+      "teacherId": "low-amplitude-opposite-mixed",
+      "profile": "low-amplitude-mixed",
+      "pass": true,
+      "teacher": {
+        "id": "low-amplitude-opposite-mixed",
+        "profile": "low-amplitude-mixed",
+        "bias": 0.1,
+        "base": [
+          0.07,
+          -0.04,
+          0.03
+        ],
+        "hidden": [
+          {
+            "alphaY": -0.3,
+            "alphaZ": 0.22,
+            "beta": -0.8,
+            "readout": 0.72
+          },
+          {
+            "alphaY": 0.12,
+            "alphaZ": -0.18,
+            "beta": 0.25,
+            "readout": -0.22
+          },
+          {
+            "alphaY": 0.04,
+            "alphaZ": -0.1,
+            "beta": 0.38,
+            "readout": 0.16
+          }
+        ],
+        "requiresSliceImprovement": true
+      },
+      "baselines": {
+        "linearHyperplane": {
+          "metrics": {
+            "mae": 0.21242226724898777,
+            "rmse": 0.2550094747616761,
+            "r2": 0.92717232925205
+          }
+        },
+        "sliceOnlyStitching": {
+          "expression": "0.09968930299 + 0.06989777766 * x + -0.04023361397 * y + 0.03023136534 * z + 0.7181600163 * max(0, x + 0.2993053403 * y - 0.219642305 * z + 0.8004319643) + -0.1262409178 * max(0, x - 0.08287127389 * y + 0.1556781893 * z - 0.181651704)",
+          "terms": [
+            {
+              "alphaY": -0.2993053402733751,
+              "alphaZ": 0.2196423049580514,
+              "beta": -0.8004319643209656,
+              "deltaSlopeX": 0.7181600162831211,
+              "support": 7
+            },
+            {
+              "alphaY": 0.08287127388949074,
+              "alphaZ": -0.15567818933869954,
+              "beta": 0.1816517039940849,
+              "deltaSlopeX": -0.12624091781583066,
+              "support": 6
+            }
+          ],
+          "metrics": {
+            "mae": 0.03721685606751723,
+            "rmse": 0.06447997224483515,
+            "r2": 0.9953437802318
+          }
+        }
+      },
+      "gclGlobalRefiner": {
+        "expression": "0.09943166789 + 0.06972431984 * x + -0.03989809554 * y + 0.03024769231 * z + 0.720872887 * max(0, x + 0.2993053403 * y - 0.219642305 * z + 0.8004319643) + -0.121641355 * max(0, x - 0.08287127389 * y + 0.1556781893 * z - 0.146651704) + 0.06102536104 * max(0, x + 0.1643363189 * y - 0.084 * z - 0.3907826858)",
+        "terms": [
+          {
+            "alphaY": -0.2993053402733751,
+            "alphaZ": 0.2196423049580514,
+            "beta": -0.8004319643209656,
+            "deltaSlopeX": 0.7208728869672243,
+            "support": 441
+          },
+          {
+            "alphaY": 0.08287127388949074,
+            "alphaZ": -0.15567818933869954,
+            "beta": 0.1466517039940849,
+            "deltaSlopeX": -0.12164135496321957,
+            "support": 441
+          },
+          {
+            "alphaY": -0.16433631893371825,
+            "alphaZ": 0.08399999999999998,
+            "beta": 0.3907826858393687,
+            "deltaSlopeX": 0.06102536103697472,
+            "support": 441
+          }
+        ],
+        "metrics": {
+          "mae": 0.0006098729642466062,
+          "rmse": 0.002132082759443552,
+          "r2": 0.999994909131216
+        },
+        "trainingMse": 0.0000032342196385229795,
+        "sampleCount": 441,
+        "restarts": 80,
+        "objectiveEvaluations": 17234
+      },
+      "queryBudget": {
+        "sliceOracleCalls": 394009,
+        "refinerOracleCalls": 5733,
+        "totalOracleCalls": 399742,
+        "sliceQuerySamples": 17,
+        "refinerQuerySamples": 13,
+        "testRows": 4095
+      },
+      "gates": {
+        "termCountMatches": true,
+        "maeBelow002": true,
+        "r2Above09985": true,
+        "beatsLinearBy75Percent": true,
+        "sliceImprovementOrNoRegression": true
+      }
+    }
+  ],
+  "runtimeMs": 10224
+}

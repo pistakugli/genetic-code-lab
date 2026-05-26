@@ -1,0 +1,102 @@
+{
+  "generatedAt": "2026-05-22T05:45:41.324Z",
+  "benchmark": "pure-gcl-hard-tasks",
+  "scope": "Diagnostic pure-GCL hard-task benchmark. It disables regression-basis seeding and semantic refiner. It does not use gcl-hybrid.",
+  "budget": {
+    "seeds": [
+      1337
+    ],
+    "generations": 60,
+    "singlePopulation": 220,
+    "islandPopulation": 120,
+    "seedTimeoutMs": 1,
+    "guardFallbackRatio": 1.15,
+    "disabled": {
+      "GCL_REGRESSION_BASIS_SEED": "0",
+      "GCL_SEMANTIC_REFINER": "0"
+    }
+  },
+  "tasks": [
+    {
+      "id": "inverse_quadratic",
+      "name": "Inverse quadratic",
+      "formula": "1 / (1 + x^2)",
+      "successMae": 0.001,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div"
+      ]
+    },
+    {
+      "id": "trig_rational_combo",
+      "name": "Trigonometric + rational",
+      "formula": "sin(x) + x / (1 + x^2)",
+      "successMae": 0.001,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div",
+        "sin",
+        "cos"
+      ]
+    }
+  ],
+  "summary": {
+    "allTasksSolved": false,
+    "successRate": 0,
+    "nonRegressionRate": 0,
+    "completedCount": 0,
+    "timedOutCount": 2,
+    "runtimeErrorCount": 0,
+    "meanSingleMae": 0,
+    "meanSelectedMae": 0,
+    "meanOracleMae": 0,
+    "medianSelectedLift": 0,
+    "medianOracleLift": 0,
+    "byTask": {
+      "inverse_quadratic": {
+        "successRate": 0,
+        "completedCount": 0,
+        "timedOutCount": 1,
+        "runtimeErrorCount": 0,
+        "meanSingleMae": 0,
+        "meanSelectedMae": 0,
+        "meanOracleMae": 0,
+        "medianSelectedLift": 0,
+        "medianOracleLift": 0
+      },
+      "trig_rational_combo": {
+        "successRate": 0,
+        "completedCount": 0,
+        "timedOutCount": 1,
+        "runtimeErrorCount": 0,
+        "meanSingleMae": 0,
+        "meanSelectedMae": 0,
+        "meanOracleMae": 0,
+        "medianSelectedLift": 0,
+        "medianOracleLift": 0
+      }
+    }
+  },
+  "results": [
+    {
+      "seed": 1337,
+      "taskId": "inverse_quadratic",
+      "completed": false,
+      "success": false,
+      "outcome": "runtime-timeout",
+      "error": "seed timed out after 1ms; completed after 848ms"
+    },
+    {
+      "seed": 1337,
+      "taskId": "trig_rational_combo",
+      "completed": false,
+      "success": false,
+      "outcome": "runtime-timeout",
+      "error": "seed timed out after 1ms; completed after 1169ms"
+    }
+  ]
+}

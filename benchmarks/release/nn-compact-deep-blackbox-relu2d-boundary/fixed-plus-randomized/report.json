@@ -1,0 +1,951 @@
+{
+  "generatedAt": "2026-05-26T11:07:42.665Z",
+  "task": "compact boundary extraction for deep black-box ReLU 2D region graphs",
+  "blackBox": {
+    "type": "2-input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(x,y), not hidden activations, layer widths, or teacher weights"
+  },
+  "claimScope": {
+    "proves": "compact output-equivalent boundary segment extraction from recovered deep 2D affine-region graphs",
+    "doesNotClaim": "unique hidden-layer recovery, exact layer attribution, arbitrary deep ND extraction, or topology-perfect true-region merging"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "compressionAbove8x": true,
+    "boundaryFitRmseBelow008": true,
+    "maeBelow001": true,
+    "r2Above99999": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 3,
+    "passedTeachers": 3,
+    "minCompressionRatio": 19.068181818181817,
+    "maxBoundaryFitRmse": 0.07552766078391318,
+    "maxMae": 0.00017751438215398696,
+    "minR2": 0.9999967687728304,
+    "totalRawOracleCalls": 153015
+  },
+  "results": [
+    {
+      "teacherId": "fixed-deep-2d-1",
+      "seed": 1,
+      "pass": true,
+      "recovery": {
+        "regionCount": 21,
+        "adjacencyEdgeCount": 46,
+        "kinkCellBoundaryCount": 964,
+        "compactBoundarySegmentCount": 46,
+        "compressionRatio": 20.956521739130434,
+        "maxBoundaryFitRmse": 0.032404250140099816,
+        "meanBoundaryFitRmse": 0.009417801260024889,
+        "maxNormalError": 2.220446049250313e-16
+      },
+      "metrics": {
+        "mae": 0.00014049304309741466,
+        "rmse": 0.0017084036629631343,
+        "r2": 0.9999994885132621
+      },
+      "queryBudget": {
+        "rawOracleCalls": 51005,
+        "gridCells": 10201
+      },
+      "compactBoundarySample": [
+        {
+          "id": 0,
+          "regionA": 0,
+          "regionB": 1,
+          "normal": [
+            0.5795172763271941,
+            -0.8149599538862695
+          ],
+          "offset": -0.6255076562490333,
+          "start": [
+            -1.716918070675757,
+            -1.988430637010336
+          ],
+          "end": [
+            -1.0228056994848949,
+            -1.494847965985406
+          ],
+          "length": 0.8517134711722631,
+          "topologyStart": [
+            -1.7331877625619172,
+            -2
+          ],
+          "topologyEnd": [
+            -0.99368988920037,
+            -1.4741437399756676
+          ],
+          "topologyLength": 0.9074039403226267,
+          "contactCount": 31,
+          "fitRmse": 0.008593104870259506,
+          "endpointLineResidual": 1.1102230246251565e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.4153040065883644
+        },
+        {
+          "id": 1,
+          "regionA": 0,
+          "regionB": 2,
+          "normal": [
+            0.6601697867017561,
+            -0.7511164042451463
+          ],
+          "offset": -0.45221062889180175,
+          "start": [
+            -0.996486371218074,
+            -1.4778812148905587
+          ],
+          "end": [
+            -0.9754954759882746,
+            -1.459431937590508
+          ],
+          "length": 0.02794626120686955,
+          "topologyStart": [
+            -1.0226757523371381,
+            -1.5008995354191843
+          ],
+          "topologyEnd": [
+            -0.9446970199921929,
+            -1.4323626178276012
+          ],
+          "topologyLength": 0.10381710731416117,
+          "contactCount": 2,
+          "fitRmse": 0.008820950501941482,
+          "endpointLineResidual": 1.1102230246251565e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.006274072957741407
+        },
+        {
+          "id": 2,
+          "regionA": 0,
+          "regionB": 8,
+          "normal": [
+            0.9780727709936811,
+            -0.20826342607558884
+          ],
+          "offset": 0.6585623405336957,
+          "start": [
+            -0.9766264019226356,
+            -1.4243948455582245
+          ],
+          "end": [
+            -0.43799464629544616,
+            1.1051950286632228
+          ],
+          "length": 2.5863002725773563,
+          "topologyStart": [
+            -0.9819861861580585,
+            -1.4495661351977494
+          ],
+          "topologyEnd": [
+            -0.43213060955657856,
+            1.1327344520294327
+          ],
+          "topologyLength": 2.6401926971176928,
+          "contactCount": 78,
+          "fitRmse": 0.010230288703596711,
+          "endpointLineResidual": 1.1102230246251565e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 1.5907196923432065
+        },
+        {
+          "id": 3,
+          "regionA": 0,
+          "regionB": 19,
+          "normal": [
+            -0.8050197544067962,
+            -0.5932480046446189
+          ],
+          "offset": 0.329232886855143,
+          "start": [
+            -1.0500229160618035,
+            1.9798163123503694
+          ],
+          "end": [
+            -0.4437555280122861,
+            1.1571296450351718
+          ],
+          "length": 1.021945937117307,
+          "topologyStart": [
+            -1.0648970012739571,
+            2.0000000000000004
+          ],
+          "topologyEnd": [
+            -0.41595272761876234,
+            1.1194020785378798
+          ],
+          "topologyLength": 1.0938836179380673,
+          "contactCount": 37,
+          "fitRmse": 0.008336036460496755,
+          "endpointLineResidual": 2.7755575615628914e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.5910047121044509
+        },
+        {
+          "id": 4,
+          "regionA": 1,
+          "regionB": 2,
+          "normal": [
+            0.8708165246515237,
+            -0.4916081573711346
+          ],
+          "offset": 0.1366461488343793,
+          "start": [
+            -1.2777889409661933,
+            -1.9854706667104287
+          ],
+          "end": [
+            -1.0073352321398905,
+            -1.5063989603769719
+          ],
+          "length": 0.5501408078184643,
+          "topologyStart": [
+            -1.2859912873435493,
+            -1.9999999999999998
+          ],
+          "topologyEnd": [
+            -0.9907528332116929,
+            -1.477025511648503
+          ],
+          "topologyLength": 0.6005564588485234,
+          "contactCount": 20,
+          "fitRmse": 0.008802416795665482,
+          "endpointLineResidual": 1.1102230246251565e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.18208661919578473
+        },
+        {
+          "id": 5,
+          "regionA": 2,
+          "regionB": 3,
+          "normal": [
+            -0.9564545175593656,
+            0.2918814071507146
+          ],
+          "offset": -0.133911198535212,
+          "start": [
+            -0.4908879656965033,
+            -1.1497848292112904
+          ],
+          "end": [
+            -0.7433143274676035,
+            -1.976950685453643
+          ],
+          "length": 0.8648250816495427,
+          "topologyStart": [
+            -0.48278566074463947,
+            -1.1232347099368127
+          ],
+          "topologyEnd": [
+            -0.7503482911743331,
+            -1.9999999999999998
+          ],
+          "topologyLength": 0.9166826795909483,
+          "contactCount": 28,
+          "fitRmse": 0.009622837065531199,
+          "endpointLineResidual": 5.551115123125783e-17,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.287519814012069
+        },
+        {
+          "id": 6,
+          "regionA": 2,
+          "regionB": 8,
+          "normal": [
+            -0.5795172763684969,
+            0.8149599538568991
+          ],
+          "offset": 0.625507656161224,
+          "start": [
+            -0.5125234500456577,
+            -1.1319867260234204
+          ],
+          "end": [
+            -0.9514946964917248,
+            -1.4441387771034395
+          ],
+          "length": 0.538641493202925,
+          "topologyStart": [
+            -0.4838248654584644,
+            -1.1115791888224922
+          ],
+          "topologyEnd": [
+            -0.980193281078918,
+            -1.4645463143043675
+          ],
+          "topologyLength": 0.6090709282969409,
+          "contactCount": 20,
+          "fitRmse": 0.007973802475878212,
+          "endpointLineResidual": 1.1102230246251565e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.1893435712725015
+        },
+        {
+          "id": 7,
+          "regionA": 3,
+          "regionB": 4,
+          "normal": [
+            0.9659134303499278,
+            -0.2588653029466002
+          ],
+          "offset": 0.03451546567951113,
+          "start": [
+            -0.5669522861871328,
+            -1.982155801011629
+          ],
+          "end": [
+            -0.3107117292796945,
+            -1.0260361801125073
+          ],
+          "length": 0.9898605722385927,
+          "topologyStart": [
+            -0.5717345408197148,
+            -2
+          ],
+          "topologyEnd": [
+            -0.3041157428435951,
+            -1.0014243383070855
+          ],
+          "topologyLength": 1.0338148640620453,
+          "contactCount": 32,
+          "fitRmse": 0.010053377327213167,
+          "endpointLineResidual": 6.938893903907228e-18,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.3522234856087655
+        }
+      ]
+    },
+    {
+      "teacherId": "random-deep-2d-29",
+      "seed": 29,
+      "pass": true,
+      "recovery": {
+        "regionCount": 20,
+        "adjacencyEdgeCount": 40,
+        "kinkCellBoundaryCount": 894,
+        "compactBoundarySegmentCount": 40,
+        "compressionRatio": 22.35,
+        "maxBoundaryFitRmse": 0.019688286542344113,
+        "meanBoundaryFitRmse": 0.009528011393593131,
+        "maxNormalError": 1.1102230246251565e-16
+      },
+      "metrics": {
+        "mae": 0.00009271955699529366,
+        "rmse": 0.001031765838728371,
+        "r2": 0.9999967687728304
+      },
+      "queryBudget": {
+        "rawOracleCalls": 51005,
+        "gridCells": 10201
+      },
+      "compactBoundarySample": [
+        {
+          "id": 0,
+          "regionA": 0,
+          "regionB": 1,
+          "normal": [
+            0.7859234481995401,
+            0.6183238096419584
+          ],
+          "offset": 0.97809945034635,
+          "start": [
+            0.30713787683282234,
+            -1.972245432834995
+          ],
+          "end": [
+            0.2535048196159704,
+            -1.9040748778473755
+          ],
+          "length": 0.0867394339026153,
+          "topologyStart": [
+            0.32897373087655146,
+            -2
+          ],
+          "topologyEnd": [
+            0.2292419904067442,
+            -1.8732354922409353
+          ],
+          "topologyLength": 0.16129370875683577,
+          "contactCount": 4,
+          "fitRmse": 0.00993105596325058,
+          "endpointLineResidual": 0,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.01438187005142665
+        },
+        {
+          "id": 1,
+          "regionA": 0,
+          "regionB": 4,
+          "normal": [
+            -0.18966567163367815,
+            -0.9818487322412479
+          ],
+          "offset": -1.8205383162316202,
+          "start": [
+            -1.9776890354954642,
+            -1.4721601704697789
+          ],
+          "end": [
+            0.1959232935199075,
+            -1.8920411854535089
+          ],
+          "length": 2.2137955243408087,
+          "topologyStart": [
+            -2,
+            -1.4678503170997097
+          ],
+          "topologyEnd": [
+            0.2214290623443163,
+            -1.8969681855256812
+          ],
+          "topologyLength": 2.2624962373516557,
+          "contactCount": 66,
+          "fitRmse": 0.01021316391475343,
+          "endpointLineResidual": 2.220446049250313e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 1.103678164311732
+        },
+        {
+          "id": 2,
+          "regionA": 0,
+          "regionB": 5,
+          "normal": [
+            0.9726945211888172,
+            -0.2320891390161497
+          ],
+          "offset": -0.6874269491324438,
+          "start": [
+            0.25217862629259813,
+            -1.9050188339315004
+          ],
+          "end": [
+            0.26137027536254465,
+            -1.8664962786368937
+          ],
+          "length": 0.03960396039603967,
+          "topologyStart": [
+            0.25095931523037784,
+            -1.9101290135584932
+          ],
+          "topologyEnd": [
+            0.2636798740594088,
+            -1.856816661537585
+          ],
+          "topologyLength": 0.05480893626886107,
+          "contactCount": 1,
+          "fitRmse": 0.019688286542344113,
+          "endpointLineResidual": 0,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.00517428923329705
+        },
+        {
+          "id": 3,
+          "regionA": 1,
+          "regionB": 2,
+          "normal": [
+            -0.9999989831805015,
+            -0.001426056788167599
+          ],
+          "offset": 0.5070667307548099,
+          "start": [
+            0.5097216615502206,
+            -1.8613652152640696
+          ],
+          "end": [
+            0.5098910938676215,
+            -1.9801768548318366
+          ],
+          "length": 0.11881176037788158,
+          "topologyStart": [
+            0.5096933925342687,
+            -1.8415420304919463
+          ],
+          "topologyEnd": [
+            0.5099193628270959,
+            -1.9999999999999998
+          ],
+          "topologyLength": 0.15845813063137038,
+          "contactCount": 4,
+          "fitRmse": 0.01475702285691684,
+          "endpointLineResidual": 1.1102230246251565e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.01333087983220339
+        },
+        {
+          "id": 4,
+          "regionA": 1,
+          "regionB": 5,
+          "normal": [
+            0.2725480925130464,
+            -0.9621421606329804
+          ],
+          "offset": -1.899819643729592,
+          "start": [
+            0.28112280445473203,
+            -1.8949384344763331
+          ],
+          "end": [
+            0.47481855482876734,
+            -1.8400698199905114
+          ],
+          "length": 0.20131718398724519,
+          "topologyStart": [
+            0.2524951455162171,
+            -1.9030478533918012
+          ],
+          "topologyEnd": [
+            0.4999801020085356,
+            -1.8329422540557527
+          ],
+          "topologyLength": 0.2572228581372024,
+          "contactCount": 7,
+          "fitRmse": 0.010029549293493789,
+          "endpointLineResidual": 0,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.031995870974670416
+        },
+        {
+          "id": 5,
+          "regionA": 2,
+          "regionB": 3,
+          "normal": [
+            -0.4002521010090299,
+            -0.9164050718093268
+          ],
+          "offset": -1.4732009105360167,
+          "start": [
+            0.5181998996706642,
+            -1.833917730075099
+          ],
+          "end": [
+            0.8517468646887366,
+            -1.97959880238746
+          ],
+          "length": 0.36397328569944054,
+          "topologyStart": [
+            0.48802662970416943,
+            -1.8207391531881796
+          ],
+          "topologyEnd": [
+            0.8785717201330822,
+            -1.991314914706289
+          ],
+          "topologyLength": 0.4261708085681263,
+          "contactCount": 13,
+          "fitRmse": 0.008864384272729668,
+          "endpointLineResidual": 2.220446049250313e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.07887587728326093
+        },
+        {
+          "id": 6,
+          "regionA": 3,
+          "regionB": 5,
+          "normal": [
+            0.999998983178897,
+            0.0014260579133312367
+          ],
+          "offset": -0.5070667287992972,
+          "start": [
+            0.509665184206148,
+            -1.8217613353915674
+          ],
+          "end": [
+            0.5072366524072857,
+            -0.11879450159237509
+          ],
+          "length": 1.7029685654135673,
+          "topologyStart": [
+            0.5096934825081155,
+            -1.8416050408460567
+          ],
+          "topologyEnd": [
+            0.5072083838284257,
+            -0.0989716389641402
+          ],
+          "topologyLength": 1.742635173830136,
+          "contactCount": 44,
+          "fitRmse": 0.013420603054546674,
+          "endpointLineResidual": 1.1102230246251565e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.1454246348495956
+        },
+        {
+          "id": 7,
+          "regionA": 3,
+          "regionB": 14,
+          "normal": [
+            -0.3141146973943284,
+            0.9493850414246423
+          ],
+          "offset": 0.24195042729936525,
+          "start": [
+            1.9848264700682587,
+            0.40185248564047604
+          ],
+          "end": [
+            0.5105259655310854,
+            -0.08593638467506556
+          ],
+          "length": 1.5529004989638828,
+          "topologyStart": [
+            1.9999999999999998,
+            0.40687281833474354
+          ],
+          "topologyEnd": [
+            0.4860954954628271,
+            -0.0940194799186736
+          ],
+          "topologyLength": 1.5946159234459978,
+          "contactCount": 51,
+          "fitRmse": 0.009053051285910923,
+          "endpointLineResidual": 8.326672684688674e-17,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.8817490350097411
+        }
+      ]
+    },
+    {
+      "teacherId": "random-deep-2d-83",
+      "seed": 83,
+      "pass": true,
+      "recovery": {
+        "regionCount": 21,
+        "adjacencyEdgeCount": 44,
+        "kinkCellBoundaryCount": 839,
+        "compactBoundarySegmentCount": 44,
+        "compressionRatio": 19.068181818181817,
+        "maxBoundaryFitRmse": 0.07552766078391318,
+        "meanBoundaryFitRmse": 0.011083008998778664,
+        "maxNormalError": 2.220446049250313e-16
+      },
+      "metrics": {
+        "mae": 0.00017751438215398696,
+        "rmse": 0.0016569027419748711,
+        "r2": 0.9999995367107568
+      },
+      "queryBudget": {
+        "rawOracleCalls": 51005,
+        "gridCells": 10201
+      },
+      "compactBoundarySample": [
+        {
+          "id": 0,
+          "regionA": 0,
+          "regionB": 1,
+          "normal": [
+            -0.8260307437887033,
+            0.5636250618237993
+          ],
+          "offset": -0.20940316283240154,
+          "start": [
+            -0.5611516158249442,
+            -0.45087655070447263
+          ],
+          "end": [
+            -1.6044327164691872,
+            -1.9798757416866364
+          ],
+          "length": 1.851019713829535,
+          "topologyStart": [
+            -0.5413572107662523,
+            -0.4218665079633326
+          ],
+          "topologyEnd": [
+            -1.618164089570391,
+            -2
+          ],
+          "topologyLength": 1.9105021258631871,
+          "contactCount": 66,
+          "fitRmse": 0.008321229329408573,
+          "endpointLineResidual": 1.942890293094024e-16,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 1.7620985244295433
+        },
+        {
+          "id": 1,
+          "regionA": 0,
+          "regionB": 7,
+          "normal": [
+            -0.6331704132666047,
+            0.7740124209363808
+          ],
+          "offset": -0.020512196310580377,
+          "start": [
+            -0.5273878433076093,
+            -0.4049213861569836
+          ],
+          "end": [
+            -0.5467970220972243,
+            -0.4207988028792095
+          ],
+          "length": 0.02507605597095477,
+          "topologyStart": [
+            -0.4954422667549396,
+            -0.37878873846197153
+          ],
+          "topologyEnd": [
+            -0.5787425986498937,
+            -0.44693145057422146
+          ],
+          "topologyLength": 0.10762144074403804,
+          "contactCount": 2,
+          "fitRmse": 0.01580361086070349,
+          "endpointLineResidual": 5.551115123125783e-17,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.009071199804644263
+        },
+        {
+          "id": 2,
+          "regionA": 0,
+          "regionB": 8,
+          "normal": [
+            0.9102076158624108,
+            0.41415226188693705
+          ],
+          "offset": 0.6545364399400921,
+          "start": [
+            -0.549037168803898,
+            -0.3737722614334243
+          ],
+          "end": [
+            -1.08115607224104,
+            0.7956978176291045
+          ],
+          "length": 1.2848388199372185,
+          "topologyStart": [
+            -0.5356272166795171,
+            -0.40324412884844263
+          ],
+          "topologyEnd": [
+            -1.0934442633879113,
+            0.8227043227151709
+          ],
+          "topologyLength": 1.3468888088813034,
+          "contactCount": 44,
+          "fitRmse": 0.009142916465311826,
+          "endpointLineResidual": 0,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.7494753140253784
+        },
+        {
+          "id": 3,
+          "regionA": 0,
+          "regionB": 12,
+          "normal": [
+            0.705533399039474,
+            0.7086766701675782
+          ],
+          "offset": 0.17733658225696952,
+          "start": [
+            -1.0879294910195112,
+            0.8328678427042626
+          ],
+          "end": [
+            -1.1276212804358723,
+            0.8723835827867776
+          ],
+          "length": 0.056008319572556704,
+          "topologyStart": [
+            -1.066948051345953,
+            0.8119794643043828
+          ],
+          "topologyEnd": [
+            -1.1487014739125034,
+            0.893370276976189
+          ],
+          "topologyLength": 0.11536067999419035,
+          "contactCount": 3,
+          "fitRmse": 0.0016102304131737778,
+          "endpointLineResidual": 5.551115123125783e-17,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.006840947953861551
+        },
+        {
+          "id": 4,
+          "regionA": 0,
+          "regionB": 19,
+          "normal": [
+            0.6424960446598469,
+            0.7662890007017273
+          ],
+          "offset": 0.058541325876773125,
+          "start": [
+            -1.1507358699560293,
+            0.8884401556002252
+          ],
+          "end": [
+            -1.9705741103052572,
+            1.575834632361479
+          ],
+          "length": 1.069881258374403,
+          "topologyStart": [
+            -1.1190889221864455,
+            0.8619057296213916
+          ],
+          "topologyEnd": [
+            -2,
+            1.600506809206189
+          ],
+          "topologyLength": 1.1495807417395554,
+          "contactCount": 39,
+          "fitRmse": 0.008259092338797123,
+          "endpointLineResidual": 4.85722573273506e-17,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.6606435879044035
+        },
+        {
+          "id": 5,
+          "regionA": 1,
+          "regionB": 2,
+          "normal": [
+            -0.9807506216674953,
+            0.19526448243042435
+          ],
+          "offset": -0.08491702250213536,
+          "start": [
+            -0.2842173017802772,
+            -0.9926499202259883
+          ],
+          "end": [
+            -0.48137710985253923,
+            -1.9829201523129412
+          ],
+          "length": 1.009706453617406,
+          "topologyStart": [
+            -0.2790722111496409,
+            -0.9668077866657792
+          ],
+          "topologyEnd": [
+            -0.48477765586793065,
+            -2
+          ],
+          "topologyLength": 1.0534708727255897,
+          "contactCount": 31,
+          "fitRmse": 0.01033454845042455,
+          "endpointLineResidual": 1.3877787807814457e-17,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": true,
+          "contactCorridorArea": 0.29496246339708604
+        },
+        {
+          "id": 6,
+          "regionA": 1,
+          "regionB": 4,
+          "normal": [
+            -0.9619228565490651,
+            0.2733210896518722
+          ],
+          "offset": -0.004180883297763293,
+          "start": [
+            -0.26569695894976736,
+            -0.9197939857176862
+          ],
+          "end": [
+            -0.27610938680374886,
+            -0.9564393552999245
+          ],
+          "length": 0.03809595471481461,
+          "topologyStart": [
+            -0.2550110620881432,
+            -0.882186172698155
+          ],
+          "topologyEnd": [
+            -0.28426561157618047,
+            -0.9851442717106803
+          ],
+          "topologyLength": 0.10703363405033475,
+          "contactCount": 2,
+          "fitRmse": 0.027694736104313108,
+          "endpointLineResidual": 4.5102810375396984e-17,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.013755435914439949
+        },
+        {
+          "id": 7,
+          "regionA": 1,
+          "regionB": 7,
+          "normal": [
+            0.9102076155365686,
+            0.4141522626030602
+          ],
+          "offset": 0.6545364403525099,
+          "start": [
+            -0.3141986881465856,
+            -0.8898910736197558
+          ],
+          "end": [
+            -0.5123856370827929,
+            -0.4543235625602133
+          ],
+          "length": 0.47853643896703163,
+          "topologyStart": [
+            -0.3014691951350341,
+            -0.9178674545966687
+          ],
+          "topologyEnd": [
+            -0.5245700137735922,
+            -0.42754521687443553
+          ],
+          "topologyLength": 0.5386927436694623,
+          "contactCount": 17,
+          "fitRmse": 0.008760477972676267,
+          "endpointLineResidual": 0,
+          "topologyPreserving": true,
+          "lineClipped": true,
+          "domainClipped": false,
+          "contactCorridorArea": 0.13283880080980467
+        }
+      ]
+    }
+  ],
+  "runtimeMs": 43
+}

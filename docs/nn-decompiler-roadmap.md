@@ -1,0 +1,630 @@
+# NN Decompiler Roadmap
+
+This roadmap keeps the neural-network decompiler work honest. A lane becomes a
+release claim only when it has a command, artifact, gate, and clear boundary.
+
+## Engineering Rule
+
+Problems must not be silenced or bypassed. If a benchmark reveals a failure,
+the failure becomes an explicit test or benchmark variant, and the implementation
+must be fixed or the limitation must remain visible as a failing/non-promoted
+gate. Do not make the task easier just to preserve a pass.
+
+## SOTA Seriousness Checklist
+
+The NN decompiler roadmap is now ordered by dependency, not by excitement. A
+later phase may not be promoted while an earlier phase has an unresolved hard
+failure.
+
+Phase 0: shallow clean/noisy geometry floor.
+
+- Status: release-gated for 1D, 2D, 3D, randomized 3D, clean 4D/5D line probes,
+  noisy 4D/5D line probes, generated adversarial noisy ND, and adaptive
+  adversarial noisy ND.
+- Purpose: prove that the oracle/probing layer can recover observable
+  piecewise-linear geometry before deep composition is attempted.
+
+Phase 1: deep 1D and 2D output-equivalent recovery.
+
+- Status: release-gated for `benchmark:nn-deep-blackbox-relu1d-decompile`,
+  `benchmark:nn-deep-blackbox-relu2d-region-graph`, and
+  `benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`.
+- Purpose: recover the observable folded function first. Original hidden
+  weights and exact layer attribution remain out of scope for output-only
+  access.
+
+Phase 2: deep 2D hardening.
+
+- Status: release-gated for `benchmark:nn-noisy-deep-blackbox-relu2d-region-graph`
+  and `benchmark:nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph`.
+- Current proof: repeated noisy/quantized oracle calls on deterministic folded
+  2D seed sweep plus adaptive generated near-parallel, offset-collision,
+  cancellation, low-amplitude, boundary-grazing, and mixed-oblique folded
+  teachers, with median aggregation and explicit query-budget accounting.
+- Required gates: held-out accuracy, region/adjacency evidence, query budget,
+  first-layer-only baseline gap, and failure artifact if a random/adversarial
+  teacher breaks the solver.
+
+Phase 3: compact/adaptive/topology boundary extraction.
+
+- Status: compact-boundary extraction, the first adaptive-budget probe
+  selector, boundary-refined local switching, subcell-boundary adaptive
+  validation, and topology-boundary recovered-adjacency geometry are
+  release-gated for
+  `benchmark:nn-compact-deep-blackbox-relu2d-boundary` and
+  `benchmark:nn-adaptive-budget-deep-blackbox-relu2d-region-graph`, and
+  `benchmark:nn-boundary-refined-deep-blackbox-relu2d-region-graph`, and
+  `benchmark:nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph`,
+  and `benchmark:nn-topology-boundary-deep-blackbox-relu2d-region-graph`.
+- Current boundary: oracle-guided subcell validation selects the lowest passing
+  boundary-aware grid and records too-coarse failed candidates; topology-
+  boundary geometry clips every recovered adjacency edge to an affine equality
+  line inside an expanded contact corridor with no fallback segments. It is
+  still recovered-adjacency topology, not topology-perfect true-region merging.
+- Next target after topology-boundary geometry: the same boundary discipline in
+  deep ND folded recovery.
+- Required gates: same accuracy as fixed grid with fewer oracle calls or a
+  strictly better boundary artifact.
+
+Phase 4: deep ND folded recovery.
+
+- Next target after compact 2D: generalize folded region recovery beyond 2D.
+- Required gates: deterministic randomized ND teachers, query-budget accounting,
+  and baseline comparison against shallow/linear approximations.
+
+Phase 5: layer attribution only with extra observability.
+
+- Activation-access lanes may claim layer attribution when hidden activations
+  are explicitly available.
+- Output-only lanes must keep the claim at equivalent-function recovery unless
+  an identifiability assumption is stated and gated.
+
+The following items are still required before any broad SOTA language:
+
+- Wider randomized and adversarial 3D sweep, beyond the current smoke,
+  non-degenerate randomized, and two-teacher cancellation hard-case gates.
+  Status: started with `benchmark:nn-noisy-blackbox-relu3d-adversarial`;
+  broaden further with generated/adaptive adversarial search before using broad
+  SOTA language.
+- True general-ND solver, not only 3D. Status: started with the 4D line-probe
+  gate and broadened to deterministic clean/noisy 4D/5D seed sweeps plus a
+  generated adversarial noisy 4D/5D profile sweep and an adaptive
+  search-generated noisy 4D/5D adversary lane.
+- Random-direction probing instead of relying on z-slices and surface
+  refinement only. Status: started with `benchmark:nn-blackbox-relu-nd-line-probe`.
+- Deep ReLU composition recovery, not only shallow hidden-layer recovery.
+  Status: started with `benchmark:nn-deep-blackbox-relu1d-decompile` and
+  broadened to `benchmark:nn-deep-blackbox-relu2d-region-graph`, which recovers
+  an output-equivalent affine-region adjacency graph for a folded two-layer 2D
+  ReLU black box.
+- Query-budget benchmark: total oracle calls, repeated calls per point, and
+  accuracy versus query cost. Status: started with
+  `benchmark:nn-adaptive-budget-deep-blackbox-relu2d-region-graph` and
+  broadened to `benchmark:nn-boundary-refined-deep-blackbox-relu2d-region-graph`;
+  further broadened to
+  `benchmark:nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph`,
+  which records rejected too-coarse candidate grids before promotion, and to
+  `benchmark:nn-topology-boundary-deep-blackbox-relu2d-region-graph`, which
+  requires zero fallback topology segments and endpoint residual below
+  `1e-9`. Next broaden this boundary discipline beyond 2D before broad SOTA
+  language.
+- Comparison against strong methods for piecewise-linear model extraction, with
+  clear baselines and failure accounting.
+
+## Current Frontier Target
+
+The current frontier target is deep ND folded recovery, using the now-gated
+deep 2D topology-boundary lane as the boundary-geometry floor.
+
+The adaptive adversarial noisy 4D/5D ND shallow-ReLU lane and the adaptive
+adversarial noisy folded-2D deep-ReLU lane are now release-gated robustness
+floors. GCL now has release-gated lower-budget deep-2D selection, boundary-
+refined local switching, subcell-boundary adaptive validation with an explicit
+rejected-candidate ledger, and topology-preserving recovered-adjacency boundary
+geometry. The next capability jump is carrying these constraints into deep ND
+folded recovery.
+
+Target commands:
+
+- `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
+- `npm run benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`
+- `npm run benchmark:nn-noisy-deep-blackbox-relu2d-region-graph`
+- `npm run benchmark:nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph`
+- `npm run benchmark:nn-compact-deep-blackbox-relu2d-boundary`
+- `npm run benchmark:nn-adaptive-budget-deep-blackbox-relu2d-region-graph`
+- `npm run benchmark:nn-boundary-refined-deep-blackbox-relu2d-region-graph`
+- `npm run benchmark:nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph`
+- `npm run benchmark:nn-topology-boundary-deep-blackbox-relu2d-region-graph`
+
+Current status:
+
+- Direct benchmark PASS on 2026-05-25.
+- Teacher: 2-input / 4-hidden / 4-hidden / 1-output ReLU MLP.
+- GCL access: oracle calls only, `f(x,y)`.
+- Recovered affine regions: 21.
+- Region adjacency edges: 46.
+- Kink-cell boundaries: 964.
+- GCL MAE: `1.485e-4`.
+- GCL R2: `0.999999399`.
+- Plane baseline MAE: `0.830813`.
+- First-layer-only baseline MAE: `0.230876`.
+- Raw oracle calls: `51005`.
+- Artifact:
+  `benchmarks/release/nn-deep-blackbox-relu2d-region-graph/folded-two-layer/report.json`
+- The lane passes inside `npm run release:gate` on 2026-05-25.
+- Randomized seed-sweep benchmark PASS on 2026-05-25.
+- Randomized teachers: 4 deterministic 2-input / 4-hidden / 4-hidden /
+  1-output ReLU MLPs.
+- Randomized passed teachers: 4/4.
+- Randomized minimum recovered regions: 20.
+- Randomized minimum deep-only region estimate: 15.
+- Randomized minimum adjacency edges: 40.
+- Randomized minimum kink-cell boundaries: 839.
+- Randomized max MAE: `1.890e-4`.
+- Randomized min R2: `0.999996583`.
+- Randomized total raw oracle calls: `204020`.
+- Randomized artifact:
+  `benchmarks/release/nn-deep-blackbox-relu2d-region-graph-randomized/seed-sweep/report.json`
+- Noisy/quantized seed-sweep benchmark PASS on 2026-05-25.
+- Noisy teachers: 2 deterministic 2-input / 4-hidden / 4-hidden / 1-output
+  ReLU MLPs.
+- Noisy oracle: Gaussian output noise `0.003`, quantization `0.001`,
+  `21` repeated calls per probe point, median aggregation.
+- Noisy passed teachers: 2/2.
+- Noisy minimum recovered regions: 125.
+- Noisy minimum deep-only region estimate: 120.
+- Noisy minimum adjacency edges: 304.
+- Noisy minimum kink-cell boundaries: 2061.
+- Noisy max MAE: `0.002395`.
+- Noisy min R2: `0.99994584`.
+- Noisy total raw oracle calls: `1377810`.
+- Noisy artifact:
+  `benchmarks/release/nn-noisy-deep-blackbox-relu2d-region-graph/seed-sweep/report.json`
+- Adaptive-adversarial benchmark PASS on 2026-05-25 after a failing first
+  attempt exposed near-parallel and weak-signal hard cases.
+- Adaptive-adversarial teachers: 12 generated 2-input / 4-hidden / 4-hidden /
+  1-output folded ReLU MLPs across near-parallel, offset-collision,
+  cancellation, low-amplitude, boundary-grazing, and mixed-oblique profiles.
+- Adaptive-adversarial passed final candidates: 12/12.
+- Adaptive-adversarial selected hard cases passed: 4/4.
+- Adaptive-adversarial minimum selected regions: 75.
+- Adaptive-adversarial minimum selected deep-only region estimate: 70.
+- Adaptive-adversarial minimum selected adjacency edges: 246.
+- Adaptive-adversarial max selected MAE: `0.006062`.
+- Adaptive-adversarial min selected R2: `0.99895766`.
+- Adaptive-adversarial max selected first-layer MAE ratio: `0.126213`.
+- Adaptive-adversarial total raw oracle calls: `9313740`.
+- Adaptive-adversarial artifact:
+  `benchmarks/release/nn-adaptive-adversarial-deep-blackbox-relu2d-region-graph/adaptive-search/report.json`
+- Compact boundary benchmark PASS on 2026-05-25.
+- Compact boundary teachers: 3 fixed/randomized 2-input / 4-hidden /
+  4-hidden / 1-output folded ReLU MLPs.
+- Compact boundary passed teachers: 3/3.
+- Compact boundary minimum compression ratio: `19.068182x` versus raw
+  cell-edge boundary contacts.
+- Compact boundary max fit RMSE: `0.075528`.
+- Compact boundary max MAE: `1.775e-4`.
+- Compact boundary min R2: `0.999996769`.
+- Compact boundary total raw oracle calls: `153015`.
+- Compact boundary artifact:
+  `benchmarks/release/nn-compact-deep-blackbox-relu2d-boundary/fixed-plus-randomized/report.json`
+- Adaptive-budget benchmark PASS on 2026-05-25.
+- Adaptive-budget teachers: 3 fixed/randomized 2-input / 4-hidden /
+  4-hidden / 1-output folded ReLU MLPs.
+- Adaptive-budget passed teachers: 3/3.
+- Adaptive-budget selected grid widths: `89, 89, 89`.
+- Adaptive-budget minimum oracle reduction versus fixed `101x101`: `20.102%`.
+- Adaptive-budget total oracle calls: `122256` versus fixed `153015`.
+- Adaptive-budget max MAE: `2.407e-4`.
+- Adaptive-budget min R2: `0.999992859`.
+- Adaptive-budget artifact:
+  `benchmarks/release/nn-adaptive-budget-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.json`
+- Adaptive-budget boundary: this is a validated whole-grid budget selector
+  with fallback, not the final form of local spatial refinement.
+- Boundary-refined benchmark PASS on 2026-05-25.
+- Boundary-refined teachers: 3 fixed/randomized 2-input / 4-hidden /
+  4-hidden / 1-output folded ReLU MLPs.
+- Boundary-refined grid: `57x57` plus held-out validation.
+- Boundary-refined passed teachers: 3/3.
+- Boundary-refined minimum oracle reduction versus fixed `101x101`: `65.901%`.
+- Boundary-refined total oracle calls: `52176` versus fixed `153015`.
+- Boundary-refined max MAE: `7.994e-5`.
+- Boundary-refined min R2: `0.999999013`.
+- Boundary-refined minimum held-out coarse-to-refined MAE improvement:
+  `7.996471x`.
+- Boundary-refined artifact:
+  `benchmarks/release/nn-boundary-refined-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.json`
+- Boundary-refined boundary: compact boundary segments are now an active local
+  switching mechanism, but this still does not claim topology-perfect true-region
+  merging or original hidden-layer identity.
+- Subcell-boundary adaptive benchmark PASS on 2026-05-25.
+- Subcell-boundary adaptive teachers: 3 fixed/randomized 2-input / 4-hidden /
+  4-hidden / 1-output folded ReLU MLPs.
+- Subcell-boundary adaptive selected grid widths: `37, 37, 41`.
+- Subcell-boundary adaptive rejected too-coarse attempts: 1.
+- Subcell-boundary adaptive total oracle calls: `33528` versus fixed `153015`
+  and boundary-refined 57x57 `52176`.
+- Subcell-boundary adaptive total oracle reduction: `78.088%` versus fixed
+  `101x101`, and `35.741%` versus boundary-refined 57x57.
+- Subcell-boundary adaptive max MAE: `2.837e-4`.
+- Subcell-boundary adaptive min R2: `0.999990210`.
+- Subcell-boundary adaptive minimum held-out coarse-to-subcell MAE improvement:
+  `3.550431x`.
+- Subcell-boundary adaptive artifact:
+  `benchmarks/release/nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.json`
+- Topology-boundary benchmark PASS on 2026-05-26 after a first randomized
+  attempt exposed fallback contact-corridor segments on seed `83`.
+- Topology-boundary teachers: 3 fixed/randomized 2-input / 4-hidden /
+  4-hidden / 1-output folded ReLU MLPs.
+- Topology-boundary passed teachers: 3/3.
+- Topology-boundary fallback segments: 0.
+- Topology-boundary max endpoint line residual: `4.441e-16`.
+- Topology-boundary minimum topology segment length: `0.070194`.
+- Topology-boundary minimum boundary compression ratio: `10.022222x`.
+- Topology-boundary max MAE: `6.393e-4`.
+- Topology-boundary min R2: `0.999979703`.
+- Topology-boundary total raw oracle calls: `48735`.
+- Topology-boundary artifact:
+  `benchmarks/release/nn-topology-boundary-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.json`
+- Topology-boundary passes inside `npm run release:gate` on 2026-05-26.
+- Fixed failure: the first topology-boundary corridor used only raw grid
+  contact midpoints and missed the affine equality line for three seed-83
+  segments. The solver now expands the contact corridor with projected contact
+  points, so valid recovered equality lines clip without fallback while the
+  prediction segments remain unchanged.
+- Direct boundary-offset/root-localization prototypes were not promoted because
+  they regressed held-out accuracy on randomized teachers. The release-gated
+  fix is lower-risk oracle-guided subcell grid validation with explicit failed
+  candidate accounting.
+- The first adaptive run was not silenced: it failed on near-parallel /
+  low-amplitude cases, then the solver added per-region affine refitting and
+  the generator was adjusted to keep weak profiles non-degenerate under the
+  benchmark noise model.
+- Fixed failure: the first noisy attempt failed because the solver capped
+  explicit `gradientStep` to 10% of a grid cell, shrinking the requested
+  noise-tolerant step `0.075` to `0.00494` and amplifying noise into false
+  gradients. The solver now preserves explicit gradient steps up to a domain
+  safety cap, and the regression test checks repeated-query median probing.
+
+Required behavior:
+
+- Treat the deep black box as an output function first: recover the observable
+  piecewise-linear region graph accurately enough to predict held-out points.
+- Prove that the recovered surface is not just a plane or first-layer-only
+  ReLU basis by gating on region count, adjacency, kink-cell boundaries, and
+  strong baseline improvements.
+- Keep the boundary explicit: output-equivalent region-graph recovery is a
+  valid black-box claim; original hidden-weight recovery and exact layer
+  attribution are not identifiable from output-only access without more
+  assumptions.
+
+Next exits:
+
+- Move from 2D folded region graphs to ND deep folded region recovery.
+- Keep topology-boundary geometry as a non-negotiable recovered-adjacency gate
+  for future deep-ND folded recovery.
+- Add an activation-access control lane that can validate layer attribution
+  when hidden activations are explicitly available.
+
+## Previous Frontier: Adaptive Adversarial ND Teacher Generation
+
+The previous frontier target was adaptive adversarial ND teacher generation.
+
+The generated adversarial noisy 4D/5D line-probe lane proved that GCL can
+recover shallow ReLU hyperplanes under noisy and quantized oracle-only access
+for fixed hard profiles: near-parallel, offset-collision, low-amplitude, and
+oblique weak-support. The adaptive lane makes the hard cases search-generated
+instead of hand-selected.
+
+Target command:
+
+- `npm run benchmark:nn-noisy-blackbox-relu-nd-adaptive-adversary`
+
+Current status:
+
+- Direct benchmark PASS on 2026-05-24.
+- Candidate pool: 24 generated 4D/5D teachers.
+- Selected hard teachers: 4.
+- Passed teachers: 4/4.
+- Max MAE: `0.001696`.
+- Min R2: `0.99982863`.
+- Max plane error: `0.008613`.
+- Total raw oracle calls: `3708980`.
+- Artifact:
+  `benchmarks/release/nn-noisy-blackbox-relu-nd-adaptive-adversary/adaptive-search/report.json`
+- The lane passes inside `npm run release:gate` on 2026-05-24.
+
+Required behavior:
+
+- Generate a large candidate pool of 4D/5D shallow ReLU teachers with
+  adversarial knobs: near-parallel normals, offset collisions, weak readout
+  amplitudes, weak first-axis line intersections, low support near domain
+  boundaries, coarse quantization, and stochastic oracle noise.
+- Score candidates before the expensive solve by estimated difficulty: minimum
+  pairwise normal distance, offset distance, expected line delta slope, support
+  fraction, boundary proximity, and cancellation risk.
+- Select the hardest candidates and run the real noisy ND line-probe solver
+  against them with repeated oracle calls only.
+- Save the selected teachers, difficulty scores, solver metrics, query counts,
+  and failures under `benchmarks/release/`.
+- Gate on output-equivalent recovery: low MAE, high R2, bounded plane error,
+  support thresholds, and explicit raw oracle-call budget.
+- If an adaptive case fails, do not lower the gate and do not hide the failure.
+  Either repair the solver and keep the case as a regression fixture, or leave
+  the lane non-promoted with the failing artifact visible.
+
+Likely solver upgrades if adaptive search exposes a failure:
+
+- Multi-threshold kink extraction so weak line kinks are collected without
+  letting noise dominate.
+- RANSAC plane refit from all inliers after a candidate plane is selected.
+- Weighted inlier scoring by kink confidence and absolute line delta slope.
+- Residual-driven second pass that looks for missed weak hyperplanes after the
+  first symbolic circuit is fitted.
+- Query-budget controller that raises repeats only where line probes are
+  ambiguous instead of uniformly spending calls everywhere.
+
+Fixed failure case:
+
+- The first adaptive run solved all selected teachers accurately, but one 5D
+  mixed case exceeded the raw oracle-call budget because the generator increased
+  `lineCount` once per hidden term instead of once per teacher.
+- The generator now applies that budget increase once per teacher. The same
+  adaptive search passes with the 5D mixed case reduced from 560 to 410 line
+  probes while preserving accuracy.
+
+Promotion boundary:
+
+- This target can promote a stronger shallow noisy ND black-box ReLU recovery
+  claim for the gated shallow 4D/5D setting.
+- It still must not claim deep ReLU composition recovery, arbitrary production
+  model extraction, or exact hidden-unit identity for functionally
+  indistinguishable cancellation pairs.
+
+## Direction 1: Noise-Tolerant Oracle Decompilation
+
+Status: started and release-lane smoke gated for 1D, 2D, and 3D.
+
+Why first:
+
+- Real black-box APIs are not clean mathematical oracles.
+- Production outputs may be stochastic, rounded, quantized, batched, or served
+  through low precision inference.
+- ND and deep recovery are not useful if the base oracle layer breaks under
+  small output noise.
+
+Current implemented gate:
+
+- Command: `npm run benchmark:nn-noisy-blackbox-relu-decompile`
+- Teacher: fixed 1-input/5-hidden ReLU MLP
+- GCL access: repeated noisy `f(x)` only
+- Noise: Gaussian output noise plus quantization
+- Required: recover all kinks within tolerance, beat linear strongly, maintain
+  high R2 against the clean teacher.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu2d-decompile`
+- Teacher: fixed 2-input/3-hidden non-crossing non-vertical ReLU MLP
+- GCL access: repeated noisy `f(x,y)` only
+- Noise: Gaussian output noise plus quantization
+- Required: recover kink-line geometry within tolerance, beat a plane baseline,
+  maintain high R2 against the clean teacher.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-decompile`
+- Teacher: fixed 3-input/3-hidden non-vertical ReLU MLP
+- GCL access: repeated noisy `f(x,y,z)` only
+- Noise: Gaussian output noise plus quantization
+- Required: recover hyperplane geometry within tolerance, beat a linear
+  hyperplane baseline, maintain high R2 against the clean teacher.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-randomized`
+- Teacher: deterministic non-degenerate randomized 3-input/3-hidden ReLU MLP
+  seed sweep.
+- GCL access: repeated noisy `f(x,y,z)` only.
+- Noise: Gaussian output noise plus quantization.
+- Required: every seed recovers 3/3 hyperplanes within tolerance, beats a
+  linear hyperplane baseline, and maintains high R2 against the clean teacher.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-cancellation`
+- Teacher: deterministic 3-input/3-hidden ReLU MLP hard cases with close
+  opposite-sign kink pairs.
+- GCL access: repeated noisy `f(x,y,z)` only.
+- Method: noisy slice stitching seeds the model, then a global parametric
+  ReLU-surface refiner fits the full 3D piecewise-linear surface.
+- Required: recover an output-equivalent symbolic surface on every hard
+  teacher, beat slice-only stitching by at least 70%, beat a linear hyperplane
+  baseline by at least 85%, and maintain high R2 against the clean teacher.
+- Boundary: this gate proves functional transparent surface recovery, not
+  unique hidden-unit identity for cancelling near-collision pairs that can be
+  functionally indistinguishable under noisy black-box output.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-adversarial`
+- Teacher: six adversarial shallow-3D ReLU MLP profiles: near-parallel,
+  beta-collision, cancellation, oblique-wide, and low-amplitude mixed.
+- GCL access: repeated noisy `f(x,y,z)` only.
+- Method: noisy slice stitching plus global parametric ReLU-surface refinement.
+- Required: every profile reconstructs an output-equivalent symbolic surface,
+  beats a linear hyperplane baseline, avoids regression against slice-only
+  stitching, and reports actual oracle query counts.
+
+Next exits:
+
+- Expand query-budget reporting beyond the current adversarial 3D sweep into
+  the older 1D/2D/3D smoke and randomized lanes.
+- Add adversarial precision variants: low query repeat, coarse quantization,
+  and biased API rounding.
+- Add harder noisy 2D cases: low-amplitude hidden units.
+
+Fixed failure case:
+
+- The original noisy 2D crossing-line teacher produced good MAE but wrong
+  geometry for one weak kink line because bad per-slice detections polluted the
+  line fit.
+- The stitching layer now uses robust kink-line fitting with slice outlier
+  rejection.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu2d-crossing`
+- Required: recover crossing-line geometry and maintain high held-out R2.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu2d-near-parallel`
+- Required: separate near-parallel kink lines without merging and maintain high
+  held-out R2.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu2d-near-collision`
+- Required: separate kink lines when two collide on an observed slice and
+  maintain high held-out R2.
+- The unrestricted noisy 3D randomized attempt exposed near-collision and
+  cancellation cases where close opposite-sign hyperplanes were merged or missed
+  by slice-only stitching.
+- The 3D noisy hard case is now covered by the global refiner gate.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-cancellation`
+- Required: output-equivalent symbolic surface recovery on the hard cases and
+  strong improvement over the slice-only baseline.
+- The wider adversarial 3D sweep now covers near-parallel, beta-collision,
+  cancellation, oblique-wide, and low-amplitude mixed profiles.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-adversarial`
+- Required: 6/6 profiles pass with explicit oracle query-budget accounting.
+
+## Direction 2: 3D / General-ND Hyperplane Stitching
+
+Status: started and release-lane gated for clean/noisy 3D teachers, the first
+clean 4D random-direction line-probe teacher, and a deterministic randomized
+4D/5D seed sweep.
+
+Why second:
+
+- The current 2D black-box solver already recovers non-vertical ReLU kink
+  lines from horizontal slices.
+- The natural generalization is to probe many 1D lines through the domain,
+  recover kink locations on those lines, then stitch those points into
+  hyperplanes.
+
+Proposed architecture:
+
+- Active line sampler: choose lines across coordinate axes and random
+  directions.
+- Kink point extraction: reuse robust 1D/noisy 1D decompilers per line.
+- Hyperplane clustering: group recovered kink points by compatible normals.
+- Region adjacency graph: maintain which linear region lies on each side of
+  each recovered hyperplane.
+- Verification pass: hold out random points and compare reconstructed symbolic
+  circuit against the oracle.
+
+Current implemented gate:
+
+- Command: `npm run benchmark:nn-blackbox-relu3d-decompile`
+- Teacher: fixed 3-input/3-hidden ReLU MLP with non-degenerate non-vertical
+  hyperplanes.
+- GCL access: `f(x,y,z)` oracle only.
+- Method: recover 2D kink lines on z-slices, then stitch matched lines through
+  z into hyperplanes.
+- Required: recover 3/3 hyperplanes with geometry error below `1e-8`, beat a
+  linear hyperplane baseline by at least 1000x, and keep held-out MAE below
+  `1e-9`.
+- Command: `npm run benchmark:nn-blackbox-relu3d-randomized`
+- Teacher: deterministic randomized 3-input/4-hidden ReLU MLP seed sweep.
+- GCL access: `f(x,y,z)` oracle only.
+- Method: clean 2D slice recovery with denser `y` slicing per z-slice, then
+  hyperplane stitching.
+- Required: every seed recovers all hyperplanes with geometry error below
+  `1e-8`, and every seed keeps held-out MAE below `1e-9`.
+- Command: `npm run benchmark:nn-blackbox-relu-nd-line-probe`
+- Teacher: fixed 4-input/4-hidden shallow ReLU MLP.
+- GCL access: `f(vector)` oracle only.
+- Method: random-direction line probes recover 1D kink points; RANSAC stitches
+  kink points into N-D hyperplanes; a final linear readout fit reconstructs an
+  equivalent symbolic ReLU circuit.
+- Required: recover 4/4 hyperplanes, keep max plane error below `1e-3`, beat a
+  linear hyperplane baseline by at least `1000x`, keep held-out MAE below
+  `1e-8`, and report oracle query count.
+- Command: `npm run benchmark:nn-blackbox-relu-nd-line-probe-randomized`
+- Teacher: deterministic randomized 4D/5D shallow ReLU MLP seed sweep.
+- GCL access: `f(vector)` oracle only.
+- Method: same random-direction line probing, RANSAC hyperplane stitching, and
+  linear readout fitting as the fixed 4D lane.
+- Required: all randomized 4D/5D teachers recover every hyperplane, keep max
+  plane error below `1e-3`, beat linear by at least `1000x`, keep MAE below
+  `1e-8`, satisfy support thresholds, and stay under the query-budget cap.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu-nd-line-probe`
+- Teacher: deterministic randomized 4D/5D shallow ReLU MLP seed sweep with
+  stochastic output noise and quantization.
+- GCL access: repeated noisy `f(vector)` oracle only.
+- Method: random-direction line probing uses median-aggregated 1D noisy ReLU
+  segmentation; weak noisy line kinks are filtered before RANSAC stitching; a
+  median-aggregated final readout fit reconstructs an equivalent symbolic ReLU
+  circuit.
+- Required: all noisy 4D/5D teachers recover every hyperplane, keep max plane
+  error below `0.06`, beat a linear hyperplane baseline by at least 75%, keep
+  MAE below `0.025`, keep R2 above `0.998`, satisfy support thresholds, and
+  stay under the query-budget cap.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-decompile`
+- Teacher: fixed 3-input/3-hidden ReLU MLP with noisy and quantized oracle
+  output.
+- GCL access: repeated noisy `f(x,y,z)` oracle only.
+- Method: noisy 2D slice recovery per z, followed by robust `beta(z)`
+  hyperplane stitching.
+- Required: recover 3/3 hyperplanes within `0.12` geometry tolerance, beat a
+  linear hyperplane baseline by at least 65%, and keep held-out MAE below
+  `0.08`.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-cancellation`
+- Teacher: noisy 3D near-collision/cancellation hard cases with close
+  opposite-sign hidden units.
+- GCL access: repeated noisy `f(x,y,z)` oracle only.
+- Method: noisy slice recovery seeds a global parametric refiner that optimizes
+  the full 3D ReLU surface and readout coefficients.
+- Required: output-equivalent surface MAE below `0.012`, R2 above `0.999`, and
+  strong improvement over both linear and slice-only baselines.
+- Command: `npm run benchmark:nn-noisy-blackbox-relu3d-adversarial`
+- Teacher: wider noisy adversarial 3D profile sweep over shallow ReLU MLPs.
+- GCL access: repeated noisy `f(x,y,z)` oracle only.
+- Method: slice stitching seeds a global refiner; benchmark counts actual oracle
+  calls.
+- Required: 6/6 profiles pass, max MAE below `0.020`, R2 above `0.9985`, and
+  no bad regression against slice-only stitching.
+
+Boundary:
+
+- This should not claim arbitrary high-dimensional network recovery until it
+  survives adaptive search-generated ND profiles and deep composition recovery.
+  The clean, noisy, generated adversarial, and adaptive-adversary 4D/5D shallow
+  lanes now pass inside the release gate.
+
+Next exits:
+
+- Broaden adaptive adversarial search to larger candidate pools and stricter
+  budget tiers.
+- Add residual-driven second-pass recovery for missed weak hyperplanes.
+- Start the deep/staked ReLU composition recovery lane.
+
+## Direction 3: Deep ReLU Composition Recovery
+
+Status: started with a release-lane folded 1D output-equivalent recovery gate.
+
+Why third:
+
+- Deep ReLU networks fold space. The visible function is still piecewise
+  linear, but internal layers are not identifiable from output alone without
+  extra assumptions.
+- A correct deep lane needs to distinguish equivalent surface recovery from
+  exact hidden-layer recovery.
+
+Proposed architecture:
+
+- Start with equivalent-function recovery, not exact original weights.
+- Recover piecewise-linear regions and adjacency graph.
+- Search for compact factorizations of the recovered surface into layered ReLU
+  circuits.
+- Add an activation-access control lane for validating factorization when
+  hidden layers are available.
+
+First gates:
+
+- Command: `npm run benchmark:nn-deep-blackbox-relu1d-decompile`
+- Teacher: fixed two-layer ReLU network over 1D.
+- GCL access: output-only equivalent surface recovery.
+- Required: held-out reconstruction accuracy, recovered canonical kink count
+  greater than the first-layer kink count, at least 5 deep-only kinks, and
+  a GCL MAE advantage over both a linear baseline and a first-layer-kink-only
+  baseline.
+- Command: `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
+- Teacher: fixed two-layer ReLU network over 2D.
+- GCL access: output-only equivalent surface recovery.
+- Required: held-out reconstruction accuracy, recovered affine-region
+  adjacency graph, region count greater than the first-layer structure, and
+  a GCL MAE advantage over both plane and first-layer-only ReLU baselines.
+
+Boundary:
+
+- Do not call this "exact deep reverse engineering" unless hidden activations
+  or strict identifiability assumptions are part of the gate.

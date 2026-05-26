@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:54:24.990Z",
+  "lane": "nn-noisy-blackbox-relu2d-decompile",
+  "variant": "crossing",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-noisy-blackbox-relu2d-decompile.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-noisy-blackbox-relu2d-crossing",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "crossing",
+    "GCL_NOISY_BLACKBOX_RELU2D_PROFILE": "crossing"
+  },
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-noisy-blackbox-relu2d-decompile/crossing/report.json",
+    "reportMarkdown": "benchmarks/release/nn-noisy-blackbox-relu2d-decompile/crossing/report.md",
+    "manifest": "benchmarks/release/nn-noisy-blackbox-relu2d-decompile/crossing/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "terms": 3,
+    "mae": 0.006050245259381141,
+    "r2": 0.9999648350834714,
+    "maxDeltaError": 0.01189244600625372,
+    "maxAlphaError": 0.0013824441300149815,
+    "maxBetaError": 0.0010144711284639507,
+    "noiseStd": 0.01,
+    "quantization": 0.0025,
+    "querySamples": 25
+  },
+  "notes": [
+    "This benchmark tests noisy and quantized 2D black-box ReLU decompilation from repeated oracle calls only.",
+    "It recovers crossing non-vertical kink-line geometry; this is not arbitrary high-dimensional network decompilation."
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "generatedAt": "2026-05-26T10:54:03.107Z",
+  "task": "noise-tolerant 3D black-box ReLU hyperplane decompilation",
+  "blackBox": {
+    "type": "3-input/3-hidden non-vertical ReLU MLP teacher with noisy quantized oracle",
+    "visibilityToGcl": "oracle calls only: repeated noisy f(x,y,z), no hidden activations and no teacher weights"
+  },
+  "noise": {
+    "seed": 260527,
+    "noiseStd": 0.006,
+    "quantization": 0.002,
+    "querySamples": 17,
+    "aggregation": "median"
+  },
+  "config": {
+    "xRange": [
+      -3,
+      3
+    ],
+    "yRange": [
+      -1.4,
+      1.4
+    ],
+    "zRange": [
+      -1.2,
+      1.2
+    ],
+    "sliceCount": 7,
+    "ySliceCount": 9,
+    "samplesPerSlice": 261,
+    "testRows": 4485,
+    "maxTerms": 3
+  },
+  "auditTeacherCircuit": {
+    "bias": 0.18,
+    "base": [
+      0.22,
+      -0.11,
+      0.07
+    ],
+    "hidden": [
+      {
+        "alphaY": -0.25,
+        "alphaZ": 0.2,
+        "beta": -1.1,
+        "readout": 0.82
+      },
+      {
+        "alphaY": 0.35,
+        "alphaZ": -0.3,
+        "beta": 0.15,
+        "readout": -0.48
+      },
+      {
+        "alphaY": -0.1,
+        "alphaZ": -0.22,
+        "beta": 1.2,
+        "readout": 0.31
+      }
+    ]
+  },
+  "baselines": {
+    "hyperplane": {
+      "expression": "1.0782629203743093 + 0.6923373995905534 * x + 0.11985277354195267 * y + -0.0909743456656247 * z",
+      "metrics": {
+        "mae": 0.18385394070576372,
+        "rmse": 0.23350830845664142,
+        "r2": 0.9619814499847131
+      }
+    }
+  },
+  "gcl": {
+    "expression": "0.1798837229 + 0.2199450235 * x + -0.1102954074 * y + 0.06982643475 * z + 0.8198258924 * max(0, x + 0.2501685257 * y - 0.1998058364 * z + 1.100222972) + -0.4795539539 * max(0, x - 0.3501417463 * y + 0.2993158001 * z - 0.1500339691) + 0.30975742 * max(0, x + 0.1000938796 * y + 0.2207093442 * z - 1.200205915)",
+    "baseIntercept": 0.1798837228666418,
+    "baseSlopeX": 0.2199450234679696,
+    "baseSlopeY": -0.11029540740670972,
+    "baseSlopeZ": 0.06982643474840694,
+    "terms": [
+      {
+        "alphaY": -0.2501685257306966,
+        "alphaZ": 0.1998058363585579,
+        "beta": -1.1002229721901309,
+        "deltaSlopeX": 0.8198258923802149,
+        "support": 7
+      },
+      {
+        "alphaY": 0.35014174633272266,
+        "alphaZ": -0.29931580013331865,
+        "beta": 0.15003396906361796,
+        "deltaSlopeX": -0.47955395385531085,
+        "support": 7
+      },
+      {
+        "alphaY": -0.10009387962195095,
+        "alphaZ": -0.22070934417189955,
+        "beta": 1.2002059152923643,
+        "deltaSlopeX": 0.30975741998558687,
+        "support": 7
+      }
+    ],
+    "metrics": {
+      "mae": 0.00028232076982607715,
+      "rmse": 0.0003587328794470189,
+      "r2": 0.9999999102709146
+    }
+  },
+  "gates": {
+    "pass": true,
+    "maxDeltaError": 0.0004460461446891273,
+    "maxAlphaYError": 0.00016852573069658927,
+    "maxAlphaZError": 0.0007093441718995508,
+    "maxBetaError": 0.00022297219013078795,
+    "allHyperplanesRecoveredWithin012": true,
+    "maeBelow008": true,
+    "r2Above0995": true,
+    "beatsLinearHyperplaneBy65Percent": true
+  },
+  "runtimeMs": 336
+}

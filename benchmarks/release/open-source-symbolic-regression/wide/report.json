@@ -1,0 +1,2790 @@
+{
+  "generatedAt": "2026-05-22T12:47:06.152Z",
+  "benchmark": "open-source-symbolic-regression",
+  "budget": {
+    "seeds": [
+      1337,
+      2026,
+      4242
+    ],
+    "taskSet": "wide",
+    "populationSize": 300,
+    "generations": 80,
+    "gclBudgetNote": "GCL uses the same population/generation headline budget as the Python baselines; operator semantics and stopping behavior differ by engine.",
+    "pythonBin": "/tmp/gcl-open-source-bench-venv/bin/python"
+  },
+  "baselines": {
+    "gcl": "local Genetic Code Lab engine",
+    "gcl-hybrid": "production-gated train-only sparse basis calibration over generic GCL math bases",
+    "gplearn": "gplearn SymbolicRegressor 0.4.3 when installed in the selected Python environment",
+    "deap": "DEAP GP symbolic-regression harness based on DEAP primitive-tree workflow"
+  },
+  "tasks": [
+    {
+      "id": "quadratic_arithmetic",
+      "name": "Quadratic arithmetic",
+      "formula": "x^2 + 2x + 1",
+      "trainRange": [
+        -3,
+        3
+      ],
+      "testRange": [
+        -3.25,
+        3.25
+      ],
+      "trainPoints": 41,
+      "testPoints": 81,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div"
+      ],
+      "successMae": 0.000001
+    },
+    {
+      "id": "cubic_arithmetic",
+      "name": "Cubic arithmetic",
+      "formula": "x^3 - x + 0.5",
+      "trainRange": [
+        -2,
+        2
+      ],
+      "testRange": [
+        -2.25,
+        2.25
+      ],
+      "trainPoints": 41,
+      "testPoints": 81,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div"
+      ],
+      "successMae": 0.001
+    },
+    {
+      "id": "trig_poly_mixed",
+      "name": "Trigonometric + polynomial",
+      "formula": "sin(x) + 0.25x^2",
+      "trainRange": [
+        -3,
+        3
+      ],
+      "testRange": [
+        -3.25,
+        3.25
+      ],
+      "trainPoints": 61,
+      "testPoints": 101,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div",
+        "sin",
+        "cos"
+      ],
+      "successMae": 0.05
+    },
+    {
+      "id": "rational_shifted",
+      "name": "Shifted rational",
+      "formula": "x / (1 + x^2)",
+      "trainRange": [
+        -3,
+        3
+      ],
+      "testRange": [
+        -3.25,
+        3.25
+      ],
+      "trainPoints": 61,
+      "testPoints": 101,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div"
+      ],
+      "successMae": 0.001
+    },
+    {
+      "id": "quartic_even",
+      "name": "Even quartic polynomial",
+      "formula": "x^4 - 0.5x^2 + 0.25",
+      "trainRange": [
+        -2,
+        2
+      ],
+      "testRange": [
+        -2.25,
+        2.25
+      ],
+      "trainPoints": 51,
+      "testPoints": 101,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div"
+      ],
+      "successMae": 0.001
+    },
+    {
+      "id": "trig_linear_combo",
+      "name": "Trigonometric linear combination",
+      "formula": "sin(x) + cos(x)",
+      "trainRange": [
+        -3.141592653589793,
+        3.141592653589793
+      ],
+      "testRange": [
+        -3.5,
+        3.5
+      ],
+      "trainPoints": 71,
+      "testPoints": 121,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div",
+        "sin",
+        "cos"
+      ],
+      "successMae": 0.001
+    },
+    {
+      "id": "inverse_quadratic",
+      "name": "Inverse quadratic",
+      "formula": "1 / (1 + x^2)",
+      "trainRange": [
+        -3,
+        3
+      ],
+      "testRange": [
+        -3.25,
+        3.25
+      ],
+      "trainPoints": 61,
+      "testPoints": 101,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div"
+      ],
+      "successMae": 0.001
+    },
+    {
+      "id": "trig_rational_combo",
+      "name": "Trigonometric + rational",
+      "formula": "sin(x) + x / (1 + x^2)",
+      "trainRange": [
+        -3,
+        3
+      ],
+      "testRange": [
+        -3.25,
+        3.25
+      ],
+      "trainPoints": 71,
+      "testPoints": 121,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div",
+        "sin",
+        "cos"
+      ],
+      "successMae": 0.001
+    }
+  ],
+  "summary": [
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "deap",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0,
+      "meanMae": 0.19737939374953647,
+      "meanRmse": 0.30223764106182677,
+      "meanR2": 0.9826249702690854,
+      "medianRuntimeMs": 1347.1499280130956,
+      "bestExpression": "sub(mul(mul(add(div(div(1.3380464938637502, sub(x, 0.00744275747584755)), mul(sub(x, 0.00744275747584755), 4.913624016632141)), add(div(div(1.3380464938637502, x), mul(sub(sub(x, 0.00744275747584755), 0.00744275747584755), 4.913624016632141)), sub(x, 0.00744275747584755))), sub(x, 0.00744275747584755)), sub(sub(x, 0.00744275747584755), 0.00744275747584755)), x)"
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gcl",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 1.4168577148295136e-12,
+      "meanRmse": 1.7022836639310853e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 70.77563,
+      "bestExpression": "(add (mul const(0.9999999999990848) (add const(1) (mul (mul x x) x))) (mul const(-0.4999999999986295) (add const(1) (add x x))))"
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gcl-hybrid",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 1.0110095202720952e-12,
+      "meanRmse": 1.6407298293748453e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 793.146896,
+      "bestExpression": "0.5*1 + -1*mul(sub(1,mul(x,x)),x)"
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gplearn",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0,
+      "meanMae": 0.12828665765364175,
+      "meanRmse": 0.19504135250664087,
+      "meanR2": 0.9947129001693608,
+      "medianRuntimeMs": 9706.036584015237,
+      "bestExpression": "sub(mul(mul(X0, mul(add(X0, X0), X0)), sub(3.032, 2.702)), sub(sub(add(X0, X0), add(sub(mul(mul(X0, mul(X0, X0)), sub(3.032, 2.702)), mul(mul(X0, div(0.078, add(4.661, X0))), sub(div(div(0.078, add(4.661, X0)), add(div(4.661, mul(-1.729, -4.889)), mul(div(X0, add(4.661, X0)), 4.631))), mul(X0, mul(sub(3.032, 2.702), X0))))), X0)), div(X0, add(X0, X0))))"
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "deap",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0.6666666666666666,
+      "meanMae": 0.0041094153908804686,
+      "meanRmse": 0.004367945632208446,
+      "meanR2": 0.9993727458904673,
+      "medianRuntimeMs": 2003.3242180070374,
+      "bestExpression": "div(div(x, x), add(mul(x, x), div(x, x)))"
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gcl",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 0.0000019872378764746175,
+      "meanRmse": 0.0000022597718141685998,
+      "meanR2": 0.9999999998214362,
+      "medianRuntimeMs": 134.701715,
+      "bestExpression": "(div const(1) (add (div const(1) const(1)) (mul x x)))"
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gcl-hybrid",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 4.931844811527762e-12,
+      "meanRmse": 5.66194713040256e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 1134.31088,
+      "bestExpression": "1*div(1,add(1,mul(x,x)))"
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gplearn",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0,
+      "meanMae": 0.007277920459329627,
+      "meanRmse": 0.010775498889501176,
+      "meanR2": 0.9976110192716522,
+      "medianRuntimeMs": 7770.114520011703,
+      "bestExpression": "div(2.924, sub(mul(add(X0, X0), sub(X0, div(X0, add(add(add(0.235, -4.177), mul(sub(X0, X0), mul(add(0.235, -4.177), sub(X0, div(X0, X0))))), sub(div(X0, sub(X0, X0)), div(2.780, add(add(0.235, -4.177), 0.235))))))), add(0.871, -3.816)))"
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "deap",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 2.05596856412066e-18,
+      "meanRmse": 1.3791856406929294e-17,
+      "meanR2": 1,
+      "medianRuntimeMs": 1290.5132849991787,
+      "bestExpression": "add(add(add(div(div(x, div(add(1.364821443055697, x), div(sub(x, x), mul(sub(div(-1.0501598974058437, x), add(4.645031363114624, x)), div(add(-4.310406912434344, -3.913564702017683), mul(x, 1.4915669260979039)))))), sub(x, x)), x), x), mul(x, x))"
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gcl",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 1.485464058001189e-16,
+      "meanRmse": 4.0944860730228314e-16,
+      "meanR2": 1,
+      "medianRuntimeMs": 85.751799,
+      "bestExpression": "(mul const(1) (mul (add const(1) x) (add const(1) x)))"
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gcl-hybrid",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 4.626038920928239e-13,
+      "meanRmse": 5.961813738730937e-13,
+      "meanR2": 1,
+      "medianRuntimeMs": 811.341698,
+      "bestExpression": "1*1 + 1*add(add(x,x),mul(x,x))"
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gplearn",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0.6666666666666666,
+      "meanMae": 0.0060022608083850565,
+      "meanRmse": 0.0060022608083850565,
+      "meanR2": 0.9999956505977509,
+      "medianRuntimeMs": 910.2310680027585,
+      "bestExpression": "add(add(mul(X0, X0), add(X0, X0)), div(X0, X0))"
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "deap",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0,
+      "meanMae": 0.20998608892868573,
+      "meanRmse": 0.27446899421426113,
+      "meanR2": 0.9981407319757895,
+      "medianRuntimeMs": 1304.9842729815282,
+      "bestExpression": "mul(mul(mul(x, x), div(1.0899198149690754, -4.332850871278766)), mul(sub(-1.6015078136212368, 1.8863414960357154), mul(x, x)))"
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gcl",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 8.441272983136491e-13,
+      "meanRmse": 1.1436262860351883e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 74.371528,
+      "bestExpression": "(add (mul const(0.9999999999994964) (mul (mul x x) (mul x x))) (mul const(0.24999999999902206) (sub const(1) (mul (add x x) x))))"
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gcl-hybrid",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 5.344148116336663e-12,
+      "meanRmse": 7.495365739235099e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 987.11558,
+      "bestExpression": "0.25*1 + -0.5*mul(x,x) + 1*mul(mul(x,x),mul(x,x))"
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gplearn",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0,
+      "meanMae": 0.14322146642541553,
+      "meanRmse": 0.2034064898074893,
+      "meanR2": 0.9989125874762051,
+      "medianRuntimeMs": 7743.593795021297,
+      "bestExpression": "sub(mul(sub(mul(add(X0, mul(sub(X0, X0), mul(sub(add(X0, -0.172), X0), mul(add(X0, mul(mul(X0, X0), add(-3.726, X0))), mul(X0, sub(1.484, 1.626)))))), mul(X0, mul(-1.018, 0.589))), mul(sub(add(X0, -0.172), X0), mul(add(X0, mul(mul(-1.018, 0.589), mul(mul(0.270, X0), mul(mul(div(0.270, X0), mul(-2.160, sub(2.836, X0))), div(sub(div(sub(add(X0, -0.172), X0), mul(mul(0.270, X0), mul(0.270, X0))), sub(2.882, -2.322)), add(mul(mul(0.270, X0), mul(sub(mul(add(X0, mul(sub(X0, X0), mul(X0, mul(add(X0, mul(mul(X0, div(-4.387, 2.261)), sub(mul(-1.668, X0), 2.820))), mul(-1.018, 0.589))))), mul(X0, mul(-1.018, 0.589))), mul(sub(add(X0, -0.172), X0), mul(add(X0, mul(mul(-1.018, 0.589), mul(mul(0.270, X0), mul(mul(div(0.270, X0), mul(mul(X0, X0), sub(2.836, X0))), div(sub(div(sub(add(X0, -0.172), X0), mul(mul(0.270, X0), mul(0.270, X0))), sub(2.882, -2.322)), mul(mul(0.270, X0), mul(-1.668, X0))))))), 0.054))), mul(mul(0.270, X0), mul(-2.160, X0)))), add(X0, X0))))))), mul(add(X0, -0.172), mul(mul(mul(0.270, X0), mul(-1.668, X0)), 0.589))))), mul(mul(0.270, X0), mul(-2.160, X0))), mul(mul(mul(0.270, X0), mul(-1.668, X0)), mul(X0, X0)))"
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "deap",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0.6666666666666666,
+      "meanMae": 0.0006702668507422264,
+      "meanRmse": 0.0008295047075440533,
+      "meanR2": 0.9999863982949683,
+      "medianRuntimeMs": 2184.9390599818435,
+      "bestExpression": "div(x, sub(div(x, x), sub(sub(x, x), mul(x, x))))"
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gcl",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 0.000008096826596250188,
+      "meanRmse": 0.000009010431954555127,
+      "meanR2": 0.9999999994650347,
+      "medianRuntimeMs": 145.469217,
+      "bestExpression": "add(mul(0.999961, (div x (add const(0.9999) (mul x x)))), 4.823e-17)"
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gcl-hybrid",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 3.919953745539833e-12,
+      "meanRmse": 4.066602737548569e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 1136.472651,
+      "bestExpression": "1*div(x,add(1,mul(x,x)))"
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gplearn",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0.3333333333333333,
+      "meanMae": 0.03584347749010748,
+      "meanRmse": 0.11412449779645005,
+      "meanR2": 0.7728075830344626,
+      "medianRuntimeMs": 8097.077426995384,
+      "bestExpression": "div(X0, add(div(X0, X0), mul(X0, X0)))"
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "deap",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0.3333333333333333,
+      "meanMae": 0.11794510175719038,
+      "meanRmse": 0.15169505107457532,
+      "meanR2": 0.9650809002226882,
+      "medianRuntimeMs": 1045.950356987305,
+      "bestExpression": "add(cos(x), sin(x))"
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gcl",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 0,
+      "meanRmse": 0,
+      "meanR2": 1,
+      "medianRuntimeMs": 45.510769,
+      "bestExpression": "(add (cos x) (sin x))"
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gcl-hybrid",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 1.2779474448362551e-12,
+      "meanRmse": 1.406775198863386e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 1393.09519,
+      "bestExpression": "1*add(cos(x),sin(x))"
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gplearn",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 1.101047627727428e-17,
+      "meanRmse": 4.2820703418648414e-17,
+      "meanR2": 1,
+      "medianRuntimeMs": 4916.100293019554,
+      "bestExpression": "add(cos(X0), sin(X0))"
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "deap",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0,
+      "meanMae": 0.08367711994454059,
+      "meanRmse": 0.14818864319746317,
+      "meanR2": 0.9803310193979531,
+      "medianRuntimeMs": 1213.6574999894947,
+      "bestExpression": "sub(cos(sin(mul(cos(sin(mul(sin(sin(x)), mul(0.9260435271845129, 0.9260435271845129)))), x))), sub(sub(sub(cos(x), 0.02503941599370485), sin(x)), 0.02503941599370485))"
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gcl",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 5.2832146933098377e-8,
+      "meanRmse": 2.864228556078701e-7,
+      "meanR2": 0.9999999999999271,
+      "medianRuntimeMs": 694.044365,
+      "bestExpression": "(add (add (add (mul const(0.000004130237883419432) (add (add (add (add (mul const(0.2500395737196695) (add (add x x) (mul x x))) (mul const(0.49215833192720965) (mul (cos x) x))) (mul const(0.0882941953727949) (mul (mul x x) (sin x)))) (mul const(0.0033603200141829512) (sin (add (add x x) x)))) (mul const(-0.00007538738245115262) (div x (mul (sin x) (sin x)))))) (mul const(0.9999958701844519) (sin x))) (mul const(0.24999896739981511) (mul x x))) (mul const(0.000003815614106233811) const(-0.00007538738245115262)))"
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gcl-hybrid",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 1.9632763008640426e-12,
+      "meanRmse": 2.2096770903576068e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 1172.12872,
+      "bestExpression": "0.25*mul(x,x) + 1*sin(x)"
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gplearn",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0.3333333333333333,
+      "meanMae": 0.09120417439417279,
+      "meanRmse": 0.17233691407706564,
+      "meanR2": 0.9624460706697061,
+      "medianRuntimeMs": 8508.24746201397,
+      "bestExpression": "div(sub(div(sub(X0, X0), div(-2.509, -0.252)), sub(sub(sub(sub(sub(div(add(add(div(mul(0.831, sin(div(sub(sub(add(X0, sub(3.841, X0)), sin(sin(cos(X0)))), add(sin(add(X0, sin(X0))), sin(X0))), cos(X0)))), sub(cos(sub(sin(sub(div(sub(div(sub(X0, X0), div(-2.509, -0.252)), sub(sub(sub(sub(sub(div(add(add(div(mul(add(div(mul(sin(X0), sin(div(sub(add(X0, sub(3.841, X0)), sin(sin(div(1.849, 0.831)))), cos(X0)))), sub(add(1.654, X0), -4.751)), sin(add(cos(-1.786), sin(X0)))), sin(sin(cos(X0)))), add(cos(mul(sin(X0), X0)), -4.751)), cos(X0)), cos(mul(0.662, X0))), sub(add(X0, sub(3.841, X0)), sin(X0))), sin(X0)), sin(sin(sin(X0)))), add(cos(cos(cos(-0.882))), cos(add(-1.649, X0)))), add(sin(add(cos(-1.786), sin(X0))), sin(X0))), mul(X0, X0))), sub(add(div(1.849, 0.831), div(1.849, 0.831)), mul(sin(X0), cos(-1.786)))), mul(sin(X0), sin(sin(X0))))), -4.751)), -4.751)), cos(X0)), cos(mul(0.662, X0))), sub(add(X0, sub(3.841, X0)), sin(X0))), sin(X0)), sin(sin(sin(X0)))), add(cos(cos(sin(-0.882))), cos(add(-1.649, X0)))), add(sin(add(cos(-1.786), sin(X0))), sin(X0))), mul(X0, X0))), sub(add(div(1.849, 0.831), div(1.849, 0.831)), mul(sin(X0), cos(-1.786))))"
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "deap",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0,
+      "meanMae": 0.04684132942471214,
+      "meanRmse": 0.0937580343282151,
+      "meanR2": 0.9922992080284431,
+      "medianRuntimeMs": 1267.3776409938,
+      "bestExpression": "sub(sin(x), div(sin(sin(div(sin(sin(div(sin(sin(x)), sin(sin(-4.106067299148181))))), sin(-4.106067299148181)))), add(cos(sin(sub(x, sin(sin(x))))), -2.4104459960166693)))"
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gcl",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 0.00000831865086992908,
+      "meanRmse": 0.000010001302732637616,
+      "meanR2": 0.999999999912523,
+      "medianRuntimeMs": 217.570474,
+      "bestExpression": "add(mul(0.999987, (add (sin x) (div x (add const(0.9999) (mul x x))))), -7.349e-17)"
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gcl-hybrid",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 1,
+      "meanMae": 6.75407110250025e-12,
+      "meanRmse": 8.702207453900873e-12,
+      "meanR2": 1,
+      "medianRuntimeMs": 1364.945052,
+      "bestExpression": "1*div(x,add(1,mul(x,x))) + 1*sin(x)"
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gplearn",
+      "runs": 3,
+      "failedRuns": 0,
+      "successRate": 0,
+      "meanMae": 0.04755218963402,
+      "meanRmse": 0.10354140768130214,
+      "meanR2": 0.990612407754556,
+      "medianRuntimeMs": 5745.96067800303,
+      "bestExpression": "add(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(X0))))))))), sin(add(sub(X0, sin(sin(sin(X0)))), add(sub(X0, sin(sin(sin(X0)))), sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(add(sub(X0, sin(sin(sin(sin(X0))))), sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(X0))))), sin(add(sub(X0, sin(X0)), add(sub(X0, sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(sin(X0)))))))))), sin(X0))))))), sin(sin(sin(sin(sin(sin(X0)))))))))))))))))))), sin(X0))))))), sin(X0)))))))))), sin(X0)))))))), sin(X0)))))))))))), sin(X0)))))))), sin(X0)))))))))))))))), sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(add(sub(X0, sin(X0)), sin(sin(sin(X0))))))))))))))), sin(X0))))))))))))))))), sin(X0)))))))), sin(X0))))))), sin(sin(X0)))"
+    }
+  ],
+  "claimAudit": {
+    "pureGclVsExternal": {
+      "status": "positive-smoke",
+      "taskCount": 8,
+      "winRate": 0.875,
+      "comparableRate": 1,
+      "failures": []
+    },
+    "hybridVsPureGcl": {
+      "status": "production-candidate",
+      "taskCount": 8,
+      "winRate": 0.5,
+      "regressionCount": 0,
+      "successRegressionCount": 0,
+      "solvedRate": 1,
+      "failures": [],
+      "recommendation": "gcl-hybrid has earned production capability status for the gated benchmark, but remains separate from pure-GCL public claims."
+    }
+  },
+  "runs": [
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gcl",
+      "seed": 1337,
+      "metrics": {
+        "mae": 1.485464058001189e-16,
+        "rmse": 4.094486073022832e-16,
+        "r2": 1,
+        "maxAbsError": 1.7763568394002505e-15
+      },
+      "runtimeMs": 123.999782,
+      "expression": "(mul const(1) (mul (add const(1) x) (add const(1) x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 6.288372600415926e-17,
+        "trainMaeAfter": 6.288372600415926e-17,
+        "validationMaeBefore": 7.851792133140024e-17,
+        "validationMaeAfter": 7.851792133140024e-17
+      }
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gcl-hybrid",
+      "seed": 1337,
+      "metrics": {
+        "mae": 4.626038920928239e-13,
+        "rmse": 5.961813738730937e-13,
+        "r2": 1,
+        "maxAbsError": 1.6555645743210334e-12
+      },
+      "runtimeMs": 835.33802,
+      "expression": "1*1 + 1*add(add(x,x),mul(x,x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999995375,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "add(add(x,x),mul(x,x))"
+        ],
+        "fitMae": 4.364151316749707e-13,
+        "validationMae": 7.948197655593959e-13,
+        "validationMaeBefore": 3.651
+      }
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gplearn",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 185.85562601219863,
+      "expression": "add(add(mul(X0, X0), add(X0, X0)), div(X0, X0))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 0
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "deap",
+      "seed": 1337,
+      "metrics": {
+        "mae": 2.05596856412066e-18,
+        "rmse": 1.3791856406929294e-17,
+        "r2": 1,
+        "maxAbsError": 1.1102230246251565e-16
+      },
+      "runtimeMs": 1729.3552450137213,
+      "expression": "add(add(add(div(div(x, div(add(1.364821443055697, x), div(sub(x, x), mul(sub(div(-1.0501598974058437, x), add(4.645031363114624, x)), div(add(-4.310406912434344, -3.913564702017683), mul(x, 1.4915669260979039)))))), sub(x, x)), x), x), mul(x, x))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 7.515824173218482e-35
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gcl",
+      "seed": 2026,
+      "metrics": {
+        "mae": 1.485464058001189e-16,
+        "rmse": 4.094486073022832e-16,
+        "r2": 1,
+        "maxAbsError": 1.7763568394002505e-15
+      },
+      "runtimeMs": 85.751799,
+      "expression": "(mul const(1) (mul (add const(1) x) (add const(1) x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 6.288372600415926e-17,
+        "trainMaeAfter": 6.288372600415926e-17,
+        "validationMaeBefore": 7.851792133140024e-17,
+        "validationMaeAfter": 7.851792133140024e-17
+      }
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gcl-hybrid",
+      "seed": 2026,
+      "metrics": {
+        "mae": 4.626038920928239e-13,
+        "rmse": 5.961813738730937e-13,
+        "r2": 1,
+        "maxAbsError": 1.6555645743210334e-12
+      },
+      "runtimeMs": 811.341698,
+      "expression": "1*1 + 1*add(add(x,x),mul(x,x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999995375,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "add(add(x,x),mul(x,x))"
+        ],
+        "fitMae": 4.364151316749707e-13,
+        "validationMae": 7.948197655593959e-13,
+        "validationMaeBefore": 3.651
+      }
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gplearn",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.01800678242515517,
+        "rmse": 0.01800678242515517,
+        "r2": 0.9999869517932525,
+        "maxAbsError": 0.018006782425157297
+      },
+      "runtimeMs": 6409.750355000142,
+      "expression": "add(sub(mul(X0, X0), div(-2.089, 3.304)), sub(mul(mul(X0, sub(X0, -0.988)), sub(X0, X0)), sub(div(div(div(0.169, -2.593), sub(X0, X0)), -2.593), add(X0, X0))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.018006782425155205
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "deap",
+      "seed": 2026,
+      "metrics": {
+        "mae": 2.05596856412066e-18,
+        "rmse": 1.3791856406929294e-17,
+        "r2": 1,
+        "maxAbsError": 1.1102230246251565e-16
+      },
+      "runtimeMs": 1290.5132849991787,
+      "expression": "add(add(add(div(x, x), x), x), mul(x, x))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 7.515824173218482e-35
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gcl",
+      "seed": 4242,
+      "metrics": {
+        "mae": 1.485464058001189e-16,
+        "rmse": 4.094486073022832e-16,
+        "r2": 1,
+        "maxAbsError": 1.7763568394002505e-15
+      },
+      "runtimeMs": 68.01135,
+      "expression": "(mul const(1) (mul (add const(1) x) (add const(1) x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 6.288372600415926e-17,
+        "trainMaeAfter": 6.288372600415926e-17,
+        "validationMaeBefore": 7.851792133140024e-17,
+        "validationMaeAfter": 7.851792133140024e-17
+      }
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gcl-hybrid",
+      "seed": 4242,
+      "metrics": {
+        "mae": 4.626038920928239e-13,
+        "rmse": 5.961813738730937e-13,
+        "r2": 1,
+        "maxAbsError": 1.6555645743210334e-12
+      },
+      "runtimeMs": 795.437525,
+      "expression": "1*1 + 1*add(add(x,x),mul(x,x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999995375,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "add(add(x,x),mul(x,x))"
+        ],
+        "fitMae": 4.364151316749707e-13,
+        "validationMae": 7.948197655593959e-13,
+        "validationMaeBefore": 3.651
+      }
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "gplearn",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 910.2310680027585,
+      "expression": "add(add(mul(X0, X0), add(X0, X0)), div(mul(div(X0, X0), div(X0, 0.247)), sub(X0, X0)))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 0
+    },
+    {
+      "taskId": "quadratic_arithmetic",
+      "taskName": "Quadratic arithmetic",
+      "baseline": "deap",
+      "seed": 4242,
+      "metrics": {
+        "mae": 2.05596856412066e-18,
+        "rmse": 1.3791856406929294e-17,
+        "r2": 1,
+        "maxAbsError": 1.1102230246251565e-16
+      },
+      "runtimeMs": 1062.6573489862494,
+      "expression": "add(mul(x, x), add(add(div(x, x), x), x))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 7.515824173218482e-35
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gcl",
+      "seed": 1337,
+      "metrics": {
+        "mae": 1.4168577148295136e-12,
+        "rmse": 1.7022836639310853e-12,
+        "r2": 1,
+        "maxAbsError": 4.7126746949288645e-12
+      },
+      "runtimeMs": 77.733519,
+      "expression": "(add (mul const(0.9999999999990848) (add const(1) (mul (mul x x) x))) (mul const(-0.4999999999986295) (add const(1) (add x x))))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.999999999998801,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 1.1990462823172404e-12,
+        "trainMaeAfter": 1.1990462823172404e-12,
+        "validationMaeBefore": 1.181091335844542e-12,
+        "validationMaeAfter": 1.181091335844542e-12
+      }
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gcl-hybrid",
+      "seed": 1337,
+      "metrics": {
+        "mae": 1.0110095202720952e-12,
+        "rmse": 1.6407298293748453e-12,
+        "r2": 1,
+        "maxAbsError": 4.54036808150704e-12
+      },
+      "runtimeMs": 791.732805,
+      "expression": "0.5*1 + -1*mul(sub(1,mul(x,x)),x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.999999999998989,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(sub(1,mul(x,x)),x)"
+        ],
+        "fitMae": 6.797001985638062e-13,
+        "validationMae": 1.0213052625829278e-12,
+        "validationMaeBefore": 1.2449999999999999
+      }
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gplearn",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.29332493691322564,
+        "rmse": 0.38771480110305884,
+        "r2": 0.9862209725017544,
+        "maxAbsError": 1.378374226536442
+      },
+      "runtimeMs": 9935.207963018911,
+      "expression": "sub(sub(div(0.002, X0), div(X0, 2.971)), div(sub(mul(sub(div(0.002, X0), div(X0, 2.971)), add(mul(X0, X0), mul(X0, X0))), div(div(sub(X0, X0), div(-2.377, 4.067)), div(div(X0, add(mul(div(X0, add(add(sub(sub(X0, 0.365), mul(-0.448, X0)), mul(-4.627, X0)), mul(X0, div(2.340, sub(X0, X0))))), sub(-3.450, X0)), mul(X0, div(add(sub(sub(X0, add(-2.133, -3.756)), div(sub(mul(sub(div(X0, sub(X0, add(-2.133, -3.756))), div(add(mul(X0, X0), X0), div(2.340, sub(X0, X0)))), add(mul(X0, X0), mul(X0, X0))), div(sub(X0, X0), mul(add(X0, -3.647), add(X0, -4.188)))), div(add(div(-1.989, add(0.295, X0)), add(X0, -4.964)), sub(X0, sub(X0, add(div(-1.989, add(0.295, X0)), add(X0, -4.964))))))), X0), sub(X0, X0))))), sub(X0, add(div(-1.989, add(add(sub(sub(X0, 0.365), mul(-0.448, X0)), sub(mul(-4.627, X0), sub(X0, X0))), mul(X0, div(2.340, sub(X0, X0))))), add(X0, -4.964)))))), div(mul(mul(div(X0, add(add(sub(sub(X0, 0.365), mul(-0.448, X0)), sub(mul(-4.627, X0), sub(X0, X0))), mul(X0, div(2.340, sub(X0, X0))))), sub(-3.450, X0)), sub(div(X0, -1.501), sub(-2.352, 0.862))), sub(X0, add(div(-1.989, add(0.295, X0)), add(X0, -4.964))))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.24956810227121473
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "deap",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.11435981566135742,
+        "rmse": 0.11435981566135743,
+        "r2": 0.9988012166595964,
+        "maxAbsError": 0.11435981566135747
+      },
+      "runtimeMs": 974.7211700014304,
+      "expression": "sub(mul(mul(x, x), x), sub(x, 0.6143598156613574))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.013078167438099655
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gcl",
+      "seed": 2026,
+      "metrics": {
+        "mae": 1.4168577148295136e-12,
+        "rmse": 1.7022836639310853e-12,
+        "r2": 1,
+        "maxAbsError": 4.7126746949288645e-12
+      },
+      "runtimeMs": 70.714536,
+      "expression": "(add (mul const(0.9999999999990848) (add const(1) (mul (mul x x) x))) (mul const(-0.4999999999986295) (add const(1) (add x x))))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.999999999998801,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 1.1990462823172404e-12,
+        "trainMaeAfter": 1.1990462823172404e-12,
+        "validationMaeBefore": 1.181091335844542e-12,
+        "validationMaeAfter": 1.181091335844542e-12
+      }
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gcl-hybrid",
+      "seed": 2026,
+      "metrics": {
+        "mae": 1.0110095202720952e-12,
+        "rmse": 1.6407298293748453e-12,
+        "r2": 1,
+        "maxAbsError": 4.54036808150704e-12
+      },
+      "runtimeMs": 793.146896,
+      "expression": "0.5*1 + -1*mul(sub(1,mul(x,x)),x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.999999999998989,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(sub(1,mul(x,x)),x)"
+        ],
+        "fitMae": 6.797001985638062e-13,
+        "validationMae": 1.0213052625829278e-12,
+        "validationMaeBefore": 1.2449999999999999
+      }
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gplearn",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.07556512362018857,
+        "rmse": 0.13890045854419425,
+        "r2": 0.9982315158797332,
+        "maxAbsError": 0.5787983336849329
+      },
+      "runtimeMs": 9706.036584015237,
+      "expression": "sub(mul(div(div(add(4.681, add(mul(-3.593, X0), add(mul(-3.593, X0), sub(1.106, X0)))), sub(mul(3.254, -4.799), div(3.727, -3.102))), sub(mul(X0, X0), add(-4.648, 2.360))), add(X0, -3.041)), div(mul(div(div(X0, 2.221), div(3.134, 0.784)), add(mul(sub(mul(div(div(add(mul(-3.593, X0), mul(-3.593, X0)), sub(mul(3.254, -4.799), div(mul(div(-1.564, X0), div(X0, X0)), sub(sub(-1.601, 1.906), div(mul(div(mul(div(div(X0, sub(mul(3.254, -4.799), div(3.727, -3.102))), sub(mul(X0, X0), add(-4.648, 2.360))), add(X0, -3.041)), add(mul(-3.593, add(mul(div(div(X0, 2.221), div(3.134, 0.784)), add(mul(sub(mul(div(div(add(4.681, add(mul(-3.593, X0), add(mul(-3.593, X0), sub(1.106, X0)))), div(mul(-3.593, X0), sub(mul(3.254, -4.799), div(mul(-3.593, X0), sub(div(3.134, 0.784), div(div(add(4.681, add(mul(-3.593, X0), add(mul(-3.593, X0), sub(1.106, X0)))), sub(mul(3.254, -4.799), div(3.727, -3.102))), sub(X0, X0))))))), sub(mul(X0, X0), add(-4.648, 2.360))), add(X0, -3.041)), mul(add(X0, X0), add(X0, X0))), -0.259), mul(-2.063, X0))), add(4.842, X0))), div(-1.564, X0))), mul(3.081, X0)), sub(X0, X0)))))), sub(mul(X0, X0), add(-4.648, 2.360))), sub(sub(-1.601, 1.906), div(add(4.681, add(mul(-3.593, X0), add(mul(-3.593, X0), sub(1.106, X0)))), sub(mul(3.254, -4.799), div(3.727, -3.102))))), div(mul(div(div(X0, 2.221), div(3.134, 0.784)), add(mul(X0, -0.259), mul(-2.063, X0))), div(mul(div(-1.564, X0), div(X0, X0)), -3.593))), -0.259), mul(-2.063, X0))), div(mul(div(-1.564, X0), div(X0, X0)), sub(sub(-1.601, 1.906), div(div(-0.619, X0), sub(X0, X0))))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.040376031916478254
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "deap",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.03950500312043795,
+        "rmse": 0.04856287857524,
+        "r2": 0.9997838264029747,
+        "maxAbsError": 0.11236884104266731
+      },
+      "runtimeMs": 1347.1499280130956,
+      "expression": "sub(mul(mul(add(div(div(1.3380464938637502, sub(x, 0.00744275747584755)), mul(sub(x, 0.00744275747584755), 4.913624016632141)), add(div(div(1.3380464938637502, x), mul(sub(sub(x, 0.00744275747584755), 0.00744275747584755), 4.913624016632141)), sub(x, 0.00744275747584755))), sub(x, 0.00744275747584755)), sub(sub(x, 0.00744275747584755), 0.00744275747584755)), x)",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.0015095122537391425
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gcl",
+      "seed": 4242,
+      "metrics": {
+        "mae": 1.4168577148295136e-12,
+        "rmse": 1.7022836639310853e-12,
+        "r2": 1,
+        "maxAbsError": 4.7126746949288645e-12
+      },
+      "runtimeMs": 70.77563,
+      "expression": "(add (mul const(0.9999999999990848) (add const(1) (mul (mul x x) x))) (mul const(-0.4999999999986295) (add const(1) (add x x))))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.999999999998801,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 1.1990462823172404e-12,
+        "trainMaeAfter": 1.1990462823172404e-12,
+        "validationMaeBefore": 1.181091335844542e-12,
+        "validationMaeAfter": 1.181091335844542e-12
+      }
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gcl-hybrid",
+      "seed": 4242,
+      "metrics": {
+        "mae": 1.0110095202720952e-12,
+        "rmse": 1.6407298293748453e-12,
+        "r2": 1,
+        "maxAbsError": 4.54036808150704e-12
+      },
+      "runtimeMs": 813.638843,
+      "expression": "0.5*1 + -1*mul(sub(1,mul(x,x)),x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.999999999998989,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(sub(1,mul(x,x)),x)"
+        ],
+        "fitMae": 6.797001985638062e-13,
+        "validationMae": 1.0213052625829278e-12,
+        "validationMaeBefore": 1.2449999999999999
+      }
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "gplearn",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.015969912427511022,
+        "rmse": 0.05850879787266946,
+        "r2": 0.9996862121265948,
+        "maxAbsError": 0.5
+      },
+      "runtimeMs": 8131.8093790032435,
+      "expression": "sub(mul(mul(X0, mul(add(X0, X0), X0)), sub(3.032, 2.702)), sub(sub(add(X0, X0), add(sub(mul(mul(X0, mul(X0, X0)), sub(3.032, 2.702)), mul(mul(X0, div(0.078, add(4.661, X0))), sub(div(div(0.078, add(4.661, X0)), add(div(4.661, mul(-1.729, -4.889)), mul(div(X0, add(4.661, X0)), 4.631))), mul(X0, mul(sub(3.032, 2.702), X0))))), X0)), div(X0, add(X0, X0))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.019944464137834895
+    },
+    {
+      "taskId": "cubic_arithmetic",
+      "taskName": "Cubic arithmetic",
+      "baseline": "deap",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.43827336246681403,
+        "rmse": 0.7437902289488829,
+        "r2": 0.9492898677446847,
+        "maxAbsError": 3.006003062925643
+      },
+      "runtimeMs": 1433.1630940141622,
+      "expression": "add(mul(mul(mul(mul(div(x, 1.7618616304456243), x), x), div(mul(mul(div(x, 1.7618616304456243), x), x), div(div(x, x), div(x, x)))), div(x, div(mul(div(x, 1.7618616304456243), x), div(-1.4030518526427818, -3.787319810985712)))), add(-3.5823644238709207, 4.103970498688982))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.08994746742197225
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gcl",
+      "seed": 1337,
+      "metrics": {
+        "mae": 5.289780688299116e-8,
+        "rmse": 2.866745158255173e-7,
+        "r2": 0.9999999999999268,
+        "maxAbsError": 0.0000019956184860170367
+      },
+      "runtimeMs": 858.835599,
+      "expression": "(add (add (mul const(0.000004168483024843104) (add (add (add (add (mul const(0.2500256762866192) (add (add x x) (mul x x))) (mul const(0.49206394805583403) (mul (cos x) x))) (mul const(0.08826843659136169) (mul (mul x x) (sin x)))) (mul const(0.003348939398948572) (sin (add (add x x) x)))) (mul const(-0.00007485899089594335) (div x (mul (sin x) (sin x)))))) (mul const(0.9999958322301333) (sin x))) (mul const(0.24999895784966272) (mul x x)))",
+      "success": true,
+      "generationsRun": 40,
+      "fitness": 0.9999999973554969,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 2.6447489171366007e-9,
+        "trainMaeAfter": 2.6447489171366007e-9,
+        "validationMaeBefore": 2.984056741521061e-9,
+        "validationMaeAfter": 2.984056741521061e-9
+      }
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gcl-hybrid",
+      "seed": 1337,
+      "metrics": {
+        "mae": 1.9632763008640426e-12,
+        "rmse": 2.2096770903576068e-12,
+        "r2": 1,
+        "maxAbsError": 3.2208680167400416e-12
+      },
+      "runtimeMs": 1172.12872,
+      "expression": "0.25*mul(x,x) + 1*sin(x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999980367,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(x,x)",
+          "sin(x)"
+        ],
+        "fitMae": 2.0854087204510828e-12,
+        "validationMae": 4.229582425037866e-12,
+        "validationMaeBefore": 0.8839977945783762
+      }
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gplearn",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.016573797428313657,
+        "rmse": 0.020962836499664884,
+        "r2": 0.9996088538338762,
+        "maxAbsError": 0.04884989346370494
+      },
+      "runtimeMs": 8825.298150011804,
+      "expression": "div(sub(div(sub(X0, X0), div(-2.509, -0.252)), sub(sub(sub(sub(sub(div(add(add(div(mul(0.831, sin(div(sub(sub(add(X0, sub(3.841, X0)), sin(sin(cos(X0)))), add(sin(add(X0, sin(X0))), sin(X0))), cos(X0)))), sub(cos(sub(sin(sub(div(sub(div(sub(X0, X0), div(-2.509, -0.252)), sub(sub(sub(sub(sub(div(add(add(div(mul(add(div(mul(sin(X0), sin(div(sub(add(X0, sub(3.841, X0)), sin(sin(div(1.849, 0.831)))), cos(X0)))), sub(add(1.654, X0), -4.751)), sin(add(cos(-1.786), sin(X0)))), sin(sin(cos(X0)))), add(cos(mul(sin(X0), X0)), -4.751)), cos(X0)), cos(mul(0.662, X0))), sub(add(X0, sub(3.841, X0)), sin(X0))), sin(X0)), sin(sin(sin(X0)))), add(cos(cos(cos(-0.882))), cos(add(-1.649, X0)))), add(sin(add(cos(-1.786), sin(X0))), sin(X0))), mul(X0, X0))), sub(add(div(1.849, 0.831), div(1.849, 0.831)), mul(sin(X0), cos(-1.786)))), mul(sin(X0), sin(sin(X0))))), -4.751)), -4.751)), cos(X0)), cos(mul(0.662, X0))), sub(add(X0, sub(3.841, X0)), sin(X0))), sin(X0)), sin(sin(sin(X0)))), add(cos(cos(sin(-0.882))), cos(add(-1.649, X0)))), add(sin(add(cos(-1.786), sin(X0))), sin(X0))), mul(X0, X0))), sub(add(div(1.849, 0.831), div(1.849, 0.831)), mul(sin(X0), cos(-1.786))))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 0.01515436905441474
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "deap",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.10101102258180351,
+        "rmse": 0.163701353749511,
+        "r2": 0.9761469715889939,
+        "maxAbsError": 0.6523199507905908
+      },
+      "runtimeMs": 1206.4986439945642,
+      "expression": "add(sub(cos(sin(sin(x))), cos(x)), sin(x))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.007938123144271964
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gcl",
+      "seed": 2026,
+      "metrics": {
+        "mae": 5.279931695815199e-8,
+        "rmse": 2.862970254990465e-7,
+        "r2": 0.9999999999999271,
+        "maxAbsError": 0.000001992913970738641
+      },
+      "runtimeMs": 473.017866,
+      "expression": "(add (add (add (mul const(0.000004130237883419432) (add (add (add (add (mul const(0.2500395737196695) (add (add x x) (mul x x))) (mul const(0.49215833192720965) (mul (cos x) x))) (mul const(0.0882941953727949) (mul (mul x x) (sin x)))) (mul const(0.0033603200141829512) (sin (add (add x x) x)))) (mul const(-0.00007538738245115262) (div x (mul (sin x) (sin x)))))) (mul const(0.9999958701844519) (sin x))) (mul const(0.24999896739981511) (mul x x))) (mul const(0.000003815614106233811) const(-0.00007538738245115262)))",
+      "success": true,
+      "generationsRun": 32,
+      "fitness": 0.9999999973301192,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 2.6779729688090777e-9,
+        "trainMaeAfter": 2.6779729688090777e-9,
+        "validationMaeBefore": 2.9402835464986677e-9,
+        "validationMaeAfter": 2.9402835464986677e-9
+      }
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gcl-hybrid",
+      "seed": 2026,
+      "metrics": {
+        "mae": 1.9632763008640426e-12,
+        "rmse": 2.2096770903576068e-12,
+        "r2": 1,
+        "maxAbsError": 3.2208680167400416e-12
+      },
+      "runtimeMs": 1169.736734,
+      "expression": "0.25*mul(x,x) + 1*sin(x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999980367,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(x,x)",
+          "sin(x)"
+        ],
+        "fitMae": 2.0854087204510828e-12,
+        "validationMae": 4.229582425037866e-12,
+        "validationMaeBefore": 0.8839977945783762
+      }
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gplearn",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.10078899638430003,
+        "rmse": 0.2086488279622098,
+        "r2": 0.961250073533838,
+        "maxAbsError": 0.9206677507203365
+      },
+      "runtimeMs": 8508.24746201397,
+      "expression": "sub(add(cos(div(sub(X0, X0), cos(sin(cos(sub(-3.992, X0)))))), cos(add(sin(sin(sin(cos(sub(-3.992, X0))))), sin(div(cos(cos(X0)), sin(cos(-2.291))))))), sub(cos(sin(cos(div(sin(sin(mul(sin(3.919), mul(X0, div(add(cos(cos(cos(sin(sin(sin(cos(sub(-3.992, X0)))))))), cos(add(cos(cos(add(cos(X0), sin(X0)))), div(sin(X0), sin(4.857))))), cos(div(sub(X0, sin(sin(sin(cos(sub(-3.992, X0)))))), add(-4.609, -4.781)))))))), cos(div(sin(sin(mul(sin(3.919), mul(X0, div(add(cos(cos(add(add(add(cos(cos(sin(X0))), sin(div(sin(X0), sin(3.919)))), div(div(cos(sin(div(sin(sin(mul(sin(3.919), mul(X0, div(add(cos(sin(cos(sub(-3.992, X0)))), cos(add(cos(cos(add(sin(sin(sin(cos(sub(-3.992, X0))))), sin(div(cos(cos(X0)), div(cos(add(cos(sub(-3.992, X0)), cos(X0))), -4.781)))))), div(sin(X0), sin(4.857))))), cos(div(sub(X0, sin(cos(sin(mul(sin(3.919), mul(X0, sub(-3.992, X0))))))), mul(-4.609, -4.781)))))))), div(-2.602, 2.660)))), X0), X0)), sin(3.919)))), cos(sub(X0, X0))), cos(div(sin(cos(sub(-3.992, X0))), add(cos(div(sub(X0, X0), cos(sin(sub(-3.992, X0))))), cos(add(sin(sin(sin(cos(sub(-3.992, X0))))), sin(div(cos(cos(X0)), sin(cos(-2.291)))))))))))))), div(-2.602, 2.660))))))), sin(sin(cos(sub(-3.992, X0))))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.058335417588591856
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "deap",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.056472919730949235,
+        "rmse": 0.13533964928904824,
+        "r2": 0.9836961910646603,
+        "maxAbsError": 0.600867129297
+      },
+      "runtimeMs": 1434.0130479831714,
+      "expression": "sub(cos(sin(mul(cos(sin(mul(sin(sin(x)), mul(0.9260435271845129, 0.9260435271845129)))), x))), sub(sub(sub(cos(x), 0.02503941599370485), sin(x)), 0.02503941599370485))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.002574319066636624
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gcl",
+      "seed": 4242,
+      "metrics": {
+        "mae": 5.279931695815199e-8,
+        "rmse": 2.862970254990465e-7,
+        "r2": 0.9999999999999271,
+        "maxAbsError": 0.000001992913970738641
+      },
+      "runtimeMs": 694.044365,
+      "expression": "(add (add (add (mul const(0.000004130237883419432) (add (add (add (add (mul const(0.2500395737196695) (add (add x x) (mul x x))) (mul const(0.49215833192720965) (mul (cos x) x))) (mul const(0.0882941953727949) (mul (mul x x) (sin x)))) (mul const(0.0033603200141829512) (sin (add (add x x) x)))) (mul const(-0.00007538738245115262) (div x (mul (sin x) (sin x)))))) (mul const(0.9999958701844519) (sin x))) (mul const(0.24999896739981511) (mul x x))) (mul const(0.000003815614106233811) const(-0.00007538738245115262)))",
+      "success": true,
+      "generationsRun": 40,
+      "fitness": 0.9999999973301192,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 2.6779729688090777e-9,
+        "trainMaeAfter": 2.6779729688090777e-9,
+        "validationMaeBefore": 2.9402835464986677e-9,
+        "validationMaeAfter": 2.9402835464986677e-9
+      }
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gcl-hybrid",
+      "seed": 4242,
+      "metrics": {
+        "mae": 1.9632763008640426e-12,
+        "rmse": 2.2096770903576068e-12,
+        "r2": 1,
+        "maxAbsError": 3.2208680167400416e-12
+      },
+      "runtimeMs": 1240.715914,
+      "expression": "0.25*mul(x,x) + 1*sin(x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999980367,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(x,x)",
+          "sin(x)"
+        ],
+        "fitMae": 2.0854087204510828e-12,
+        "validationMae": 4.229582425037866e-12,
+        "validationMaeBefore": 0.8839977945783762
+      }
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "gplearn",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.1562497293699047,
+        "rmse": 0.2873990777693222,
+        "r2": 0.9264792846414042,
+        "maxAbsError": 1.0169171306355915
+      },
+      "runtimeMs": 6271.642639010679,
+      "expression": "add(cos(cos(add(cos(sin(X0)), sin(sin(sin(sin(sub(X0, cos(cos(add(cos(sin(add(add(cos(cos(-0.277)), sin(sin(sin(sin(sin(sin(cos(sin(add(sin(X0), sin(sin(sin(sin(sub(X0, cos(sin(sin(sub(-2.425, X0))))))))))))))))))), cos(X0)))), sin(sin(sub(-2.425, X0)))))))))))))), sin(sub(-2.425, X0)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.10293657734217959
+    },
+    {
+      "taskId": "trig_poly_mixed",
+      "taskName": "Trigonometric + polynomial",
+      "baseline": "deap",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.09354741752086904,
+        "rmse": 0.14552492655383026,
+        "r2": 0.9811498955402049,
+        "maxAbsError": 0.5864696224583228
+      },
+      "runtimeMs": 1213.6574999894947,
+      "expression": "sub(add(cos(sin(x)), add(cos(-4.7783098012393355), sin(x))), cos(x))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.006714268835277573
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gcl",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.000008096826596250188,
+        "rmse": 0.000009010431954555127,
+        "r2": 0.9999999994650347,
+        "maxAbsError": 0.000016548225786616744
+      },
+      "runtimeMs": 145.469217,
+      "expression": "add(mul(0.999961, (div x (add const(0.9999) (mul x x)))), 4.823e-17)",
+      "success": true,
+      "generationsRun": 8,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": true,
+        "scale": 0.9999610472073355,
+        "offset": 4.822990136903879e-17,
+        "trainMaeBefore": 0.000014776000302494866,
+        "trainMaeAfter": 0.000008054824662429352,
+        "validationMaeBefore": 0.000015058632248977448,
+        "validationMaeAfter": 0.00000807356131721689
+      }
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gcl-hybrid",
+      "seed": 1337,
+      "metrics": {
+        "mae": 3.919953745539833e-12,
+        "rmse": 4.066602737548569e-12,
+        "r2": 1,
+        "maxAbsError": 5.217715148830848e-12
+      },
+      "runtimeMs": 1138.234116,
+      "expression": "1*div(x,add(1,mul(x,x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.99999999999608,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(x,add(1,mul(x,x)))"
+        ],
+        "fitMae": 3.988608168702408e-12,
+        "validationMae": 7.95193078051426e-12,
+        "validationMaeBefore": 0.3843681459682946
+      }
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gplearn",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 624.0518220001832,
+      "expression": "div(X0, add(div(X0, X0), mul(X0, X0)))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 0
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "deap",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 2184.9390599818435,
+      "expression": "div(x, sub(div(x, x), sub(sub(x, x), mul(x, x))))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 0
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gcl",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.000008096826596250188,
+        "rmse": 0.000009010431954555127,
+        "r2": 0.9999999994650347,
+        "maxAbsError": 0.000016548225786616744
+      },
+      "runtimeMs": 135.562153,
+      "expression": "add(mul(0.999961, (div x (add const(0.9999) (mul x x)))), 4.823e-17)",
+      "success": true,
+      "generationsRun": 8,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": true,
+        "scale": 0.9999610472073355,
+        "offset": 4.822990136903879e-17,
+        "trainMaeBefore": 0.000014776000302494866,
+        "trainMaeAfter": 0.000008054824662429352,
+        "validationMaeBefore": 0.000015058632248977448,
+        "validationMaeAfter": 0.00000807356131721689
+      }
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gcl-hybrid",
+      "seed": 2026,
+      "metrics": {
+        "mae": 3.919953745539833e-12,
+        "rmse": 4.066602737548569e-12,
+        "r2": 1,
+        "maxAbsError": 5.217715148830848e-12
+      },
+      "runtimeMs": 1136.472651,
+      "expression": "1*div(x,add(1,mul(x,x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.99999999999608,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(x,add(1,mul(x,x)))"
+        ],
+        "fitMae": 3.988608168702408e-12,
+        "validationMae": 7.95193078051426e-12,
+        "validationMaeBefore": 0.3843681459682946
+      }
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gplearn",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.01719450624070369,
+        "rmse": 0.021473129032404184,
+        "r2": 0.9969617391658555,
+        "maxAbsError": 0.0716340449138822
+      },
+      "runtimeMs": 8097.077426995384,
+      "expression": "add(div(add(add(sub(X0, X0), mul(0.118, add(add(div(add(add(sub(X0, X0), mul(0.118, add(mul(0.118, add(div(0.056, X0), add(add(div(0.056, X0), mul(0.118, X0)), mul(0.118, X0)))), div(0.118, sub(X0, X0))))), add(sub(X0, X0), mul(0.118, add(mul(0.118, div(0.118, div(sub(-0.312, -2.740), sub(X0, X0)))), div(0.118, add(add(mul(0.118, mul(-4.692, 4.807)), sub(X0, X0)), div(0.056, X0))))))), 3.063), add(sub(X0, X0), mul(0.118, add(add(sub(X0, X0), sub(X0, X0)), div(0.118, mul(0.118, add(div(0.056, X0), add(add(add(div(0.056, X0), add(sub(X0, X0), sub(X0, X0))), div(0.056, X0)), mul(0.118, X0))))))))), div(0.118, add(mul(0.118, mul(0.118, X0)), div(0.056, X0)))))), mul(0.118, add(sub(X0, X0), div(0.118, add(mul(0.118, mul(0.118, X0)), div(0.056, X0)))))), 3.063), add(sub(X0, X0), mul(0.118, add(add(sub(X0, X0), sub(X0, X0)), div(0.118, mul(0.118, add(div(0.056, X0), add(add(div(0.056, X0), mul(0.118, X0)), mul(0.118, X0)))))))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.017169218754319756
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "deap",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.0020108005522266794,
+        "rmse": 0.00248851412263216,
+        "r2": 0.9999591948849046,
+        "maxAbsError": 0.004674206523058055
+      },
+      "runtimeMs": 2493.276521010557,
+      "expression": "div(mul(4.103793961570744, x), sub(sub(mul(x, add(mul(x, sub(x, x)), mul(4.103793961570744, add(div(-1.0413662737153109, x), x)))), mul(div(mul(-4.903519002790821, mul(mul(div(-1.0413662737153109, x), 3.0990299267412507), div(3.598054447812352, 2.2268933718358266))), mul(sub(3.950818135688369, div(-2.252748297049961, x)), sub(x, x))), sub(3.950818135688369, -2.808274126168393))), mul(-4.903519002790821, 3.0990299267412507)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.000006653798762760504
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gcl",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.000008096826596250188,
+        "rmse": 0.000009010431954555127,
+        "r2": 0.9999999994650347,
+        "maxAbsError": 0.000016548225786616744
+      },
+      "runtimeMs": 149.048773,
+      "expression": "add(mul(0.999961, (div x (add const(0.9999) (mul x x)))), 4.823e-17)",
+      "success": true,
+      "generationsRun": 8,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": true,
+        "scale": 0.9999610472073355,
+        "offset": 4.822990136903879e-17,
+        "trainMaeBefore": 0.000014776000302494866,
+        "trainMaeAfter": 0.000008054824662429352,
+        "validationMaeBefore": 0.000015058632248977448,
+        "validationMaeAfter": 0.00000807356131721689
+      }
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gcl-hybrid",
+      "seed": 4242,
+      "metrics": {
+        "mae": 3.919953745539833e-12,
+        "rmse": 4.066602737548569e-12,
+        "r2": 1,
+        "maxAbsError": 5.217715148830848e-12
+      },
+      "runtimeMs": 1131.647069,
+      "expression": "1*div(x,add(1,mul(x,x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.99999999999608,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(x,add(1,mul(x,x)))"
+        ],
+        "fitMae": 3.988608168702408e-12,
+        "validationMae": 7.95193078051426e-12,
+        "validationMaeBefore": 0.3843681459682946
+      }
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "gplearn",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.09033592622961875,
+        "rmse": 0.32090036435694597,
+        "r2": 0.32146100993753246,
+        "maxAbsError": 2.9748909200068603
+      },
+      "runtimeMs": 9066.213989979587,
+      "expression": "div(sub(div(div(mul(sub(sub(mul(sub(-2.924, X0), div(sub(1.185, X0), -0.614)), X0), sub(X0, sub(sub(0.123, X0), sub(div(div(sub(div(div(mul(div(mul(sub(X0, X0), X0), add(add(X0, -2.548), div(sub(mul(sub(-2.924, X0), div(sub(1.185, X0), -0.614)), X0), -0.614))), sub(-2.924, X0)), sub(sub(0.123, X0), X0)), -2.548), sub(sub(0.123, div(add(X0, 1.932), add(-3.263, X0))), mul(X0, 3.618))), mul(sub(X0, sub(X0, 1.980)), mul(X0, X0))), sub(X0, sub(4.856, X0))), sub(sub(0.123, div(add(X0, 1.932), add(-3.263, X0))), mul(X0, 3.618)))))), div(add(mul(sub(X0, sub(X0, 1.980)), mul(X0, X0)), mul(sub(0.627, X0), sub(2.246, X0))), -0.614)), add(mul(add(X0, X0), -4.813), mul(X0, X0))), div(sub(sub(-2.924, X0), sub(4.856, X0)), sub(0.847, 1.980))), sub(sub(0.123, X0), mul(X0, 3.618))), div(sub(add(X0, -2.548), mul(X0, X0)), add(add(-0.906, X0), sub(0.627, X0))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.046193038618755025
+    },
+    {
+      "taskId": "rational_shifted",
+      "taskName": "Shifted rational",
+      "baseline": "deap",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 1851.8441100022756,
+      "expression": "div(x, add(mul(x, x), div(x, x)))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 0
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gcl",
+      "seed": 1337,
+      "metrics": {
+        "mae": 8.441272983136492e-13,
+        "rmse": 1.1436262860351883e-12,
+        "r2": 1,
+        "maxAbsError": 3.9825920339353615e-12
+      },
+      "runtimeMs": 73.62527,
+      "expression": "(add (mul const(0.9999999999994964) (mul (mul x x) (mul x x))) (mul const(0.24999999999902206) (sub const(1) (mul (add x x) x))))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999993812,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 6.18903076935832e-13,
+        "trainMaeAfter": 6.18903076935832e-13,
+        "validationMaeBefore": 6.033673560779107e-13,
+        "validationMaeAfter": 6.033673560779107e-13
+      }
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gcl-hybrid",
+      "seed": 1337,
+      "metrics": {
+        "mae": 5.344148116336663e-12,
+        "rmse": 7.495365739235099e-12,
+        "r2": 1,
+        "maxAbsError": 2.6574298317427747e-11
+      },
+      "runtimeMs": 992.210031,
+      "expression": "0.25*1 + -0.5*mul(x,x) + 1*mul(mul(x,x),mul(x,x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999946558,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(x,x)",
+          "mul(mul(x,x),mul(x,x))"
+        ],
+        "fitMae": 3.782081946099248e-12,
+        "validationMae": 6.801755825236455e-12,
+        "validationMaeBefore": 3.0971721728
+      }
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gplearn",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.15619327159981294,
+        "rmse": 0.23148955304702576,
+        "r2": 0.9986805306530884,
+        "maxAbsError": 0.833301802284165
+      },
+      "runtimeMs": 9230.586238991236,
+      "expression": "mul(sub(mul(4.095, X0), div(div(add(X0, X0), add(X0, div(mul(div(X0, add(sub(mul(X0, X0), sub(mul(mul(X0, X0), div(X0, add(mul(X0, X0), mul(X0, mul(div(X0, 4.021), div(div(mul(3.413, -0.600), div(3.502, X0)), div(X0, add(div(add(X0, X0), 2.984), mul(div(X0, 4.021), div(div(1.736, X0), mul(mul(X0, mul(mul(X0, X0), div(mul(sub(X0, X0), add(div(div(1.736, X0), mul(X0, X0)), X0)), mul(div(X0, X0), div(X0, 4.021))))), mul(X0, X0)))))))))))), X0)), mul(div(X0, 4.021), div(div(1.736, X0), mul(X0, X0))))), 1.862), -2.559))), div(4.306, X0))), mul(mul(X0, X0), div(X0, 4.021)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.10733137601424192
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "deap",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.20835237445877638,
+        "rmse": 0.26989059424319795,
+        "r2": 0.9982064560980818,
+        "maxAbsError": 0.9101872053356921
+      },
+      "runtimeMs": 1245.056460989872,
+      "expression": "mul(mul(x, 0.8319811842905933), mul(mul(mul(x, div(mul(x, div(x, x)), mul(x, div(x, x)))), mul(x, 1.264785229433257)), mul(x, 0.8319811842905933)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.0317602704331207
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gcl",
+      "seed": 2026,
+      "metrics": {
+        "mae": 8.441272983136492e-13,
+        "rmse": 1.1436262860351883e-12,
+        "r2": 1,
+        "maxAbsError": 3.9825920339353615e-12
+      },
+      "runtimeMs": 76.533878,
+      "expression": "(add (mul const(0.9999999999994964) (mul (mul x x) (mul x x))) (mul const(0.24999999999902206) (sub const(1) (mul (add x x) x))))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999993812,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 6.18903076935832e-13,
+        "trainMaeAfter": 6.18903076935832e-13,
+        "validationMaeBefore": 6.033673560779107e-13,
+        "validationMaeAfter": 6.033673560779107e-13
+      }
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gcl-hybrid",
+      "seed": 2026,
+      "metrics": {
+        "mae": 5.344148116336663e-12,
+        "rmse": 7.495365739235099e-12,
+        "r2": 1,
+        "maxAbsError": 2.6574298317427747e-11
+      },
+      "runtimeMs": 984.198534,
+      "expression": "0.25*1 + -0.5*mul(x,x) + 1*mul(mul(x,x),mul(x,x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999946558,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(x,x)",
+          "mul(mul(x,x),mul(x,x))"
+        ],
+        "fitMae": 3.782081946099248e-12,
+        "validationMae": 6.801755825236455e-12,
+        "validationMaeBefore": 3.0971721728
+      }
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gplearn",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.09957733572244845,
+        "rmse": 0.1294350683432215,
+        "r2": 0.9995874843520188,
+        "maxAbsError": 0.3757156590042854
+      },
+      "runtimeMs": 7743.593795021297,
+      "expression": "sub(mul(sub(mul(add(X0, mul(sub(X0, X0), mul(sub(add(X0, -0.172), X0), mul(add(X0, mul(mul(X0, X0), add(-3.726, X0))), mul(X0, sub(1.484, 1.626)))))), mul(X0, mul(-1.018, 0.589))), mul(sub(add(X0, -0.172), X0), mul(add(X0, mul(mul(-1.018, 0.589), mul(mul(0.270, X0), mul(mul(div(0.270, X0), mul(-2.160, sub(2.836, X0))), div(sub(div(sub(add(X0, -0.172), X0), mul(mul(0.270, X0), mul(0.270, X0))), sub(2.882, -2.322)), add(mul(mul(0.270, X0), mul(sub(mul(add(X0, mul(sub(X0, X0), mul(X0, mul(add(X0, mul(mul(X0, div(-4.387, 2.261)), sub(mul(-1.668, X0), 2.820))), mul(-1.018, 0.589))))), mul(X0, mul(-1.018, 0.589))), mul(sub(add(X0, -0.172), X0), mul(add(X0, mul(mul(-1.018, 0.589), mul(mul(0.270, X0), mul(mul(div(0.270, X0), mul(mul(X0, X0), sub(2.836, X0))), div(sub(div(sub(add(X0, -0.172), X0), mul(mul(0.270, X0), mul(0.270, X0))), sub(2.882, -2.322)), mul(mul(0.270, X0), mul(-1.668, X0))))))), 0.054))), mul(mul(0.270, X0), mul(-2.160, X0)))), add(X0, X0))))))), mul(add(X0, -0.172), mul(mul(mul(0.270, X0), mul(-1.668, X0)), 0.589))))), mul(mul(0.270, X0), mul(-2.160, X0))), mul(mul(mul(0.270, X0), mul(-1.668, X0)), mul(X0, X0)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.09132609124866524
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "deap",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.21584963919173364,
+        "rmse": 0.2925601203919662,
+        "r2": 0.9978925039724128,
+        "maxAbsError": 1.0191564612231332
+      },
+      "runtimeMs": 1591.6668720019516,
+      "expression": "mul(mul(x, div(div(sub(mul(x, 1.475121081650645), div(div(sub(mul(x, 1.475121081650645), div(div(x, 0.9725146565457186), 2.0968935208225004)), 0.9725146565457186), 2.0968935208225004)), 0.9725146565457186), 0.9725146565457186)), mul(div(x, 1.2020364343693313), mul(sub(1.475121081650645, div(div(x, x), 2.0968935208225004)), x)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.0311819215207479
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gcl",
+      "seed": 4242,
+      "metrics": {
+        "mae": 8.441272983136492e-13,
+        "rmse": 1.1436262860351883e-12,
+        "r2": 1,
+        "maxAbsError": 3.9825920339353615e-12
+      },
+      "runtimeMs": 74.371528,
+      "expression": "(add (mul const(0.9999999999994964) (mul (mul x x) (mul x x))) (mul const(0.24999999999902206) (sub const(1) (mul (add x x) x))))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999993812,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 6.18903076935832e-13,
+        "trainMaeAfter": 6.18903076935832e-13,
+        "validationMaeBefore": 6.033673560779107e-13,
+        "validationMaeAfter": 6.033673560779107e-13
+      }
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gcl-hybrid",
+      "seed": 4242,
+      "metrics": {
+        "mae": 5.344148116336663e-12,
+        "rmse": 7.495365739235099e-12,
+        "r2": 1,
+        "maxAbsError": 2.6574298317427747e-11
+      },
+      "runtimeMs": 987.11558,
+      "expression": "0.25*1 + -0.5*mul(x,x) + 1*mul(mul(x,x),mul(x,x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999946558,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "mul(x,x)",
+          "mul(mul(x,x),mul(x,x))"
+        ],
+        "fitMae": 3.782081946099248e-12,
+        "validationMae": 6.801755825236455e-12,
+        "validationMaeBefore": 3.0971721728
+      }
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "gplearn",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.1738937919539851,
+        "rmse": 0.2492948480322206,
+        "r2": 0.9984697474235081,
+        "maxAbsError": 0.8458597416432738
+      },
+      "runtimeMs": 6805.168745020637,
+      "expression": "sub(mul(mul(X0, X0), mul(X0, X0)), mul(mul(mul(X0, X0), sub(mul(X0, X0), mul(mul(X0, sub(-0.444, mul(mul(X0, X0), div(div(-0.444, -0.214), sub(X0, X0))))), mul(div(mul(mul(-0.444, mul(-2.788, mul(div(sub(mul(X0, X0), mul(mul(X0, sub(-0.444, mul(mul(X0, X0), div(mul(mul(mul(mul(X0, X0), mul(sub(-0.444, mul(mul(X0, X0), div(div(sub(X0, X0), mul(X0, mul(X0, 4.632))), sub(X0, X0)))), X0)), -2.392), mul(div(mul(X0, X0), mul(mul(-0.444, -0.214), X0)), X0)), mul(X0, mul(sub(X0, X0), X0)))))), mul(div(div(X0, 3.349), sub(X0, X0)), X0))), sub(X0, X0)), 1.047))), X0), sub(X0, X0)), X0)))), div(mul(-0.444, -0.214), mul(X0, X0))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.12255010720998886
+    },
+    {
+      "taskId": "quartic_even",
+      "taskName": "Even quartic polynomial",
+      "baseline": "deap",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.20575625313554713,
+        "rmse": 0.2609562680076193,
+        "r2": 0.9983232358568735,
+        "maxAbsError": 0.8618433724655787
+      },
+      "runtimeMs": 1304.9842729815282,
+      "expression": "mul(mul(mul(x, x), div(1.0899198149690754, -4.332850871278766)), mul(sub(-1.6015078136212368, 1.8863414960357154), mul(x, x)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.032400949212924406
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gcl",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 45.510769,
+      "expression": "(add (cos x) (sin x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 0,
+        "trainMaeAfter": 0,
+        "validationMaeBefore": 0,
+        "validationMaeAfter": 0
+      }
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gcl-hybrid",
+      "seed": 1337,
+      "metrics": {
+        "mae": 1.2779474448362551e-12,
+        "rmse": 1.4067751988633858e-12,
+        "r2": 1,
+        "maxAbsError": 2.0112800314109336e-12
+      },
+      "runtimeMs": 1393.09519,
+      "expression": "1*add(cos(x),sin(x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999987221,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "add(cos(x),sin(x))"
+        ],
+        "fitMae": 1.2701303232951989e-12,
+        "validationMae": 2.50529478115372e-12,
+        "validationMaeBefore": 0.9011855306235619
+      }
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gplearn",
+      "seed": 1337,
+      "metrics": {
+        "mae": 1.101047627727428e-17,
+        "rmse": 4.2820703418648414e-17,
+        "r2": 1,
+        "maxAbsError": 2.220446049250313e-16
+      },
+      "runtimeMs": 4916.100293019554,
+      "expression": "add(cos(X0), sin(X0))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 3.1273888017610044e-18
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "deap",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.1708783798227939,
+        "rmse": 0.22607739332042204,
+        "r2": 0.9482958714857159,
+        "maxAbsError": 0.4159909654799089
+      },
+      "runtimeMs": 1733.423577999929,
+      "expression": "cos(sub(div(sub(x, x), div(sin(x), cos(x))), sub(div(sub(x, sub(x, sin(x))), div(x, div(mul(cos(add(1.9663109383212563, x)), sin(sub(x, -0.4261709850630604))), sub(mul(-2.4206701599460834, 3.7706721131513756), sin(x))))), sub(x, cos(cos(x))))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.052703111469807565
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gcl",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 46.733003,
+      "expression": "(add (sin x) (cos x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 0,
+        "trainMaeAfter": 0,
+        "validationMaeBefore": 0,
+        "validationMaeAfter": 0
+      }
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gcl-hybrid",
+      "seed": 2026,
+      "metrics": {
+        "mae": 1.2779474448362551e-12,
+        "rmse": 1.4067751988633858e-12,
+        "r2": 1,
+        "maxAbsError": 2.0112800314109336e-12
+      },
+      "runtimeMs": 1390.36854,
+      "expression": "1*add(cos(x),sin(x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999987221,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "add(cos(x),sin(x))"
+        ],
+        "fitMae": 1.2701303232951989e-12,
+        "validationMae": 2.50529478115372e-12,
+        "validationMaeBefore": 0.9011855306235619
+      }
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gplearn",
+      "seed": 2026,
+      "metrics": {
+        "mae": 1.101047627727428e-17,
+        "rmse": 4.2820703418648414e-17,
+        "r2": 1,
+        "maxAbsError": 2.220446049250313e-16
+      },
+      "runtimeMs": 5059.86588599626,
+      "expression": "add(cos(X0), sin(X0))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 3.1273888017610044e-18
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "deap",
+      "seed": 2026,
+      "metrics": {
+        "mae": 1.101047627727428e-17,
+        "rmse": 4.2820703418648414e-17,
+        "r2": 1,
+        "maxAbsError": 2.220446049250313e-16
+      },
+      "runtimeMs": 1045.950356987305,
+      "expression": "add(cos(x), sin(x))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 3.4720990546699464e-34
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gcl",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 45.160729,
+      "expression": "(add (sin x) (cos x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 0,
+        "trainMaeAfter": 0,
+        "validationMaeBefore": 0,
+        "validationMaeAfter": 0
+      }
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gcl-hybrid",
+      "seed": 4242,
+      "metrics": {
+        "mae": 1.2779474448362551e-12,
+        "rmse": 1.4067751988633858e-12,
+        "r2": 1,
+        "maxAbsError": 2.0112800314109336e-12
+      },
+      "runtimeMs": 1409.306477,
+      "expression": "1*add(cos(x),sin(x))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999987221,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "add(cos(x),sin(x))"
+        ],
+        "fitMae": 1.2701303232951989e-12,
+        "validationMae": 2.50529478115372e-12,
+        "validationMaeBefore": 0.9011855306235619
+      }
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "gplearn",
+      "seed": 4242,
+      "metrics": {
+        "mae": 1.101047627727428e-17,
+        "rmse": 4.2820703418648414e-17,
+        "r2": 1,
+        "maxAbsError": 2.220446049250313e-16
+      },
+      "runtimeMs": 4894.54826398287,
+      "expression": "add(sin(X0), cos(X0))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 3.1273888017610044e-18
+    },
+    {
+      "taskId": "trig_linear_combo",
+      "taskName": "Trigonometric linear combination",
+      "baseline": "deap",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.18295692544877726,
+        "rmse": 0.22900775990330385,
+        "r2": 0.9469468291823484,
+        "maxAbsError": 0.4142806958733619
+      },
+      "runtimeMs": 1016.8549540103413,
+      "expression": "cos(sub(cos(cos(sub(cos(cos(x)), sub(cos(cos(cos(cos(x)))), x)))), x))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.05446415595511139
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gcl",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.000005961713629410662,
+        "rmse": 0.000006779315442477432,
+        "r2": 0.9999999994643083,
+        "maxAbsError": 0.00001334500818939155
+      },
+      "runtimeMs": 286.344963,
+      "expression": "add(mul(0.999896, (add (mul const(1.0494848480618026) (div const(1.000005730414092) (add const(0.9999070158940943) (mul x x)))) (mul const(-0.04948846269950228) (div const(1.0000474999999998) (add const(1.0000474999999998) (mul x x)))))), 1.734e-5)",
+      "success": true,
+      "generationsRun": 32,
+      "fitness": 0.9999999928297847,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": true,
+        "scale": 0.9998960256371353,
+        "offset": 0.00001733537859266443,
+        "trainMaeBefore": 0.000025415923782657553,
+        "trainMaeAfter": 0.000005771531837062366,
+        "validationMaeBefore": 0.000025823784882185453,
+        "validationMaeAfter": 0.000005720862271462827
+      }
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gcl-hybrid",
+      "seed": 1337,
+      "metrics": {
+        "mae": 4.931844811527762e-12,
+        "rmse": 5.661947130402559e-12,
+        "r2": 1,
+        "maxAbsError": 1.134869975771835e-11
+      },
+      "runtimeMs": 1134.31088,
+      "expression": "1*div(1,add(1,mul(x,x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999950682,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(1,add(1,mul(x,x)))"
+        ],
+        "fitMae": 4.832804921278233e-12,
+        "validationMae": 9.433516930575555e-12,
+        "validationMaeBefore": 0.24932011335549034
+      }
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gplearn",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.016884060321628685,
+        "rmse": 0.023964610684327335,
+        "r2": 0.9933060263380131,
+        "maxAbsError": 0.07074568354054911
+      },
+      "runtimeMs": 9000.290138006676,
+      "expression": "div(div(add(add(add(0.131, add(-1.604, X0)), sub(add(-4.346, 3.441), add(4.670, X0))), 3.752), div(add(div(X0, X0), add(mul(div(div(X0, X0), add(add(add(4.526, X0), 4.497), 4.497)), 2.491), mul(X0, X0))), add(sub(mul(-2.097, X0), mul(0.495, X0)), mul(X0, add(-0.284, 0.403))))), sub(add(X0, X0), sub(add(div(X0, -0.606), div(sub(X0, X0), div(add(add(div(X0, X0), mul(X0, -4.338)), add(div(X0, X0), add(div(X0, X0), add(mul(div(div(X0, X0), add(add(mul(add(add(mul(sub(add(3.092, div(X0, X0)), -3.550), div(2.646, -3.615)), 4.497), 4.497), mul(0.495, X0)), add(div(X0, X0), 4.497)), 4.497)), 2.491), mul(X0, X0))))), add(-4.346, 3.441)))), mul(X0, 3.752))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.017205657402259145
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "deap",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.00032130938102153896,
+        "rmse": 0.00040421208054072793,
+        "r2": 0.9999980955840022,
+        "maxAbsError": 0.0008452182710058098
+      },
+      "runtimeMs": 1740.2063650079072,
+      "expression": "div(mul(div(1.5645374729711046, sub(mul(sub(x, -4.093665616103276), mul(x, x)), add(-4.093665616103276, mul(div(mul(x, x), 4.074619577847242), mul(4.074619577847242, x))))), x), mul(div(1.5645374729711046, 4.09714027575051), x))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 1.7125596201647164e-7
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gcl",
+      "seed": 2026,
+      "metrics": {
+        "mae": 1.31907686094078e-17,
+        "rmse": 2.836715498096823e-17,
+        "r2": 1,
+        "maxAbsError": 1.1102230246251565e-16
+      },
+      "runtimeMs": 134.701715,
+      "expression": "(div const(196.23169504995573) (add const(196.23169504995573) (mul (mul x x) const(196.23169504995573))))",
+      "success": true,
+      "generationsRun": 8,
+      "fitness": 0.9999998705089636,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 1.4560301962297136e-17,
+        "trainMaeAfter": 1.4560301962297136e-17,
+        "validationMaeBefore": 1.6653345369377347e-17,
+        "validationMaeAfter": 1.6653345369377347e-17
+      }
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gcl-hybrid",
+      "seed": 2026,
+      "metrics": {
+        "mae": 4.931844811527762e-12,
+        "rmse": 5.661947130402559e-12,
+        "r2": 1,
+        "maxAbsError": 1.134869975771835e-11
+      },
+      "runtimeMs": 1147.762375,
+      "expression": "1*div(1,add(1,mul(x,x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999950682,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(1,add(1,mul(x,x)))"
+        ],
+        "fitMae": 4.832804921278233e-12,
+        "validationMae": 9.433516930575555e-12,
+        "validationMaeBefore": 0.24932011335549034
+      }
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gplearn",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.0035322891397385594,
+        "rmse": 0.005856842443895776,
+        "r2": 0.9996001746506545,
+        "maxAbsError": 0.01695870099621022
+      },
+      "runtimeMs": 7770.114520011703,
+      "expression": "div(div(sub(mul(mul(-4.831, 4.940), X0), sub(mul(X0, X0), mul(X0, X0))), sub(X0, X0)), sub(sub(mul(X0, X0), sub(X0, 1.072)), sub(div(X0, -4.789), add(div(sub(mul(-3.235, X0), add(X0, 1.072)), sub(sub(sub(sub(sub(mul(X0, X0), sub(div(sub(sub(-3.235, mul(-4.831, 4.940)), mul(-4.831, 4.940)), sub(X0, X0)), 1.072)), X0), 4.324), add(1.072, div(sub(div(X0, -4.789), add(div(sub(mul(-3.235, X0), add(X0, 1.072)), sub(sub(sub(add(1.779, X0), X0), 4.324), mul(-4.831, 4.940))), X0)), 4.940))), mul(-4.831, 4.940))), X0))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.003684388844142107
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "deap",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.012006936791619866,
+        "rmse": 0.01269962481608461,
+        "r2": 0.9981201420873997,
+        "maxAbsError": 0.017476358160556482
+      },
+      "runtimeMs": 2003.3242180070374,
+      "expression": "div(div(x, x), mul(-0.9030008441492035, sub(add(sub(1.3453327146951457, 2.5428878209638057), div(sub(-0.5833191760834797, -0.41430719041584574), add(-2.300302396829279, sub(sub(x, x), mul(x, x))))), mul(x, x))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.0001685739849904821
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gcl",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 125.038886,
+      "expression": "(div const(1) (add (div const(1) const(1)) (mul x x)))",
+      "success": true,
+      "generationsRun": 7,
+      "fitness": 0.9999999974592282,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": false,
+        "scale": 1,
+        "offset": 0,
+        "trainMaeBefore": 0,
+        "trainMaeAfter": 0,
+        "validationMaeBefore": 0,
+        "validationMaeAfter": 0
+      }
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gcl-hybrid",
+      "seed": 4242,
+      "metrics": {
+        "mae": 4.931844811527762e-12,
+        "rmse": 5.661947130402559e-12,
+        "r2": 1,
+        "maxAbsError": 1.134869975771835e-11
+      },
+      "runtimeMs": 1132.132431,
+      "expression": "1*div(1,add(1,mul(x,x)))",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999950682,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(1,add(1,mul(x,x)))"
+        ],
+        "fitMae": 4.832804921278233e-12,
+        "validationMae": 9.433516930575555e-12,
+        "validationMaeBefore": 0.24932011335549034
+      }
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "gplearn",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.0014174119166216377,
+        "rmse": 0.0025050435402804157,
+        "r2": 0.9999268568262887,
+        "maxAbsError": 0.007058436386158551
+      },
+      "runtimeMs": 7388.569795002695,
+      "expression": "div(2.924, sub(mul(add(X0, X0), sub(X0, div(X0, add(add(add(0.235, -4.177), mul(sub(X0, X0), mul(add(0.235, -4.177), sub(X0, div(X0, X0))))), sub(div(X0, sub(X0, X0)), div(2.780, add(add(0.235, -4.177), 0.235))))))), add(0.871, -3.816)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.0015064092588744852
+    },
+    {
+      "taskId": "inverse_quadratic",
+      "taskName": "Inverse quadratic",
+      "baseline": "deap",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0,
+        "rmse": 0,
+        "r2": 1,
+        "maxAbsError": 0
+      },
+      "runtimeMs": 3012.6025379868224,
+      "expression": "div(div(x, x), add(mul(x, x), div(x, x)))",
+      "success": true,
+      "generationsRun": 80,
+      "fitness": 0
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gcl",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.00000831865086992908,
+        "rmse": 0.000010001302732637616,
+        "r2": 0.9999999999125231,
+        "maxAbsError": 0.00002045473088729821
+      },
+      "runtimeMs": 217.570474,
+      "expression": "add(mul(0.999987, (add (sin x) (div x (add const(0.9999) (mul x x))))), -7.349e-17)",
+      "success": true,
+      "generationsRun": 8,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": true,
+        "scale": 0.9999868111314696,
+        "offset": -7.349303876394723e-17,
+        "trainMaeBefore": 0.000014811124255757816,
+        "trainMaeAfter": 0.000008879110532159557,
+        "validationMaeBefore": 0.000014919753765498176,
+        "validationMaeAfter": 0.000008931421675845945
+      }
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gcl-hybrid",
+      "seed": 1337,
+      "metrics": {
+        "mae": 6.75407110250025e-12,
+        "rmse": 8.702207453900873e-12,
+        "r2": 1,
+        "maxAbsError": 2.3070656496315678e-11
+      },
+      "runtimeMs": 1369.420833,
+      "expression": "1*div(x,add(1,mul(x,x))) + 1*sin(x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999932458,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(x,add(1,mul(x,x)))",
+          "sin(x)"
+        ],
+        "fitMae": 5.689437525655975e-12,
+        "validationMae": 1.015646559359116e-11,
+        "validationMaeBefore": 1.045896599886266
+      }
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gplearn",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.05370334246919373,
+        "rmse": 0.09932751138294889,
+        "r2": 0.9913718119214664,
+        "maxAbsError": 0.3645090833548904
+      },
+      "runtimeMs": 6754.017485975055,
+      "expression": "div(sin(X0), sin(sin(sin(sin(sub(mul(-4.624, -1.632), sin(sin(sin(sin(sin(sub(mul(-4.624, -1.632), sub(div(sin(X0), cos(sin(sin(sin(sin(sub(mul(-4.624, -1.632), sin(sin(sin(sub(mul(-4.624, -1.632), sin(X0)))))))))))), mul(sub(sub(-3.610, -1.809), mul(-1.687, X0)), -0.200))))))))))))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.03449610928208571
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "deap",
+      "seed": 1337,
+      "metrics": {
+        "mae": 0.06095467924786901,
+        "rmse": 0.09882757060830397,
+        "r2": 0.9914584490935532,
+        "maxAbsError": 0.38802259777121734
+      },
+      "runtimeMs": 1215.0405349966604,
+      "expression": "add(sin(sin(x)), sin(sin(sin(sin(sin(sin(x)))))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.003018629419851104
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gcl",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.00000831865086992908,
+        "rmse": 0.000010001302732637616,
+        "r2": 0.9999999999125231,
+        "maxAbsError": 0.00002045473088729821
+      },
+      "runtimeMs": 218.306113,
+      "expression": "add(mul(0.999987, (add (sin x) (div x (add const(0.9999) (mul x x))))), -7.349e-17)",
+      "success": true,
+      "generationsRun": 8,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": true,
+        "scale": 0.9999868111314696,
+        "offset": -7.349303876394723e-17,
+        "trainMaeBefore": 0.000014811124255757816,
+        "trainMaeAfter": 0.000008879110532159557,
+        "validationMaeBefore": 0.000014919753765498176,
+        "validationMaeAfter": 0.000008931421675845945
+      }
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gcl-hybrid",
+      "seed": 2026,
+      "metrics": {
+        "mae": 6.75407110250025e-12,
+        "rmse": 8.702207453900873e-12,
+        "r2": 1,
+        "maxAbsError": 2.3070656496315678e-11
+      },
+      "runtimeMs": 1361.354073,
+      "expression": "1*div(x,add(1,mul(x,x))) + 1*sin(x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999932458,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(x,add(1,mul(x,x)))",
+          "sin(x)"
+        ],
+        "fitMae": 5.689437525655975e-12,
+        "validationMae": 1.015646559359116e-11,
+        "validationMaeBefore": 1.045896599886266
+      }
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gplearn",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.06009353294997013,
+        "rmse": 0.10302205646286057,
+        "r2": 0.9907180136837446,
+        "maxAbsError": 0.3882287124790644
+      },
+      "runtimeMs": 5016.222344973357,
+      "expression": "add(sin(sin(sin(sin(sin(X0))))), sin(sin(X0)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.041223296711030345
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "deap",
+      "seed": 2026,
+      "metrics": {
+        "mae": 0.03525992864389127,
+        "rmse": 0.08944900972385243,
+        "r2": 0.9930026826947392,
+        "maxAbsError": 0.404058708588365
+      },
+      "runtimeMs": 1598.3286109985784,
+      "expression": "sub(sin(x), div(sin(sin(div(sin(sin(div(sin(sin(x)), sin(sin(-4.106067299148181))))), sin(-4.106067299148181)))), add(cos(sin(sub(x, sin(sin(x))))), -2.4104459960166693)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.0008871943605161431
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gcl",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.00000831865086992908,
+        "rmse": 0.000010001302732637616,
+        "r2": 0.9999999999125231,
+        "maxAbsError": 0.00002045473088729821
+      },
+      "runtimeMs": 216.66998,
+      "expression": "add(mul(0.999987, (add (sin x) (div x (add const(0.9999) (mul x x))))), -7.349e-17)",
+      "success": true,
+      "generationsRun": 8,
+      "fitness": 1,
+      "calibration": {
+        "method": "train-affine-output",
+        "accepted": true,
+        "scale": 0.9999868111314696,
+        "offset": -7.349303876394723e-17,
+        "trainMaeBefore": 0.000014811124255757816,
+        "trainMaeAfter": 0.000008879110532159557,
+        "validationMaeBefore": 0.000014919753765498176,
+        "validationMaeAfter": 0.000008931421675845945
+      }
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gcl-hybrid",
+      "seed": 4242,
+      "metrics": {
+        "mae": 6.75407110250025e-12,
+        "rmse": 8.702207453900873e-12,
+        "r2": 1,
+        "maxAbsError": 2.3070656496315678e-11
+      },
+      "runtimeMs": 1364.945052,
+      "expression": "1*div(x,add(1,mul(x,x))) + 1*sin(x)",
+      "success": true,
+      "generationsRun": 0,
+      "fitness": 0.9999999999932458,
+      "hybridSelection": {
+        "method": "train-validation-sparse-basis",
+        "candidateTerms": 256,
+        "selectedTerms": [
+          "1",
+          "div(x,add(1,mul(x,x)))",
+          "sin(x)"
+        ],
+        "fitMae": 5.689437525655975e-12,
+        "validationMae": 1.015646559359116e-11,
+        "validationMaeBefore": 1.045896599886266
+      }
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "gplearn",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.028859693482896125,
+        "rmse": 0.10827465519809695,
+        "r2": 0.9897473976584567,
+        "maxAbsError": 0.572183696327424
+      },
+      "runtimeMs": 5745.96067800303,
+      "expression": "add(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(X0))))))))), sin(add(sub(X0, sin(sin(sin(X0)))), add(sub(X0, sin(sin(sin(X0)))), sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(add(sub(X0, sin(sin(sin(sin(X0))))), sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(X0))))), sin(add(sub(X0, sin(X0)), add(sub(X0, sin(sin(sin(sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(sin(X0)))))))))), sin(X0))))))), sin(sin(sin(sin(sin(sin(X0)))))))))))))))))))), sin(X0))))))), sin(X0)))))))))), sin(X0)))))))), sin(X0)))))))))))), sin(X0)))))))), sin(X0)))))))))))))))), sin(add(sub(X0, sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(add(sub(X0, sin(X0)), sin(sin(sin(X0))))))))))))))), sin(X0))))))))))))))))), sin(X0)))))))), sin(X0))))))), sin(sin(X0)))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.005341962575739668
+    },
+    {
+      "taskId": "trig_rational_combo",
+      "taskName": "Trigonometric + rational",
+      "baseline": "deap",
+      "seed": 4242,
+      "metrics": {
+        "mae": 0.044309380382376154,
+        "rmse": 0.09299752265248887,
+        "r2": 0.9924364922970368,
+        "maxAbsError": 0.3943847763425533
+      },
+      "runtimeMs": 1267.3776409938,
+      "expression": "add(sin(sin(x)), sin(sin(sin(sin(sin(mul(sin(x), div(x, sin(sin(x))))))))))",
+      "success": false,
+      "generationsRun": 80,
+      "fitness": 0.0016862945542839886
+    }
+  ]
+}

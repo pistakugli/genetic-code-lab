@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T11:07:43.934Z",
+  "lane": "nn-adaptive-budget-deep-blackbox-relu2d-region-graph",
+  "variant": "fixed-plus-randomized",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-adaptive-budget-deep-blackbox-relu2d-region-graph.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-adaptive-budget-deep-blackbox-relu2d-region-graph",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-adaptive-budget-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.json",
+    "reportMarkdown": "benchmarks/release/nn-adaptive-budget-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.md",
+    "manifest": "benchmarks/release/nn-adaptive-budget-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 3,
+    "passedTeachers": 3,
+    "minOracleReduction": 0.20101950789138323,
+    "maxAdaptiveMae": 0.00024069150188230396,
+    "minAdaptiveR2": 0.999992858794094,
+    "maxAdaptiveToFixedMaeRatio": 1.8228519339912144,
+    "totalFixedOracleCalls": 153015,
+    "totalAdaptiveOracleCalls": 122256,
+    "selectedGridWidths": [
+      89,
+      89,
+      89
+    ]
+  },
+  "notes": [
+    "This is the first adaptive budget selector for deep 2D region graphs.",
+    "It proves lower oracle budget than the fixed 101x101 grid on this gated teacher set while preserving compact boundary artifacts.",
+    "It does not yet prove full local spatial refinement."
+  ]
+}

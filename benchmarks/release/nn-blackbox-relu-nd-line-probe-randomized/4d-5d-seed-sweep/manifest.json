@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:53:40.654Z",
+  "lane": "nn-blackbox-relu-nd-line-probe-randomized",
+  "variant": "4d-5d-seed-sweep",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-blackbox-relu-nd-line-probe-randomized.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-blackbox-relu-nd-line-probe-randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-blackbox-relu-nd-line-probe-randomized/4d-5d-seed-sweep/report.json",
+    "reportMarkdown": "benchmarks/release/nn-blackbox-relu-nd-line-probe-randomized/4d-5d-seed-sweep/report.md",
+    "manifest": "benchmarks/release/nn-blackbox-relu-nd-line-probe-randomized/4d-5d-seed-sweep/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 5,
+    "passedTeachers": 5,
+    "dimensions": [
+      4,
+      5
+    ],
+    "maxMae": 6.971081105080915e-13,
+    "minR2": 1,
+    "maxLinearMae": 0.3770552278663082,
+    "maxPlaneError": 1.0786656068667673e-12,
+    "minKinkPointCount": 361,
+    "minTermSupport": 75,
+    "totalOracleCalls": 1264840,
+    "maxOracleCallsPerTeacher": 343100
+  },
+  "notes": [
+    "This benchmark broadens the clean ND random-direction line-probe lane from one 4D teacher to a deterministic 4D/5D seed sweep.",
+    "The solver receives only f(vector) oracle calls; no teacher weights or hidden activations are passed to GCL."
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:53:20.041Z",
+  "lane": "nn-deep-blackbox-relu1d-decompile",
+  "variant": "folded-two-layer",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-deep-blackbox-relu1d-decompile.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-deep-blackbox-relu1d-decompile",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-deep-blackbox-relu1d-decompile/folded-two-layer/report.json",
+    "reportMarkdown": "benchmarks/release/nn-deep-blackbox-relu1d-decompile/folded-two-layer/report.md",
+    "manifest": "benchmarks/release/nn-deep-blackbox-relu1d-decompile/folded-two-layer/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "kinkCount": 11,
+    "firstLayerKinkCount": 5,
+    "deepOnlyKinkCount": 6,
+    "mae": 6.677978315810554e-14,
+    "r2": 1,
+    "firstLayerOnlyMae": 0.026801053734825775
+  },
+  "notes": [
+    "This benchmark starts the deep ReLU lane with output-equivalent recovery for a folded 1D two-layer ReLU teacher.",
+    "The solver receives only f(x), not hidden activations, layer widths, or teacher weights."
+  ]
+}

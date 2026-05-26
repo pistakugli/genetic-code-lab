@@ -1,0 +1,188 @@
+{
+  "generatedAt": "2026-05-26T10:53:38.953Z",
+  "task": "4D black-box ReLU random-direction line-probe hyperplane stitching",
+  "blackBox": {
+    "type": "4-input/4-hidden shallow ReLU teacher",
+    "visibilityToGcl": "oracle calls only: the solver receives f(vector), not hidden activations or teacher weights"
+  },
+  "config": {
+    "ranges": [
+      [
+        -2.6,
+        2.6
+      ],
+      [
+        -2.3,
+        2.3
+      ],
+      [
+        -2.1,
+        2.1
+      ],
+      [
+        -1.9,
+        1.9
+      ]
+    ],
+    "lineCount": 220,
+    "samplesPerLine": 901,
+    "ransac": {
+      "iterations": 2600,
+      "inlierTolerance": 0.00002,
+      "minSupport": 42
+    },
+    "testRows": 4096
+  },
+  "auditTeacherCircuit": {
+    "id": "4d-random-direction-hyperplane-stitching",
+    "dimension": 4,
+    "bias": 0.17,
+    "base": [
+      0.12,
+      -0.08,
+      0.05,
+      -0.03
+    ],
+    "hidden": [
+      {
+        "normal": [
+          0.92,
+          -0.28,
+          0.18,
+          0.12
+        ],
+        "offset": 0.58,
+        "readout": 0.72
+      },
+      {
+        "normal": [
+          0.36,
+          0.81,
+          -0.31,
+          0.18
+        ],
+        "offset": -0.24,
+        "readout": -0.53
+      },
+      {
+        "normal": [
+          -0.22,
+          0.16,
+          0.88,
+          -0.38
+        ],
+        "offset": -0.92,
+        "readout": 0.41
+      },
+      {
+        "normal": [
+          0.14,
+          -0.42,
+          0.25,
+          0.86
+        ],
+        "offset": 0.18,
+        "readout": -0.34
+      }
+    ]
+  },
+  "baselines": {
+    "linearHyperplane": {
+      "coefficients": [
+        0.5027240333584666,
+        0.4349939320063112,
+        -0.295746717011138,
+        0.22120144197741023,
+        -0.22312838935818774
+      ],
+      "metrics": {
+        "mae": 0.28844512061458333,
+        "rmse": 0.3564467526573878,
+        "r2": 0.8517594414277317
+      }
+    }
+  },
+  "gclLineProbe": {
+    "expression": "-0.2072 + 0.0298 * x0 + -0.0144 * x1 + 0.4108 * x2 + -0.1858 * x3 + -0.3396768464 * max(0, 0.1401331898 * x0 + -0.4203995695 * x1 + 0.250237839 * x2 + 0.8608181661 * x3 + 0.1801712441) + -0.5067531746 * max(0, 0.3765146615 * x0 + 0.8471579883 * x1 + -0.3242209585 * x2 + 0.1882573307 * x3 + -0.2510097743) + 0.7097023601 * max(0, 0.9333490167 * x0 + -0.2840627442 * x1 + 0.1826117641 * x2 + 0.1217411761 * x3 + 0.5884156844) + 0.4085213336 * max(0, 0.2207963026 * x0 + -0.1605791292 * x1 + -0.8831852105 * x2 + 0.3813754318 * x3 + 0.9233299928)",
+    "baseIntercept": -0.20719999999769978,
+    "baseWeights": [
+      0.02980000000064595,
+      -0.014400000000331675,
+      0.4107999999987473,
+      -0.18579999999947663
+    ],
+    "terms": [
+      {
+        "normal": [
+          0.1401331898255392,
+          -0.4203995694765411,
+          0.25023783897414253,
+          0.8608181660715633
+        ],
+        "offset": 0.1801712440615042,
+        "readout": -0.33967684642835905,
+        "support": 109,
+        "residual": 3.2384645424037334e-13
+      },
+      {
+        "normal": [
+          0.37651466147858276,
+          0.8471579883274439,
+          -0.3242209584953201,
+          0.18825733073918438
+        ],
+        "offset": -0.25100977431911137,
+        "readout": -0.5067531746321686,
+        "support": 83,
+        "residual": 4.527529622964447e-13
+      },
+      {
+        "normal": [
+          0.933349016708539,
+          -0.2840627442153185,
+          0.18261176413843988,
+          0.1217411760922036
+        ],
+        "offset": 0.5884156844466846,
+        "readout": 0.7097023601475245,
+        "support": 77,
+        "residual": 3.637797134233138e-13
+      },
+      {
+        "normal": [
+          0.22079630262328714,
+          -0.1605791291806376,
+          -0.8831852104943592,
+          0.38137543180376543
+        ],
+        "offset": 0.9233299927893199,
+        "readout": 0.4085213335902737,
+        "support": 77,
+        "residual": 5.443048609235321e-13
+      }
+    ],
+    "kinkPointCount": 351,
+    "metrics": {
+      "mae": 4.888829006335568e-13,
+      "rmse": 6.496547642436488e-13,
+      "r2": 1
+    }
+  },
+  "queryBudget": {
+    "oracleCalls": 198860,
+    "lineProbeCallsUpperBound": 198220,
+    "fitAndValidationCalls": 640,
+    "testRows": 4096
+  },
+  "gates": {
+    "pass": true,
+    "recoveredAllHyperplanes": true,
+    "maxPlaneErrorBelow1eMinus3": true,
+    "maeBelow1eMinus8": true,
+    "r2Above999999999": true,
+    "beatsLinearBy1000x": true,
+    "supportAboveMinimum": true,
+    "maxPlaneError": 6.884235200344658e-13
+  },
+  "runtimeMs": 91
+}

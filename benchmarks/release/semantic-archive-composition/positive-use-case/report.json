@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-05-26T10:50:09.087Z",
+  "benchmark": "semantic-archive-composition",
+  "budget": {
+    "cases": 3,
+    "maxGenomeSize": 128,
+    "note": "Direct mechanism benchmark: fixed elites are recorded into the semantic archive, then the archive must synthesize a train-only composite candidate."
+  },
+  "results": [
+    {
+      "caseId": "delayed_bivariate_fragments",
+      "caseName": "Delayed bivariate fragments",
+      "bestSingleElite": "mul(x1,x1)",
+      "bestSingleMetrics": {
+        "mae": 0.8366217510614732,
+        "rmse": 1.091162743929764,
+        "r2": 0.7080875302835483,
+        "maxAbsError": 3.5446512378215447
+      },
+      "archiveDisabledInjected": false,
+      "archiveInjected": true,
+      "archiveMetrics": {
+        "mae": 1.5571122605338113e-11,
+        "rmse": 1.6806560916821706e-11,
+        "r2": 1,
+        "maxAbsError": 2.2237323094032035e-11
+      },
+      "liftRatio": 53729058094.67208,
+      "success": true,
+      "retainedKeys": [
+        "mul(x1,x1)",
+        "x0",
+        "sin(x0)",
+        "mul(x0,x1)",
+        "mul(c:2.0000000,sin(x0))",
+        "x1",
+        "cos(x0)"
+      ]
+    },
+    {
+      "caseId": "duplicate_pressure_market",
+      "caseName": "Duplicate pressure market",
+      "bestSingleElite": "x0",
+      "bestSingleMetrics": {
+        "mae": 0.5599538438053645,
+        "rmse": 0.7543612988778153,
+        "r2": 0.8760990604666031,
+        "maxAbsError": 2.1004506189107723
+      },
+      "archiveDisabledInjected": false,
+      "archiveInjected": true,
+      "archiveMetrics": {
+        "mae": 6.176958374992089e-12,
+        "rmse": 6.663691413110303e-12,
+        "r2": 1,
+        "maxAbsError": 8.812284235659718e-12
+      },
+      "liftRatio": 90652034514.6541,
+      "success": true,
+      "retainedKeys": [
+        "x0",
+        "mul(x0,x1)",
+        "x1",
+        "sin(x1)"
+      ]
+    },
+    {
+      "caseId": "rational_trig_composition",
+      "caseName": "Rational + trig composition",
+      "bestSingleElite": "div(sin(x0),add(1,mul(x1,x1)))",
+      "bestSingleMetrics": {
+        "mae": 0.30193817942076984,
+        "rmse": 0.3416395024623698,
+        "r2": 0.5434993677393297,
+        "maxAbsError": 0.5000000000000001
+      },
+      "archiveDisabledInjected": false,
+      "archiveInjected": true,
+      "archiveMetrics": {
+        "mae": 0.000019083368269481703,
+        "rmse": 0.000029523198141829463,
+        "r2": 0.9999999965909606,
+        "maxAbsError": 0.00008806684467277393
+      },
+      "liftRatio": 15822.059038897873,
+      "success": true,
+      "retainedKeys": [
+        "div(sin(x0),add(c:1.0000000,mul(x1,x1)))",
+        "sin(x0)",
+        "x0",
+        "cos(x1)"
+      ]
+    }
+  ],
+  "runtimeMs": 15.531219
+}

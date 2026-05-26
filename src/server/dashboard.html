@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧬 Genetic Code Lab — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --surface: #111827;
+      --surface-2: #1a2235;
+      --border: #1f2b3e;
+      --text: #e5e7eb;
+      --text-dim: #8b95a5;
+      --accent: #06d6a0;
+      --accent-glow: rgba(6,214,160,0.15);
+      --danger: #ef476f;
+      --warn: #ffd166;
+      --info: #118ab2;
+      --gradient-1: linear-gradient(135deg, #06d6a0 0%, #118ab2 100%);
+      --gradient-2: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Header ──── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .header h1 span { font-size: 1.5rem; }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .8rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(6,214,160,.5); }
+      50% { opacity: .7; box-shadow: 0 0 0 6px rgba(6,214,160,0); }
+    }
+
+    /* ─── Main layout ──── */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    /* ─── Cards ──── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: rgba(6,214,160,.3); }
+    .card-title {
+      font-size: .85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+    }
+
+    /* ─── Upload area ──── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .3s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+    .upload-zone input { display: none; }
+    .upload-icon { font-size: 2.5rem; margin-bottom: .5rem; }
+    .upload-text { color: var(--text-dim); font-size: .9rem; }
+    .upload-text strong { color: var(--accent); }
+
+    /* ─── Config grid ──── */
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+    .field label {
+      font-size: .75rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .field input, .field select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .55rem .75rem;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .85rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* ─── Buttons ──── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      padding: .65rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-primary {
+      background: var(--gradient-1);
+      color: #0a0e17;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(6,214,160,.3); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    /* ─── Results ──── */
+    .result-banner {
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .85rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .result-banner.running {
+      background: rgba(17,138,178,.1);
+      border: 1px solid rgba(17,138,178,.3);
+      color: var(--info);
+    }
+    .result-banner.completed {
+      background: rgba(6,214,160,.08);
+      border: 1px solid rgba(6,214,160,.3);
+      color: var(--accent);
+    }
+    .result-banner.failed {
+      background: rgba(239,71,111,.08);
+      border: 1px solid rgba(239,71,111,.3);
+      color: var(--danger);
+    }
+
+    /* ─── Progress bar ──── */
+    .progress-wrap {
+      width: 100%;
+      height: 6px;
+      background: var(--bg);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: .75rem 0;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--gradient-1);
+      border-radius: 3px;
+      transition: width .5s ease;
+    }
+
+    /* ─── Stats row ──── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .stat {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: .7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-top: .25rem;
+    }
+
+    /* ─── Run history ──── */
+    .history-list { list-style: none; }
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .85rem;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .history-item:hover { background: var(--surface-2); }
+    .history-item:last-child { border-bottom: none; }
+    .history-id { font-family: 'JetBrains Mono', monospace; color: var(--info); font-size: .75rem; }
+    .history-fitness { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+    .tag {
+      font-size: .65rem;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .tag-running { background: rgba(17,138,178,.15); color: var(--info); }
+    .tag-completed { background: rgba(6,214,160,.15); color: var(--accent); }
+    .tag-failed { background: rgba(239,71,111,.15); color: var(--danger); }
+
+    /* ─── Footer ──── */
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-dim);
+      font-size: .75rem;
+    }
+
+    /* ─── Responsive ──── */
+    @media (max-width: 768px) {
+      .main { padding: 1rem; }
+      .config-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>🧬</span> Genetic Code Lab</h1>
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    <span>Server Online</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Upload Card -->
+  <div class="card" id="upload-card">
+    <div class="card-title">📂 Upload CSV Dataset</div>
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()">
+      <input type="file" id="csv-input" accept=".csv">
+      <div class="upload-icon">📊</div>
+      <div class="upload-text">
+        Drop a <strong>.csv</strong> file here or click to browse<br>
+        <small>Last column = target by default</small>
+      </div>
+    </div>
+    <div id="file-info" style="margin-top:.75rem;font-size:.8rem;color:var(--text-dim);display:none"></div>
+  </div>
+
+  <!-- Config Card -->
+  <div class="card">
+    <div class="card-title">⚙️ Evolution Config</div>
+    <div class="config-grid">
+      <div class="field">
+        <label>Target Column</label>
+        <input type="text" id="target-col" placeholder="(last column)">
+      </div>
+      <div class="field">
+        <label>Max Generations</label>
+        <input type="number" id="max-gens" value="120" min="10" max="1000">
+      </div>
+      <div class="field">
+        <label>Population Size</label>
+        <input type="number" id="pop-size" value="300" min="50" max="2000">
+      </div>
+      <div class="field">
+        <label>Max Data Rows</label>
+        <input type="number" id="max-rows" value="80" min="10" max="5000">
+      </div>
+      <div class="field">
+        <label>Selection Method</label>
+        <select id="selection-method">
+          <option value="tournament">Tournament</option>
+          <option value="lexicase">Lexicase</option>
+          <option value="epsilon-lexicase">ε-Lexicase</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Random Seed</label>
+        <input type="number" id="seed" placeholder="(random)">
+      </div>
+    </div>
+    <div style="margin-top:1.25rem;display:flex;gap:.75rem">
+      <button class="btn btn-primary" id="evolve-btn" disabled onclick="startEvolve()">
+        🚀 Start Evolution
+      </button>
+      <button class="btn btn-secondary" onclick="loadExample()">
+        📋 Load Example
+      </button>
+    </div>
+  </div>
+
+  <!-- Results Card -->
+  <div class="card" id="results-card" style="display:none">
+    <div class="card-title">📈 Evolution Progress</div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+    <div class="result-banner running" id="result-banner">Initializing evolution engine...</div>
+    <div class="stats-row" id="stats-row">
+      <div class="stat"><div class="stat-value" id="stat-gen">0</div><div class="stat-label">Generation</div></div>
+      <div class="stat"><div class="stat-value" id="stat-fitness">0.0000</div><div class="stat-label">Best Fitness</div></div>
+      <div class="stat"><div class="stat-value" id="stat-size">0</div><div class="stat-label">Genome Size</div></div>
+      <div class="stat"><div class="stat-value" id="stat-time">—</div><div class="stat-label">Elapsed</div></div>
+    </div>
+  </div>
+
+  <!-- History Card -->
+  <div class="card">
+    <div class="card-title">🕰️ Run History</div>
+    <ul class="history-list" id="history-list">
+      <li style="padding:1rem;color:var(--text-dim);font-size:.85rem;text-align:center">No runs yet</li>
+    </ul>
+  </div>
+</div>
+
+<div class="footer">
+  Genetic Code Lab v1.0.0 — Evolutionary Symbolic Regression Engine
+</div>
+
+<script>
+  let csvContent = null;
+  let currentRunId = null;
+  let pollTimer = null;
+  const startTime = {};
+
+  // File input
+  const csvInput = document.getElementById('csv-input');
+  const dropZone = document.getElementById('drop-zone');
+
+  csvInput.addEventListener('change', e => {
+    if (e.target.files.length > 0) loadFile(e.target.files[0]);
+  });
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
+  });
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      csvContent = e.target.result;
+      const lines = csvContent.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      document.getElementById('file-info').style.display = 'block';
+      document.getElementById('file-info').innerHTML =
+        `<strong>${file.name}</strong> — ${lines.length - 1} rows × ${headers.length} columns<br>` +
+        `Columns: <code>${headers.join(', ')}</code>`;
+      document.getElementById('evolve-btn').disabled = false;
+    };
+    reader.readAsText(file);
+  }
+
+  function loadExample() {
+    fetch('/api/health').then(r => r.json()).then(() => {
+      // Fetch the example CSV from server's local file
+      csvContent = 'EXAMPLE_FILE_TRIGGER';
+      document.getElementById('file-info').style.display = 'block';
+      document.getElementById('file-info').innerHTML =
+        '<strong>boston-housing.csv</strong> — Example dataset loaded (40 rows × 14 columns)';
+      document.getElementById('evolve-btn').disabled = false;
+    }).catch(() => alert('Server not reachable'));
+  }
+
+  async function startEvolve() {
+    if (!csvContent) return;
+
+    const config = {
+      maxGenerations: parseInt(document.getElementById('max-gens').value) || 120,
+      population: { size: parseInt(document.getElementById('pop-size').value) || 300 },
+      selectionMethod: document.getElementById('selection-method').value,
+      maxRows: parseInt(document.getElementById('max-rows').value) || 80
+    };
+    const targetCol = document.getElementById('target-col').value.trim() || undefined;
+    const seed = document.getElementById('seed').value.trim();
+    if (seed) config.seed = parseInt(seed);
+    if (targetCol) config.targetColumn = targetCol;
+
+    const resultsCard = document.getElementById('results-card');
+    resultsCard.style.display = 'block';
+    const banner = document.getElementById('result-banner');
+    banner.className = 'result-banner running';
+    banner.textContent = 'Submitting to evolution engine...';
+    document.getElementById('progress-bar').style.width = '0%';
+
+    let endpoint, body, headers;
+    if (csvContent === 'EXAMPLE_FILE_TRIGGER') {
+      endpoint = '/api/evolve/file';
+      body = JSON.stringify({ path: 'data/boston-housing.csv', ...config });
+      headers = { 'Content-Type': 'application/json' };
+    } else {
+      endpoint = '/api/evolve/csv';
+      body = JSON.stringify({ csv: csvContent, config });
+      headers = { 'Content-Type': 'application/json' };
+    }
+
+    try {
+      const res = await fetch(endpoint, { method: 'POST', headers, body });
+      const data = await res.json();
+      if (data.error) { banner.className = 'result-banner failed'; banner.textContent = data.error; return; }
+
+      currentRunId = data.runId;
+      startTime[currentRunId] = Date.now();
+      banner.textContent = `Run started: ${data.runId}\nTarget: ${data.target} | Features: ${data.features.join(', ')} | Rows: ${data.dataRows}`;
+
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(() => pollStatus(currentRunId), 1500);
+    } catch (err) {
+      banner.className = 'result-banner failed';
+      banner.textContent = 'Failed to connect to server: ' + err.message;
+    }
+  }
+
+  async function pollStatus(runId) {
+    try {
+      const res = await fetch(`/api/status/${runId}`);
+      const data = await res.json();
+
+      const banner = document.getElementById('result-banner');
+      const elapsed = ((Date.now() - (startTime[runId] || Date.now())) / 1000).toFixed(0);
+      document.getElementById('stat-time').textContent = elapsed + 's';
+
+      if (data.progress) {
+        document.getElementById('stat-gen').textContent = data.progress.gen;
+        document.getElementById('stat-fitness').textContent = data.progress.bestFitness.toFixed(6);
+        document.getElementById('stat-size').textContent = data.progress.bestSize;
+        const maxGens = parseInt(document.getElementById('max-gens').value) || 120;
+        const pct = Math.min(100, (data.progress.gen / maxGens) * 100);
+        document.getElementById('progress-bar').style.width = pct + '%';
+      }
+
+      if (data.status === 'completed') {
+        clearInterval(pollTimer);
+        banner.className = 'result-banner completed';
+        banner.textContent =
+          `✅ Evolution Complete!\n` +
+          `   Fitness:     ${data.result.fitness.toFixed(8)}\n` +
+          `   Expression:  ${data.result.expression}\n` +
+          `   Generations: ${data.result.generations}\n` +
+          `   Time:        ${data.result.timeMs}ms`;
+        document.getElementById('progress-bar').style.width = '100%';
+        refreshHistory();
+      } else if (data.status === 'failed') {
+        clearInterval(pollTimer);
+        banner.className = 'result-banner failed';
+        banner.textContent = '❌ Evolution Failed: ' + (data.error || 'Unknown error');
+        refreshHistory();
+      } else {
+        banner.textContent =
+          `🧬 Evolving... Generation ${data.progress?.gen || 0}\n` +
+          `   Best Fitness: ${(data.progress?.bestFitness || 0).toFixed(8)}\n` +
+          `   Genome Size:  ${data.progress?.bestSize || 0}`;
+      }
+    } catch { /* ignore poll errors */ }
+  }
+
+  async function refreshHistory() {
+    try {
+      const res = await fetch('/api/runs');
+      const runs = await res.json();
+      const list = document.getElementById('history-list');
+      if (runs.length === 0) return;
+      list.innerHTML = runs.map(r => `
+        <li class="history-item" onclick="pollStatus('${r.id}')">
+          <span>
+            <span class="history-id">${r.id}</span>
+            <span class="tag tag-${r.status}">${r.status}</span>
+          </span>
+          <span class="history-fitness" style="color:${r.status==='completed'?'var(--accent)':r.status==='failed'?'var(--danger)':'var(--info)'}">
+            ${r.result ? r.result.fitness.toFixed(6) : (r.progress?.bestFitness || 0).toFixed(6)}
+          </span>
+        </li>
+      `).join('');
+    } catch {}
+  }
+
+  // Initial health check
+  fetch('/api/health').then(r => r.json()).then(d => {
+    document.querySelector('.status-badge span').textContent = `Online — ${d.totalRuns} runs`;
+  }).catch(() => {
+    document.querySelector('.status-badge span').textContent = 'Offline';
+    document.querySelector('.status-dot').style.background = 'var(--danger)';
+  });
+</script>
+
+</body>
+</html>

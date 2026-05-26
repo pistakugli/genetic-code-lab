@@ -1,0 +1,154 @@
+{
+  "generatedAt": "2026-05-26T10:53:18.869Z",
+  "task": "black-box ReLU circuit decompilation",
+  "blackBox": {
+    "type": "1-input/5-hidden ReLU MLP teacher",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(x), not hidden activations or teacher weights"
+  },
+  "config": {
+    "sampleMin": -3,
+    "sampleMax": 3,
+    "samples": 1201,
+    "testRows": 701
+  },
+  "auditTeacherCircuit": {
+    "hidden": [
+      {
+        "weight": 1,
+        "bias": 1.4,
+        "readout": 1.1
+      },
+      {
+        "weight": 1,
+        "bias": -0.25,
+        "readout": -0.7
+      },
+      {
+        "weight": 1,
+        "bias": -1.2,
+        "readout": 0.45
+      },
+      {
+        "weight": 1,
+        "bias": 2.15,
+        "readout": -0.3
+      },
+      {
+        "weight": 1,
+        "bias": -2.35,
+        "readout": 0.22
+      }
+    ],
+    "baseSlope": 0.35,
+    "bias": 0.25
+  },
+  "baselines": {
+    "linear": {
+      "expression": "1.0500161450784593 + 0.7713547887179055 * x",
+      "metrics": {
+        "mae": 0.15120971676969933,
+        "rmse": 0.19370404869888355,
+        "r2": 0.9794466863075707
+      }
+    }
+  },
+  "gcl": {
+    "expression": "0.25 + 0.35 * x + -0.3 * max(0, x + 2.15) + 1.1 * max(0, x + 1.4) + -0.7 * max(0, x - 0.25) + 0.45 * max(0, x - 1.2) + 0.22 * max(0, x - 2.35)",
+    "baseIntercept": 0.25000000000000056,
+    "baseSlope": 0.35000000000000037,
+    "terms": [
+      {
+        "kink": -2.1500000000000035,
+        "deltaSlope": -0.3000000000000003
+      },
+      {
+        "kink": -1.399999999999997,
+        "deltaSlope": 1.1000000000000014
+      },
+      {
+        "kink": 0.24999999999999795,
+        "deltaSlope": -0.7000000000000015
+      },
+      {
+        "kink": 1.199999999999987,
+        "deltaSlope": 0.4500000000000019
+      },
+      {
+        "kink": 2.3500000000000147,
+        "deltaSlope": 0.2199999999999963
+      }
+    ],
+    "plateaus": [
+      {
+        "startX": -3,
+        "endX": -2.15,
+        "slope": 0.35000000000000037,
+        "intercept": 0.25000000000000056,
+        "intervals": 170
+      },
+      {
+        "startX": -2.15,
+        "endX": -1.4,
+        "slope": 0.050000000000000024,
+        "intercept": -0.39500000000000124,
+        "intervals": 150
+      },
+      {
+        "startX": -1.4,
+        "endX": 0.25,
+        "slope": 1.1500000000000015,
+        "intercept": 1.1449999999999974,
+        "intervals": 330
+      },
+      {
+        "startX": 0.25,
+        "endX": 1.2000000000000002,
+        "slope": 0.4499999999999999,
+        "intercept": 1.3199999999999963,
+        "intervals": 190
+      },
+      {
+        "startX": 1.2000000000000002,
+        "endX": 2.3500000000000005,
+        "slope": 0.9000000000000018,
+        "intercept": 0.7799999999999998,
+        "intervals": 230
+      },
+      {
+        "startX": 2.3500000000000005,
+        "endX": 3,
+        "slope": 1.119999999999998,
+        "intercept": 0.26300000000000523,
+        "intervals": 130
+      }
+    ],
+    "metrics": {
+      "mae": 2.4320773640370986e-15,
+      "rmse": 2.8045782998894674e-15,
+      "r2": 1
+    }
+  },
+  "gates": {
+    "pass": true,
+    "expectedKinks": [
+      -2.15,
+      -1.4,
+      0.25,
+      1.2,
+      2.35
+    ],
+    "recoveredKinks": [
+      -2.1500000000000035,
+      -1.399999999999997,
+      0.24999999999999795,
+      1.199999999999987,
+      2.3500000000000147
+    ],
+    "maxKinkError": 1.4654943925052066e-14,
+    "allKinksRecovered": true,
+    "maeBelow1eMinus9": true,
+    "r2Above999999999": true,
+    "beatsLinearBy1000x": true
+  },
+  "runtimeMs": 1
+}

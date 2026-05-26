@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T11:07:45.186Z",
+  "lane": "nn-boundary-refined-deep-blackbox-relu2d-region-graph",
+  "variant": "fixed-plus-randomized",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-boundary-refined-deep-blackbox-relu2d-region-graph.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-boundary-refined-deep-blackbox-relu2d-region-graph",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-boundary-refined-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.json",
+    "reportMarkdown": "benchmarks/release/nn-boundary-refined-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.md",
+    "manifest": "benchmarks/release/nn-boundary-refined-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 3,
+    "passedTeachers": 3,
+    "minOracleReductionVsFixed": 0.6590138221742967,
+    "totalFixed101OracleCalls": 153015,
+    "totalBoundaryRefinedOracleCalls": 52176,
+    "maxBoundaryRefinedMae": 0.00007994248576966679,
+    "minBoundaryRefinedR2": 0.9999990128529073,
+    "minHeldOutMaeImprovementRatio": 7.9964710089308335,
+    "maxBoundaryRefinedToFixedMaeRatio": 0.4503437118707358
+  },
+  "notes": [
+    "This benchmark promotes compact boundary geometry from a passive artifact into an active local prediction mechanism.",
+    "The solver uses a lower 57x57 probe grid plus held-out validation, then switches regions near compact boundaries instead of falling back to a full 101x101 grid.",
+    "It still proves output-equivalent behavior for this benchmark family, not hidden-layer identity."
+  ]
+}

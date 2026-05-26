@@ -1,0 +1,110 @@
+{
+  "generatedAt": "2026-05-26T10:53:36.459Z",
+  "task": "3D black-box ReLU hyperplane decompilation",
+  "blackBox": {
+    "type": "3-input/3-hidden non-vertical ReLU MLP teacher",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(x,y,z), not hidden activations or teacher weights"
+  },
+  "config": {
+    "xRange": [
+      -3,
+      3
+    ],
+    "yRange": [
+      -1.4,
+      1.4
+    ],
+    "zRange": [
+      -1.2,
+      1.2
+    ],
+    "sliceCount": 7,
+    "samplesPerSlice": 801,
+    "testRows": 11067
+  },
+  "auditTeacherCircuit": {
+    "bias": 0.18,
+    "base": [
+      0.22,
+      -0.11,
+      0.07
+    ],
+    "hidden": [
+      {
+        "alphaY": -0.25,
+        "alphaZ": 0.2,
+        "beta": -1.1,
+        "readout": 0.82
+      },
+      {
+        "alphaY": 0.35,
+        "alphaZ": -0.3,
+        "beta": 0.15,
+        "readout": -0.48
+      },
+      {
+        "alphaY": -0.1,
+        "alphaZ": -0.22,
+        "beta": 1.2,
+        "readout": 0.31
+      }
+    ]
+  },
+  "baselines": {
+    "hyperplane": {
+      "expression": "1.0805469955272435 + 0.6914310341377778 * x + 0.11969353167412401 * y + -0.0907514776689768 * z",
+      "metrics": {
+        "mae": 0.18594399062168013,
+        "rmse": 0.23596247731533757,
+        "r2": 0.961592442691195
+      }
+    }
+  },
+  "gcl": {
+    "expression": "0.18 + 0.22 * x + -0.11 * y + 0.07 * z + 0.82 * max(0, x + 0.25 * y - 0.2 * z + 1.1) + -0.48 * max(0, x - 0.35 * y + 0.3 * z - 0.15) + 0.31 * max(0, x + 0.1 * y + 0.22 * z - 1.2)",
+    "baseIntercept": 0.1800000000000009,
+    "baseSlopeX": 0.22000000000000056,
+    "baseSlopeY": -0.11000000000000021,
+    "baseSlopeZ": 0.07000000000000015,
+    "terms": [
+      {
+        "alphaY": -0.2500000000000005,
+        "alphaZ": 0.19999999999999957,
+        "beta": -1.1,
+        "deltaSlopeX": 0.8199999999999985,
+        "support": 7
+      },
+      {
+        "alphaY": 0.3499999999999987,
+        "alphaZ": -0.30000000000000066,
+        "beta": 0.15000000000000102,
+        "deltaSlopeX": -0.4799999999999991,
+        "support": 7
+      },
+      {
+        "alphaY": -0.1000000000000012,
+        "alphaZ": -0.22000000000000147,
+        "beta": 1.1999999999999982,
+        "deltaSlopeX": 0.3099999999999995,
+        "support": 7
+      }
+    ],
+    "metrics": {
+      "mae": 6.683337645343181e-16,
+      "rmse": 8.78321316933042e-16,
+      "r2": 1
+    }
+  },
+  "gates": {
+    "pass": true,
+    "maxDeltaError": 1.4432899320127035e-15,
+    "maxAlphaYError": 1.27675647831893e-15,
+    "maxAlphaZError": 1.4710455076283324e-15,
+    "maxBetaError": 1.7763568394002505e-15,
+    "allHyperplanesRecovered": true,
+    "maeBelow1eMinus9": true,
+    "r2Above999999999": true,
+    "beatsLinearHyperplaneBy1000x": true
+  },
+  "runtimeMs": 19
+}

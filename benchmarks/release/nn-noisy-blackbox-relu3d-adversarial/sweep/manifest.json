@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:54:23.621Z",
+  "lane": "nn-noisy-blackbox-relu3d-adversarial",
+  "variant": "sweep",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-noisy-blackbox-relu3d-adversarial.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-noisy-blackbox-relu3d-adversarial",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-noisy-blackbox-relu3d-adversarial/sweep/report.json",
+    "reportMarkdown": "benchmarks/release/nn-noisy-blackbox-relu3d-adversarial/sweep/report.md",
+    "manifest": "benchmarks/release/nn-noisy-blackbox-relu3d-adversarial/sweep/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 6,
+    "passedTeachers": 6,
+    "profiles": [
+      "near-parallel",
+      "beta-collision",
+      "cancellation",
+      "oblique-wide",
+      "low-amplitude-mixed"
+    ],
+    "maxRefinedMae": 0.002762764344437899,
+    "minRefinedR2": 0.9998664161844988,
+    "maxSliceOnlyMae": 0.0923745312743197,
+    "maxLinearMae": 0.2418874721820714,
+    "worstRefinedVsSliceRatio": 1.226164419413925,
+    "totalOracleCalls": 2398452,
+    "maxOracleCallsPerTeacher": 399742
+  },
+  "notes": [
+    "This benchmark expands the noisy 3D black-box ReLU lane beyond smoke and two cancellation teachers.",
+    "It also introduces explicit oracle query-budget accounting for the shallow-3D adversarial sweep."
+  ]
+}

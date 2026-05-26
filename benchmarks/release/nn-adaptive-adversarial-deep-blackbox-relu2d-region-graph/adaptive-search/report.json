@@ -1,0 +1,6284 @@
+{
+  "generatedAt": "2026-05-26T11:07:41.434Z",
+  "task": "adaptive-adversarial noisy deep black-box ReLU 2D folded region-graph decompilation",
+  "blackBox": {
+    "type": "adaptive generated 2-input / 4-hidden / 4-hidden / 1-output two-layer ReLU MLP teachers with stochastic output noise and quantization",
+    "visibilityToGcl": "oracle calls only: repeated noisy f(x,y), no hidden activations, layer widths, teacher weights, or profile labels are passed to the solver"
+  },
+  "adaptiveSearch": {
+    "poolSize": 12,
+    "selectedCount": 4,
+    "probing": "two-pass adaptive probing: every generated candidate gets a cheaper screening pass; screening failures and selected hard cases get a refined noisy median probe pass; both stage and total query budgets are recorded",
+    "selection": "score each generated adversarial teacher by recovered deep region complexity, baseline gap, and residual hardness; fail the whole benchmark if any final generated candidate fails recovery gates",
+    "profiles": [
+      "near-parallel first-layer folds",
+      "second-layer offset collisions",
+      "opposite-sign cancellation folds",
+      "low-amplitude deep folds",
+      "boundary-grazing folds",
+      "mixed oblique folds"
+    ]
+  },
+  "claimScope": {
+    "proves": "adaptive search-generated noisy deep folded 2D ReLU region-graph recovery across a deterministic adversarial candidate pool",
+    "doesNotClaim": "unique original hidden-layer weight recovery, exact layer attribution, arbitrary deep ND network extraction, or production API extraction beyond this benchmark noise model"
+  },
+  "summary": {
+    "pass": true,
+    "poolSize": 12,
+    "selectedCount": 4,
+    "passedCandidates": 12,
+    "selectedPassed": 4,
+    "profiles": {
+      "near-parallel-fold": 2,
+      "offset-collision-fold": 2,
+      "cancellation-fold": 2,
+      "low-amplitude-fold": 2,
+      "boundary-grazing-fold": 2,
+      "mixed-oblique-fold": 2
+    },
+    "selectedProfiles": [
+      "boundary-grazing-fold",
+      "near-parallel-fold",
+      "offset-collision-fold"
+    ],
+    "selectedTeacherIds": [
+      "adaptive-deep-2d-offset-collision-fold-260698",
+      "adaptive-deep-2d-boundary-grazing-fold-260989",
+      "adaptive-deep-2d-near-parallel-fold-260601",
+      "adaptive-deep-2d-offset-collision-fold-261280"
+    ],
+    "poolFailures": [],
+    "selectedFailures": [],
+    "minSelectedRegionCount": 75,
+    "minSelectedDeepOnlyRegionCount": 70,
+    "minSelectedAdjacencyEdges": 246,
+    "minSelectedKinkCellBoundaryCount": 1984,
+    "maxSelectedMae": 0.006061807867996213,
+    "minSelectedR2": 0.9989576605269184,
+    "maxSelectedFirstLayerOnlyMae": 0.06812229480717275,
+    "maxSelectedPlaneMae": 0.3922917064513333,
+    "maxSelectedFirstLayerMaeRatio": 0.12621348237546748,
+    "maxSelectedPlaneMaeRatio": 0.021423702003724152,
+    "totalRawOracleCalls": 9313740,
+    "maxRawOracleCallsPerCandidate": 1005780,
+    "refinedCandidates": 8,
+    "maxSelectedDifficultyScore": 20.33088669894025,
+    "minSelectedDifficultyScore": 17.053990498986522
+  },
+  "results": [
+    {
+      "teacherId": "adaptive-deep-2d-near-parallel-fold-260601",
+      "seed": 260601,
+      "profile": "near-parallel-fold",
+      "stage": "refined",
+      "pass": true,
+      "difficultyScore": 17.828547483769974,
+      "teacher": {
+        "id": "adaptive-deep-2d-near-parallel-fold-260601",
+        "seed": 260601,
+        "profile": "near-parallel-fold",
+        "l1": [
+          {
+            "w": [
+              -1.4536268464044628,
+              -0.12907174019939002
+            ],
+            "b": -0.34982014566643177
+          },
+          {
+            "w": [
+              -1.2877660817426975,
+              -0.25242111201764955
+            ],
+            "b": -0.10776142060082537
+          },
+          {
+            "w": [
+              -1.4645884324591991,
+              -0.4668246538714231
+            ],
+            "b": 0.13618210778681758
+          },
+          {
+            "w": [
+              -1.2956462506661603,
+              -0.5763646714439372
+            ],
+            "b": 0.32758601986578295
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              1.185540012091901,
+              -0.8548166504942036,
+              0.672556364921626,
+              -0.6295740434735773
+            ],
+            "b": -0.17813971032680917
+          },
+          {
+            "w": [
+              -0.9755113219327398,
+              0.8336133338272695,
+              -0.6024976139127255,
+              0.7000039697341658
+            ],
+            "b": -0.10985983367064953
+          },
+          {
+            "w": [
+              0.4638303318670302,
+              -0.46281125142538104,
+              1.1104982171946187,
+              -0.8088631788012228
+            ],
+            "b": 0.09266737955405133
+          },
+          {
+            "w": [
+              -0.29574665206405015,
+              0.6074188372919512,
+              -1.024800590350852,
+              1.1080790470086774
+            ],
+            "b": 0.1843876305775602
+          }
+        ],
+        "out": {
+          "w": [
+            1.0923092572831636,
+            -0.8583128208325363,
+            0.8864206065250753,
+            -0.7688658311440292
+          ],
+          "b": -0.048063185110747045,
+          "base": [
+            0.028032772641659515,
+            -0.0531898049760515
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "near-parallel-fold",
+          "layer1AngleSpread": 0.33,
+          "outputScale": 1,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 99,
+        "deepOnlyRegionCount": 94,
+        "adjacencyEdgeCount": 439,
+        "kinkCellBoundaryCount": 1984
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.0578085839459348,
+            -0.1804361846970982,
+            0.17687970686799392
+          ],
+          "metrics": {
+            "mae": 0.35241313365741467,
+            "rmse": 0.4205032764534593,
+            "r2": 0.3138989847226329
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.12032902183334596,
+            0.038012577956516407,
+            -0.053665225544113154,
+            2.4353054545676116,
+            -2.088679987746005,
+            1.4388806241250114,
+            -1.4314641822394922
+          ],
+          "metrics": {
+            "mae": 0.03792618991386797,
+            "rmse": 0.06159958200022339,
+            "r2": 0.9852767114288484
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=99 adjacency=439 boundaries=439 grid=81x81 )",
+        "metrics": {
+          "mae": 0.004786796502262608,
+          "rmse": 0.01639003743122775,
+          "r2": 0.9989576605269184
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.12621348237546748,
+        "planeMaeRatio": 0.013582911773418508
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1005780,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 3477,
+        "finalRawOracleCalls": 688905,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 688905,
+        "totalRawOracleCalls": 1005780
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "refined",
+      "refinedUsed": true,
+      "attemptCount": 2,
+      "selectedHardCase": true,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-near-parallel-fold-260601",
+          "seed": 260601,
+          "profile": "near-parallel-fold",
+          "stage": "screening",
+          "pass": true,
+          "difficultyScore": 15.043046313661499,
+          "teacher": {
+            "id": "adaptive-deep-2d-near-parallel-fold-260601",
+            "seed": 260601,
+            "profile": "near-parallel-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.4536268464044628,
+                  -0.12907174019939002
+                ],
+                "b": -0.34982014566643177
+              },
+              {
+                "w": [
+                  -1.2877660817426975,
+                  -0.25242111201764955
+                ],
+                "b": -0.10776142060082537
+              },
+              {
+                "w": [
+                  -1.4645884324591991,
+                  -0.4668246538714231
+                ],
+                "b": 0.13618210778681758
+              },
+              {
+                "w": [
+                  -1.2956462506661603,
+                  -0.5763646714439372
+                ],
+                "b": 0.32758601986578295
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  1.185540012091901,
+                  -0.8548166504942036,
+                  0.672556364921626,
+                  -0.6295740434735773
+                ],
+                "b": -0.17813971032680917
+              },
+              {
+                "w": [
+                  -0.9755113219327398,
+                  0.8336133338272695,
+                  -0.6024976139127255,
+                  0.7000039697341658
+                ],
+                "b": -0.10985983367064953
+              },
+              {
+                "w": [
+                  0.4638303318670302,
+                  -0.46281125142538104,
+                  1.1104982171946187,
+                  -0.8088631788012228
+                ],
+                "b": 0.09266737955405133
+              },
+              {
+                "w": [
+                  -0.29574665206405015,
+                  0.6074188372919512,
+                  -1.024800590350852,
+                  1.1080790470086774
+                ],
+                "b": 0.1843876305775602
+              }
+            ],
+            "out": {
+              "w": [
+                1.0923092572831636,
+                -0.8583128208325363,
+                0.8864206065250753,
+                -0.7688658311440292
+              ],
+              "b": -0.048063185110747045,
+              "base": [
+                0.028032772641659515,
+                -0.0531898049760515
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "near-parallel-fold",
+              "layer1AngleSpread": 0.33,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 56,
+            "deepOnlyRegionCount": 51,
+            "adjacencyEdgeCount": 215,
+            "kinkCellBoundaryCount": 1254
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.0578085839459348,
+                -0.1804361846970982,
+                0.17687970686799392
+              ],
+              "metrics": {
+                "mae": 0.35241313365741467,
+                "rmse": 0.4205032764534593,
+                "r2": 0.3138989847226329
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.12032902183334596,
+                0.038012577956516407,
+                -0.053665225544113154,
+                2.4353054545676116,
+                -2.088679987746005,
+                1.4388806241250114,
+                -1.4314641822394922
+              ],
+              "metrics": {
+                "mae": 0.03792618991386797,
+                "rmse": 0.06159958200022339,
+                "r2": 0.9852767114288484
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=56 adjacency=215 boundaries=215 grid=65x65 )",
+            "metrics": {
+              "mae": 0.009035176836508696,
+              "rmse": 0.024352837703145207,
+              "r2": 0.9976988313816939
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.23823054351169934,
+            "planeMaeRatio": 0.025638025299283846
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        },
+        {
+          "teacherId": "adaptive-deep-2d-near-parallel-fold-260601",
+          "seed": 260601,
+          "profile": "near-parallel-fold",
+          "stage": "refined",
+          "pass": true,
+          "difficultyScore": 17.828547483769974,
+          "teacher": {
+            "id": "adaptive-deep-2d-near-parallel-fold-260601",
+            "seed": 260601,
+            "profile": "near-parallel-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.4536268464044628,
+                  -0.12907174019939002
+                ],
+                "b": -0.34982014566643177
+              },
+              {
+                "w": [
+                  -1.2877660817426975,
+                  -0.25242111201764955
+                ],
+                "b": -0.10776142060082537
+              },
+              {
+                "w": [
+                  -1.4645884324591991,
+                  -0.4668246538714231
+                ],
+                "b": 0.13618210778681758
+              },
+              {
+                "w": [
+                  -1.2956462506661603,
+                  -0.5763646714439372
+                ],
+                "b": 0.32758601986578295
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  1.185540012091901,
+                  -0.8548166504942036,
+                  0.672556364921626,
+                  -0.6295740434735773
+                ],
+                "b": -0.17813971032680917
+              },
+              {
+                "w": [
+                  -0.9755113219327398,
+                  0.8336133338272695,
+                  -0.6024976139127255,
+                  0.7000039697341658
+                ],
+                "b": -0.10985983367064953
+              },
+              {
+                "w": [
+                  0.4638303318670302,
+                  -0.46281125142538104,
+                  1.1104982171946187,
+                  -0.8088631788012228
+                ],
+                "b": 0.09266737955405133
+              },
+              {
+                "w": [
+                  -0.29574665206405015,
+                  0.6074188372919512,
+                  -1.024800590350852,
+                  1.1080790470086774
+                ],
+                "b": 0.1843876305775602
+              }
+            ],
+            "out": {
+              "w": [
+                1.0923092572831636,
+                -0.8583128208325363,
+                0.8864206065250753,
+                -0.7688658311440292
+              ],
+              "b": -0.048063185110747045,
+              "base": [
+                0.028032772641659515,
+                -0.0531898049760515
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "near-parallel-fold",
+              "layer1AngleSpread": 0.33,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 21,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 81,
+            "gridHeight": 81,
+            "gradientStep": 0.075,
+            "slopeTolerance": 0.11,
+            "interceptTolerance": 0.18,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 99,
+            "deepOnlyRegionCount": 94,
+            "adjacencyEdgeCount": 439,
+            "kinkCellBoundaryCount": 1984
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.0578085839459348,
+                -0.1804361846970982,
+                0.17687970686799392
+              ],
+              "metrics": {
+                "mae": 0.35241313365741467,
+                "rmse": 0.4205032764534593,
+                "r2": 0.3138989847226329
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.12032902183334596,
+                0.038012577956516407,
+                -0.053665225544113154,
+                2.4353054545676116,
+                -2.088679987746005,
+                1.4388806241250114,
+                -1.4314641822394922
+              ],
+              "metrics": {
+                "mae": 0.03792618991386797,
+                "rmse": 0.06159958200022339,
+                "r2": 0.9852767114288484
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=99 adjacency=439 boundaries=439 grid=81x81 )",
+            "metrics": {
+              "mae": 0.004786796502262608,
+              "rmse": 0.01639003743122775,
+              "r2": 0.9989576605269184
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.12621348237546748,
+            "planeMaeRatio": 0.013582911773418508
+          },
+          "queryBudget": {
+            "rawOracleCalls": 688905,
+            "aggregatedProbePoints": 32805,
+            "gridCells": 6561,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-offset-collision-fold-260698",
+      "seed": 260698,
+      "profile": "offset-collision-fold",
+      "stage": "refined",
+      "pass": true,
+      "difficultyScore": 20.33088669894025,
+      "teacher": {
+        "id": "adaptive-deep-2d-offset-collision-fold-260698",
+        "seed": 260698,
+        "profile": "offset-collision-fold",
+        "l1": [
+          {
+            "w": [
+              -1.1532657995137734,
+              0.5523611683093321
+            ],
+            "b": -0.05926000795258209
+          },
+          {
+            "w": [
+              -0.9151478021535336,
+              -0.1602309471514653
+            ],
+            "b": -0.055271878582678624
+          },
+          {
+            "w": [
+              -0.6640430921006998,
+              -0.7022159252767497
+            ],
+            "b": 0.03061505186894448
+          },
+          {
+            "w": [
+              -0.21760085276169236,
+              -1.2872055552138497
+            ],
+            "b": 0.05000861549285112
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.9609737570686021,
+              -0.7040644078367059,
+              0.6294984594448455,
+              -0.5993918718391954
+            ],
+            "b": -0.00839507983382333
+          },
+          {
+            "w": [
+              -0.8053867460278671,
+              0.7649603344173732,
+              -0.5016591730263635,
+              0.7042798197868092
+            ],
+            "b": -0.001467565038676899
+          },
+          {
+            "w": [
+              0.462021858191138,
+              -0.31862892780325275,
+              0.8836107130009782,
+              -0.8147456817279995
+            ],
+            "b": 0.04833117876418977
+          },
+          {
+            "w": [
+              -0.38743651143967783,
+              0.5245534654376596,
+              -0.8899054857994481,
+              0.8585013418444445
+            ],
+            "b": 0.021023263574599535
+          }
+        ],
+        "out": {
+          "w": [
+            0.9637031467852213,
+            -0.7712119706452005,
+            0.6804094929764136,
+            -0.5276511964366316
+          ],
+          "b": 0.09691069407100852,
+          "base": [
+            -0.06797637863827533,
+            -0.07899461544956511
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "offset-collision-fold",
+          "layer1AngleSpread": 1.8499999999999999,
+          "outputScale": 1,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 85,
+        "deepOnlyRegionCount": 80,
+        "adjacencyEdgeCount": 287,
+        "kinkCellBoundaryCount": 2343
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            0.19921372719246438,
+            -0.5698409238427231,
+            0.7151748293998246
+          ],
+          "metrics": {
+            "mae": 0.3922917064513333,
+            "rmse": 0.4989850767715128,
+            "r2": 0.8097238755771766
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            0.1415604276690438,
+            -0.01979497399035368,
+            -0.17629043462260435,
+            1.4278726644453192,
+            -1.0965476643410885,
+            1.0963481531728436,
+            -1.2216409871769374
+          ],
+          "metrics": {
+            "mae": 0.06812229480717275,
+            "rmse": 0.09535776973952409,
+            "r2": 0.9930510153455588
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=85 adjacency=287 boundaries=287 grid=81x81 )",
+        "metrics": {
+          "mae": 0.0013161336507329536,
+          "rmse": 0.007507860007094549,
+          "r2": 0.9999569233903635
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.019320160227402895,
+        "planeMaeRatio": 0.003354987192155258
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1005780,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 3477,
+        "finalRawOracleCalls": 688905,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 688905,
+        "totalRawOracleCalls": 1005780
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "refined",
+      "refinedUsed": true,
+      "attemptCount": 2,
+      "selectedHardCase": true,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-offset-collision-fold-260698",
+          "seed": 260698,
+          "profile": "offset-collision-fold",
+          "stage": "screening",
+          "pass": true,
+          "difficultyScore": 17.574115275790778,
+          "teacher": {
+            "id": "adaptive-deep-2d-offset-collision-fold-260698",
+            "seed": 260698,
+            "profile": "offset-collision-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.1532657995137734,
+                  0.5523611683093321
+                ],
+                "b": -0.05926000795258209
+              },
+              {
+                "w": [
+                  -0.9151478021535336,
+                  -0.1602309471514653
+                ],
+                "b": -0.055271878582678624
+              },
+              {
+                "w": [
+                  -0.6640430921006998,
+                  -0.7022159252767497
+                ],
+                "b": 0.03061505186894448
+              },
+              {
+                "w": [
+                  -0.21760085276169236,
+                  -1.2872055552138497
+                ],
+                "b": 0.05000861549285112
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9609737570686021,
+                  -0.7040644078367059,
+                  0.6294984594448455,
+                  -0.5993918718391954
+                ],
+                "b": -0.00839507983382333
+              },
+              {
+                "w": [
+                  -0.8053867460278671,
+                  0.7649603344173732,
+                  -0.5016591730263635,
+                  0.7042798197868092
+                ],
+                "b": -0.001467565038676899
+              },
+              {
+                "w": [
+                  0.462021858191138,
+                  -0.31862892780325275,
+                  0.8836107130009782,
+                  -0.8147456817279995
+                ],
+                "b": 0.04833117876418977
+              },
+              {
+                "w": [
+                  -0.38743651143967783,
+                  0.5245534654376596,
+                  -0.8899054857994481,
+                  0.8585013418444445
+                ],
+                "b": 0.021023263574599535
+              }
+            ],
+            "out": {
+              "w": [
+                0.9637031467852213,
+                -0.7712119706452005,
+                0.6804094929764136,
+                -0.5276511964366316
+              ],
+              "b": 0.09691069407100852,
+              "base": [
+                -0.06797637863827533,
+                -0.07899461544956511
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "offset-collision-fold",
+              "layer1AngleSpread": 1.8499999999999999,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 50,
+            "deepOnlyRegionCount": 45,
+            "adjacencyEdgeCount": 154,
+            "kinkCellBoundaryCount": 1531
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                0.19921372719246438,
+                -0.5698409238427231,
+                0.7151748293998246
+              ],
+              "metrics": {
+                "mae": 0.3922917064513333,
+                "rmse": 0.4989850767715128,
+                "r2": 0.8097238755771766
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                0.1415604276690438,
+                -0.01979497399035368,
+                -0.17629043462260435,
+                1.4278726644453192,
+                -1.0965476643410885,
+                1.0963481531728436,
+                -1.2216409871769374
+              ],
+              "metrics": {
+                "mae": 0.06812229480717275,
+                "rmse": 0.09535776973952409,
+                "r2": 0.9930510153455588
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=50 adjacency=154 boundaries=154 grid=65x65 )",
+            "metrics": {
+              "mae": 0.0033526018715977573,
+              "rmse": 0.012050400036934387,
+              "r2": 0.9998890283326698
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.04921445880658669,
+            "planeMaeRatio": 0.008546196150628212
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        },
+        {
+          "teacherId": "adaptive-deep-2d-offset-collision-fold-260698",
+          "seed": 260698,
+          "profile": "offset-collision-fold",
+          "stage": "refined",
+          "pass": true,
+          "difficultyScore": 20.33088669894025,
+          "teacher": {
+            "id": "adaptive-deep-2d-offset-collision-fold-260698",
+            "seed": 260698,
+            "profile": "offset-collision-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.1532657995137734,
+                  0.5523611683093321
+                ],
+                "b": -0.05926000795258209
+              },
+              {
+                "w": [
+                  -0.9151478021535336,
+                  -0.1602309471514653
+                ],
+                "b": -0.055271878582678624
+              },
+              {
+                "w": [
+                  -0.6640430921006998,
+                  -0.7022159252767497
+                ],
+                "b": 0.03061505186894448
+              },
+              {
+                "w": [
+                  -0.21760085276169236,
+                  -1.2872055552138497
+                ],
+                "b": 0.05000861549285112
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9609737570686021,
+                  -0.7040644078367059,
+                  0.6294984594448455,
+                  -0.5993918718391954
+                ],
+                "b": -0.00839507983382333
+              },
+              {
+                "w": [
+                  -0.8053867460278671,
+                  0.7649603344173732,
+                  -0.5016591730263635,
+                  0.7042798197868092
+                ],
+                "b": -0.001467565038676899
+              },
+              {
+                "w": [
+                  0.462021858191138,
+                  -0.31862892780325275,
+                  0.8836107130009782,
+                  -0.8147456817279995
+                ],
+                "b": 0.04833117876418977
+              },
+              {
+                "w": [
+                  -0.38743651143967783,
+                  0.5245534654376596,
+                  -0.8899054857994481,
+                  0.8585013418444445
+                ],
+                "b": 0.021023263574599535
+              }
+            ],
+            "out": {
+              "w": [
+                0.9637031467852213,
+                -0.7712119706452005,
+                0.6804094929764136,
+                -0.5276511964366316
+              ],
+              "b": 0.09691069407100852,
+              "base": [
+                -0.06797637863827533,
+                -0.07899461544956511
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "offset-collision-fold",
+              "layer1AngleSpread": 1.8499999999999999,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 21,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 81,
+            "gridHeight": 81,
+            "gradientStep": 0.075,
+            "slopeTolerance": 0.11,
+            "interceptTolerance": 0.18,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 85,
+            "deepOnlyRegionCount": 80,
+            "adjacencyEdgeCount": 287,
+            "kinkCellBoundaryCount": 2343
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                0.19921372719246438,
+                -0.5698409238427231,
+                0.7151748293998246
+              ],
+              "metrics": {
+                "mae": 0.3922917064513333,
+                "rmse": 0.4989850767715128,
+                "r2": 0.8097238755771766
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                0.1415604276690438,
+                -0.01979497399035368,
+                -0.17629043462260435,
+                1.4278726644453192,
+                -1.0965476643410885,
+                1.0963481531728436,
+                -1.2216409871769374
+              ],
+              "metrics": {
+                "mae": 0.06812229480717275,
+                "rmse": 0.09535776973952409,
+                "r2": 0.9930510153455588
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=85 adjacency=287 boundaries=287 grid=81x81 )",
+            "metrics": {
+              "mae": 0.0013161336507329536,
+              "rmse": 0.007507860007094549,
+              "r2": 0.9999569233903635
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.019320160227402895,
+            "planeMaeRatio": 0.003354987192155258
+          },
+          "queryBudget": {
+            "rawOracleCalls": 688905,
+            "aggregatedProbePoints": 32805,
+            "gridCells": 6561,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-cancellation-fold-260795",
+      "seed": 260795,
+      "profile": "cancellation-fold",
+      "stage": "refined",
+      "pass": true,
+      "difficultyScore": 14.837125761074041,
+      "teacher": {
+        "id": "adaptive-deep-2d-cancellation-fold-260795",
+        "seed": 260795,
+        "profile": "cancellation-fold",
+        "l1": [
+          {
+            "w": [
+              -0.8455714623799945,
+              0.7005851476629454
+            ],
+            "b": -0.6486998702713287
+          },
+          {
+            "w": [
+              -1.2919160503393337,
+              -0.1011049441071046
+            ],
+            "b": -0.052782336564531865
+          },
+          {
+            "w": [
+              -0.9202983193551743,
+              -0.6824891022202684
+            ],
+            "b": 0.005047995951071374
+          },
+          {
+            "w": [
+              -0.332747577939515,
+              -1.1455278265640343
+            ],
+            "b": 0.6324312111199193
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.736407502045303,
+              -0.5533121651792081,
+              0.4264405538935591,
+              -0.4092097001303078
+            ],
+            "b": -0.1386504493734338
+          },
+          {
+            "w": [
+              -0.6352621701229942,
+              0.536307334932971,
+              -0.4008207321400016,
+              0.5485556697649467
+            ],
+            "b": -0.07807529640670427
+          },
+          {
+            "w": [
+              0.30021338444073997,
+              -0.3344466042556302,
+              0.816723208881843,
+              -0.6606281845802704
+            ],
+            "b": 0.07799497794173191
+          },
+          {
+            "w": [
+              -0.3191263707407996,
+              0.44168809358336786,
+              -0.5950103811735383,
+              0.7689236367547172
+            ],
+            "b": 0.12365889660423518
+          }
+        ],
+        "out": {
+          "w": [
+            0.8150970362453693,
+            -0.6893111204997739,
+            0.47439837942775187,
+            -0.3652365617711438
+          ],
+          "b": 0.00188457314100543,
+          "base": [
+            -0.00398552984370433,
+            0.05520057415142708
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "cancellation-fold",
+          "layer1AngleSpread": 1.98,
+          "outputScale": 1,
+          "cancellationRatio": 0.78
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 67,
+        "deepOnlyRegionCount": 62,
+        "adjacencyEdgeCount": 242,
+        "kinkCellBoundaryCount": 1640
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.5168045131260304,
+            0.08670635901704153,
+            0.57211025564822
+          ],
+          "metrics": {
+            "mae": 0.16425577376334197,
+            "rmse": 0.21163048605550364,
+            "r2": 0.904514905570816
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            0.012076979018928291,
+            0.008236445328613855,
+            0.020238407506720124,
+            0.6807069517111837,
+            -0.5479888326338545,
+            0.5431520533044076,
+            -0.7003054629854687
+          ],
+          "metrics": {
+            "mae": 0.018442808742763085,
+            "rmse": 0.027601878865792923,
+            "r2": 0.9983757367646268
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=67 adjacency=242 boundaries=242 grid=81x81 )",
+        "metrics": {
+          "mae": 0.004683063580506755,
+          "rmse": 0.013056717627639703,
+          "r2": 0.9996365479297747
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.2539235561039138,
+        "planeMaeRatio": 0.02851080040117229
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1005780,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 3477,
+        "finalRawOracleCalls": 688905,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 688905,
+        "totalRawOracleCalls": 1005780
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "refined",
+      "refinedUsed": true,
+      "attemptCount": 2,
+      "selectedHardCase": false,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-cancellation-fold-260795",
+          "seed": 260795,
+          "profile": "cancellation-fold",
+          "stage": "screening",
+          "pass": false,
+          "difficultyScore": 12.137677273035292,
+          "teacher": {
+            "id": "adaptive-deep-2d-cancellation-fold-260795",
+            "seed": 260795,
+            "profile": "cancellation-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.8455714623799945,
+                  0.7005851476629454
+                ],
+                "b": -0.6486998702713287
+              },
+              {
+                "w": [
+                  -1.2919160503393337,
+                  -0.1011049441071046
+                ],
+                "b": -0.052782336564531865
+              },
+              {
+                "w": [
+                  -0.9202983193551743,
+                  -0.6824891022202684
+                ],
+                "b": 0.005047995951071374
+              },
+              {
+                "w": [
+                  -0.332747577939515,
+                  -1.1455278265640343
+                ],
+                "b": 0.6324312111199193
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.736407502045303,
+                  -0.5533121651792081,
+                  0.4264405538935591,
+                  -0.4092097001303078
+                ],
+                "b": -0.1386504493734338
+              },
+              {
+                "w": [
+                  -0.6352621701229942,
+                  0.536307334932971,
+                  -0.4008207321400016,
+                  0.5485556697649467
+                ],
+                "b": -0.07807529640670427
+              },
+              {
+                "w": [
+                  0.30021338444073997,
+                  -0.3344466042556302,
+                  0.816723208881843,
+                  -0.6606281845802704
+                ],
+                "b": 0.07799497794173191
+              },
+              {
+                "w": [
+                  -0.3191263707407996,
+                  0.44168809358336786,
+                  -0.5950103811735383,
+                  0.7689236367547172
+                ],
+                "b": 0.12365889660423518
+              }
+            ],
+            "out": {
+              "w": [
+                0.8150970362453693,
+                -0.6893111204997739,
+                0.47439837942775187,
+                -0.3652365617711438
+              ],
+              "b": 0.00188457314100543,
+              "base": [
+                -0.00398552984370433,
+                0.05520057415142708
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "cancellation-fold",
+              "layer1AngleSpread": 1.98,
+              "outputScale": 1,
+              "cancellationRatio": 0.78
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 36,
+            "deepOnlyRegionCount": 31,
+            "adjacencyEdgeCount": 113,
+            "kinkCellBoundaryCount": 1069
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.5168045131260304,
+                0.08670635901704153,
+                0.57211025564822
+              ],
+              "metrics": {
+                "mae": 0.16425577376334197,
+                "rmse": 0.21163048605550364,
+                "r2": 0.904514905570816
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                0.012076979018928291,
+                0.008236445328613855,
+                0.020238407506720124,
+                0.6807069517111837,
+                -0.5479888326338545,
+                0.5431520533044076,
+                -0.7003054629854687
+              ],
+              "metrics": {
+                "mae": 0.018442808742763085,
+                "rmse": 0.027601878865792923,
+                "r2": 0.9983757367646268
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=36 adjacency=113 boundaries=113 grid=65x65 )",
+            "metrics": {
+              "mae": 0.021813531258953082,
+              "rmse": 0.04240450677319926,
+              "r2": 0.9961664321401348
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 1.1827662241258485,
+            "planeMaeRatio": 0.1328022191194435
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": false,
+            "beatsPlaneBy10x": false,
+            "queryBudgetBelowStageLimit": true
+          }
+        },
+        {
+          "teacherId": "adaptive-deep-2d-cancellation-fold-260795",
+          "seed": 260795,
+          "profile": "cancellation-fold",
+          "stage": "refined",
+          "pass": true,
+          "difficultyScore": 14.837125761074041,
+          "teacher": {
+            "id": "adaptive-deep-2d-cancellation-fold-260795",
+            "seed": 260795,
+            "profile": "cancellation-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.8455714623799945,
+                  0.7005851476629454
+                ],
+                "b": -0.6486998702713287
+              },
+              {
+                "w": [
+                  -1.2919160503393337,
+                  -0.1011049441071046
+                ],
+                "b": -0.052782336564531865
+              },
+              {
+                "w": [
+                  -0.9202983193551743,
+                  -0.6824891022202684
+                ],
+                "b": 0.005047995951071374
+              },
+              {
+                "w": [
+                  -0.332747577939515,
+                  -1.1455278265640343
+                ],
+                "b": 0.6324312111199193
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.736407502045303,
+                  -0.5533121651792081,
+                  0.4264405538935591,
+                  -0.4092097001303078
+                ],
+                "b": -0.1386504493734338
+              },
+              {
+                "w": [
+                  -0.6352621701229942,
+                  0.536307334932971,
+                  -0.4008207321400016,
+                  0.5485556697649467
+                ],
+                "b": -0.07807529640670427
+              },
+              {
+                "w": [
+                  0.30021338444073997,
+                  -0.3344466042556302,
+                  0.816723208881843,
+                  -0.6606281845802704
+                ],
+                "b": 0.07799497794173191
+              },
+              {
+                "w": [
+                  -0.3191263707407996,
+                  0.44168809358336786,
+                  -0.5950103811735383,
+                  0.7689236367547172
+                ],
+                "b": 0.12365889660423518
+              }
+            ],
+            "out": {
+              "w": [
+                0.8150970362453693,
+                -0.6893111204997739,
+                0.47439837942775187,
+                -0.3652365617711438
+              ],
+              "b": 0.00188457314100543,
+              "base": [
+                -0.00398552984370433,
+                0.05520057415142708
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "cancellation-fold",
+              "layer1AngleSpread": 1.98,
+              "outputScale": 1,
+              "cancellationRatio": 0.78
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 21,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 81,
+            "gridHeight": 81,
+            "gradientStep": 0.075,
+            "slopeTolerance": 0.11,
+            "interceptTolerance": 0.18,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 67,
+            "deepOnlyRegionCount": 62,
+            "adjacencyEdgeCount": 242,
+            "kinkCellBoundaryCount": 1640
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.5168045131260304,
+                0.08670635901704153,
+                0.57211025564822
+              ],
+              "metrics": {
+                "mae": 0.16425577376334197,
+                "rmse": 0.21163048605550364,
+                "r2": 0.904514905570816
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                0.012076979018928291,
+                0.008236445328613855,
+                0.020238407506720124,
+                0.6807069517111837,
+                -0.5479888326338545,
+                0.5431520533044076,
+                -0.7003054629854687
+              ],
+              "metrics": {
+                "mae": 0.018442808742763085,
+                "rmse": 0.027601878865792923,
+                "r2": 0.9983757367646268
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=67 adjacency=242 boundaries=242 grid=81x81 )",
+            "metrics": {
+              "mae": 0.004683063580506755,
+              "rmse": 0.013056717627639703,
+              "r2": 0.9996365479297747
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.2539235561039138,
+            "planeMaeRatio": 0.02851080040117229
+          },
+          "queryBudget": {
+            "rawOracleCalls": 688905,
+            "aggregatedProbePoints": 32805,
+            "gridCells": 6561,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-low-amplitude-fold-260892",
+      "seed": 260892,
+      "profile": "low-amplitude-fold",
+      "stage": "refined",
+      "pass": true,
+      "difficultyScore": 14.615645837638883,
+      "teacher": {
+        "id": "adaptive-deep-2d-low-amplitude-fold-260892",
+        "seed": 260892,
+        "profile": "low-amplitude-fold",
+        "l1": [
+          {
+            "w": [
+              -0.5432362439686393,
+              0.7393525908145642
+            ],
+            "b": -0.748139732557479
+          },
+          {
+            "w": [
+              -0.9111743644534124,
+              0.052111705499570206
+            ],
+            "b": -0.14529279451378882
+          },
+          {
+            "w": [
+              -1.0109841685644614,
+              -0.8565130086314714
+            ],
+            "b": 0.2044809400657946
+          },
+          {
+            "w": [
+              -0.09486267853154662,
+              -1.0761117749839677
+            ],
+            "b": 0.8148538067795837
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              1.0613412470965098,
+              -0.6731599225217104,
+              0.6211826484167786,
+              -0.592227528495926
+            ],
+            "b": -0.4139058188804479
+          },
+          {
+            "w": [
+              -0.7849375942181215,
+              0.7628543355230748,
+              -0.49268229125363966,
+              0.6552315197430845
+            ],
+            "b": -0.10968302780732794
+          },
+          {
+            "w": [
+              0.4788049107648478,
+              -0.33786428063350193,
+              0.9670357046882024,
+              -0.8099106874325412
+            ],
+            "b": 0.05565877715187033
+          },
+          {
+            "w": [
+              -0.3779162300419214,
+              0.5884227217290763,
+              -0.7963152766221345,
+              0.8801459315904845
+            ],
+            "b": 0.40829452963387086
+          }
+        ],
+        "out": {
+          "w": [
+            0.623490925747427,
+            -0.593510270312438,
+            0.48288726587909014,
+            -0.40222192706374627
+          ],
+          "b": -0.09314154778899769,
+          "base": [
+            0.06000531895086665,
+            0.02939576367791348
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "low-amplitude-fold",
+          "layer1AngleSpread": 2.42,
+          "outputScale": 1.15,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 74,
+        "deepOnlyRegionCount": 69,
+        "adjacencyEdgeCount": 242,
+        "kinkCellBoundaryCount": 1850
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.6087971749051835,
+            -0.1391116887366139,
+            0.4369328674647705
+          ],
+          "metrics": {
+            "mae": 0.1431098078151115,
+            "rmse": 0.1810297265719227,
+            "r2": 0.8904680785870017
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.15176879431436197,
+            0.09806320316030712,
+            -0.07825790792509424,
+            0.7050026943292613,
+            -0.40914635850441283,
+            0.6404623677711667,
+            -0.8574649580160222
+          ],
+          "metrics": {
+            "mae": 0.03285550511703216,
+            "rmse": 0.04390042761046987,
+            "r2": 0.9935586274793108
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=74 adjacency=242 boundaries=242 grid=81x81 )",
+        "metrics": {
+          "mae": 0.008405310633825307,
+          "rmse": 0.01817181134881961,
+          "r2": 0.9988963347863044
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.25582655338535726,
+        "planeMaeRatio": 0.05873329551727452
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1005780,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 3477,
+        "finalRawOracleCalls": 688905,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 688905,
+        "totalRawOracleCalls": 1005780
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "refined",
+      "refinedUsed": true,
+      "attemptCount": 2,
+      "selectedHardCase": false,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-low-amplitude-fold-260892",
+          "seed": 260892,
+          "profile": "low-amplitude-fold",
+          "stage": "screening",
+          "pass": false,
+          "difficultyScore": 12.61006953204747,
+          "teacher": {
+            "id": "adaptive-deep-2d-low-amplitude-fold-260892",
+            "seed": 260892,
+            "profile": "low-amplitude-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.5432362439686393,
+                  0.7393525908145642
+                ],
+                "b": -0.748139732557479
+              },
+              {
+                "w": [
+                  -0.9111743644534124,
+                  0.052111705499570206
+                ],
+                "b": -0.14529279451378882
+              },
+              {
+                "w": [
+                  -1.0109841685644614,
+                  -0.8565130086314714
+                ],
+                "b": 0.2044809400657946
+              },
+              {
+                "w": [
+                  -0.09486267853154662,
+                  -1.0761117749839677
+                ],
+                "b": 0.8148538067795837
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  1.0613412470965098,
+                  -0.6731599225217104,
+                  0.6211826484167786,
+                  -0.592227528495926
+                ],
+                "b": -0.4139058188804479
+              },
+              {
+                "w": [
+                  -0.7849375942181215,
+                  0.7628543355230748,
+                  -0.49268229125363966,
+                  0.6552315197430845
+                ],
+                "b": -0.10968302780732794
+              },
+              {
+                "w": [
+                  0.4788049107648478,
+                  -0.33786428063350193,
+                  0.9670357046882024,
+                  -0.8099106874325412
+                ],
+                "b": 0.05565877715187033
+              },
+              {
+                "w": [
+                  -0.3779162300419214,
+                  0.5884227217290763,
+                  -0.7963152766221345,
+                  0.8801459315904845
+                ],
+                "b": 0.40829452963387086
+              }
+            ],
+            "out": {
+              "w": [
+                0.623490925747427,
+                -0.593510270312438,
+                0.48288726587909014,
+                -0.40222192706374627
+              ],
+              "b": -0.09314154778899769,
+              "base": [
+                0.06000531895086665,
+                0.02939576367791348
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "low-amplitude-fold",
+              "layer1AngleSpread": 2.42,
+              "outputScale": 1.15,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 42,
+            "deepOnlyRegionCount": 37,
+            "adjacencyEdgeCount": 120,
+            "kinkCellBoundaryCount": 1033
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.6087971749051835,
+                -0.1391116887366139,
+                0.4369328674647705
+              ],
+              "metrics": {
+                "mae": 0.1431098078151115,
+                "rmse": 0.1810297265719227,
+                "r2": 0.8904680785870017
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.15176879431436197,
+                0.09806320316030712,
+                -0.07825790792509424,
+                0.7050026943292613,
+                -0.40914635850441283,
+                0.6404623677711667,
+                -0.8574649580160222
+              ],
+              "metrics": {
+                "mae": 0.03285550511703216,
+                "rmse": 0.04390042761046987,
+                "r2": 0.9935586274793108
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=42 adjacency=120 boundaries=120 grid=65x65 )",
+            "metrics": {
+              "mae": 0.016819701344290887,
+              "rmse": 0.0336848192492853,
+              "r2": 0.9962076417409362
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.5119294707044885,
+            "planeMaeRatio": 0.11753003935286419
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": false,
+            "queryBudgetBelowStageLimit": true
+          }
+        },
+        {
+          "teacherId": "adaptive-deep-2d-low-amplitude-fold-260892",
+          "seed": 260892,
+          "profile": "low-amplitude-fold",
+          "stage": "refined",
+          "pass": true,
+          "difficultyScore": 14.615645837638883,
+          "teacher": {
+            "id": "adaptive-deep-2d-low-amplitude-fold-260892",
+            "seed": 260892,
+            "profile": "low-amplitude-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.5432362439686393,
+                  0.7393525908145642
+                ],
+                "b": -0.748139732557479
+              },
+              {
+                "w": [
+                  -0.9111743644534124,
+                  0.052111705499570206
+                ],
+                "b": -0.14529279451378882
+              },
+              {
+                "w": [
+                  -1.0109841685644614,
+                  -0.8565130086314714
+                ],
+                "b": 0.2044809400657946
+              },
+              {
+                "w": [
+                  -0.09486267853154662,
+                  -1.0761117749839677
+                ],
+                "b": 0.8148538067795837
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  1.0613412470965098,
+                  -0.6731599225217104,
+                  0.6211826484167786,
+                  -0.592227528495926
+                ],
+                "b": -0.4139058188804479
+              },
+              {
+                "w": [
+                  -0.7849375942181215,
+                  0.7628543355230748,
+                  -0.49268229125363966,
+                  0.6552315197430845
+                ],
+                "b": -0.10968302780732794
+              },
+              {
+                "w": [
+                  0.4788049107648478,
+                  -0.33786428063350193,
+                  0.9670357046882024,
+                  -0.8099106874325412
+                ],
+                "b": 0.05565877715187033
+              },
+              {
+                "w": [
+                  -0.3779162300419214,
+                  0.5884227217290763,
+                  -0.7963152766221345,
+                  0.8801459315904845
+                ],
+                "b": 0.40829452963387086
+              }
+            ],
+            "out": {
+              "w": [
+                0.623490925747427,
+                -0.593510270312438,
+                0.48288726587909014,
+                -0.40222192706374627
+              ],
+              "b": -0.09314154778899769,
+              "base": [
+                0.06000531895086665,
+                0.02939576367791348
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "low-amplitude-fold",
+              "layer1AngleSpread": 2.42,
+              "outputScale": 1.15,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 21,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 81,
+            "gridHeight": 81,
+            "gradientStep": 0.075,
+            "slopeTolerance": 0.11,
+            "interceptTolerance": 0.18,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 74,
+            "deepOnlyRegionCount": 69,
+            "adjacencyEdgeCount": 242,
+            "kinkCellBoundaryCount": 1850
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.6087971749051835,
+                -0.1391116887366139,
+                0.4369328674647705
+              ],
+              "metrics": {
+                "mae": 0.1431098078151115,
+                "rmse": 0.1810297265719227,
+                "r2": 0.8904680785870017
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.15176879431436197,
+                0.09806320316030712,
+                -0.07825790792509424,
+                0.7050026943292613,
+                -0.40914635850441283,
+                0.6404623677711667,
+                -0.8574649580160222
+              ],
+              "metrics": {
+                "mae": 0.03285550511703216,
+                "rmse": 0.04390042761046987,
+                "r2": 0.9935586274793108
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=74 adjacency=242 boundaries=242 grid=81x81 )",
+            "metrics": {
+              "mae": 0.008405310633825307,
+              "rmse": 0.01817181134881961,
+              "r2": 0.9988963347863044
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.25582655338535726,
+            "planeMaeRatio": 0.05873329551727452
+          },
+          "queryBudget": {
+            "rawOracleCalls": 688905,
+            "aggregatedProbePoints": 32805,
+            "gridCells": 6561,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-boundary-grazing-fold-260989",
+      "seed": 260989,
+      "profile": "boundary-grazing-fold",
+      "stage": "refined",
+      "pass": true,
+      "difficultyScore": 18.156258615562148,
+      "teacher": {
+        "id": "adaptive-deep-2d-boundary-grazing-fold-260989",
+        "seed": 260989,
+        "profile": "boundary-grazing-fold",
+        "l1": [
+          {
+            "w": [
+              -1.0545459653601847,
+              1.0481568348665842
+            ],
+            "b": -1.1675795948436294
+          },
+          {
+            "w": [
+              -1.2582450648915904,
+              0.23203090349417252
+            ],
+            "b": -0.727803252495642
+          },
+          {
+            "w": [
+              -1.2263849067961057,
+              -0.8711658565498404
+            ],
+            "b": 0.6939138841479214
+          },
+          {
+            "w": [
+              -0.3617715202559968,
+              -0.8975250545629633
+            ],
+            "b": 1.2072764024066518
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.9602749920732109,
+              -0.6082076798642126,
+              0.6535247429399981,
+              -0.4696453567870384
+            ],
+            "b": -0.5491611883874621
+          },
+          {
+            "w": [
+              -0.7162130183132487,
+              0.7878013361131785,
+              -0.4529438503672777,
+              0.5827073697212221
+            ],
+            "b": -0.29629075917535536
+          },
+          {
+            "w": [
+              0.3741964370144498,
+              -0.40048195708587947,
+              0.8597482004945616,
+              -0.751993190284812
+            ],
+            "b": 0.3333225763620088
+          },
+          {
+            "w": [
+              -0.3499060893430431,
+              0.5783573498747846,
+              -0.7680201720707306,
+              0.9049682265007573
+            ],
+            "b": 0.5629301626309101
+          }
+        ],
+        "out": {
+          "w": [
+            0.7778848152494847,
+            -0.5999094201251021,
+            0.5023761523304285,
+            -0.4740072923982584
+          ],
+          "b": 0.05183233139275789,
+          "base": [
+            -0.036003832329068175,
+            0.003590953204399852
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "boundary-grazing-fold",
+          "layer1AngleSpread": 1.9700000000000002,
+          "outputScale": 1,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 114,
+        "deepOnlyRegionCount": 109,
+        "adjacencyEdgeCount": 383,
+        "kinkCellBoundaryCount": 2383
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.2230916022950305,
+            -0.41417373900840215,
+            0.37485019123726043
+          ],
+          "metrics": {
+            "mae": 0.2302969887158848,
+            "rmse": 0.28366492206723565,
+            "r2": 0.8309112969677693
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.0024973467997675414,
+            -0.0006593568969271713,
+            -0.07340615837619746,
+            0.8630235070645869,
+            -0.5531333860718854,
+            0.8172059261334066,
+            -0.9114437539485751
+          ],
+          "metrics": {
+            "mae": 0.06297431027765266,
+            "rmse": 0.07967965062653119,
+            "r2": 0.9866586994940805
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=114 adjacency=383 boundaries=383 grid=81x81 )",
+        "metrics": {
+          "mae": 0.00493381405860414,
+          "rmse": 0.013141713224113848,
+          "r2": 0.9996370830135601
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.07834645646535926,
+        "planeMaeRatio": 0.021423702003724152
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1005780,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 3477,
+        "finalRawOracleCalls": 688905,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 688905,
+        "totalRawOracleCalls": 1005780
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "refined",
+      "refinedUsed": true,
+      "attemptCount": 2,
+      "selectedHardCase": true,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-boundary-grazing-fold-260989",
+          "seed": 260989,
+          "profile": "boundary-grazing-fold",
+          "stage": "screening",
+          "pass": true,
+          "difficultyScore": 15.195325627469474,
+          "teacher": {
+            "id": "adaptive-deep-2d-boundary-grazing-fold-260989",
+            "seed": 260989,
+            "profile": "boundary-grazing-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.0545459653601847,
+                  1.0481568348665842
+                ],
+                "b": -1.1675795948436294
+              },
+              {
+                "w": [
+                  -1.2582450648915904,
+                  0.23203090349417252
+                ],
+                "b": -0.727803252495642
+              },
+              {
+                "w": [
+                  -1.2263849067961057,
+                  -0.8711658565498404
+                ],
+                "b": 0.6939138841479214
+              },
+              {
+                "w": [
+                  -0.3617715202559968,
+                  -0.8975250545629633
+                ],
+                "b": 1.2072764024066518
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9602749920732109,
+                  -0.6082076798642126,
+                  0.6535247429399981,
+                  -0.4696453567870384
+                ],
+                "b": -0.5491611883874621
+              },
+              {
+                "w": [
+                  -0.7162130183132487,
+                  0.7878013361131785,
+                  -0.4529438503672777,
+                  0.5827073697212221
+                ],
+                "b": -0.29629075917535536
+              },
+              {
+                "w": [
+                  0.3741964370144498,
+                  -0.40048195708587947,
+                  0.8597482004945616,
+                  -0.751993190284812
+                ],
+                "b": 0.3333225763620088
+              },
+              {
+                "w": [
+                  -0.3499060893430431,
+                  0.5783573498747846,
+                  -0.7680201720707306,
+                  0.9049682265007573
+                ],
+                "b": 0.5629301626309101
+              }
+            ],
+            "out": {
+              "w": [
+                0.7778848152494847,
+                -0.5999094201251021,
+                0.5023761523304285,
+                -0.4740072923982584
+              ],
+              "b": 0.05183233139275789,
+              "base": [
+                -0.036003832329068175,
+                0.003590953204399852
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "boundary-grazing-fold",
+              "layer1AngleSpread": 1.9700000000000002,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 65,
+            "deepOnlyRegionCount": 60,
+            "adjacencyEdgeCount": 229,
+            "kinkCellBoundaryCount": 1492
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.2230916022950305,
+                -0.41417373900840215,
+                0.37485019123726043
+              ],
+              "metrics": {
+                "mae": 0.2302969887158848,
+                "rmse": 0.28366492206723565,
+                "r2": 0.8309112969677693
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.0024973467997675414,
+                -0.0006593568969271713,
+                -0.07340615837619746,
+                0.8630235070645869,
+                -0.5531333860718854,
+                0.8172059261334066,
+                -0.9114437539485751
+              ],
+              "metrics": {
+                "mae": 0.06297431027765266,
+                "rmse": 0.07967965062653119,
+                "r2": 0.9866586994940805
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=65 adjacency=229 boundaries=229 grid=65x65 )",
+            "metrics": {
+              "mae": 0.008926294281545604,
+              "rmse": 0.019378011098197322,
+              "r2": 0.9992109187482887
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.1417450106589453,
+            "planeMaeRatio": 0.03875992617757538
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        },
+        {
+          "teacherId": "adaptive-deep-2d-boundary-grazing-fold-260989",
+          "seed": 260989,
+          "profile": "boundary-grazing-fold",
+          "stage": "refined",
+          "pass": true,
+          "difficultyScore": 18.156258615562148,
+          "teacher": {
+            "id": "adaptive-deep-2d-boundary-grazing-fold-260989",
+            "seed": 260989,
+            "profile": "boundary-grazing-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.0545459653601847,
+                  1.0481568348665842
+                ],
+                "b": -1.1675795948436294
+              },
+              {
+                "w": [
+                  -1.2582450648915904,
+                  0.23203090349417252
+                ],
+                "b": -0.727803252495642
+              },
+              {
+                "w": [
+                  -1.2263849067961057,
+                  -0.8711658565498404
+                ],
+                "b": 0.6939138841479214
+              },
+              {
+                "w": [
+                  -0.3617715202559968,
+                  -0.8975250545629633
+                ],
+                "b": 1.2072764024066518
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9602749920732109,
+                  -0.6082076798642126,
+                  0.6535247429399981,
+                  -0.4696453567870384
+                ],
+                "b": -0.5491611883874621
+              },
+              {
+                "w": [
+                  -0.7162130183132487,
+                  0.7878013361131785,
+                  -0.4529438503672777,
+                  0.5827073697212221
+                ],
+                "b": -0.29629075917535536
+              },
+              {
+                "w": [
+                  0.3741964370144498,
+                  -0.40048195708587947,
+                  0.8597482004945616,
+                  -0.751993190284812
+                ],
+                "b": 0.3333225763620088
+              },
+              {
+                "w": [
+                  -0.3499060893430431,
+                  0.5783573498747846,
+                  -0.7680201720707306,
+                  0.9049682265007573
+                ],
+                "b": 0.5629301626309101
+              }
+            ],
+            "out": {
+              "w": [
+                0.7778848152494847,
+                -0.5999094201251021,
+                0.5023761523304285,
+                -0.4740072923982584
+              ],
+              "b": 0.05183233139275789,
+              "base": [
+                -0.036003832329068175,
+                0.003590953204399852
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "boundary-grazing-fold",
+              "layer1AngleSpread": 1.9700000000000002,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 21,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 81,
+            "gridHeight": 81,
+            "gradientStep": 0.075,
+            "slopeTolerance": 0.11,
+            "interceptTolerance": 0.18,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 114,
+            "deepOnlyRegionCount": 109,
+            "adjacencyEdgeCount": 383,
+            "kinkCellBoundaryCount": 2383
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.2230916022950305,
+                -0.41417373900840215,
+                0.37485019123726043
+              ],
+              "metrics": {
+                "mae": 0.2302969887158848,
+                "rmse": 0.28366492206723565,
+                "r2": 0.8309112969677693
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.0024973467997675414,
+                -0.0006593568969271713,
+                -0.07340615837619746,
+                0.8630235070645869,
+                -0.5531333860718854,
+                0.8172059261334066,
+                -0.9114437539485751
+              ],
+              "metrics": {
+                "mae": 0.06297431027765266,
+                "rmse": 0.07967965062653119,
+                "r2": 0.9866586994940805
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=114 adjacency=383 boundaries=383 grid=81x81 )",
+            "metrics": {
+              "mae": 0.00493381405860414,
+              "rmse": 0.013141713224113848,
+              "r2": 0.9996370830135601
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.07834645646535926,
+            "planeMaeRatio": 0.021423702003724152
+          },
+          "queryBudget": {
+            "rawOracleCalls": 688905,
+            "aggregatedProbePoints": 32805,
+            "gridCells": 6561,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-mixed-oblique-fold-261086",
+      "seed": 261086,
+      "profile": "mixed-oblique-fold",
+      "stage": "screening",
+      "pass": true,
+      "difficultyScore": 14.144449271815228,
+      "teacher": {
+        "id": "adaptive-deep-2d-mixed-oblique-fold-261086",
+        "seed": 261086,
+        "profile": "mixed-oblique-fold",
+        "l1": [
+          {
+            "w": [
+              -0.6973892853118541,
+              1.104467909735541
+            ],
+            "b": -0.46701945712977966
+          },
+          {
+            "w": [
+              -0.8919930429884663,
+              0.08732674566217875
+            ],
+            "b": -0.10031371047749531
+          },
+          {
+            "w": [
+              -0.7947309525914782,
+              -0.4898931713256568
+            ],
+            "b": 0.33334682826264467
+          },
+          {
+            "w": [
+              -0.10948171309783472,
+              -0.8480635800174876
+            ],
+            "b": 0.8496989980337201
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.9067087370499118,
+              -0.7362554372812207,
+              0.5548668373887118,
+              -0.5330631851526566
+            ],
+            "b": -0.3344165579270726
+          },
+          {
+            "w": [
+              -0.8464884424828817,
+              0.6887483366287763,
+              -0.43670540948091574,
+              0.7021832197738656
+            ],
+            "b": -0.032898490543382695
+          },
+          {
+            "w": [
+              0.4515879633385576,
+              -0.32109963346375114,
+              0.9584606963754266,
+              -0.7310756931370829
+            ],
+            "b": 0.2109863755721472
+          },
+          {
+            "w": [
+              -0.3373959486441649,
+              0.5962919780204929,
+              -0.7807250675193267,
+              0.8137905213365243
+            ],
+            "b": 0.5175657956605458
+          }
+        ],
+        "out": {
+          "w": [
+            0.7392787047515426,
+            -0.7028085699796757,
+            0.7163650387817668,
+            -0.562792657690861
+          ],
+          "b": -0.04319378953724522,
+          "base": [
+            0.027987016465502806,
+            -0.022213857269113756
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "mixed-oblique-fold",
+          "layer1AngleSpread": 2.45,
+          "outputScale": 1,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 15,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 65,
+        "gridHeight": 65,
+        "gradientStep": 0.085,
+        "slopeTolerance": 0.16,
+        "interceptTolerance": 0.24,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 57,
+        "deepOnlyRegionCount": 52,
+        "adjacencyEdgeCount": 196,
+        "kinkCellBoundaryCount": 1426
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.5401939114801272,
+            -0.3291111289512654,
+            0.8421461927652164
+          ],
+          "metrics": {
+            "mae": 0.23470617747172026,
+            "rmse": 0.2873801561764422,
+            "r2": 0.9261614697416338
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.20645628280393347,
+            0.07319302401690402,
+            -0.12031970659781743,
+            1.0458425246570278,
+            -0.49829308252998694,
+            0.8140983200410068,
+            -1.123675881257323
+          ],
+          "metrics": {
+            "mae": 0.03873560939012501,
+            "rmse": 0.047897973927611213,
+            "r2": 0.997948819981745
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=57 adjacency=196 boundaries=196 grid=65x65 )",
+        "metrics": {
+          "mae": 0.014529236122279214,
+          "rmse": 0.029791497734771178,
+          "r2": 0.9992064867818626
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.3750873253586452,
+        "planeMaeRatio": 0.06190393571566662
+      },
+      "queryBudget": {
+        "rawOracleCalls": 316875,
+        "aggregatedProbePoints": 21125,
+        "gridCells": 4225,
+        "testRows": 3477,
+        "finalRawOracleCalls": 316875,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 0,
+        "totalRawOracleCalls": 316875
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "screening",
+      "refinedUsed": false,
+      "attemptCount": 1,
+      "selectedHardCase": false,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-mixed-oblique-fold-261086",
+          "seed": 261086,
+          "profile": "mixed-oblique-fold",
+          "stage": "screening",
+          "pass": true,
+          "difficultyScore": 14.144449271815228,
+          "teacher": {
+            "id": "adaptive-deep-2d-mixed-oblique-fold-261086",
+            "seed": 261086,
+            "profile": "mixed-oblique-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.6973892853118541,
+                  1.104467909735541
+                ],
+                "b": -0.46701945712977966
+              },
+              {
+                "w": [
+                  -0.8919930429884663,
+                  0.08732674566217875
+                ],
+                "b": -0.10031371047749531
+              },
+              {
+                "w": [
+                  -0.7947309525914782,
+                  -0.4898931713256568
+                ],
+                "b": 0.33334682826264467
+              },
+              {
+                "w": [
+                  -0.10948171309783472,
+                  -0.8480635800174876
+                ],
+                "b": 0.8496989980337201
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9067087370499118,
+                  -0.7362554372812207,
+                  0.5548668373887118,
+                  -0.5330631851526566
+                ],
+                "b": -0.3344165579270726
+              },
+              {
+                "w": [
+                  -0.8464884424828817,
+                  0.6887483366287763,
+                  -0.43670540948091574,
+                  0.7021832197738656
+                ],
+                "b": -0.032898490543382695
+              },
+              {
+                "w": [
+                  0.4515879633385576,
+                  -0.32109963346375114,
+                  0.9584606963754266,
+                  -0.7310756931370829
+                ],
+                "b": 0.2109863755721472
+              },
+              {
+                "w": [
+                  -0.3373959486441649,
+                  0.5962919780204929,
+                  -0.7807250675193267,
+                  0.8137905213365243
+                ],
+                "b": 0.5175657956605458
+              }
+            ],
+            "out": {
+              "w": [
+                0.7392787047515426,
+                -0.7028085699796757,
+                0.7163650387817668,
+                -0.562792657690861
+              ],
+              "b": -0.04319378953724522,
+              "base": [
+                0.027987016465502806,
+                -0.022213857269113756
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "mixed-oblique-fold",
+              "layer1AngleSpread": 2.45,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 57,
+            "deepOnlyRegionCount": 52,
+            "adjacencyEdgeCount": 196,
+            "kinkCellBoundaryCount": 1426
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.5401939114801272,
+                -0.3291111289512654,
+                0.8421461927652164
+              ],
+              "metrics": {
+                "mae": 0.23470617747172026,
+                "rmse": 0.2873801561764422,
+                "r2": 0.9261614697416338
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.20645628280393347,
+                0.07319302401690402,
+                -0.12031970659781743,
+                1.0458425246570278,
+                -0.49829308252998694,
+                0.8140983200410068,
+                -1.123675881257323
+              ],
+              "metrics": {
+                "mae": 0.03873560939012501,
+                "rmse": 0.047897973927611213,
+                "r2": 0.997948819981745
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=57 adjacency=196 boundaries=196 grid=65x65 )",
+            "metrics": {
+              "mae": 0.014529236122279214,
+              "rmse": 0.029791497734771178,
+              "r2": 0.9992064867818626
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.3750873253586452,
+            "planeMaeRatio": 0.06190393571566662
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-near-parallel-fold-261183",
+      "seed": 261183,
+      "profile": "near-parallel-fold",
+      "stage": "refined",
+      "pass": true,
+      "difficultyScore": 16.144167752954367,
+      "teacher": {
+        "id": "adaptive-deep-2d-near-parallel-fold-261183",
+        "seed": 261183,
+        "profile": "near-parallel-fold",
+        "l1": [
+          {
+            "w": [
+              -1.1178714301739636,
+              -0.13159529067346726
+            ],
+            "b": -0.3664593194485263
+          },
+          {
+            "w": [
+              -1.2320079080475,
+              -0.27832263929984064
+            ],
+            "b": -0.10282416842675224
+          },
+          {
+            "w": [
+              -1.0502076433459029,
+              -0.3681685739980455
+            ],
+            "b": 0.09277977234477155
+          },
+          {
+            "w": [
+              -1.3457509609398408,
+              -0.6453979791705934
+            ],
+            "b": 0.35212159366078827
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              1.1841424821011186,
+              -0.823103194623723,
+              0.7206089319119312,
+              -0.6900810135182748
+            ],
+            "b": -0.1696719274340867
+          },
+          {
+            "w": [
+              -0.9571638665780089,
+              0.87929533721888,
+              -0.5050669685945538,
+              0.7768590697520031
+            ],
+            "b": -0.09950622191141006
+          },
+          {
+            "w": [
+              0.44817948958815956,
+              -0.46651730991612866,
+              1.0627731921817856,
+              -0.8433581959893537
+            ],
+            "b": 0.05865017474968934
+          },
+          {
+            "w": [
+              -0.3806858079452866,
+              0.7150266061662013,
+              -0.9410299629679227,
+              1.041012816246797
+            ],
+            "b": 0.19220142869018153
+          }
+        ],
+        "out": {
+          "w": [
+            1.0106725942536003,
+            -0.8757077197923396,
+            0.8503539252331052,
+            -0.7915780230253731
+          ],
+          "b": 0.10178008964451038,
+          "base": [
+            -0.06802213481443202,
+            -0.04801866774262736
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "near-parallel-fold",
+          "layer1AngleSpread": 0.33,
+          "outputScale": 1,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 78,
+        "deepOnlyRegionCount": 73,
+        "adjacencyEdgeCount": 345,
+        "kinkCellBoundaryCount": 1705
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.9507465612067534,
+            0.7539353379453917,
+            0.38994609223271726
+          ],
+          "metrics": {
+            "mae": 0.39019103206539746,
+            "rmse": 0.4661980930040012,
+            "r2": 0.8077127542439676
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            0.019412754209617793,
+            -0.08350632925260537,
+            -0.04816249508147686,
+            1.110913652293575,
+            -1.2449098119794457,
+            1.0038206780333025,
+            -1.4286040087013026
+          ],
+          "metrics": {
+            "mae": 0.006990956803407028,
+            "rmse": 0.010597936622623544,
+            "r2": 0.9999006307231029
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=78 adjacency=345 boundaries=345 grid=81x81 )",
+        "metrics": {
+          "mae": 0.0027432637930350982,
+          "rmse": 0.012088472798363411,
+          "r2": 0.9998707137411196
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.3924017656207194,
+        "planeMaeRatio": 0.007030565973067564
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1005780,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 3477,
+        "finalRawOracleCalls": 688905,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 688905,
+        "totalRawOracleCalls": 1005780
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "refined",
+      "refinedUsed": true,
+      "attemptCount": 2,
+      "selectedHardCase": false,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-near-parallel-fold-261183",
+          "seed": 261183,
+          "profile": "near-parallel-fold",
+          "stage": "screening",
+          "pass": false,
+          "difficultyScore": 14.202263887165742,
+          "teacher": {
+            "id": "adaptive-deep-2d-near-parallel-fold-261183",
+            "seed": 261183,
+            "profile": "near-parallel-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.1178714301739636,
+                  -0.13159529067346726
+                ],
+                "b": -0.3664593194485263
+              },
+              {
+                "w": [
+                  -1.2320079080475,
+                  -0.27832263929984064
+                ],
+                "b": -0.10282416842675224
+              },
+              {
+                "w": [
+                  -1.0502076433459029,
+                  -0.3681685739980455
+                ],
+                "b": 0.09277977234477155
+              },
+              {
+                "w": [
+                  -1.3457509609398408,
+                  -0.6453979791705934
+                ],
+                "b": 0.35212159366078827
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  1.1841424821011186,
+                  -0.823103194623723,
+                  0.7206089319119312,
+                  -0.6900810135182748
+                ],
+                "b": -0.1696719274340867
+              },
+              {
+                "w": [
+                  -0.9571638665780089,
+                  0.87929533721888,
+                  -0.5050669685945538,
+                  0.7768590697520031
+                ],
+                "b": -0.09950622191141006
+              },
+              {
+                "w": [
+                  0.44817948958815956,
+                  -0.46651730991612866,
+                  1.0627731921817856,
+                  -0.8433581959893537
+                ],
+                "b": 0.05865017474968934
+              },
+              {
+                "w": [
+                  -0.3806858079452866,
+                  0.7150266061662013,
+                  -0.9410299629679227,
+                  1.041012816246797
+                ],
+                "b": 0.19220142869018153
+              }
+            ],
+            "out": {
+              "w": [
+                1.0106725942536003,
+                -0.8757077197923396,
+                0.8503539252331052,
+                -0.7915780230253731
+              ],
+              "b": 0.10178008964451038,
+              "base": [
+                -0.06802213481443202,
+                -0.04801866774262736
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "near-parallel-fold",
+              "layer1AngleSpread": 0.33,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 43,
+            "deepOnlyRegionCount": 38,
+            "adjacencyEdgeCount": 162,
+            "kinkCellBoundaryCount": 1113
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.9507465612067534,
+                0.7539353379453917,
+                0.38994609223271726
+              ],
+              "metrics": {
+                "mae": 0.39019103206539746,
+                "rmse": 0.4661980930040012,
+                "r2": 0.8077127542439676
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                0.019412754209617793,
+                -0.08350632925260537,
+                -0.04816249508147686,
+                1.110913652293575,
+                -1.2449098119794457,
+                1.0038206780333025,
+                -1.4286040087013026
+              ],
+              "metrics": {
+                "mae": 0.006990956803407028,
+                "rmse": 0.010597936622623544,
+                "r2": 0.9999006307231029
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=43 adjacency=162 boundaries=162 grid=65x65 )",
+            "metrics": {
+              "mae": 0.008094532278933373,
+              "rmse": 0.02556934266520525,
+              "r2": 0.999421572915752
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 1.1578575732278191,
+            "planeMaeRatio": 0.020745049510970563
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": false,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        },
+        {
+          "teacherId": "adaptive-deep-2d-near-parallel-fold-261183",
+          "seed": 261183,
+          "profile": "near-parallel-fold",
+          "stage": "refined",
+          "pass": true,
+          "difficultyScore": 16.144167752954367,
+          "teacher": {
+            "id": "adaptive-deep-2d-near-parallel-fold-261183",
+            "seed": 261183,
+            "profile": "near-parallel-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.1178714301739636,
+                  -0.13159529067346726
+                ],
+                "b": -0.3664593194485263
+              },
+              {
+                "w": [
+                  -1.2320079080475,
+                  -0.27832263929984064
+                ],
+                "b": -0.10282416842675224
+              },
+              {
+                "w": [
+                  -1.0502076433459029,
+                  -0.3681685739980455
+                ],
+                "b": 0.09277977234477155
+              },
+              {
+                "w": [
+                  -1.3457509609398408,
+                  -0.6453979791705934
+                ],
+                "b": 0.35212159366078827
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  1.1841424821011186,
+                  -0.823103194623723,
+                  0.7206089319119312,
+                  -0.6900810135182748
+                ],
+                "b": -0.1696719274340867
+              },
+              {
+                "w": [
+                  -0.9571638665780089,
+                  0.87929533721888,
+                  -0.5050669685945538,
+                  0.7768590697520031
+                ],
+                "b": -0.09950622191141006
+              },
+              {
+                "w": [
+                  0.44817948958815956,
+                  -0.46651730991612866,
+                  1.0627731921817856,
+                  -0.8433581959893537
+                ],
+                "b": 0.05865017474968934
+              },
+              {
+                "w": [
+                  -0.3806858079452866,
+                  0.7150266061662013,
+                  -0.9410299629679227,
+                  1.041012816246797
+                ],
+                "b": 0.19220142869018153
+              }
+            ],
+            "out": {
+              "w": [
+                1.0106725942536003,
+                -0.8757077197923396,
+                0.8503539252331052,
+                -0.7915780230253731
+              ],
+              "b": 0.10178008964451038,
+              "base": [
+                -0.06802213481443202,
+                -0.04801866774262736
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "near-parallel-fold",
+              "layer1AngleSpread": 0.33,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 21,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 81,
+            "gridHeight": 81,
+            "gradientStep": 0.075,
+            "slopeTolerance": 0.11,
+            "interceptTolerance": 0.18,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 78,
+            "deepOnlyRegionCount": 73,
+            "adjacencyEdgeCount": 345,
+            "kinkCellBoundaryCount": 1705
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.9507465612067534,
+                0.7539353379453917,
+                0.38994609223271726
+              ],
+              "metrics": {
+                "mae": 0.39019103206539746,
+                "rmse": 0.4661980930040012,
+                "r2": 0.8077127542439676
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                0.019412754209617793,
+                -0.08350632925260537,
+                -0.04816249508147686,
+                1.110913652293575,
+                -1.2449098119794457,
+                1.0038206780333025,
+                -1.4286040087013026
+              ],
+              "metrics": {
+                "mae": 0.006990956803407028,
+                "rmse": 0.010597936622623544,
+                "r2": 0.9999006307231029
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=78 adjacency=345 boundaries=345 grid=81x81 )",
+            "metrics": {
+              "mae": 0.0027432637930350982,
+              "rmse": 0.012088472798363411,
+              "r2": 0.9998707137411196
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.3924017656207194,
+            "planeMaeRatio": 0.007030565973067564
+          },
+          "queryBudget": {
+            "rawOracleCalls": 688905,
+            "aggregatedProbePoints": 32805,
+            "gridCells": 6561,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-offset-collision-fold-261280",
+      "seed": 261280,
+      "profile": "offset-collision-fold",
+      "stage": "refined",
+      "pass": true,
+      "difficultyScore": 17.053990498986522,
+      "teacher": {
+        "id": "adaptive-deep-2d-offset-collision-fold-261280",
+        "seed": 261280,
+        "profile": "offset-collision-fold",
+        "l1": [
+          {
+            "w": [
+              -0.863586453472038,
+              0.38363577646551367
+            ],
+            "b": -0.07589918173467664
+          },
+          {
+            "w": [
+              -0.8619707386724521,
+              -0.1764808566553795
+            ],
+            "b": -0.05033462640860549
+          },
+          {
+            "w": [
+              -0.8605859378913208,
+              -0.9638728327098671
+            ],
+            "b": 0.05721271645949476
+          },
+          {
+            "w": [
+              -0.19098126092567308,
+              -1.3666376652638086
+            ],
+            "b": 0.0745441892878564
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.9595762270778195,
+              -0.6723509519662252,
+              0.517551026360645,
+              -0.49989884180938715
+            ],
+            "b": -0.06992729697369719
+          },
+          {
+            "w": [
+              -0.787039290673136,
+              0.6506423377344779,
+              -0.4042285277081919,
+              0.6211349197301408
+            ],
+            "b": 0.008886046720562549
+          },
+          {
+            "w": [
+              0.4463710159122674,
+              -0.32233498629400037,
+              0.9958856880626509,
+              -0.6892406988416246
+            ],
+            "b": 0.01431397395982777
+          },
+          {
+            "w": [
+              -0.3123756672464084,
+              0.6321612343119097,
+              -0.8061348584165189,
+              0.95143511115707
+            ],
+            "b": 0.028837061687220878
+          }
+        ],
+        "out": {
+          "w": [
+            0.882066483755658,
+            -0.7886068696050038,
+            0.6443428116844435,
+            -0.5503633883179755
+          ],
+          "b": 0.006753968714507258,
+          "base": [
+            -0.004031286019861038,
+            -0.07382347821614098
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "offset-collision-fold",
+          "layer1AngleSpread": 1.8499999999999999,
+          "outputScale": 1,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 75,
+        "deepOnlyRegionCount": 70,
+        "adjacencyEdgeCount": 246,
+        "kinkCellBoundaryCount": 2302
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.029155449249263873,
+            -0.4640976631843359,
+            0.5071001869609666
+          ],
+          "metrics": {
+            "mae": 0.3097749904599154,
+            "rmse": 0.39063606924285,
+            "r2": 0.7969072533063842
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.01237818746105529,
+            0.06997895341090044,
+            -0.15521142642472374,
+            1.2316796888111856,
+            -0.7092853381616728,
+            1.0066519999709413,
+            -1.2244052178368035
+          ],
+          "metrics": {
+            "mae": 0.05673866089749047,
+            "rmse": 0.07760397518647358,
+            "r2": 0.9919847390336151
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=75 adjacency=246 boundaries=246 grid=81x81 )",
+        "metrics": {
+          "mae": 0.006061807867996213,
+          "rmse": 0.013061041395637152,
+          "r2": 0.9997729584502576
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.10683734462729141,
+        "planeMaeRatio": 0.01956842241846701
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1005780,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 3477,
+        "finalRawOracleCalls": 688905,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 688905,
+        "totalRawOracleCalls": 1005780
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "refined",
+      "refinedUsed": true,
+      "attemptCount": 2,
+      "selectedHardCase": true,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-offset-collision-fold-261280",
+          "seed": 261280,
+          "profile": "offset-collision-fold",
+          "stage": "screening",
+          "pass": true,
+          "difficultyScore": 14.287607982134034,
+          "teacher": {
+            "id": "adaptive-deep-2d-offset-collision-fold-261280",
+            "seed": 261280,
+            "profile": "offset-collision-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.863586453472038,
+                  0.38363577646551367
+                ],
+                "b": -0.07589918173467664
+              },
+              {
+                "w": [
+                  -0.8619707386724521,
+                  -0.1764808566553795
+                ],
+                "b": -0.05033462640860549
+              },
+              {
+                "w": [
+                  -0.8605859378913208,
+                  -0.9638728327098671
+                ],
+                "b": 0.05721271645949476
+              },
+              {
+                "w": [
+                  -0.19098126092567308,
+                  -1.3666376652638086
+                ],
+                "b": 0.0745441892878564
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9595762270778195,
+                  -0.6723509519662252,
+                  0.517551026360645,
+                  -0.49989884180938715
+                ],
+                "b": -0.06992729697369719
+              },
+              {
+                "w": [
+                  -0.787039290673136,
+                  0.6506423377344779,
+                  -0.4042285277081919,
+                  0.6211349197301408
+                ],
+                "b": 0.008886046720562549
+              },
+              {
+                "w": [
+                  0.4463710159122674,
+                  -0.32233498629400037,
+                  0.9958856880626509,
+                  -0.6892406988416246
+                ],
+                "b": 0.01431397395982777
+              },
+              {
+                "w": [
+                  -0.3123756672464084,
+                  0.6321612343119097,
+                  -0.8061348584165189,
+                  0.95143511115707
+                ],
+                "b": 0.028837061687220878
+              }
+            ],
+            "out": {
+              "w": [
+                0.882066483755658,
+                -0.7886068696050038,
+                0.6443428116844435,
+                -0.5503633883179755
+              ],
+              "b": 0.006753968714507258,
+              "base": [
+                -0.004031286019861038,
+                -0.07382347821614098
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "offset-collision-fold",
+              "layer1AngleSpread": 1.8499999999999999,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 43,
+            "deepOnlyRegionCount": 38,
+            "adjacencyEdgeCount": 117,
+            "kinkCellBoundaryCount": 1561
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.029155449249263873,
+                -0.4640976631843359,
+                0.5071001869609666
+              ],
+              "metrics": {
+                "mae": 0.3097749904599154,
+                "rmse": 0.39063606924285,
+                "r2": 0.7969072533063842
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.01237818746105529,
+                0.06997895341090044,
+                -0.15521142642472374,
+                1.2316796888111856,
+                -0.7092853381616728,
+                1.0066519999709413,
+                -1.2244052178368035
+              ],
+              "metrics": {
+                "mae": 0.05673866089749047,
+                "rmse": 0.07760397518647358,
+                "r2": 0.9919847390336151
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=43 adjacency=117 boundaries=117 grid=65x65 )",
+            "metrics": {
+              "mae": 0.010252591776854681,
+              "rmse": 0.024208192216449043,
+              "r2": 0.9992200361958395
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.18069851516901328,
+            "planeMaeRatio": 0.03309689966137327
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        },
+        {
+          "teacherId": "adaptive-deep-2d-offset-collision-fold-261280",
+          "seed": 261280,
+          "profile": "offset-collision-fold",
+          "stage": "refined",
+          "pass": true,
+          "difficultyScore": 17.053990498986522,
+          "teacher": {
+            "id": "adaptive-deep-2d-offset-collision-fold-261280",
+            "seed": 261280,
+            "profile": "offset-collision-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.863586453472038,
+                  0.38363577646551367
+                ],
+                "b": -0.07589918173467664
+              },
+              {
+                "w": [
+                  -0.8619707386724521,
+                  -0.1764808566553795
+                ],
+                "b": -0.05033462640860549
+              },
+              {
+                "w": [
+                  -0.8605859378913208,
+                  -0.9638728327098671
+                ],
+                "b": 0.05721271645949476
+              },
+              {
+                "w": [
+                  -0.19098126092567308,
+                  -1.3666376652638086
+                ],
+                "b": 0.0745441892878564
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9595762270778195,
+                  -0.6723509519662252,
+                  0.517551026360645,
+                  -0.49989884180938715
+                ],
+                "b": -0.06992729697369719
+              },
+              {
+                "w": [
+                  -0.787039290673136,
+                  0.6506423377344779,
+                  -0.4042285277081919,
+                  0.6211349197301408
+                ],
+                "b": 0.008886046720562549
+              },
+              {
+                "w": [
+                  0.4463710159122674,
+                  -0.32233498629400037,
+                  0.9958856880626509,
+                  -0.6892406988416246
+                ],
+                "b": 0.01431397395982777
+              },
+              {
+                "w": [
+                  -0.3123756672464084,
+                  0.6321612343119097,
+                  -0.8061348584165189,
+                  0.95143511115707
+                ],
+                "b": 0.028837061687220878
+              }
+            ],
+            "out": {
+              "w": [
+                0.882066483755658,
+                -0.7886068696050038,
+                0.6443428116844435,
+                -0.5503633883179755
+              ],
+              "b": 0.006753968714507258,
+              "base": [
+                -0.004031286019861038,
+                -0.07382347821614098
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "offset-collision-fold",
+              "layer1AngleSpread": 1.8499999999999999,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 21,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 81,
+            "gridHeight": 81,
+            "gradientStep": 0.075,
+            "slopeTolerance": 0.11,
+            "interceptTolerance": 0.18,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 75,
+            "deepOnlyRegionCount": 70,
+            "adjacencyEdgeCount": 246,
+            "kinkCellBoundaryCount": 2302
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.029155449249263873,
+                -0.4640976631843359,
+                0.5071001869609666
+              ],
+              "metrics": {
+                "mae": 0.3097749904599154,
+                "rmse": 0.39063606924285,
+                "r2": 0.7969072533063842
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.01237818746105529,
+                0.06997895341090044,
+                -0.15521142642472374,
+                1.2316796888111856,
+                -0.7092853381616728,
+                1.0066519999709413,
+                -1.2244052178368035
+              ],
+              "metrics": {
+                "mae": 0.05673866089749047,
+                "rmse": 0.07760397518647358,
+                "r2": 0.9919847390336151
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=75 adjacency=246 boundaries=246 grid=81x81 )",
+            "metrics": {
+              "mae": 0.006061807867996213,
+              "rmse": 0.013061041395637152,
+              "r2": 0.9997729584502576
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.10683734462729141,
+            "planeMaeRatio": 0.01956842241846701
+          },
+          "queryBudget": {
+            "rawOracleCalls": 688905,
+            "aggregatedProbePoints": 32805,
+            "gridCells": 6561,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-cancellation-fold-261377",
+      "seed": 261377,
+      "profile": "cancellation-fold",
+      "stage": "screening",
+      "pass": true,
+      "difficultyScore": 12.731809626073856,
+      "teacher": {
+        "id": "adaptive-deep-2d-cancellation-fold-261377",
+        "seed": 261377,
+        "profile": "cancellation-fold",
+        "l1": [
+          {
+            "w": [
+              -1.1932640189000285,
+              0.9323853516939432
+            ],
+            "b": -0.5953390440208269
+          },
+          {
+            "w": [
+              -1.2395564010312086,
+              -0.13279006033573404
+            ],
+            "b": -0.04784508439045873
+          },
+          {
+            "w": [
+              -1.1563323680031539,
+              -0.9099519022224419
+            ],
+            "b": 0.031645660541621656
+          },
+          {
+            "w": [
+              -0.3185441091833938,
+              -1.226639310808431
+            ],
+            "b": 0.6569667849149246
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.7350099720545205,
+              -0.5215987093087274,
+              0.47449312088386436,
+              -0.4697166701750054
+            ],
+            "b": -0.13018266648071136
+          },
+          {
+            "w": [
+              -0.6169147147682632,
+              0.5819893383245816,
+              -0.46339008689633576,
+              0.4654107697082783
+            ],
+            "b": -0.13772168468006113
+          },
+          {
+            "w": [
+              0.2845625421618693,
+              -0.3381526627463779,
+              0.76899818386901,
+              -0.5351232016938955
+            ],
+            "b": 0.11397777316996621
+          },
+          {
+            "w": [
+              -0.24406552654753022,
+              0.3892958623831122,
+              -0.671239753865115,
+              0.701857405992837
+            ],
+            "b": 0.13147269471685652
+          }
+        ],
+        "out": {
+          "w": [
+            0.8234603732577156,
+            -0.6167060194176678,
+            0.43833169813578177,
+            -0.38794875365248765
+          ],
+          "b": -0.08827215221549584,
+          "base": [
+            0.05995956277470994,
+            0.060371711384851215
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "cancellation-fold",
+          "layer1AngleSpread": 1.98,
+          "outputScale": 1,
+          "cancellationRatio": 0.78
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 15,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 65,
+        "gridHeight": 65,
+        "gradientStep": 0.085,
+        "slopeTolerance": 0.16,
+        "interceptTolerance": 0.24,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 39,
+        "deepOnlyRegionCount": 34,
+        "adjacencyEdgeCount": 124,
+        "kinkCellBoundaryCount": 1233
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.2252331392651338,
+            -0.14836169102015476,
+            0.5341087159121153
+          ],
+          "metrics": {
+            "mae": 0.18976812485673394,
+            "rmse": 0.2376473241304289,
+            "r2": 0.8733259247402396
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.09425429796764506,
+            0.08457914552495567,
+            0.03472931752705011,
+            0.6950390044880743,
+            -0.4637177825305583,
+            0.574020351967472,
+            -0.5758461964607489
+          ],
+          "metrics": {
+            "mae": 0.02071174399563607,
+            "rmse": 0.02798324828782447,
+            "r2": 0.9982436213992216
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=39 adjacency=124 boundaries=124 grid=65x65 )",
+        "metrics": {
+          "mae": 0.01569512801150771,
+          "rmse": 0.033435453007492524,
+          "r2": 0.997492526748782
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.7577888184990432,
+        "planeMaeRatio": 0.08270687199632076
+      },
+      "queryBudget": {
+        "rawOracleCalls": 316875,
+        "aggregatedProbePoints": 21125,
+        "gridCells": 4225,
+        "testRows": 3477,
+        "finalRawOracleCalls": 316875,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 0,
+        "totalRawOracleCalls": 316875
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "screening",
+      "refinedUsed": false,
+      "attemptCount": 1,
+      "selectedHardCase": false,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-cancellation-fold-261377",
+          "seed": 261377,
+          "profile": "cancellation-fold",
+          "stage": "screening",
+          "pass": true,
+          "difficultyScore": 12.731809626073856,
+          "teacher": {
+            "id": "adaptive-deep-2d-cancellation-fold-261377",
+            "seed": 261377,
+            "profile": "cancellation-fold",
+            "l1": [
+              {
+                "w": [
+                  -1.1932640189000285,
+                  0.9323853516939432
+                ],
+                "b": -0.5953390440208269
+              },
+              {
+                "w": [
+                  -1.2395564010312086,
+                  -0.13279006033573404
+                ],
+                "b": -0.04784508439045873
+              },
+              {
+                "w": [
+                  -1.1563323680031539,
+                  -0.9099519022224419
+                ],
+                "b": 0.031645660541621656
+              },
+              {
+                "w": [
+                  -0.3185441091833938,
+                  -1.226639310808431
+                ],
+                "b": 0.6569667849149246
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.7350099720545205,
+                  -0.5215987093087274,
+                  0.47449312088386436,
+                  -0.4697166701750054
+                ],
+                "b": -0.13018266648071136
+              },
+              {
+                "w": [
+                  -0.6169147147682632,
+                  0.5819893383245816,
+                  -0.46339008689633576,
+                  0.4654107697082783
+                ],
+                "b": -0.13772168468006113
+              },
+              {
+                "w": [
+                  0.2845625421618693,
+                  -0.3381526627463779,
+                  0.76899818386901,
+                  -0.5351232016938955
+                ],
+                "b": 0.11397777316996621
+              },
+              {
+                "w": [
+                  -0.24406552654753022,
+                  0.3892958623831122,
+                  -0.671239753865115,
+                  0.701857405992837
+                ],
+                "b": 0.13147269471685652
+              }
+            ],
+            "out": {
+              "w": [
+                0.8234603732577156,
+                -0.6167060194176678,
+                0.43833169813578177,
+                -0.38794875365248765
+              ],
+              "b": -0.08827215221549584,
+              "base": [
+                0.05995956277470994,
+                0.060371711384851215
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "cancellation-fold",
+              "layer1AngleSpread": 1.98,
+              "outputScale": 1,
+              "cancellationRatio": 0.78
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 39,
+            "deepOnlyRegionCount": 34,
+            "adjacencyEdgeCount": 124,
+            "kinkCellBoundaryCount": 1233
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.2252331392651338,
+                -0.14836169102015476,
+                0.5341087159121153
+              ],
+              "metrics": {
+                "mae": 0.18976812485673394,
+                "rmse": 0.2376473241304289,
+                "r2": 0.8733259247402396
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.09425429796764506,
+                0.08457914552495567,
+                0.03472931752705011,
+                0.6950390044880743,
+                -0.4637177825305583,
+                0.574020351967472,
+                -0.5758461964607489
+              ],
+              "metrics": {
+                "mae": 0.02071174399563607,
+                "rmse": 0.02798324828782447,
+                "r2": 0.9982436213992216
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=39 adjacency=124 boundaries=124 grid=65x65 )",
+            "metrics": {
+              "mae": 0.01569512801150771,
+              "rmse": 0.033435453007492524,
+              "r2": 0.997492526748782
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.7577888184990432,
+            "planeMaeRatio": 0.08270687199632076
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-low-amplitude-fold-261474",
+      "seed": 261474,
+      "profile": "low-amplitude-fold",
+      "stage": "screening",
+      "pass": true,
+      "difficultyScore": 13.359245564040865,
+      "teacher": {
+        "id": "adaptive-deep-2d-low-amplitude-fold-261474",
+        "seed": 261474,
+        "profile": "low-amplitude-fold",
+        "l1": [
+          {
+            "w": [
+              -0.8201285305372612,
+              1.0517503435284232
+            ],
+            "b": -0.7647789063395736
+          },
+          {
+            "w": [
+              -0.8630950244803044,
+              0.02461350322958117
+            ],
+            "b": -0.14035554233971567
+          },
+          {
+            "w": [
+              -0.6702936313173539,
+              -0.6016585341436297
+            ],
+            "b": 0.23107860465634486
+          },
+          {
+            "w": [
+              -0.06844287637922875,
+              -1.1527036772655763
+            ],
+            "b": 0.7693893805419928
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              1.0599437171057273,
+              -0.6414464666512297,
+              0.669235215407084,
+              -0.49273449846611783
+            ],
+            "b": -0.4054380359877255
+          },
+          {
+            "w": [
+              -0.7665901388633906,
+              0.8085363389146852,
+              -0.5552516460099739,
+              0.7320866197609218
+            ],
+            "b": -0.09932941604808851
+          },
+          {
+            "w": [
+              0.4631540684859772,
+              -0.3415703391242496,
+              0.9193106796753693,
+              -0.8444057046206721
+            ],
+            "b": 0.09164157238010463
+          },
+          {
+            "w": [
+              -0.302855385848652,
+              0.5360304905288206,
+              -0.8725446493137112,
+              0.97307970090311
+            ],
+            "b": 0.3461083277138959
+          }
+        ],
+        "out": {
+          "w": [
+            0.6318542627597732,
+            -0.6109051692722413,
+            0.5368205846290295,
+            -0.42493411894509014
+          ],
+          "b": 0.05670172696625975,
+          "base": [
+            -0.03604958850522487,
+            0.0345669009113376
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "low-amplitude-fold",
+          "layer1AngleSpread": 2.42,
+          "outputScale": 1.15,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 15,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 65,
+        "gridHeight": 65,
+        "gradientStep": 0.085,
+        "slopeTolerance": 0.16,
+        "interceptTolerance": 0.24,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 42,
+        "deepOnlyRegionCount": 37,
+        "adjacencyEdgeCount": 126,
+        "kinkCellBoundaryCount": 1275
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.5009486084035608,
+            -0.2614882338228256,
+            0.780825162054923
+          ],
+          "metrics": {
+            "mae": 0.19016522395146485,
+            "rmse": 0.25289334316396805,
+            "r2": 0.9307201085805379
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            0.03598283348637615,
+            0.03151754816412122,
+            -0.1377303128278477,
+            1.0277582035069288,
+            -0.6537487426757593,
+            0.8113313395279775,
+            -1.0449791473025019
+          ],
+          "metrics": {
+            "mae": 0.040179254282027704,
+            "rmse": 0.05272534873636436,
+            "r2": 0.9969885800385047
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=42 adjacency=126 boundaries=126 grid=65x65 )",
+        "metrics": {
+          "mae": 0.009432833171949059,
+          "rmse": 0.019177388346552242,
+          "r2": 0.9996016073396286
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.23476874672032907,
+        "planeMaeRatio": 0.049603355313569665
+      },
+      "queryBudget": {
+        "rawOracleCalls": 316875,
+        "aggregatedProbePoints": 21125,
+        "gridCells": 4225,
+        "testRows": 3477,
+        "finalRawOracleCalls": 316875,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 0,
+        "totalRawOracleCalls": 316875
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "screening",
+      "refinedUsed": false,
+      "attemptCount": 1,
+      "selectedHardCase": false,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-low-amplitude-fold-261474",
+          "seed": 261474,
+          "profile": "low-amplitude-fold",
+          "stage": "screening",
+          "pass": true,
+          "difficultyScore": 13.359245564040865,
+          "teacher": {
+            "id": "adaptive-deep-2d-low-amplitude-fold-261474",
+            "seed": 261474,
+            "profile": "low-amplitude-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.8201285305372612,
+                  1.0517503435284232
+                ],
+                "b": -0.7647789063395736
+              },
+              {
+                "w": [
+                  -0.8630950244803044,
+                  0.02461350322958117
+                ],
+                "b": -0.14035554233971567
+              },
+              {
+                "w": [
+                  -0.6702936313173539,
+                  -0.6016585341436297
+                ],
+                "b": 0.23107860465634486
+              },
+              {
+                "w": [
+                  -0.06844287637922875,
+                  -1.1527036772655763
+                ],
+                "b": 0.7693893805419928
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  1.0599437171057273,
+                  -0.6414464666512297,
+                  0.669235215407084,
+                  -0.49273449846611783
+                ],
+                "b": -0.4054380359877255
+              },
+              {
+                "w": [
+                  -0.7665901388633906,
+                  0.8085363389146852,
+                  -0.5552516460099739,
+                  0.7320866197609218
+                ],
+                "b": -0.09932941604808851
+              },
+              {
+                "w": [
+                  0.4631540684859772,
+                  -0.3415703391242496,
+                  0.9193106796753693,
+                  -0.8444057046206721
+                ],
+                "b": 0.09164157238010463
+              },
+              {
+                "w": [
+                  -0.302855385848652,
+                  0.5360304905288206,
+                  -0.8725446493137112,
+                  0.97307970090311
+                ],
+                "b": 0.3461083277138959
+              }
+            ],
+            "out": {
+              "w": [
+                0.6318542627597732,
+                -0.6109051692722413,
+                0.5368205846290295,
+                -0.42493411894509014
+              ],
+              "b": 0.05670172696625975,
+              "base": [
+                -0.03604958850522487,
+                0.0345669009113376
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "low-amplitude-fold",
+              "layer1AngleSpread": 2.42,
+              "outputScale": 1.15,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 42,
+            "deepOnlyRegionCount": 37,
+            "adjacencyEdgeCount": 126,
+            "kinkCellBoundaryCount": 1275
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.5009486084035608,
+                -0.2614882338228256,
+                0.780825162054923
+              ],
+              "metrics": {
+                "mae": 0.19016522395146485,
+                "rmse": 0.25289334316396805,
+                "r2": 0.9307201085805379
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                0.03598283348637615,
+                0.03151754816412122,
+                -0.1377303128278477,
+                1.0277582035069288,
+                -0.6537487426757593,
+                0.8113313395279775,
+                -1.0449791473025019
+              ],
+              "metrics": {
+                "mae": 0.040179254282027704,
+                "rmse": 0.05272534873636436,
+                "r2": 0.9969885800385047
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=42 adjacency=126 boundaries=126 grid=65x65 )",
+            "metrics": {
+              "mae": 0.009432833171949059,
+              "rmse": 0.019177388346552242,
+              "r2": 0.9996016073396286
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.23476874672032907,
+            "planeMaeRatio": 0.049603355313569665
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-boundary-grazing-fold-261571",
+      "seed": 261571,
+      "profile": "boundary-grazing-fold",
+      "stage": "refined",
+      "pass": true,
+      "difficultyScore": 15.304348159512015,
+      "teacher": {
+        "id": "adaptive-deep-2d-boundary-grazing-fold-261571",
+        "seed": 261571,
+        "profile": "boundary-grazing-fold",
+        "l1": [
+          {
+            "w": [
+              -0.8407552315641557,
+              0.7891386455016589
+            ],
+            "b": -1.184218768625724
+          },
+          {
+            "w": [
+              -1.215732609187013,
+              0.18839344396425362
+            ],
+            "b": -0.7228660003215689
+          },
+          {
+            "w": [
+              -0.862205217432588,
+              -0.650378307566393
+            ],
+            "b": 0.7205115487384717
+          },
+          {
+            "w": [
+              -0.3617854499241071,
+              -0.977328592717692
+            ],
+            "b": 1.1618119761690608
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.9588774620824283,
+              -0.7364942240682377,
+              0.5415773098557976,
+              -0.530152326831736
+            ],
+            "b": -0.610693405527336
+          },
+          {
+            "w": [
+              -0.8578655630330234,
+              0.6734833394302832,
+              -0.5155132051236119,
+              0.6595624697390594
+            ],
+            "b": -0.2859371474161159
+          },
+          {
+            "w": [
+              0.518545594810085,
+              -0.4041880155766271,
+              0.9720231755562343,
+              -0.7864882074729429
+            ],
+            "b": 0.2993053715576468
+          },
+          {
+            "w": [
+              -0.27484524514977376,
+              0.525965118674529,
+              -0.8442495447623073,
+              0.837901995738877
+            ],
+            "b": 0.5707439607435315
+          }
+        ],
+        "out": {
+          "w": [
+            0.786248152261831,
+            -0.6173043190849054,
+            0.5563094710803679,
+            -0.49671948427960233
+          ],
+          "b": -0.03832439396374336,
+          "base": [
+            0.027941260289346112,
+            0.008762090437824
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "boundary-grazing-fold",
+          "layer1AngleSpread": 1.9700000000000002,
+          "outputScale": 1,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 78,
+        "deepOnlyRegionCount": 73,
+        "adjacencyEdgeCount": 261,
+        "kinkCellBoundaryCount": 1982
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.5101677341425978,
+            -0.15964869598420647,
+            0.4163275830936253
+          ],
+          "metrics": {
+            "mae": 0.13836234520405835,
+            "rmse": 0.17072511196217113,
+            "r2": 0.896299812323131
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.012916976209063069,
+            -0.00765713007332447,
+            -0.06659087902976268,
+            0.6126630684908926,
+            -0.5393737398514662,
+            0.8224958001277263,
+            -0.9486525771351966
+          ],
+          "metrics": {
+            "mae": 0.043383580055521925,
+            "rmse": 0.055605755158496424,
+            "r2": 0.9889992013398958
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=78 adjacency=261 boundaries=261 grid=81x81 )",
+        "metrics": {
+          "mae": 0.00602195933905323,
+          "rmse": 0.015057812710169961,
+          "r2": 0.9991933065845111
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.138807339812583,
+        "planeMaeRatio": 0.0435231083295963
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1005780,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 3477,
+        "finalRawOracleCalls": 688905,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 688905,
+        "totalRawOracleCalls": 1005780
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "refined",
+      "refinedUsed": true,
+      "attemptCount": 2,
+      "selectedHardCase": false,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-boundary-grazing-fold-261571",
+          "seed": 261571,
+          "profile": "boundary-grazing-fold",
+          "stage": "screening",
+          "pass": false,
+          "difficultyScore": 13.133315028398165,
+          "teacher": {
+            "id": "adaptive-deep-2d-boundary-grazing-fold-261571",
+            "seed": 261571,
+            "profile": "boundary-grazing-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.8407552315641557,
+                  0.7891386455016589
+                ],
+                "b": -1.184218768625724
+              },
+              {
+                "w": [
+                  -1.215732609187013,
+                  0.18839344396425362
+                ],
+                "b": -0.7228660003215689
+              },
+              {
+                "w": [
+                  -0.862205217432588,
+                  -0.650378307566393
+                ],
+                "b": 0.7205115487384717
+              },
+              {
+                "w": [
+                  -0.3617854499241071,
+                  -0.977328592717692
+                ],
+                "b": 1.1618119761690608
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9588774620824283,
+                  -0.7364942240682377,
+                  0.5415773098557976,
+                  -0.530152326831736
+                ],
+                "b": -0.610693405527336
+              },
+              {
+                "w": [
+                  -0.8578655630330234,
+                  0.6734833394302832,
+                  -0.5155132051236119,
+                  0.6595624697390594
+                ],
+                "b": -0.2859371474161159
+              },
+              {
+                "w": [
+                  0.518545594810085,
+                  -0.4041880155766271,
+                  0.9720231755562343,
+                  -0.7864882074729429
+                ],
+                "b": 0.2993053715576468
+              },
+              {
+                "w": [
+                  -0.27484524514977376,
+                  0.525965118674529,
+                  -0.8442495447623073,
+                  0.837901995738877
+                ],
+                "b": 0.5707439607435315
+              }
+            ],
+            "out": {
+              "w": [
+                0.786248152261831,
+                -0.6173043190849054,
+                0.5563094710803679,
+                -0.49671948427960233
+              ],
+              "b": -0.03832439396374336,
+              "base": [
+                0.027941260289346112,
+                0.008762090437824
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "boundary-grazing-fold",
+              "layer1AngleSpread": 1.9700000000000002,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 44,
+            "deepOnlyRegionCount": 39,
+            "adjacencyEdgeCount": 140,
+            "kinkCellBoundaryCount": 1198
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.5101677341425978,
+                -0.15964869598420647,
+                0.4163275830936253
+              ],
+              "metrics": {
+                "mae": 0.13836234520405835,
+                "rmse": 0.17072511196217113,
+                "r2": 0.896299812323131
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.012916976209063069,
+                -0.00765713007332447,
+                -0.06659087902976268,
+                0.6126630684908926,
+                -0.5393737398514662,
+                0.8224958001277263,
+                -0.9486525771351966
+              ],
+              "metrics": {
+                "mae": 0.043383580055521925,
+                "rmse": 0.055605755158496424,
+                "r2": 0.9889992013398958
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=44 adjacency=140 boundaries=140 grid=65x65 )",
+            "metrics": {
+              "mae": 0.014072657350648677,
+              "rmse": 0.02988589453246472,
+              "r2": 0.9968222681347911
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.3243775025629193,
+            "planeMaeRatio": 0.1017087223398401
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": false,
+            "queryBudgetBelowStageLimit": true
+          }
+        },
+        {
+          "teacherId": "adaptive-deep-2d-boundary-grazing-fold-261571",
+          "seed": 261571,
+          "profile": "boundary-grazing-fold",
+          "stage": "refined",
+          "pass": true,
+          "difficultyScore": 15.304348159512015,
+          "teacher": {
+            "id": "adaptive-deep-2d-boundary-grazing-fold-261571",
+            "seed": 261571,
+            "profile": "boundary-grazing-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.8407552315641557,
+                  0.7891386455016589
+                ],
+                "b": -1.184218768625724
+              },
+              {
+                "w": [
+                  -1.215732609187013,
+                  0.18839344396425362
+                ],
+                "b": -0.7228660003215689
+              },
+              {
+                "w": [
+                  -0.862205217432588,
+                  -0.650378307566393
+                ],
+                "b": 0.7205115487384717
+              },
+              {
+                "w": [
+                  -0.3617854499241071,
+                  -0.977328592717692
+                ],
+                "b": 1.1618119761690608
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9588774620824283,
+                  -0.7364942240682377,
+                  0.5415773098557976,
+                  -0.530152326831736
+                ],
+                "b": -0.610693405527336
+              },
+              {
+                "w": [
+                  -0.8578655630330234,
+                  0.6734833394302832,
+                  -0.5155132051236119,
+                  0.6595624697390594
+                ],
+                "b": -0.2859371474161159
+              },
+              {
+                "w": [
+                  0.518545594810085,
+                  -0.4041880155766271,
+                  0.9720231755562343,
+                  -0.7864882074729429
+                ],
+                "b": 0.2993053715576468
+              },
+              {
+                "w": [
+                  -0.27484524514977376,
+                  0.525965118674529,
+                  -0.8442495447623073,
+                  0.837901995738877
+                ],
+                "b": 0.5707439607435315
+              }
+            ],
+            "out": {
+              "w": [
+                0.786248152261831,
+                -0.6173043190849054,
+                0.5563094710803679,
+                -0.49671948427960233
+              ],
+              "b": -0.03832439396374336,
+              "base": [
+                0.027941260289346112,
+                0.008762090437824
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "boundary-grazing-fold",
+              "layer1AngleSpread": 1.9700000000000002,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 21,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 81,
+            "gridHeight": 81,
+            "gradientStep": 0.075,
+            "slopeTolerance": 0.11,
+            "interceptTolerance": 0.18,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 78,
+            "deepOnlyRegionCount": 73,
+            "adjacencyEdgeCount": 261,
+            "kinkCellBoundaryCount": 1982
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.5101677341425978,
+                -0.15964869598420647,
+                0.4163275830936253
+              ],
+              "metrics": {
+                "mae": 0.13836234520405835,
+                "rmse": 0.17072511196217113,
+                "r2": 0.896299812323131
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.012916976209063069,
+                -0.00765713007332447,
+                -0.06659087902976268,
+                0.6126630684908926,
+                -0.5393737398514662,
+                0.8224958001277263,
+                -0.9486525771351966
+              ],
+              "metrics": {
+                "mae": 0.043383580055521925,
+                "rmse": 0.055605755158496424,
+                "r2": 0.9889992013398958
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=78 adjacency=261 boundaries=261 grid=81x81 )",
+            "metrics": {
+              "mae": 0.00602195933905323,
+              "rmse": 0.015057812710169961,
+              "r2": 0.9991933065845111
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.138807339812583,
+            "planeMaeRatio": 0.0435231083295963
+          },
+          "queryBudget": {
+            "rawOracleCalls": 688905,
+            "aggregatedProbePoints": 32805,
+            "gridCells": 6561,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "adaptive-deep-2d-mixed-oblique-fold-261668",
+      "seed": 261668,
+      "profile": "mixed-oblique-fold",
+      "stage": "screening",
+      "pass": true,
+      "difficultyScore": 14.129297688454267,
+      "teacher": {
+        "id": "adaptive-deep-2d-mixed-oblique-fold-261668",
+        "seed": 261668,
+        "profile": "mixed-oblique-fold",
+        "l1": [
+          {
+            "w": [
+              -0.5425140964195684,
+              0.8070679194348674
+            ],
+            "b": -0.4836586309118742
+          },
+          {
+            "w": [
+              -0.845026273096036,
+              0.058374165662694086
+            ],
+            "b": -0.09537645830342217
+          },
+          {
+            "w": [
+              -1.0526261200677274,
+              -0.69119786002821
+            ],
+            "b": 0.28994449282059864
+          },
+          {
+            "w": [
+              -0.09258416195459061,
+              -0.9249278924901423
+            ],
+            "b": 0.804234571796129
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.9053112070591293,
+              -0.70454198141074,
+              0.602919404379017,
+              -0.5935701551973542
+            ],
+            "b": -0.32594877503435016
+          },
+          {
+            "w": [
+              -0.8281409871281507,
+              0.7344303400203868,
+              -0.49927476423725,
+              0.619038319717197
+            ],
+            "b": -0.022544878784143255
+          },
+          {
+            "w": [
+              0.43593712105968696,
+              -0.3248056919544988,
+              0.9107356713625935,
+              -0.7655707103252138
+            ],
+            "b": 0.1769691707677852
+          },
+          {
+            "w": [
+              -0.26233510445089553,
+              0.5438997468202373,
+              -0.8569544402109034,
+              0.9067242906491498
+            ],
+            "b": 0.5253795937731672
+          }
+        ],
+        "out": {
+          "w": [
+            0.7476420417638887,
+            -0.6302034688975695,
+            0.7702983575317062,
+            -0.5855048495722048
+          ],
+          "b": 0.10664948521801224,
+          "base": [
+            -0.06806789099058871,
+            -0.01704272003568963
+          ]
+        },
+        "adversarialKnobs": {
+          "profile": "mixed-oblique-fold",
+          "layer1AngleSpread": 2.45,
+          "outputScale": 1,
+          "cancellationRatio": 1
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 15,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 65,
+        "gridHeight": 65,
+        "gradientStep": 0.085,
+        "slopeTolerance": 0.16,
+        "interceptTolerance": 0.24,
+        "testRows": 3477
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 54,
+        "deepOnlyRegionCount": 49,
+        "adjacencyEdgeCount": 174,
+        "kinkCellBoundaryCount": 1434
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            -0.33040475729423924,
+            -0.5595097431317867,
+            0.5728008186121398
+          ],
+          "metrics": {
+            "mae": 0.20618176615388148,
+            "rmse": 0.2587232222955289,
+            "r2": 0.9238793366668092
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.1372378280897033,
+            0.002787485851146909,
+            -0.0697678617963926,
+            0.8830989281075603,
+            -0.26879589579661317,
+            0.9125853254182321,
+            -1.0505066992276781
+          ],
+          "metrics": {
+            "mae": 0.04255062223701494,
+            "rmse": 0.056031626261216376,
+            "r2": 0.9964297535477665
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=54 adjacency=174 boundaries=174 grid=65x65 )",
+        "metrics": {
+          "mae": 0.010406577559035665,
+          "rmse": 0.023111142204722813,
+          "r2": 0.9993926003173249
+        }
+      },
+      "ratios": {
+        "firstLayerMaeRatio": 0.24456933910552656,
+        "planeMaeRatio": 0.050472831585256825
+      },
+      "queryBudget": {
+        "rawOracleCalls": 316875,
+        "aggregatedProbePoints": 21125,
+        "gridCells": 4225,
+        "testRows": 3477,
+        "finalRawOracleCalls": 316875,
+        "screeningRawOracleCalls": 316875,
+        "refinedRawOracleCalls": 0,
+        "totalRawOracleCalls": 316875
+      },
+      "gates": {
+        "recoveredAtLeast8Regions": true,
+        "recoveredAtLeast3DeepOnlyRegions": true,
+        "adjacencyAtLeast10": true,
+        "kinkCellBoundaryAtLeast180": true,
+        "maeBelow004": true,
+        "r2Above99": true,
+        "beatsFirstLayerOnlyBy15Percent": true,
+        "beatsPlaneBy10x": true,
+        "queryBudgetBelowStageLimit": true,
+        "totalQueryBudgetBelow1100000": true
+      },
+      "finalStage": "screening",
+      "refinedUsed": false,
+      "attemptCount": 1,
+      "selectedHardCase": false,
+      "attempts": [
+        {
+          "teacherId": "adaptive-deep-2d-mixed-oblique-fold-261668",
+          "seed": 261668,
+          "profile": "mixed-oblique-fold",
+          "stage": "screening",
+          "pass": true,
+          "difficultyScore": 14.129297688454267,
+          "teacher": {
+            "id": "adaptive-deep-2d-mixed-oblique-fold-261668",
+            "seed": 261668,
+            "profile": "mixed-oblique-fold",
+            "l1": [
+              {
+                "w": [
+                  -0.5425140964195684,
+                  0.8070679194348674
+                ],
+                "b": -0.4836586309118742
+              },
+              {
+                "w": [
+                  -0.845026273096036,
+                  0.058374165662694086
+                ],
+                "b": -0.09537645830342217
+              },
+              {
+                "w": [
+                  -1.0526261200677274,
+                  -0.69119786002821
+                ],
+                "b": 0.28994449282059864
+              },
+              {
+                "w": [
+                  -0.09258416195459061,
+                  -0.9249278924901423
+                ],
+                "b": 0.804234571796129
+              }
+            ],
+            "l2": [
+              {
+                "w": [
+                  0.9053112070591293,
+                  -0.70454198141074,
+                  0.602919404379017,
+                  -0.5935701551973542
+                ],
+                "b": -0.32594877503435016
+              },
+              {
+                "w": [
+                  -0.8281409871281507,
+                  0.7344303400203868,
+                  -0.49927476423725,
+                  0.619038319717197
+                ],
+                "b": -0.022544878784143255
+              },
+              {
+                "w": [
+                  0.43593712105968696,
+                  -0.3248056919544988,
+                  0.9107356713625935,
+                  -0.7655707103252138
+                ],
+                "b": 0.1769691707677852
+              },
+              {
+                "w": [
+                  -0.26233510445089553,
+                  0.5438997468202373,
+                  -0.8569544402109034,
+                  0.9067242906491498
+                ],
+                "b": 0.5253795937731672
+              }
+            ],
+            "out": {
+              "w": [
+                0.7476420417638887,
+                -0.6302034688975695,
+                0.7702983575317062,
+                -0.5855048495722048
+              ],
+              "b": 0.10664948521801224,
+              "base": [
+                -0.06806789099058871,
+                -0.01704272003568963
+              ]
+            },
+            "adversarialKnobs": {
+              "profile": "mixed-oblique-fold",
+              "layer1AngleSpread": 2.45,
+              "outputScale": 1,
+              "cancellationRatio": 1
+            }
+          },
+          "noise": {
+            "noiseStd": 0.003,
+            "quantization": 0.001,
+            "querySamples": 15,
+            "aggregation": "median"
+          },
+          "config": {
+            "xRange": [
+              -2,
+              2
+            ],
+            "yRange": [
+              -2,
+              2
+            ],
+            "gridWidth": 65,
+            "gridHeight": 65,
+            "gradientStep": 0.085,
+            "slopeTolerance": 0.16,
+            "interceptTolerance": 0.24,
+            "testRows": 3477
+          },
+          "foldingEvidence": {
+            "firstLayerUnitCount": 4,
+            "secondLayerUnitCount": 4,
+            "recoveredRegionCount": 54,
+            "deepOnlyRegionCount": 49,
+            "adjacencyEdgeCount": 174,
+            "kinkCellBoundaryCount": 1434
+          },
+          "baselines": {
+            "plane": {
+              "coefficients": [
+                -0.33040475729423924,
+                -0.5595097431317867,
+                0.5728008186121398
+              ],
+              "metrics": {
+                "mae": 0.20618176615388148,
+                "rmse": 0.2587232222955289,
+                "r2": 0.9238793366668092
+              }
+            },
+            "firstLayerOnly": {
+              "coefficients": [
+                -0.1372378280897033,
+                0.002787485851146909,
+                -0.0697678617963926,
+                0.8830989281075603,
+                -0.26879589579661317,
+                0.9125853254182321,
+                -1.0505066992276781
+              ],
+              "metrics": {
+                "mae": 0.04255062223701494,
+                "rmse": 0.056031626261216376,
+                "r2": 0.9964297535477665
+              }
+            }
+          },
+          "gcl": {
+            "recoveryKind": "output-equivalent-region-graph",
+            "expression": "region_graph( regions=54 adjacency=174 boundaries=174 grid=65x65 )",
+            "metrics": {
+              "mae": 0.010406577559035665,
+              "rmse": 0.023111142204722813,
+              "r2": 0.9993926003173249
+            }
+          },
+          "ratios": {
+            "firstLayerMaeRatio": 0.24456933910552656,
+            "planeMaeRatio": 0.050472831585256825
+          },
+          "queryBudget": {
+            "rawOracleCalls": 316875,
+            "aggregatedProbePoints": 21125,
+            "gridCells": 4225,
+            "testRows": 3477
+          },
+          "gates": {
+            "recoveredAtLeast8Regions": true,
+            "recoveredAtLeast3DeepOnlyRegions": true,
+            "adjacencyAtLeast10": true,
+            "kinkCellBoundaryAtLeast180": true,
+            "maeBelow004": true,
+            "r2Above99": true,
+            "beatsFirstLayerOnlyBy15Percent": true,
+            "beatsPlaneBy10x": true,
+            "queryBudgetBelowStageLimit": true
+          }
+        }
+      ]
+    }
+  ],
+  "runtimeMs": 2508
+}

@@ -1,0 +1,461 @@
+{
+  "generatedAt": "2026-05-22T05:41:59.773Z",
+  "benchmark": "pure-gcl-hard-tasks",
+  "scope": "Diagnostic pure-GCL hard-task benchmark. It disables regression-basis seeding and semantic refiner. It does not use gcl-hybrid.",
+  "budget": {
+    "seeds": [
+      1337
+    ],
+    "generations": 30,
+    "singlePopulation": 120,
+    "islandPopulation": 80,
+    "guardFallbackRatio": 1.15,
+    "disabled": {
+      "GCL_REGRESSION_BASIS_SEED": "0",
+      "GCL_SEMANTIC_REFINER": "0"
+    }
+  },
+  "tasks": [
+    {
+      "id": "inverse_quadratic",
+      "name": "Inverse quadratic",
+      "formula": "1 / (1 + x^2)",
+      "successMae": 0.001,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div"
+      ]
+    },
+    {
+      "id": "trig_rational_combo",
+      "name": "Trigonometric + rational",
+      "formula": "sin(x) + x / (1 + x^2)",
+      "successMae": 0.001,
+      "functionSet": [
+        "add",
+        "sub",
+        "mul",
+        "div",
+        "sin",
+        "cos"
+      ]
+    }
+  ],
+  "summary": {
+    "allTasksSolved": false,
+    "successRate": 0.5,
+    "nonRegressionRate": 1,
+    "runtimeErrorCount": 0,
+    "meanSingleMae": 0.27647962641687507,
+    "meanSelectedMae": 0.030060765808779404,
+    "meanOracleMae": 0.030060765808779404,
+    "medianSelectedLift": 4217.692688650013,
+    "medianOracleLift": 4217.692688650013,
+    "byTask": {
+      "inverse_quadratic": {
+        "successRate": 1,
+        "meanSingleMae": 0.2360318889513916,
+        "meanSelectedMae": 0.00002799866758873204,
+        "meanOracleMae": 0.00002799866758873204,
+        "medianSelectedLift": 8430.111475961156,
+        "medianOracleLift": 8430.111475961156
+      },
+      "trig_rational_combo": {
+        "successRate": 0,
+        "meanSingleMae": 0.3169273638823586,
+        "meanSelectedMae": 0.06009353294997008,
+        "meanOracleMae": 0.06009353294997008,
+        "medianSelectedLift": 5.27390133887138,
+        "medianOracleLift": 5.27390133887138
+      }
+    }
+  },
+  "results": [
+    {
+      "seed": 1337,
+      "taskId": "inverse_quadratic",
+      "single": {
+        "label": "single",
+        "role": "single",
+        "validation": {
+          "mae": 0.23723611273896664,
+          "rmse": 0.31101037969591266,
+          "r2": -0.13248234449402507,
+          "maxAbsError": 0.7041830644039111
+        },
+        "guard": {
+          "mae": 0.2363683012203973,
+          "rmse": 0.3083921114387644,
+          "r2": -0.1098504266905862,
+          "maxAbsError": 0.7041830644039111
+        },
+        "test": {
+          "mae": 0.2360318889513916,
+          "rmse": 0.3073401568088936,
+          "r2": -0.10111606561973696,
+          "maxAbsError": 0.7041830644039111
+        },
+        "expression": "const(0.2958169355960889)",
+        "runtimeMs": 58.843024,
+        "generationsRun": 30,
+        "fitness": 0.8075517942587797
+      },
+      "islands": [
+        {
+          "label": "island-full",
+          "role": "full",
+          "validation": {
+            "mae": 0.000028927925155973358,
+            "rmse": 0.0000349481998683986,
+            "r2": 0.9999999857001561,
+            "maxAbsError": 0.00006741341928351297
+          },
+          "guard": {
+            "mae": 0.000028271731617137032,
+            "rmse": 0.00003444268251011841,
+            "r2": 0.9999999861563099,
+            "maxAbsError": 0.00006741341928351297
+          },
+          "test": {
+            "mae": 0.00002799866758873204,
+            "rmse": 0.00003423212233599723,
+            "r2": 0.9999999863396404,
+            "maxAbsError": 0.00006741341928351297
+          },
+          "expression": "(div const(1.0000791203212562) (sub (mul x x) const(-1.0000117061128235)))",
+          "runtimeMs": 60.445194,
+          "generationsRun": 30,
+          "fitness": 0.9999878900093332
+        },
+        {
+          "label": "island-arithmetic",
+          "role": "arithmetic",
+          "validation": {
+            "mae": 0.23600568017545415,
+            "rmse": 0.3241026187991901,
+            "r2": -0.2298347310680091,
+            "maxAbsError": 1
+          },
+          "guard": {
+            "mae": 0.24348331349713692,
+            "rmse": 0.3442061002149464,
+            "r2": -0.38259524282126467,
+            "maxAbsError": 1.2789632986941593
+          },
+          "test": {
+            "mae": 0.250314982522312,
+            "rmse": 0.39582777328211355,
+            "r2": -0.8264467236158417,
+            "maxAbsError": 2.6584113136968823
+          },
+          "expression": "(mul (div const(-4.74059673694017) (add (sub x const(-1.122572782507437)) (add (mul x const(-9.635276959511991)) (mul const(-9.235660315396673) x)))) x)",
+          "runtimeMs": 30.137599,
+          "generationsRun": 30,
+          "fitness": 0.8112118992270045
+        },
+        {
+          "label": "island-trig",
+          "role": "trig",
+          "validation": {
+            "mae": 0.2372363349828788,
+            "rmse": 0.3110083273710636,
+            "r2": -0.13246739827910847,
+            "maxAbsError": 0.7041770638182829
+          },
+          "guard": {
+            "mae": 0.2363686309229043,
+            "rmse": 0.3083902236639663,
+            "r2": -0.10983683917537523,
+            "maxAbsError": 0.7041770638182829
+          },
+          "test": {
+            "mae": 0.23603223609270893,
+            "rmse": 0.30733833847152764,
+            "r2": -0.10110303644330676,
+            "maxAbsError": 0.7041770638182829
+          },
+          "expression": "const(0.29582293618171707)",
+          "runtimeMs": 18.926725,
+          "generationsRun": 30,
+          "fitness": 0.807551934952416
+        },
+        {
+          "label": "island-rational-trig",
+          "role": "rational-trig",
+          "validation": {
+            "mae": 0.04267779402980055,
+            "rmse": 0.05425063565217011,
+            "r2": 0.9655418993322077,
+            "maxAbsError": 0.14587695266145984
+          },
+          "guard": {
+            "mae": 0.04318164644451885,
+            "rmse": 0.05441685326710806,
+            "r2": 0.9654438952801039,
+            "maxAbsError": 0.14640781116965695
+          },
+          "test": {
+            "mae": 0.04371465708475661,
+            "rmse": 0.05496432258500989,
+            "r2": 0.9647826850093502,
+            "maxAbsError": 0.14759990331838324
+          },
+          "expression": "(add (div const(-2.313052037991351) (add (add const(-2.314014185140548) (mul (sub x (add x x)) x)) (mul (div const(0) x) x))) (sub (div (div (div const(0) x) (add x x)) const(0)) (div (sub x (add x x)) (div x const(-0.14884375000000002)))))",
+          "runtimeMs": 48.906631,
+          "generationsRun": 30,
+          "fitness": 0.9594688514945323
+        }
+      ],
+      "selected": {
+        "label": "island-full",
+        "role": "full",
+        "validation": {
+          "mae": 0.000028927925155973358,
+          "rmse": 0.0000349481998683986,
+          "r2": 0.9999999857001561,
+          "maxAbsError": 0.00006741341928351297
+        },
+        "guard": {
+          "mae": 0.000028271731617137032,
+          "rmse": 0.00003444268251011841,
+          "r2": 0.9999999861563099,
+          "maxAbsError": 0.00006741341928351297
+        },
+        "test": {
+          "mae": 0.00002799866758873204,
+          "rmse": 0.00003423212233599723,
+          "r2": 0.9999999863396404,
+          "maxAbsError": 0.00006741341928351297
+        },
+        "expression": "(div const(1.0000791203212562) (sub (mul x x) const(-1.0000117061128235)))",
+        "runtimeMs": 60.445194,
+        "generationsRun": 30,
+        "fitness": 0.9999878900093332
+      },
+      "oracle": {
+        "label": "island-full",
+        "role": "full",
+        "validation": {
+          "mae": 0.000028927925155973358,
+          "rmse": 0.0000349481998683986,
+          "r2": 0.9999999857001561,
+          "maxAbsError": 0.00006741341928351297
+        },
+        "guard": {
+          "mae": 0.000028271731617137032,
+          "rmse": 0.00003444268251011841,
+          "r2": 0.9999999861563099,
+          "maxAbsError": 0.00006741341928351297
+        },
+        "test": {
+          "mae": 0.00002799866758873204,
+          "rmse": 0.00003423212233599723,
+          "r2": 0.9999999863396404,
+          "maxAbsError": 0.00006741341928351297
+        },
+        "expression": "(div const(1.0000791203212562) (sub (mul x x) const(-1.0000117061128235)))",
+        "runtimeMs": 60.445194,
+        "generationsRun": 30,
+        "fitness": 0.9999878900093332
+      },
+      "selectedLiftVsSingle": 8430.111475961156,
+      "oracleLiftVsSingle": 8430.111475961156,
+      "success": true,
+      "selectedBy": "validation"
+    },
+    {
+      "seed": 1337,
+      "taskId": "trig_rational_combo",
+      "single": {
+        "label": "single",
+        "role": "single",
+        "validation": {
+          "mae": 0.3259387904671053,
+          "rmse": 0.3792914416412528,
+          "r2": 0.879281644997416,
+          "maxAbsError": 0.5737897705013111
+        },
+        "guard": {
+          "mae": 0.3192803700923747,
+          "rmse": 0.3740221074896079,
+          "r2": 0.8791728234725985,
+          "maxAbsError": 0.574049128849
+        },
+        "test": {
+          "mae": 0.3169273638823586,
+          "rmse": 0.37190119302979036,
+          "r2": 0.8790417103095552,
+          "maxAbsError": 0.5742401965865253
+        },
+        "expression": "(sin (mul x const(0.8749412141179718)))",
+        "runtimeMs": 27.459507,
+        "generationsRun": 30,
+        "fitness": 0.7498755388845441
+      },
+      "islands": [
+        {
+          "label": "island-full",
+          "role": "full",
+          "validation": {
+            "mae": 0.047163598566412175,
+            "rmse": 0.07492657159456254,
+            "r2": 0.9952891535975638,
+            "maxAbsError": 0.25065637078418607
+          },
+          "guard": {
+            "mae": 0.05570421221001846,
+            "rmse": 0.09349256321626113,
+            "r2": 0.9924503952649132,
+            "maxAbsError": 0.34290625825846766
+          },
+          "test": {
+            "mae": 0.06009353294997008,
+            "rmse": 0.10302205646286056,
+            "r2": 0.9907180136837446,
+            "maxAbsError": 0.3882287124790644
+          },
+          "expression": "(add (sin (sin (sin (sin (sin x))))) (sin (sin x)))",
+          "runtimeMs": 23.011203,
+          "generationsRun": 30,
+          "fitness": 0.9604087837438475
+        },
+        {
+          "label": "island-arithmetic",
+          "role": "arithmetic",
+          "validation": {
+            "mae": 0.4623154064564406,
+            "rmse": 0.6090768558219716,
+            "r2": 0.6887055223584537,
+            "maxAbsError": 1.868725846747272
+          },
+          "guard": {
+            "mae": 0.4796382902096982,
+            "rmse": 0.6494738173890209,
+            "r2": 0.6356713062630557,
+            "maxAbsError": 2.0571244242964313
+          },
+          "test": {
+            "mae": 0.4890651905704987,
+            "rmse": 0.6682388559337538,
+            "r2": 0.6094794034531761,
+            "maxAbsError": 2.1510819913286925
+          },
+          "expression": "(add (add x (div x const(-6.200282409430084))) (div (add x (div (add (add (add x (div x (add x (div x const(-2.2183038768126493))))) (div (add x (div (add x (div (add (add (add x (div x (add x (div x const(-2.2183038768126493))))) (div (add x (div x const(-2.2183038768126493))) (sub x const(3.9565679704918923)))) (div (add x (div x const(-2.2183038768126493))) (sub (add x (div x const(-6.200282409430084))) const(3.9565679704918923)))) const(-2.2183038768126493))) (sub x const(3.9565679704918923)))) (sub x const(3.9565679704918923)))) (div (add x (div x const(-2.2183038768126493))) (sub x const(3.9565679704918923)))) const(-2.2183038768126493))) (sub x const(3.9565679704918923))))",
+          "runtimeMs": 63.866518,
+          "generationsRun": 30,
+          "fitness": 0.6910207452296981
+        },
+        {
+          "label": "island-trig",
+          "role": "trig",
+          "validation": {
+            "mae": 0.04797624917791853,
+            "rmse": 0.0751279712224298,
+            "r2": 0.9952637944276382,
+            "maxAbsError": 0.2521262221403688
+          },
+          "guard": {
+            "mae": 0.05628184765085296,
+            "rmse": 0.09347549859949998,
+            "r2": 0.9924531509783026,
+            "maxAbsError": 0.3408600901393335
+          },
+          "test": {
+            "mae": 0.060626894302623795,
+            "rmse": 0.10281857207774307,
+            "r2": 0.9907546441698352,
+            "maxAbsError": 0.3845918828368371
+          },
+          "expression": "(mul (sin (sin (sin x))) const(1.9643429243766282))",
+          "runtimeMs": 15.069611,
+          "generationsRun": 30,
+          "fitness": 0.9598655560259985
+        },
+        {
+          "label": "island-rational-trig",
+          "role": "rational-trig",
+          "validation": {
+            "mae": 0.08800155232452415,
+            "rmse": 0.10884863648533269,
+            "r2": 0.9900580126015444,
+            "maxAbsError": 0.27118867835246585
+          },
+          "guard": {
+            "mae": 0.09447717559687265,
+            "rmse": 0.119785903570623,
+            "r2": 0.9876068556706553,
+            "maxAbsError": 0.3141859624198118
+          },
+          "test": {
+            "mae": 0.09771767801770337,
+            "rmse": 0.12500304173044113,
+            "r2": 0.9863346217821147,
+            "maxAbsError": 0.3357289940750307
+          },
+          "expression": "(add (cos (add x const(-8.572923221645182))) (sin (sub const(8.705823554853984) x)))",
+          "runtimeMs": 21.894917,
+          "generationsRun": 30,
+          "fitness": 0.9240253039304439
+        }
+      ],
+      "selected": {
+        "label": "island-full",
+        "role": "full",
+        "validation": {
+          "mae": 0.047163598566412175,
+          "rmse": 0.07492657159456254,
+          "r2": 0.9952891535975638,
+          "maxAbsError": 0.25065637078418607
+        },
+        "guard": {
+          "mae": 0.05570421221001846,
+          "rmse": 0.09349256321626113,
+          "r2": 0.9924503952649132,
+          "maxAbsError": 0.34290625825846766
+        },
+        "test": {
+          "mae": 0.06009353294997008,
+          "rmse": 0.10302205646286056,
+          "r2": 0.9907180136837446,
+          "maxAbsError": 0.3882287124790644
+        },
+        "expression": "(add (sin (sin (sin (sin (sin x))))) (sin (sin x)))",
+        "runtimeMs": 23.011203,
+        "generationsRun": 30,
+        "fitness": 0.9604087837438475
+      },
+      "oracle": {
+        "label": "island-full",
+        "role": "full",
+        "validation": {
+          "mae": 0.047163598566412175,
+          "rmse": 0.07492657159456254,
+          "r2": 0.9952891535975638,
+          "maxAbsError": 0.25065637078418607
+        },
+        "guard": {
+          "mae": 0.05570421221001846,
+          "rmse": 0.09349256321626113,
+          "r2": 0.9924503952649132,
+          "maxAbsError": 0.34290625825846766
+        },
+        "test": {
+          "mae": 0.06009353294997008,
+          "rmse": 0.10302205646286056,
+          "r2": 0.9907180136837446,
+          "maxAbsError": 0.3882287124790644
+        },
+        "expression": "(add (sin (sin (sin (sin (sin x))))) (sin (sin x)))",
+        "runtimeMs": 23.011203,
+        "generationsRun": 30,
+        "fitness": 0.9604087837438475
+      },
+      "selectedLiftVsSingle": 5.27390133887138,
+      "oracleLiftVsSingle": 5.27390133887138,
+      "success": false,
+      "selectedBy": "validation"
+    }
+  ]
+}

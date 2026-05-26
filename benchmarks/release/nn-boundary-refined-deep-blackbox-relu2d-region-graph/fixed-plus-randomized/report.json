@@ -1,0 +1,233 @@
+{
+  "generatedAt": "2026-05-26T11:07:45.185Z",
+  "task": "boundary-refined local prediction for deep black-box ReLU 2D region graphs",
+  "blackBox": {
+    "type": "2-input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(x,y), not hidden activations, layer widths, or teacher weights"
+  },
+  "claimScope": {
+    "proves": "benchmark-scoped boundary-aware local switching that improves a lower-cost 57x57 region graph using compact boundary geometry and held-out validation",
+    "doesNotClaim": "unique hidden-layer recovery, exact layer attribution, arbitrary deep ND extraction, stochastic production API extraction, or topology-perfect true-region merging"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "oracleReductionAbove60Percent": true,
+    "boundaryRefinedMaeBelow0003": true,
+    "boundaryRefinedR2Above99999": true,
+    "coarseToRefinedMaeImprovementAbove5x": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 3,
+    "passedTeachers": 3,
+    "minOracleReductionVsFixed": 0.6590138221742967,
+    "totalFixed101OracleCalls": 153015,
+    "totalBoundaryRefinedOracleCalls": 52176,
+    "maxBoundaryRefinedMae": 0.00007994248576966679,
+    "minBoundaryRefinedR2": 0.9999990128529073,
+    "minHeldOutMaeImprovementRatio": 7.9964710089308335,
+    "maxBoundaryRefinedToFixedMaeRatio": 0.4503437118707358
+  },
+  "results": [
+    {
+      "teacherId": "fixed-deep-2d-1",
+      "seed": 1,
+      "pass": true,
+      "fixed101": {
+        "gridWidth": 101,
+        "gridHeight": 101,
+        "rawOracleCalls": 51005,
+        "regionCount": 21,
+        "adjacencyEdgeCount": 46,
+        "compactBoundarySegmentCount": 46,
+        "metrics": {
+          "mae": 0.00014049304309741466,
+          "rmse": 0.0017084036629631343,
+          "r2": 0.9999994885132621
+        }
+      },
+      "coarse57": {
+        "gridWidth": 57,
+        "gridHeight": 57,
+        "regionCount": 21,
+        "adjacencyEdgeCount": 43,
+        "compactBoundarySegmentCount": 43,
+        "metrics": {
+          "mae": 0.0004953794833759593,
+          "rmse": 0.004470638925113118,
+          "r2": 0.9999964973835749
+        }
+      },
+      "boundaryRefined57": {
+        "totalOracleCalls": 17392,
+        "decompileOracleCalls": 16245,
+        "validationOracleCalls": 1147,
+        "oracleReductionVsFixed": 0.6590138221742967,
+        "boundaryMargin": 0.049621528504319126,
+        "marginFactor": 0.5,
+        "projectionSlack": 0.1,
+        "validationMae": 0.0000043646142141627165,
+        "validationR2": 0.9999999963563246,
+        "validationMaeImprovementRatio": 144.70147162776414,
+        "heldOutMaeImprovementRatio": 18.635451244430243,
+        "metrics": {
+          "mae": 0.000026582639555026506,
+          "rmse": 0.0012414465863897926,
+          "r2": 0.9999997299094017
+        },
+        "report": {
+          "enabled": true,
+          "predictionMode": "boundary-aware-local-switch",
+          "marginFactor": 0.5,
+          "projectionSlack": 0.1,
+          "boundaryMargin": 0.049621528504319126,
+          "boundarySegmentCount": 43,
+          "validationPointCount": 1147,
+          "decompileOracleCalls": 16245,
+          "validationOracleCalls": 1147,
+          "totalOracleCalls": 17392,
+          "coarseValidationMae": 0.0006315660998768023,
+          "coarseValidationR2": 0.9999938259438383,
+          "refinedValidationMae": 0.0000043646142141627165,
+          "refinedValidationR2": 0.9999999963563246,
+          "maeImprovementRatio": 144.70147162776414,
+          "pass": true
+        }
+      }
+    },
+    {
+      "teacherId": "random-deep-2d-29",
+      "seed": 29,
+      "pass": true,
+      "fixed101": {
+        "gridWidth": 101,
+        "gridHeight": 101,
+        "rawOracleCalls": 51005,
+        "regionCount": 20,
+        "adjacencyEdgeCount": 40,
+        "compactBoundarySegmentCount": 40,
+        "metrics": {
+          "mae": 0.00009271955699529366,
+          "rmse": 0.001031765838728371,
+          "r2": 0.9999967687728304
+        }
+      },
+      "coarse57": {
+        "gridWidth": 57,
+        "gridHeight": 57,
+        "regionCount": 19,
+        "adjacencyEdgeCount": 38,
+        "compactBoundarySegmentCount": 38,
+        "metrics": {
+          "mae": 0.0003150530822754598,
+          "rmse": 0.0025859356961640827,
+          "r2": 0.9999797025890232
+        }
+      },
+      "boundaryRefined57": {
+        "totalOracleCalls": 17392,
+        "decompileOracleCalls": 16245,
+        "validationOracleCalls": 1147,
+        "oracleReductionVsFixed": 0.6590138221742967,
+        "boundaryMargin": 0.049621528504319126,
+        "marginFactor": 0.5,
+        "projectionSlack": 0.1,
+        "validationMae": 0.000010326476044992108,
+        "validationR2": 0.999999705715659,
+        "validationMaeImprovementRatio": 28.482750592222104,
+        "heldOutMaeImprovementRatio": 21.85011394623139,
+        "metrics": {
+          "mae": 0.000014418830174100707,
+          "rmse": 0.0005702802534477756,
+          "r2": 0.9999990128529073
+        },
+        "report": {
+          "enabled": true,
+          "predictionMode": "boundary-aware-local-switch",
+          "marginFactor": 0.5,
+          "projectionSlack": 0.1,
+          "boundaryMargin": 0.049621528504319126,
+          "boundarySegmentCount": 38,
+          "validationPointCount": 1147,
+          "decompileOracleCalls": 16245,
+          "validationOracleCalls": 1147,
+          "totalOracleCalls": 17392,
+          "coarseValidationMae": 0.0002941264416860663,
+          "coarseValidationR2": 0.9999776360596839,
+          "refinedValidationMae": 0.000010326476044992108,
+          "refinedValidationR2": 0.999999705715659,
+          "maeImprovementRatio": 28.482750592222104,
+          "pass": true
+        }
+      }
+    },
+    {
+      "teacherId": "random-deep-2d-83",
+      "seed": 83,
+      "pass": true,
+      "fixed101": {
+        "gridWidth": 101,
+        "gridHeight": 101,
+        "rawOracleCalls": 51005,
+        "regionCount": 21,
+        "adjacencyEdgeCount": 44,
+        "compactBoundarySegmentCount": 44,
+        "metrics": {
+          "mae": 0.00017751438215398696,
+          "rmse": 0.0016569027419748711,
+          "r2": 0.9999995367107568
+        }
+      },
+      "coarse57": {
+        "gridWidth": 57,
+        "gridHeight": 57,
+        "regionCount": 20,
+        "adjacencyEdgeCount": 45,
+        "compactBoundarySegmentCount": 45,
+        "metrics": {
+          "mae": 0.0006392577698390062,
+          "rmse": 0.004791889932687564,
+          "r2": 0.9999961249987105
+        }
+      },
+      "boundaryRefined57": {
+        "totalOracleCalls": 17392,
+        "decompileOracleCalls": 16245,
+        "validationOracleCalls": 1147,
+        "oracleReductionVsFixed": 0.6590138221742967,
+        "boundaryMargin": 0.049621528504319126,
+        "marginFactor": 0.5,
+        "projectionSlack": 0.1,
+        "validationMae": 0.00011446562354314787,
+        "validationR2": 0.9999994011621302,
+        "validationMaeImprovementRatio": 3.354816360605305,
+        "heldOutMaeImprovementRatio": 7.9964710089308335,
+        "metrics": {
+          "mae": 0.00007994248576966679,
+          "rmse": 0.0019390954369511407,
+          "r2": 0.9999993654635827
+        },
+        "report": {
+          "enabled": true,
+          "predictionMode": "boundary-aware-local-switch",
+          "marginFactor": 0.5,
+          "projectionSlack": 0.1,
+          "boundaryMargin": 0.049621528504319126,
+          "boundarySegmentCount": 45,
+          "validationPointCount": 1147,
+          "decompileOracleCalls": 16245,
+          "validationOracleCalls": 1147,
+          "totalOracleCalls": 17392,
+          "coarseValidationMae": 0.00038401114658944026,
+          "coarseValidationR2": 0.9999979517358379,
+          "refinedValidationMae": 0.00011446562354314787,
+          "refinedValidationR2": 0.9999994011621302,
+          "maeImprovementRatio": 3.354816360605305,
+          "pass": true
+        }
+      }
+    }
+  ],
+  "runtimeMs": 70
+}

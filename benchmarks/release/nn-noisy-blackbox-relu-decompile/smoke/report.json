@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-05-26T10:54:00.217Z",
+  "task": "noise-tolerant black-box ReLU circuit decompilation",
+  "blackBox": {
+    "type": "1-input/5-hidden ReLU MLP teacher with noisy quantized oracle",
+    "visibilityToGcl": "oracle calls only: repeated noisy f(x), no hidden activations and no teacher weights"
+  },
+  "noise": {
+    "seed": 260523,
+    "noiseStd": 0.015,
+    "quantization": 0.005,
+    "querySamples": 41,
+    "aggregation": "median"
+  },
+  "config": {
+    "sampleMin": -3,
+    "sampleMax": 3,
+    "samples": 421,
+    "testRows": 801,
+    "maxTerms": 5
+  },
+  "auditTeacherCircuit": {
+    "hidden": [
+      {
+        "weight": 1,
+        "bias": 1.4,
+        "readout": 1.1
+      },
+      {
+        "weight": 1,
+        "bias": -0.25,
+        "readout": -0.7
+      },
+      {
+        "weight": 1,
+        "bias": -1.2,
+        "readout": 0.45
+      },
+      {
+        "weight": 1,
+        "bias": 2.15,
+        "readout": -0.3
+      },
+      {
+        "weight": 1,
+        "bias": -2.35,
+        "readout": 0.22
+      }
+    ],
+    "baseSlope": 0.35,
+    "bias": 0.25
+  },
+  "baselines": {
+    "linear": {
+      "expression": "1.0499990685268417 + 0.7713597649345675 * x",
+      "metrics": {
+        "mae": 0.15120045528613477,
+        "rmse": 0.19369260678286918,
+        "r2": 0.9794475248502086
+      }
+    }
+  },
+  "gcl": {
+    "expression": "0.2524028607 + 0.3512515424 * x + -0.2999742315 * max(0, x + 2.149634755) + 1.098188088 * max(0, x + 1.399890118) + -0.6967671892 * max(0, x - 0.2479024708) + 0.4476665148 * max(0, x - 1.201624206) + 0.2215098351 * max(0, x - 2.354042679)",
+    "baseIntercept": 0.25240286066834966,
+    "baseSlope": 0.35125154239380346,
+    "terms": [
+      {
+        "kink": -2.1496347548879644,
+        "deltaSlope": -0.29997423146942276
+      },
+      {
+        "kink": -1.399890117823775,
+        "deltaSlope": 1.0981880879551278
+      },
+      {
+        "kink": 0.2479024708187981,
+        "deltaSlope": -0.6967671891608378
+      },
+      {
+        "kink": 1.2016242062023788,
+        "deltaSlope": 0.44766651476192415
+      },
+      {
+        "kink": 2.3540426789506195,
+        "deltaSlope": 0.22150983506836286
+      }
+    ],
+    "plateaus": [
+      {
+        "startX": -3,
+        "endX": -2.1285714285714286,
+        "slope": 0.35125154239380346,
+        "intercept": 0.25240286066834966,
+        "intervals": 61
+      },
+      {
+        "startX": -2.1142857142857143,
+        "endX": -1.4142857142857144,
+        "slope": 0.05127731092438068,
+        "intercept": -0.3924321728691284,
+        "intervals": 49
+      },
+      {
+        "startX": -1.4,
+        "endX": 0.22857142857142865,
+        "slope": 1.1494653988795085,
+        "intercept": 1.1449104789710416,
+        "intervals": 114
+      },
+      {
+        "startX": 0.24285714285714288,
+        "endX": 1.2142857142857144,
+        "slope": 0.45269820971867064,
+        "intercept": 1.3176407867494822,
+        "intervals": 68
+      },
+      {
+        "startX": 1.2285714285714286,
+        "endX": 2.371428571428571,
+        "slope": 0.9003647244805948,
+        "intercept": 0.7797138663052996,
+        "intervals": 80
+      },
+      {
+        "startX": 2.385714285714286,
+        "endX": 3,
+        "slope": 1.1218745595489577,
+        "intercept": 0.25827026074706083,
+        "intervals": 43
+      }
+    ],
+    "metrics": {
+      "mae": 0.00045499051913615947,
+      "rmse": 0.0005687637588498858,
+      "r2": 0.9999998227844303
+    }
+  },
+  "gates": {
+    "pass": true,
+    "expectedKinks": [
+      -2.15,
+      -1.4,
+      0.25,
+      1.2,
+      2.35
+    ],
+    "recoveredKinks": [
+      -2.1496347548879644,
+      -1.399890117823775,
+      0.2479024708187981,
+      1.2016242062023788,
+      2.3540426789506195
+    ],
+    "maxKinkError": 0.004042678950619383,
+    "allKinksRecoveredWithin006": true,
+    "maeBelow002": true,
+    "r2Above0999": true,
+    "beatsLinearBy85Percent": true
+  },
+  "runtimeMs": 34
+}

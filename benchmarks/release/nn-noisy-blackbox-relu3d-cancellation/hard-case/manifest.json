@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:54:12.129Z",
+  "lane": "nn-noisy-blackbox-relu3d-cancellation",
+  "variant": "hard-case",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-noisy-blackbox-relu3d-cancellation.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-noisy-blackbox-relu3d-cancellation",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-noisy-blackbox-relu3d-cancellation/hard-case/report.json",
+    "reportMarkdown": "benchmarks/release/nn-noisy-blackbox-relu3d-cancellation/hard-case/report.md",
+    "manifest": "benchmarks/release/nn-noisy-blackbox-relu3d-cancellation/hard-case/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 2,
+    "passedTeachers": 2,
+    "maxRefinedMae": 0.002460569507680907,
+    "minRefinedR2": 0.9998556667060545,
+    "maxSliceOnlyMae": 0.09238225180212382,
+    "maxLinearMae": 0.2418874721820714,
+    "worstRefinedVsSliceRatio": 0.030106170881203917
+  },
+  "notes": [
+    "This benchmark promotes the previously exposed noisy 3D near-collision/cancellation failure into a release-gated hard case.",
+    "The gate checks functional symbolic surface recovery and improvement over slice-only stitching; it intentionally does not claim unique hidden-unit identity for cancelling pairs."
+  ]
+}

@@ -1,0 +1,237 @@
+{
+  "generatedAt": "2026-05-26T11:07:46.454Z",
+  "task": "oracle-guided subcell boundary adaptive probing for deep black-box ReLU 2D region graphs",
+  "blackBox": {
+    "type": "2-input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(x,y), not hidden activations, layer widths, or teacher weights"
+  },
+  "claimScope": {
+    "proves": "benchmark-scoped oracle-guided subcell validation that selects the lowest passing boundary-aware grid and records rejected too-coarse attempts",
+    "doesNotClaim": "learned hidden-layer identity, exact layer attribution, topology-perfect boundary localization, arbitrary deep ND extraction, or production API extraction"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "oracleReductionVsFixedAbove60Percent": true,
+    "totalOracleReductionVsBoundary57Above30Percent": true,
+    "maxMaeBelow0003": true,
+    "minR2Above99999": true,
+    "selectedBelow57Grid": true,
+    "recordsRejectedTooCoarseAttempt": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherResultsPassed": true,
+    "teacherCount": 3,
+    "passedTeachers": 3,
+    "selectedGridWidths": [
+      37,
+      37,
+      41
+    ],
+    "minOracleReductionVsFixed": 0.6560337221840996,
+    "minOracleReductionVsBoundary57": -0.00873965041398339,
+    "totalFixed101OracleCalls": 153015,
+    "totalBoundary57OracleCalls": 52176,
+    "totalSubcellAdaptiveOracleCalls": 33528,
+    "maxSubcellAdaptiveMae": 0.00028369625128190273,
+    "minSubcellAdaptiveR2": 0.9999902104233993,
+    "minHeldOutMaeImprovementRatio": 3.550430857520855,
+    "rejectedTooCoarseAttemptCount": 1,
+    "totalOracleReductionVsFixed": 0.780884227036565,
+    "totalOracleReductionVsBoundary57": 0.3574057037718491
+  },
+  "results": [
+    {
+      "teacherId": "fixed-deep-2d-1",
+      "seed": 1,
+      "pass": true,
+      "fixed101": {
+        "rawOracleCalls": 51005,
+        "metrics": {
+          "mae": 0.00014049304309741466,
+          "rmse": 0.0017084036629631343,
+          "r2": 0.9999994885132621
+        }
+      },
+      "boundaryRefined57": {
+        "totalOracleCalls": 17392,
+        "metrics": {
+          "mae": 0.000026582639555026506,
+          "rmse": 0.0012414465863897926,
+          "r2": 0.9999997299094017
+        }
+      },
+      "subcellAdaptive": {
+        "selectedGridWidth": 37,
+        "selectedGridHeight": 37,
+        "totalOracleCalls": 7992,
+        "selectedAttemptOracleCalls": 7992,
+        "oracleReductionVsFixed": 0.8433094794627978,
+        "oracleReductionVsBoundary57": 0.5404783808647654,
+        "heldOutMaeImprovementRatio": 12.427832541588089,
+        "attempts": [
+          {
+            "gridWidth": 37,
+            "gridHeight": 37,
+            "decompileOracleCalls": 6845,
+            "validationOracleCalls": 1147,
+            "totalOracleCalls": 7992,
+            "validationMae": 0.0000994255032829156,
+            "validationR2": 0.9999993792426545,
+            "coarseValidationMae": 0.00043220532032007533,
+            "coarseValidationR2": 0.9999973384759243,
+            "regionCount": 21,
+            "adjacencyEdgeCount": 43,
+            "compactBoundarySegmentCount": 43,
+            "boundaryCompressionRatio": 7.744186046511628,
+            "pass": true
+          }
+        ],
+        "coarseMetrics": {
+          "mae": 0.001135741054035116,
+          "rmse": 0.008658576328937503,
+          "r2": 0.9999868614823375
+        },
+        "metrics": {
+          "mae": 0.00009138689713065489,
+          "rmse": 0.0019417580348685146,
+          "r2": 0.9999993392402023
+        }
+      }
+    },
+    {
+      "teacherId": "random-deep-2d-29",
+      "seed": 29,
+      "pass": true,
+      "fixed101": {
+        "rawOracleCalls": 51005,
+        "metrics": {
+          "mae": 0.00009271955699529366,
+          "rmse": 0.001031765838728371,
+          "r2": 0.9999967687728304
+        }
+      },
+      "boundaryRefined57": {
+        "totalOracleCalls": 17392,
+        "metrics": {
+          "mae": 0.000014418830174100707,
+          "rmse": 0.0005702802534477756,
+          "r2": 0.9999990128529073
+        }
+      },
+      "subcellAdaptive": {
+        "selectedGridWidth": 37,
+        "selectedGridHeight": 37,
+        "totalOracleCalls": 7992,
+        "selectedAttemptOracleCalls": 7992,
+        "oracleReductionVsFixed": 0.8433094794627978,
+        "oracleReductionVsBoundary57": 0.5404783808647654,
+        "heldOutMaeImprovementRatio": 5.905371037810627,
+        "attempts": [
+          {
+            "gridWidth": 37,
+            "gridHeight": 37,
+            "decompileOracleCalls": 6845,
+            "validationOracleCalls": 1147,
+            "totalOracleCalls": 7992,
+            "validationMae": 0.00016032383021777355,
+            "validationR2": 0.999983249611247,
+            "coarseValidationMae": 0.000555297387939028,
+            "coarseValidationR2": 0.9999483865750811,
+            "regionCount": 18,
+            "adjacencyEdgeCount": 35,
+            "compactBoundarySegmentCount": 35,
+            "boundaryCompressionRatio": 9,
+            "pass": true
+          }
+        ],
+        "coarseMetrics": {
+          "mae": 0.0008226937356709518,
+          "rmse": 0.0051253308872291235,
+          "r2": 0.9999202649961387
+        },
+        "metrics": {
+          "mae": 0.00013931279345589763,
+          "rmse": 0.0017958884320687348,
+          "r2": 0.9999902104233993
+        }
+      }
+    },
+    {
+      "teacherId": "random-deep-2d-83",
+      "seed": 83,
+      "pass": true,
+      "fixed101": {
+        "rawOracleCalls": 51005,
+        "metrics": {
+          "mae": 0.00017751438215398696,
+          "rmse": 0.0016569027419748711,
+          "r2": 0.9999995367107568
+        }
+      },
+      "boundaryRefined57": {
+        "totalOracleCalls": 17392,
+        "metrics": {
+          "mae": 0.00007994248576966679,
+          "rmse": 0.0019390954369511407,
+          "r2": 0.9999993654635827
+        }
+      },
+      "subcellAdaptive": {
+        "selectedGridWidth": 41,
+        "selectedGridHeight": 41,
+        "totalOracleCalls": 17544,
+        "selectedAttemptOracleCalls": 9552,
+        "oracleReductionVsFixed": 0.6560337221840996,
+        "oracleReductionVsBoundary57": -0.00873965041398339,
+        "heldOutMaeImprovementRatio": 3.550430857520855,
+        "attempts": [
+          {
+            "gridWidth": 37,
+            "gridHeight": 37,
+            "decompileOracleCalls": 6845,
+            "validationOracleCalls": 1147,
+            "totalOracleCalls": 7992,
+            "validationMae": 0.0005176848185708746,
+            "validationR2": 0.9999961600176558,
+            "coarseValidationMae": 0.0008321357037883825,
+            "coarseValidationR2": 0.9999942879390761,
+            "regionCount": 18,
+            "adjacencyEdgeCount": 37,
+            "compactBoundarySegmentCount": 37,
+            "boundaryCompressionRatio": 7.621621621621622,
+            "pass": false
+          },
+          {
+            "gridWidth": 41,
+            "gridHeight": 41,
+            "decompileOracleCalls": 8405,
+            "validationOracleCalls": 1147,
+            "totalOracleCalls": 9552,
+            "validationMae": 0.0002747877594731933,
+            "validationR2": 0.9999966587628029,
+            "coarseValidationMae": 0.001066878870715028,
+            "coarseValidationR2": 0.9999869678177953,
+            "regionCount": 19,
+            "adjacencyEdgeCount": 41,
+            "compactBoundarySegmentCount": 41,
+            "boundaryCompressionRatio": 7.7560975609756095,
+            "pass": true
+          }
+        ],
+        "coarseMetrics": {
+          "mae": 0.001007243924714258,
+          "rmse": 0.007654173280332954,
+          "r2": 0.9999901132224414
+        },
+        "metrics": {
+          "mae": 0.00028369625128190273,
+          "rmse": 0.004782766980046564,
+          "r2": 0.999996139739367
+        }
+      }
+    }
+  ],
+  "runtimeMs": 87
+}

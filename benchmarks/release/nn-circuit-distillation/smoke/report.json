@@ -1,0 +1,136 @@
+{
+  "generatedAt": "2026-05-26T10:53:16.602Z",
+  "task": "tanh activation-access symbolic circuit distillation",
+  "teacher": {
+    "type": "3-input/3-hidden tanh MLP",
+    "hiddenActivationsVisible": true,
+    "readout": {
+      "weights": [
+        0.85,
+        -0.6,
+        0.42
+      ],
+      "bias": 0.1
+    }
+  },
+  "config": {
+    "activation": "tanh",
+    "stages": 2,
+    "population": 420,
+    "generations": 100,
+    "stagnationLimit": 45,
+    "seed": 5151
+  },
+  "rows": {
+    "train": 405,
+    "test": 256
+  },
+  "hidden": [
+    {
+      "neuron": 0,
+      "stagesRequested": 3,
+      "stagesAccepted": 1,
+      "expression": "1.0000000 * ((tanh (add (add (add const(0.19999999999999993) (mul const(1.1499999999997925) x)) (mul const(-0.7499999999998646) x1)) (mul const(0.34999999999991155) x2))))",
+      "featureUsage": {
+        "x": 1,
+        "x1": 1,
+        "x2": 1
+      },
+      "metrics": {
+        "mae": 3.307452239604408e-14,
+        "rmse": 4.045136140391727e-14,
+        "r2": 1
+      },
+      "stages": [
+        {
+          "stage": 1,
+          "expression": "(tanh (add (add (add const(0.19999999999999993) (mul const(1.1499999999997925) x)) (mul const(-0.7499999999998646) x1)) (mul const(0.34999999999991155) x2)))",
+          "coefficient": 1.000000000000052,
+          "fitness": 0.9999999999999651,
+          "generationsRun": 0,
+          "trainResidualMaeBefore": 0.7168544282962668,
+          "trainResidualMaeAfter": 3.4897897971603236e-14,
+          "validationResidualMaeBefore": 0.726021402768969,
+          "validationResidualMaeAfter": 3.0619721864332275e-14,
+          "accepted": true
+        }
+      ]
+    },
+    {
+      "neuron": 1,
+      "stagesRequested": 3,
+      "stagesAccepted": 1,
+      "expression": "1.0000000 * ((tanh (add (add (add const(-0.14999999999999997) (mul const(-0.5499999999999008) x)) (mul const(1.1999999999997832) x1)) (mul const(-0.24999999999993727) x2))))",
+      "featureUsage": {
+        "x": 1,
+        "x1": 1,
+        "x2": 1
+      },
+      "metrics": {
+        "mae": 3.051804821222262e-14,
+        "rmse": 3.646865632247329e-14,
+        "r2": 1
+      },
+      "stages": [
+        {
+          "stage": 1,
+          "expression": "(tanh (add (add (add const(-0.14999999999999997) (mul const(-0.5499999999999008) x)) (mul const(1.1999999999997832) x1)) (mul const(-0.24999999999993727) x2)))",
+          "coefficient": 1.0000000000000528,
+          "fitness": 0.9999999999999682,
+          "generationsRun": 0,
+          "trainResidualMaeBefore": 0.721411451927295,
+          "trainResidualMaeAfter": 3.164516295611147e-14,
+          "validationResidualMaeBefore": 0.7234392740191149,
+          "validationResidualMaeAfter": 3.001723740968808e-14,
+          "accepted": true
+        }
+      ]
+    },
+    {
+      "neuron": 2,
+      "stagesRequested": 3,
+      "stagesAccepted": 1,
+      "expression": "1.0000000 * ((tanh (add (add (add const(-5.2413491927984524e-17) (mul const(0.3499999999999368) x)) (mul const(0.44999999999991896) x1)) (mul const(1.0499999999997358) x2))))",
+      "featureUsage": {
+        "x": 1,
+        "x1": 1,
+        "x2": 1
+      },
+      "metrics": {
+        "mae": 3.7959767978674377e-14,
+        "rmse": 4.587380020786283e-14,
+        "r2": 1
+      },
+      "stages": [
+        {
+          "stage": 1,
+          "expression": "(tanh (add (add (add const(-5.2413491927984524e-17) (mul const(0.3499999999999368) x)) (mul const(0.44999999999991896) x1)) (mul const(1.0499999999997358) x2)))",
+          "coefficient": 1.0000000000000966,
+          "fitness": 0.9999999999999609,
+          "generationsRun": 0,
+          "trainResidualMaeBefore": 0.6072861491167015,
+          "trainResidualMaeAfter": 3.9106814785363124e-14,
+          "validationResidualMaeBefore": 0.8184072153436839,
+          "validationResidualMaeAfter": 5.483580839062261e-14,
+          "accepted": true
+        }
+      ]
+    }
+  ],
+  "output": {
+    "expression": "0.1 + 0.85 * h0 + -0.6 * h1 + 0.42 * h2",
+    "metrics": {
+      "mae": 4.1686164069243414e-14,
+      "rmse": 5.167986025173318e-14,
+      "r2": 1
+    }
+  },
+  "gates": {
+    "pass": true,
+    "maxHiddenMae": 3.7959767978674377e-14,
+    "maxHiddenMaeBelow003": true,
+    "outputR2Above0995": true,
+    "outputMaeBelow003": true
+  },
+  "runtimeMs": 7
+}

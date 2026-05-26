@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:54:27.658Z",
+  "lane": "nn-noisy-blackbox-relu2d-decompile",
+  "variant": "near-collision",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-noisy-blackbox-relu2d-decompile.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-noisy-blackbox-relu2d-near-collision",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "near-collision",
+    "GCL_NOISY_BLACKBOX_RELU2D_PROFILE": "near-collision"
+  },
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-noisy-blackbox-relu2d-decompile/near-collision/report.json",
+    "reportMarkdown": "benchmarks/release/nn-noisy-blackbox-relu2d-decompile/near-collision/report.md",
+    "manifest": "benchmarks/release/nn-noisy-blackbox-relu2d-decompile/near-collision/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "terms": 3,
+    "mae": 0.0006722872365325102,
+    "r2": 0.9999989686780545,
+    "maxDeltaError": 0.0009292241575582505,
+    "maxAlphaError": 0.0010249813300106658,
+    "maxBetaError": 0.0015874995441601258,
+    "noiseStd": 0.01,
+    "quantization": 0.0025,
+    "querySamples": 25
+  },
+  "notes": [
+    "This benchmark tests noisy and quantized 2D black-box ReLU decompilation from repeated oracle calls only.",
+    "It recovers near-collision non-vertical kink-line geometry; this is not arbitrary high-dimensional network decompilation."
+  ]
+}

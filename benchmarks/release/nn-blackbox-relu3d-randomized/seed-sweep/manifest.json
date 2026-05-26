@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T10:53:37.676Z",
+  "lane": "nn-blackbox-relu3d-randomized",
+  "variant": "seed-sweep",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-blackbox-relu3d-randomized.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-blackbox-relu3d-randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-blackbox-relu3d-randomized/seed-sweep/report.json",
+    "reportMarkdown": "benchmarks/release/nn-blackbox-relu3d-randomized/seed-sweep/report.md",
+    "manifest": "benchmarks/release/nn-blackbox-relu3d-randomized/seed-sweep/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "seedCount": 5,
+    "passedSeeds": 5,
+    "maxMae": 6.641245491222051e-16,
+    "minR2": 1,
+    "maxDeltaError": 1.887379141862766e-15,
+    "maxAlphaYError": 2.2620794126737565e-15,
+    "maxAlphaZError": 2.6645352591003757e-15,
+    "maxBetaError": 3.1086244689504383e-15
+  },
+  "notes": [
+    "This benchmark tests clean 3D black-box ReLU hyperplane stitching across deterministic randomized teachers.",
+    "It reduces hardcoded-teacher risk but still does not prove arbitrary ND, noisy randomized, or deep network decompilation."
+  ]
+}

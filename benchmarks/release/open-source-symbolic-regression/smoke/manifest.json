@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-24T08:01:36.789Z",
+  "lane": "open-source-symbolic-regression",
+  "variant": "smoke",
+  "status": "generated",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-open-source.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:opensource:gate",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/open-source-symbolic-regression/smoke/report.json",
+    "reportMarkdown": "benchmarks/release/open-source-symbolic-regression/smoke/report.md",
+    "manifest": "benchmarks/release/open-source-symbolic-regression/smoke/manifest.json"
+  },
+  "summary": {
+    "pureGclVsExternal": {
+      "status": "positive-smoke",
+      "taskCount": 4,
+      "winRate": 0.75,
+      "comparableRate": 1,
+      "failures": []
+    },
+    "hybridVsPureGcl": {
+      "status": "limited-pass",
+      "taskCount": 4,
+      "winRate": 0.5,
+      "regressionCount": 0,
+      "successRegressionCount": 0,
+      "solvedRate": 1,
+      "failures": [],
+      "recommendation": "gcl-hybrid passes this limited task set; run the wide production gate before promoting it."
+    }
+  },
+  "notes": [
+    "Raw benchmark report; benchmark-open-source-gate decides hard pass/fail status."
+  ]
+}

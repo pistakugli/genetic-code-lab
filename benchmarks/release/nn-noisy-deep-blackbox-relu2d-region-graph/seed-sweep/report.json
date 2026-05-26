@@ -1,0 +1,386 @@
+{
+  "generatedAt": "2026-05-26T11:07:37.698Z",
+  "task": "noisy randomized deep black-box ReLU 2D folded region-graph decompilation",
+  "blackBox": {
+    "type": "deterministic randomized 2-input / 4-hidden / 4-hidden / 1-output two-layer ReLU MLP teachers with stochastic output noise and quantization",
+    "visibilityToGcl": "oracle calls only: repeated noisy f(x,y), no hidden activations, layer widths, or teacher weights"
+  },
+  "claimScope": {
+    "proves": "noise-tolerant output-equivalent affine-region graph recovery across a deterministic deep folded 2D ReLU seed sweep",
+    "doesNotClaim": "unique original hidden-layer weight recovery, exact layer attribution, arbitrary deep ND network extraction, or production API extraction beyond the benchmark noise model"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 2,
+    "passedTeachers": 2,
+    "seeds": [
+      29,
+      83
+    ],
+    "minRegionCount": 125,
+    "minDeepOnlyRegionCount": 120,
+    "minAdjacencyEdges": 304,
+    "minKinkCellBoundaryCount": 2061,
+    "maxMae": 0.002394670345958939,
+    "minR2": 0.9999458398613055,
+    "maxPlaneMae": 0.9955250371622982,
+    "maxFirstLayerOnlyMae": 0.22297945356819124,
+    "totalRawOracleCalls": 1377810,
+    "maxRawOracleCallsPerTeacher": 688905
+  },
+  "results": [
+    {
+      "teacherId": "noisy-deep-2d-seed-29",
+      "seed": 29,
+      "pass": true,
+      "teacher": {
+        "id": "noisy-deep-2d-seed-29",
+        "seed": 29,
+        "l1": [
+          {
+            "w": [
+              -1.3831348640567889,
+              -0.001972432423689851
+            ],
+            "b": 0.701342384145914
+          },
+          {
+            "w": [
+              0.33146164896311076,
+              -1.0018147318164177
+            ],
+            "b": -0.2553121145398469
+          },
+          {
+            "w": [
+              0.8345581015243803,
+              -0.955129820870971
+            ],
+            "b": 0.3393128075071731
+          },
+          {
+            "w": [
+              -0.5968335828311492,
+              -0.4695577142102302
+            ],
+            "b": -0.7427728577915327
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.2848546894172716,
+              -0.18277258917016218,
+              0.7689145352075943,
+              -0.5665969988718601
+            ],
+            "b": -0.05500179301481867
+          },
+          {
+            "w": [
+              -0.41887471774488194,
+              0.3073876424854506,
+              -1.1841146301702734,
+              0.2945897869808504
+            ],
+            "b": 0.6246129876231896
+          },
+          {
+            "w": [
+              0.26594522738917287,
+              -1.2314444313956838,
+              0.7565586122512433,
+              -0.4805999681405723
+            ],
+            "b": 0.2504727477212183
+          },
+          {
+            "w": [
+              -1.2111054001153496,
+              0.24846004261957486,
+              -0.537944145284541,
+              0.6072553697947929
+            ],
+            "b": -0.5943852743081611
+          }
+        ],
+        "out": {
+          "w": [
+            0.8578003981502729,
+            -0.6512943895638867,
+            0.6248096943505198,
+            -0.7765374506418941
+          ],
+          "b": -0.05525335136358939,
+          "base": [
+            0.07846273666104558,
+            0.04321515246593874
+          ]
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 4891
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 125,
+        "deepOnlyRegionCount": 120,
+        "adjacencyEdgeCount": 304,
+        "kinkCellBoundaryCount": 2061
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            0.8829050284969567,
+            0.16501169857112208,
+            -0.21254110345305302
+          ],
+          "metrics": {
+            "mae": 0.38983740349822654,
+            "rmse": 0.4877116529000855,
+            "r2": 0.2783593074496723
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.12348985300342556,
+            0.019774974779729337,
+            0.013785313299886248,
+            0.45836508524609565,
+            -1.1782248365098376,
+            1.3597308422354866,
+            -0.7870685723043597
+          ],
+          "metrics": {
+            "mae": 0.04266156448840084,
+            "rmse": 0.057023137037715325,
+            "r2": 0.9901350029140569
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=125 adjacency=304 boundaries=304 grid=81x81 )",
+        "metrics": {
+          "mae": 0.0009792275289201855,
+          "rmse": 0.004225153669387499,
+          "r2": 0.9999458398613055
+        }
+      },
+      "queryBudget": {
+        "rawOracleCalls": 688905,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 4891
+      },
+      "gates": {
+        "recoveredAtLeast10Regions": true,
+        "recoveredAtLeast4DeepOnlyRegions": true,
+        "adjacencyAtLeast14": true,
+        "kinkCellBoundaryAtLeast250": true,
+        "maeBelow003": true,
+        "r2Above995": true,
+        "beatsFirstLayerOnlyBy4x": true,
+        "beatsPlaneBy20x": true,
+        "queryBudgetBelow800000": true
+      }
+    },
+    {
+      "teacherId": "noisy-deep-2d-seed-83",
+      "seed": 83,
+      "pass": true,
+      "teacher": {
+        "id": "noisy-deep-2d-seed-83",
+        "seed": 83,
+        "l1": [
+          {
+            "w": [
+              -1.475860481361625,
+              -0.006023732807958944
+            ],
+            "b": 0.3659109614937669
+          },
+          {
+            "w": [
+              -0.7715944958596866,
+              -0.3510821049498528
+            ],
+            "b": -0.5548588097606402
+          },
+          {
+            "w": [
+              -0.7939760836818514,
+              0.5417532248247285
+            ],
+            "b": -0.20127713694356109
+          },
+          {
+            "w": [
+              0.8938078015727524,
+              1.0660222623214144
+            ],
+            "b": 0.08143971351109414
+          }
+        ],
+        "l2": [
+          {
+            "w": [
+              0.8769293914241059,
+              -0.18228458423845897,
+              1.1270156520577295,
+              -0.4220650963923569
+            ],
+            "b": -0.40222213221920855
+          },
+          {
+            "w": [
+              -0.966544737295755,
+              0.8574019479960222,
+              -0.4745430414001858,
+              0.744902881700455
+            ],
+            "b": -0.4517709922061963
+          },
+          {
+            "w": [
+              0.7755929555656322,
+              -0.46080790409893535,
+              1.018450367207127,
+              -1.18532346234687
+            ],
+            "b": -0.6078053697550719
+          },
+          {
+            "w": [
+              -0.4404816222335041,
+              0.7246312138481357,
+              -1.0168152572371207,
+              0.45403020890804957
+            ],
+            "b": -0.265335495132334
+          }
+        ],
+        "out": {
+          "w": [
+            0.7637202040513233,
+            -0.8054729048958726,
+            1.1831156726396788,
+            -0.7851101870323626
+          ],
+          "b": -0.15262498651875647,
+          "base": [
+            -0.0840729088281029,
+            -0.013377311614693438
+          ]
+        }
+      },
+      "noise": {
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 21,
+        "aggregation": "median"
+      },
+      "config": {
+        "xRange": [
+          -2,
+          2
+        ],
+        "yRange": [
+          -2,
+          2
+        ],
+        "gridWidth": 81,
+        "gridHeight": 81,
+        "gradientStep": 0.075,
+        "slopeTolerance": 0.11,
+        "interceptTolerance": 0.18,
+        "testRows": 4891
+      },
+      "foldingEvidence": {
+        "firstLayerUnitCount": 4,
+        "secondLayerUnitCount": 4,
+        "recoveredRegionCount": 182,
+        "deepOnlyRegionCount": 177,
+        "adjacencyEdgeCount": 592,
+        "kinkCellBoundaryCount": 2206
+      },
+      "baselines": {
+        "plane": {
+          "coefficients": [
+            0.8685924674625883,
+            -1.887032487488372,
+            0.03660076509084091
+          ],
+          "metrics": {
+            "mae": 0.9955250371622982,
+            "rmse": 1.186394522457397,
+            "r2": 0.76231400200741
+          }
+        },
+        "firstLayerOnly": {
+          "coefficients": [
+            -0.14349663236955856,
+            0.6148436312986569,
+            0.4387934706041676,
+            1.1045412497432,
+            1.1762382949318173,
+            2.0324021510694585,
+            -1.3498863482116972
+          ],
+          "metrics": {
+            "mae": 0.22297945356819124,
+            "rmse": 0.29961004791678025,
+            "r2": 0.9848414353388946
+          }
+        }
+      },
+      "gcl": {
+        "recoveryKind": "output-equivalent-region-graph",
+        "expression": "region_graph( regions=182 adjacency=592 boundaries=592 grid=81x81 )",
+        "metrics": {
+          "mae": 0.002394670345958939,
+          "rmse": 0.009764933036247463,
+          "r2": 0.999983897849875
+        }
+      },
+      "queryBudget": {
+        "rawOracleCalls": 688905,
+        "aggregatedProbePoints": 32805,
+        "gridCells": 6561,
+        "testRows": 4891
+      },
+      "gates": {
+        "recoveredAtLeast10Regions": true,
+        "recoveredAtLeast4DeepOnlyRegions": true,
+        "adjacencyAtLeast14": true,
+        "kinkCellBoundaryAtLeast250": true,
+        "maeBelow003": true,
+        "r2Above995": true,
+        "beatsFirstLayerOnlyBy4x": true,
+        "beatsPlaneBy20x": true,
+        "queryBudgetBelow800000": true
+      }
+    }
+  ],
+  "runtimeMs": 387
+}

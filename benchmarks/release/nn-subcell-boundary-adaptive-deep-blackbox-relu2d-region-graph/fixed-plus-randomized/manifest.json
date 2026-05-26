@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-26T11:07:46.455Z",
+  "lane": "nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph",
+  "variant": "fixed-plus-randomized",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "db23684c8dde4567162d2ae217be2aeeac98590f",
+    "statusShort": "?? ./"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.json",
+    "reportMarkdown": "benchmarks/release/nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/report.md",
+    "manifest": "benchmarks/release/nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph/fixed-plus-randomized/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherResultsPassed": true,
+    "teacherCount": 3,
+    "passedTeachers": 3,
+    "selectedGridWidths": [
+      37,
+      37,
+      41
+    ],
+    "minOracleReductionVsFixed": 0.6560337221840996,
+    "minOracleReductionVsBoundary57": -0.00873965041398339,
+    "totalFixed101OracleCalls": 153015,
+    "totalBoundary57OracleCalls": 52176,
+    "totalSubcellAdaptiveOracleCalls": 33528,
+    "maxSubcellAdaptiveMae": 0.00028369625128190273,
+    "minSubcellAdaptiveR2": 0.9999902104233993,
+    "minHeldOutMaeImprovementRatio": 3.550430857520855,
+    "rejectedTooCoarseAttemptCount": 1,
+    "totalOracleReductionVsFixed": 0.780884227036565,
+    "totalOracleReductionVsBoundary57": 0.3574057037718491
+  },
+  "notes": [
+    "This benchmark records too-coarse candidate grids instead of silently promoting them.",
+    "The solver uses oracle-guided subcell validation to choose the lowest passing boundary-aware grid.",
+    "This is a query-budget and validation discipline gate, not a claim of exact hidden-layer recovery or topology-perfect boundary localization."
+  ]
+}
