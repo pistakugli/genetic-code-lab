@@ -377,6 +377,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler',
+    name: 'NN ND adjacency-geometry deep black-box ReLU region sampler',
+    status: 'production',
+    summary: 'Builds recovered ND region-adjacency geometry from affine-region sampler assignments using cross-region contact witnesses and affine-equality hyperplanes.',
+    scope: 'Black-box deep ReLU teacher benchmark; proves benchmark-scoped recovered ND adjacency geometry for clean and noisy 3D/4D folded ReLU region samplers. This does not claim topology-perfect full cell-complex recovery, unique hidden-layer weights, exact layer attribution, arbitrary production API extraction, or globally optimal query complexity.',
+    run: { label: 'NN ND adjacency-geometry deep black-box ReLU region-sampler benchmark', command: 'npm', args: ['run', 'benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler'] },
+    proofs: [
+      { label: 'NN ND adjacency-geometry deep black-box ReLU region-sampler benchmark', command: 'npm', args: ['run', 'benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler/3d-4d-clean-noisy/report.json',
+      'benchmarks/release/nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler/3d-4d-clean-noisy/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

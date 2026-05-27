@@ -52,6 +52,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler',
+        status: 'production'
       })
     ]));
   });

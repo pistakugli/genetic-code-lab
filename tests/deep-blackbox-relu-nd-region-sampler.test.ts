@@ -2,6 +2,7 @@ import {
   decompileDeepBlackBoxReluNdRegionSampler,
   predictDeepBlackBoxReluNdRegionSamplerBatch
 } from '../src/solvers/deep-blackbox-relu-nd-region-sampler';
+import { buildDeepBlackBoxReluNdAdjacencyGeometry } from '../src/solvers/deep-blackbox-relu-nd-adjacency-geometry';
 import { regressionMetrics } from '../src/solvers/symbolic-residual-ensemble';
 
 describe('deep black-box ReLU ND region sampler', () => {
@@ -144,6 +145,44 @@ describe('deep black-box ReLU ND region sampler', () => {
     expect(Math.max(...model.regions.map(region => region.fitRmse))).toBeLessThan(1e-8);
     expect(metrics.mae).toBeLessThan(0.008);
     expect(metrics.r2).toBeGreaterThan(0.9995);
+  });
+
+  it('recovers ND affine-region adjacency geometry with contact witnesses', () => {
+    const teacher = makeTeacher(29, 3);
+    const model = decompileDeepBlackBoxReluNdRegionSampler(
+      input => predictTeacher(teacher, input),
+      {
+        dimension: 3,
+        ranges: [[-2, 2], [-2, 2], [-2, 2]],
+        sampleCount: 6500,
+        gradientStep: 1e-5,
+        slopeTolerance: 1e-5,
+        interceptTolerance: 1e-5,
+        minRegionSupport: 6,
+        neighborCount: 11,
+        randomSeed: 260526
+      }
+    );
+    const geometry = buildDeepBlackBoxReluNdAdjacencyGeometry(model, {
+      assignmentSampleLimit: 1800,
+      neighborCount: 8,
+      minContactCount: 3,
+      minWitnessCount: 2,
+      minTransitionAgreement: 0.5,
+      maxNormalizedProjectionRmse: 0.75,
+      minPassingEdges: 18,
+      minLargestComponentRatio: 0.25
+    });
+
+    expect(geometry.pass).toBe(true);
+    expect(geometry.geometryKind).toBe('nd-affine-equality-contact-witness');
+    expect(geometry.dimension).toBe(3);
+    expect(geometry.edgeCount).toBeGreaterThanOrEqual(18);
+    expect(geometry.largestComponentRatio).toBeGreaterThan(0.25);
+    expect(geometry.maxNormalizedProjectionRmse).toBeLessThan(0.75);
+    expect(geometry.edges.every(edge => edge.pass)).toBe(true);
+    expect(geometry.edges.every(edge => edge.witnessCount >= 2)).toBe(true);
+    expect(geometry.edges.every(edge => edge.normal.length === 3)).toBe(true);
   });
 
   it('recovers noisy low-amplitude 3D folded ReLU behavior with local affine KNN prediction', () => {

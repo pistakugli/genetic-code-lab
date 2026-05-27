@@ -72,18 +72,21 @@ Phase 4: deep ND folded recovery.
   `benchmark:nn-deep-blackbox-relu-nd-region-sampler`, now hardened with
   `benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`
   and budget-hardened with
-  `benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`.
+  `benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`,
+  then geometry-hardened with
+  `benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`.
 - Current proof: controlled 3D/4D folded two-layer ReLU teachers recovered as
   output-equivalent affine-region samplers from oracle-only random local-gradient
   probes, with query-free kNN region assignment, noisy/quantized repeated-call
   aggregation, adaptive region-vote/local-affine KNN selection, sequential
   noisy holdout budget promotion with rejected-candidate accounting, query-
-  budget accounting, and a global-linear baseline gap.
+  budget accounting, recovered ND adjacency geometry from cross-region contact
+  witnesses plus affine-equality hyperplanes, and a global-linear baseline gap.
 - Required gates: deterministic randomized ND teachers, noisy/adaptive
   adversarial hard-profile sweeps, query-budget accounting, and baseline
   comparison against shallow/linear approximations. Next hardening step is
-  recovered-adjacency geometry beyond 2D and stronger external extraction
-  baselines.
+  stronger external extraction baselines and harder topology-perfect ND cell-
+  complex audits.
 
 Phase 5: layer attribution only with extra observability.
 
@@ -134,15 +137,17 @@ adversarial noisy folded-2D deep-ReLU lane are now release-gated robustness
 floors. GCL now has release-gated lower-budget deep-2D selection, boundary-
 refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
-geometry, and noisy/adaptive adversarial deep-ND folded recovery. The next
-capability jump is reducing deep-ND oracle cost while adding recovered-adjacency
-geometry beyond 2D.
+geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
+budget reduction, and recovered-adjacency geometry beyond 2D. The next
+capability jump is comparing against stronger extraction baselines while moving
+toward topology-perfect ND cell-complex audits.
 
 Target commands:
 
 - `npm run benchmark:nn-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`
+- `npm run benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`
 - `npm run benchmark:nn-noisy-deep-blackbox-relu2d-region-graph`
@@ -328,6 +333,22 @@ Current status:
   `75.913%`.
 - Adaptive-budget artifact:
   `benchmarks/release/nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler/3d-4d-budget-search/report.json`
+- ND adjacency-geometry benchmark PASS on 2026-05-27.
+- ND adjacency-geometry teachers: clean/noisy 3D/4D folded two-layer ReLU MLP
+  profiles, with no hidden teacher state exposed to GCL.
+- ND adjacency-geometry mechanism: recovered affine-region assignments are
+  scanned for cross-region nearest-neighbor contact witnesses; every passing
+  edge stores an affine-equality hyperplane and bounded projection residual.
+- ND adjacency-geometry passed teachers: 4/4.
+- ND adjacency-geometry min passing edges: `62`.
+- ND adjacency-geometry min largest-component ratio: `0.9622641509433962`.
+- ND adjacency-geometry max normalized projection RMSE:
+  `0.9926122288520228`.
+- ND adjacency-geometry max MAE: `0.035446586421537286`.
+- ND adjacency-geometry min R2: `0.9973558277920783`.
+- ND adjacency-geometry total raw oracle calls: `805100`.
+- ND adjacency-geometry artifact:
+  `benchmarks/release/nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler/3d-4d-clean-noisy/report.json`
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.
