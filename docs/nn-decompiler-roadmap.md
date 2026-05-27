@@ -70,16 +70,20 @@ Phase 4: deep ND folded recovery.
 
 - Status: first release-gated foundation via
   `benchmark:nn-deep-blackbox-relu-nd-region-sampler`, now hardened with
-  `benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`.
+  `benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`
+  and budget-hardened with
+  `benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`.
 - Current proof: controlled 3D/4D folded two-layer ReLU teachers recovered as
   output-equivalent affine-region samplers from oracle-only random local-gradient
   probes, with query-free kNN region assignment, noisy/quantized repeated-call
-  aggregation, adaptive region-vote/local-affine KNN selection, query-budget
-  accounting, and a global-linear baseline gap.
+  aggregation, adaptive region-vote/local-affine KNN selection, sequential
+  noisy holdout budget promotion with rejected-candidate accounting, query-
+  budget accounting, and a global-linear baseline gap.
 - Required gates: deterministic randomized ND teachers, noisy/adaptive
   adversarial hard-profile sweeps, query-budget accounting, and baseline
   comparison against shallow/linear approximations. Next hardening step is
-  stronger query reduction and recovered-adjacency geometry beyond 2D.
+  recovered-adjacency geometry beyond 2D and stronger external extraction
+  baselines.
 
 Phase 5: layer attribution only with extra observability.
 
@@ -138,6 +142,7 @@ Target commands:
 
 - `npm run benchmark:nn-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`
+- `npm run benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`
 - `npm run benchmark:nn-noisy-deep-blackbox-relu2d-region-graph`
@@ -302,6 +307,27 @@ Current status:
   `14132880`.
 - Noisy adaptive-adversarial artifact:
   `benchmarks/release/nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler/3d-4d-adaptive-search/report.json`
+- Adaptive-budget noisy deep ND benchmark PASS on 2026-05-27.
+- Adaptive-budget noisy deep ND teachers: same 7 generated 3D/4D folded
+  two-layer ReLU MLP hard profiles as the noisy adaptive-adversarial gate.
+- Adaptive-budget selection: sequential noisy holdout promotion over low/mid/high
+  region-vote/local-affine candidates, with rejected candidates written into the
+  report.
+- Adaptive-budget passed teachers: 7/7.
+- Adaptive-budget selected low/mid/high budgets: `6/0/1`.
+- Adaptive-budget selected local-affine KNN attempts: `3`.
+- Adaptive-budget rejected candidates recorded: `7`.
+- Adaptive-budget max attempted candidates per teacher: `5`.
+- Adaptive-budget max MAE: `0.03291800518211379`.
+- Adaptive-budget min R2: `0.9865538047691716`.
+- Adaptive-budget selected raw oracle calls: `1862760`.
+- Adaptive-budget adaptive-search raw oracle calls: `3404120`.
+- Adaptive-budget selected-call reduction vs previous noisy deep-ND release:
+  `56.418%`.
+- Adaptive-budget search-call reduction vs previous noisy adaptive-search cost:
+  `75.913%`.
+- Adaptive-budget artifact:
+  `benchmarks/release/nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler/3d-4d-budget-search/report.json`
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.

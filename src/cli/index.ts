@@ -362,6 +362,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler',
+    name: 'NN adaptive-budget noisy deep black-box ReLU ND region sampler',
+    status: 'production',
+    summary: 'Uses noisy held-out promotion to select the lowest sufficient region-sampler budget for 3D/4D folded ReLU black boxes while recording rejected candidates.',
+    scope: 'Black-box deep ReLU teacher benchmark; proves benchmark-scoped query-budget reduction for noisy/adaptive 3D/4D folded recovery with explicit failed-candidate accounting. This does not claim globally optimal query complexity, unique hidden-layer weights, exact layer attribution, topology-perfect ND region adjacency, or arbitrary production API extraction.',
+    run: { label: 'NN adaptive-budget noisy deep black-box ReLU ND region-sampler benchmark', command: 'npm', args: ['run', 'benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler'] },
+    proofs: [
+      { label: 'NN adaptive-budget noisy deep black-box ReLU ND region-sampler benchmark', command: 'npm', args: ['run', 'benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler/3d-4d-budget-search/report.json',
+      'benchmarks/release/nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler/3d-4d-budget-search/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

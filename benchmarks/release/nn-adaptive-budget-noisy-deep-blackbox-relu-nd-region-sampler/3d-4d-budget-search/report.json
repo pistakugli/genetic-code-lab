@@ -1,0 +1,816 @@
+{
+  "generatedAt": "2026-05-27T16:11:21.317Z",
+  "task": "adaptive-budget noisy deep black-box ReLU ND region sampling",
+  "blackBox": {
+    "type": "3D/4D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP adversarial teachers",
+    "visibilityToGcl": "noisy quantized oracle calls only: the decompiler receives repeated f(vector), not hidden activations, layer widths, or teacher weights"
+  },
+  "claimScope": {
+    "proves": "benchmark-scoped query-budget reduction for noisy deep-ND output-equivalent recovery using sequential noisy holdout promotion and explicit rejected-candidate accounting",
+    "doesNotClaim": "unique hidden-layer recovery, exact layer attribution, topology-perfect ND region adjacency, arbitrary production API extraction, or globally optimal query complexity"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "dimensionsCovered": true,
+    "adversarialProfilesCovered": true,
+    "adaptiveLocalAffineExercised": true,
+    "lowBudgetUsuallySelected": true,
+    "highBudgetEscalationExercised": true,
+    "rejectedCandidateLedgerPresent": true,
+    "maxCandidateAttemptsAtMost5": true,
+    "minRegionCountAtLeast5": true,
+    "medianDeepOnlyRegionsAbove10": true,
+    "maxMaeBelow0075": true,
+    "r2Above0975": true,
+    "noisySelectionR2Above098": true,
+    "beatsLinearBy2_5x": true,
+    "retainedSamplesAbove85Percent": true,
+    "selectedOracleReductionAbove50Percent": true,
+    "searchOracleReductionAbove65Percent": true,
+    "adaptiveSearchBelowPreviousSelectedCost": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 7,
+    "passedTeachers": 7,
+    "dimensions": [
+      3,
+      4
+    ],
+    "profiles": [
+      "near-parallel",
+      "cancellation",
+      "low-amplitude",
+      "mixed-oblique"
+    ],
+    "selectedLocalAffineCount": 3,
+    "selectedLowBudgetCount": 6,
+    "selectedMidBudgetCount": 0,
+    "selectedHighBudgetCount": 1,
+    "rejectedCandidateCount": 7,
+    "maxAttemptedCandidateCount": 5,
+    "minRegionCount": 5,
+    "medianDeepOnlyRegionEstimate": 22,
+    "minRetainedSampleRatio": 0.9516666666666667,
+    "maxMae": 0.03291800518211379,
+    "minR2": 0.9865538047691716,
+    "minSelectionR2": 0.9826927499278406,
+    "minLinearMaeImprovementRatio": 5.074298352405206,
+    "totalSelectedRawOracleCalls": 1862760,
+    "totalAdaptiveSearchRawOracleCalls": 3404120,
+    "previousReleaseReference": {
+      "selectedRawOracleCalls": 4274160,
+      "adaptiveSearchRawOracleCalls": 14132880,
+      "source": "nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler/3d-4d-adaptive-search"
+    },
+    "selectedOracleReduction": 0.5641810320624403,
+    "searchOracleReduction": 0.7591347269629403
+  },
+  "results": [
+    {
+      "teacherId": "near-parallel-3d-600",
+      "seed": 600,
+      "dimension": 3,
+      "profile": "near-parallel",
+      "pass": true,
+      "selectedAttempt": "high-region-vote",
+      "selectedBudgetLevel": "high",
+      "selectedPredictionMode": "region-vote",
+      "attemptedCandidateCount": 5,
+      "rejectedCandidateCount": 4,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 27,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 22,
+        "retainedSampleCount": 4098,
+        "droppedSampleCount": 102,
+        "retainedSampleRatio": 0.9757142857142858,
+        "maxRegionFitRmse": 0.12290398034386533,
+        "neighborCount": 13,
+        "localAffineNeighborCount": 48
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.011282288800366786,
+        "rmse": 0.03182739814993839,
+        "r2": 0.9865538047691716
+      },
+      "selectionMetrics": {
+        "mae": 0.011056014645839421,
+        "rmse": 0.035089584936327356,
+        "r2": 0.9826927499278406
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.1520828245374544,
+          "rmse": 0.19318567941844558,
+          "r2": 0.5046102712117417
+        },
+        "linearMaeImprovementRatio": 13.479784751876782
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 383880,
+        "adaptiveSearchRawOracleCalls": 1185800
+      },
+      "attempts": [
+        {
+          "label": "low-region-vote",
+          "budgetLevel": "low",
+          "predictionMode": "region-vote",
+          "noisyPromoted": false,
+          "rejectionReasons": [
+            "selection_r2"
+          ],
+          "regionCount": 17,
+          "retainedSampleRatio": 0.9820833333333333,
+          "selectionMetrics": {
+            "mae": 0.019157342123558494,
+            "rmse": 0.039183984823596016,
+            "r2": 0.9784406987894143
+          },
+          "cleanMetrics": {
+            "mae": 0.02402541721532679,
+            "rmse": 0.05888503494825281,
+            "r2": 0.9539735994258387
+          },
+          "queryBudget": {
+            "rawOracleCalls": 151200,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 152880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 9
+          }
+        },
+        {
+          "label": "low-local-affine",
+          "budgetLevel": "low",
+          "predictionMode": "local-affine-knn",
+          "noisyPromoted": false,
+          "rejectionReasons": [
+            "selection_r2"
+          ],
+          "regionCount": 18,
+          "retainedSampleRatio": 0.9845833333333334,
+          "selectionMetrics": {
+            "mae": 0.018352452668402415,
+            "rmse": 0.04383643385614838,
+            "r2": 0.9729889143683651
+          },
+          "cleanMetrics": {
+            "mae": 0.02083587504157379,
+            "rmse": 0.043808000155735806,
+            "r2": 0.9745255981967117
+          },
+          "queryBudget": {
+            "rawOracleCalls": 151200,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 152880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 9
+          }
+        },
+        {
+          "label": "mid-region-vote",
+          "budgetLevel": "mid",
+          "predictionMode": "region-vote",
+          "noisyPromoted": false,
+          "rejectionReasons": [
+            "selection_r2"
+          ],
+          "regionCount": 23,
+          "retainedSampleRatio": 0.983125,
+          "selectionMetrics": {
+            "mae": 0.01567177860105083,
+            "rmse": 0.045848006818632506,
+            "r2": 0.9704839388698336
+          },
+          "cleanMetrics": {
+            "mae": 0.01689477159694868,
+            "rmse": 0.04641527499026473,
+            "r2": 0.9714030975315331
+          },
+          "queryBudget": {
+            "rawOracleCalls": 246400,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 248080,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 11
+          }
+        },
+        {
+          "label": "mid-local-affine",
+          "budgetLevel": "mid",
+          "predictionMode": "local-affine-knn",
+          "noisyPromoted": false,
+          "rejectionReasons": [
+            "selection_r2"
+          ],
+          "regionCount": 22,
+          "retainedSampleRatio": 0.984375,
+          "selectionMetrics": {
+            "mae": 0.01774048655392133,
+            "rmse": 0.042667050301335864,
+            "r2": 0.9744107918908462
+          },
+          "cleanMetrics": {
+            "mae": 0.019937248389041817,
+            "rmse": 0.04242023386622947,
+            "r2": 0.9761140094823452
+          },
+          "queryBudget": {
+            "rawOracleCalls": 246400,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 248080,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 11
+          }
+        },
+        {
+          "label": "high-region-vote",
+          "budgetLevel": "high",
+          "predictionMode": "region-vote",
+          "noisyPromoted": true,
+          "rejectionReasons": [],
+          "regionCount": 27,
+          "retainedSampleRatio": 0.9757142857142858,
+          "selectionMetrics": {
+            "mae": 0.011056014645839421,
+            "rmse": 0.035089584936327356,
+            "r2": 0.9826927499278406
+          },
+          "cleanMetrics": {
+            "mae": 0.011282288800366786,
+            "rmse": 0.03182739814993839,
+            "r2": 0.9865538047691716
+          },
+          "queryBudget": {
+            "rawOracleCalls": 382200,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 383880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 13
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "cancellation-3d-617",
+      "seed": 617,
+      "dimension": 3,
+      "profile": "cancellation",
+      "pass": true,
+      "selectedAttempt": "low-region-vote",
+      "selectedBudgetLevel": "low",
+      "selectedPredictionMode": "region-vote",
+      "attemptedCandidateCount": 1,
+      "rejectedCandidateCount": 0,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 50,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 45,
+        "retainedSampleCount": 2284,
+        "droppedSampleCount": 116,
+        "retainedSampleRatio": 0.9516666666666667,
+        "maxRegionFitRmse": 0.04492367019601649,
+        "neighborCount": 11,
+        "localAffineNeighborCount": 40
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.0166405973899647,
+        "rmse": 0.05965241664933461,
+        "r2": 0.9994142796851194
+      },
+      "selectionMetrics": {
+        "mae": 0.019126903094573655,
+        "rmse": 0.07530954333028483,
+        "r2": 0.9990916592871938
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.7902537577788689,
+          "rmse": 0.9537687083027893,
+          "r2": 0.8502660292695788
+        },
+        "linearMaeImprovementRatio": 47.489506491842675
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 152880,
+        "adaptiveSearchRawOracleCalls": 152880
+      },
+      "attempts": [
+        {
+          "label": "low-region-vote",
+          "budgetLevel": "low",
+          "predictionMode": "region-vote",
+          "noisyPromoted": true,
+          "rejectionReasons": [],
+          "regionCount": 50,
+          "retainedSampleRatio": 0.9516666666666667,
+          "selectionMetrics": {
+            "mae": 0.019126903094573655,
+            "rmse": 0.07530954333028483,
+            "r2": 0.9990916592871938
+          },
+          "cleanMetrics": {
+            "mae": 0.0166405973899647,
+            "rmse": 0.05965241664933461,
+            "r2": 0.9994142796851194
+          },
+          "queryBudget": {
+            "rawOracleCalls": 151200,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 152880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 9
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "low-amplitude-3d-634",
+      "seed": 634,
+      "dimension": 3,
+      "profile": "low-amplitude",
+      "pass": true,
+      "selectedAttempt": "low-local-affine",
+      "selectedBudgetLevel": "low",
+      "selectedPredictionMode": "local-affine-knn",
+      "attemptedCandidateCount": 2,
+      "rejectedCandidateCount": 1,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 16,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 11,
+        "retainedSampleCount": 2392,
+        "droppedSampleCount": 8,
+        "retainedSampleRatio": 0.9966666666666667,
+        "maxRegionFitRmse": 0.09931513402669817,
+        "neighborCount": 11,
+        "localAffineNeighborCount": 40
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.014788524937942688,
+        "rmse": 0.022773619836573656,
+        "r2": 0.9980137957059823
+      },
+      "selectionMetrics": {
+        "mae": 0.016450817871442307,
+        "rmse": 0.02367462547540516,
+        "r2": 0.9975720476299238
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.21504732559907377,
+          "rmse": 0.27813129007761533,
+          "r2": 0.7037492328441568
+        },
+        "linearMaeImprovementRatio": 14.541499338269377
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 152880,
+        "adaptiveSearchRawOracleCalls": 305760
+      },
+      "attempts": [
+        {
+          "label": "low-region-vote",
+          "budgetLevel": "low",
+          "predictionMode": "region-vote",
+          "noisyPromoted": false,
+          "rejectionReasons": [
+            "selection_r2"
+          ],
+          "regionCount": 17,
+          "retainedSampleRatio": 0.9966666666666667,
+          "selectionMetrics": {
+            "mae": 0.05408205732675683,
+            "rmse": 0.08434244786012109,
+            "r2": 0.9691876111276957
+          },
+          "cleanMetrics": {
+            "mae": 0.05552860445242365,
+            "rmse": 0.08199647443462003,
+            "r2": 0.9742516062136872
+          },
+          "queryBudget": {
+            "rawOracleCalls": 151200,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 152880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 9
+          }
+        },
+        {
+          "label": "low-local-affine",
+          "budgetLevel": "low",
+          "predictionMode": "local-affine-knn",
+          "noisyPromoted": true,
+          "rejectionReasons": [],
+          "regionCount": 16,
+          "retainedSampleRatio": 0.9966666666666667,
+          "selectionMetrics": {
+            "mae": 0.016450817871442307,
+            "rmse": 0.02367462547540516,
+            "r2": 0.9975720476299238
+          },
+          "cleanMetrics": {
+            "mae": 0.014788524937942688,
+            "rmse": 0.022773619836573656,
+            "r2": 0.9980137957059823
+          },
+          "queryBudget": {
+            "rawOracleCalls": 151200,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 152880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 9
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "near-parallel-4d-700",
+      "seed": 700,
+      "dimension": 4,
+      "profile": "near-parallel",
+      "pass": true,
+      "selectedAttempt": "low-local-affine",
+      "selectedBudgetLevel": "low",
+      "selectedPredictionMode": "local-affine-knn",
+      "attemptedCandidateCount": 2,
+      "rejectedCandidateCount": 1,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 5,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 0,
+        "retainedSampleCount": 3600,
+        "droppedSampleCount": 0,
+        "retainedSampleRatio": 1,
+        "maxRegionFitRmse": 0.057534170209954556,
+        "neighborCount": 15,
+        "localAffineNeighborCount": 60
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.03291800518211379,
+        "rmse": 0.05300300066764125,
+        "r2": 0.989487792145741
+      },
+      "selectionMetrics": {
+        "mae": 0.031198880402599948,
+        "rmse": 0.049702008378277644,
+        "r2": 0.9907219998217379
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.16703577946006604,
+          "rmse": 0.20478082191245878,
+          "r2": 0.8430824246838062
+        },
+        "linearMaeImprovementRatio": 5.074298352405206
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 293280,
+        "adaptiveSearchRawOracleCalls": 586560
+      },
+      "attempts": [
+        {
+          "label": "low-region-vote",
+          "budgetLevel": "low",
+          "predictionMode": "region-vote",
+          "noisyPromoted": false,
+          "rejectionReasons": [
+            "region_count"
+          ],
+          "regionCount": 4,
+          "retainedSampleRatio": 0.9986111111111111,
+          "selectionMetrics": {
+            "mae": 0.014090012696217133,
+            "rmse": 0.04387734773014139,
+            "r2": 0.9927685431998007
+          },
+          "cleanMetrics": {
+            "mae": 0.012121689284268307,
+            "rmse": 0.03738881107304968,
+            "r2": 0.994769100985858
+          },
+          "queryBudget": {
+            "rawOracleCalls": 291600,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 293280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 9
+          }
+        },
+        {
+          "label": "low-local-affine",
+          "budgetLevel": "low",
+          "predictionMode": "local-affine-knn",
+          "noisyPromoted": true,
+          "rejectionReasons": [],
+          "regionCount": 5,
+          "retainedSampleRatio": 1,
+          "selectionMetrics": {
+            "mae": 0.031198880402599948,
+            "rmse": 0.049702008378277644,
+            "r2": 0.9907219998217379
+          },
+          "cleanMetrics": {
+            "mae": 0.03291800518211379,
+            "rmse": 0.05300300066764125,
+            "r2": 0.989487792145741
+          },
+          "queryBudget": {
+            "rawOracleCalls": 291600,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 293280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 9
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "cancellation-4d-717",
+      "seed": 717,
+      "dimension": 4,
+      "profile": "cancellation",
+      "pass": true,
+      "selectedAttempt": "low-region-vote",
+      "selectedBudgetLevel": "low",
+      "selectedPredictionMode": "region-vote",
+      "attemptedCandidateCount": 1,
+      "rejectedCandidateCount": 0,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 39,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 34,
+        "retainedSampleCount": 3503,
+        "droppedSampleCount": 97,
+        "retainedSampleRatio": 0.9730555555555556,
+        "maxRegionFitRmse": 0.0910715714217878,
+        "neighborCount": 15,
+        "localAffineNeighborCount": 60
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.030633755616588567,
+        "rmse": 0.07017571648002964,
+        "r2": 0.9991865130369987
+      },
+      "selectionMetrics": {
+        "mae": 0.03443420617454873,
+        "rmse": 0.07599455055690076,
+        "r2": 0.9991540328154574
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.8259336167607422,
+          "rmse": 1.0277123307134834,
+          "r2": 0.8255302972478136
+        },
+        "linearMaeImprovementRatio": 26.96155270996184
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 293280,
+        "adaptiveSearchRawOracleCalls": 293280
+      },
+      "attempts": [
+        {
+          "label": "low-region-vote",
+          "budgetLevel": "low",
+          "predictionMode": "region-vote",
+          "noisyPromoted": true,
+          "rejectionReasons": [],
+          "regionCount": 39,
+          "retainedSampleRatio": 0.9730555555555556,
+          "selectionMetrics": {
+            "mae": 0.03443420617454873,
+            "rmse": 0.07599455055690076,
+            "r2": 0.9991540328154574
+          },
+          "cleanMetrics": {
+            "mae": 0.030633755616588567,
+            "rmse": 0.07017571648002964,
+            "r2": 0.9991865130369987
+          },
+          "queryBudget": {
+            "rawOracleCalls": 291600,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 293280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 9
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "low-amplitude-4d-734",
+      "seed": 734,
+      "dimension": 4,
+      "profile": "low-amplitude",
+      "pass": true,
+      "selectedAttempt": "low-local-affine",
+      "selectedBudgetLevel": "low",
+      "selectedPredictionMode": "local-affine-knn",
+      "attemptedCandidateCount": 2,
+      "rejectedCandidateCount": 1,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 11,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 6,
+        "retainedSampleCount": 3593,
+        "droppedSampleCount": 7,
+        "retainedSampleRatio": 0.9980555555555556,
+        "maxRegionFitRmse": 0.15453257455749972,
+        "neighborCount": 15,
+        "localAffineNeighborCount": 60
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.02036945248336141,
+        "rmse": 0.03147107843448261,
+        "r2": 0.9876511384225717
+      },
+      "selectionMetrics": {
+        "mae": 0.022234845702228348,
+        "rmse": 0.03291313538221668,
+        "r2": 0.9845573234252493
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.12611489104164436,
+          "rmse": 0.16052359122233414,
+          "r2": 0.6787216903558984
+        },
+        "linearMaeImprovementRatio": 6.191373633859825
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 293280,
+        "adaptiveSearchRawOracleCalls": 586560
+      },
+      "attempts": [
+        {
+          "label": "low-region-vote",
+          "budgetLevel": "low",
+          "predictionMode": "region-vote",
+          "noisyPromoted": false,
+          "rejectionReasons": [
+            "selection_mae",
+            "selection_r2"
+          ],
+          "regionCount": 9,
+          "retainedSampleRatio": 0.9947222222222222,
+          "selectionMetrics": {
+            "mae": 0.08629315250711013,
+            "rmse": 0.12487644100445432,
+            "r2": 0.7777297069698309
+          },
+          "cleanMetrics": {
+            "mae": 0.10147503313082717,
+            "rmse": 0.14346305348969624,
+            "r2": 0.743383952105517
+          },
+          "queryBudget": {
+            "rawOracleCalls": 291600,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 293280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 9
+          }
+        },
+        {
+          "label": "low-local-affine",
+          "budgetLevel": "low",
+          "predictionMode": "local-affine-knn",
+          "noisyPromoted": true,
+          "rejectionReasons": [],
+          "regionCount": 11,
+          "retainedSampleRatio": 0.9980555555555556,
+          "selectionMetrics": {
+            "mae": 0.022234845702228348,
+            "rmse": 0.03291313538221668,
+            "r2": 0.9845573234252493
+          },
+          "cleanMetrics": {
+            "mae": 0.02036945248336141,
+            "rmse": 0.03147107843448261,
+            "r2": 0.9876511384225717
+          },
+          "queryBudget": {
+            "rawOracleCalls": 291600,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 293280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 9
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "mixed-oblique-4d-751",
+      "seed": 751,
+      "dimension": 4,
+      "profile": "mixed-oblique",
+      "pass": true,
+      "selectedAttempt": "low-region-vote",
+      "selectedBudgetLevel": "low",
+      "selectedPredictionMode": "region-vote",
+      "attemptedCandidateCount": 1,
+      "rejectedCandidateCount": 0,
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 38,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 33,
+        "retainedSampleCount": 3553,
+        "droppedSampleCount": 47,
+        "retainedSampleRatio": 0.9869444444444444,
+        "maxRegionFitRmse": 0.1300957704153794,
+        "neighborCount": 15,
+        "localAffineNeighborCount": 60
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.02436779540702078,
+        "rmse": 0.04926240884802072,
+        "r2": 0.998048097786422
+      },
+      "selectionMetrics": {
+        "mae": 0.02820385507900209,
+        "rmse": 0.05879254533107948,
+        "r2": 0.9965830445289798
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.447708284518771,
+          "rmse": 0.5691472374463068,
+          "r2": 0.7394590259796907
+        },
+        "linearMaeImprovementRatio": 18.372949913629796
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 293280,
+        "adaptiveSearchRawOracleCalls": 293280
+      },
+      "attempts": [
+        {
+          "label": "low-region-vote",
+          "budgetLevel": "low",
+          "predictionMode": "region-vote",
+          "noisyPromoted": true,
+          "rejectionReasons": [],
+          "regionCount": 38,
+          "retainedSampleRatio": 0.9869444444444444,
+          "selectionMetrics": {
+            "mae": 0.02820385507900209,
+            "rmse": 0.05879254533107948,
+            "r2": 0.9965830445289798
+          },
+          "cleanMetrics": {
+            "mae": 0.02436779540702078,
+            "rmse": 0.04926240884802072,
+            "r2": 0.998048097786422
+          },
+          "queryBudget": {
+            "rawOracleCalls": 291600,
+            "selectionOracleCalls": 1680,
+            "totalRawOracleCalls": 293280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 9
+          }
+        }
+      ]
+    }
+  ],
+  "runtimeMs": 2425
+}
