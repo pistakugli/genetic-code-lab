@@ -125,6 +125,7 @@ function main(): void {
     runStep('NN subcell-boundary adaptive deep black-box ReLU 2D region-graph benchmark', 'npm', ['run', 'benchmark:nn-subcell-boundary-adaptive-deep-blackbox-relu2d-region-graph'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN topology-boundary deep black-box ReLU 2D region-graph benchmark', 'npm', ['run', 'benchmark:nn-topology-boundary-deep-blackbox-relu2d-region-graph'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN deep black-box ReLU ND region-sampler benchmark', 'npm', ['run', 'benchmark:nn-deep-blackbox-relu-nd-region-sampler'], { timeoutMs: 4 * 60 * 1000 });
+    runStep('NN noisy adaptive-adversarial deep black-box ReLU ND region-sampler benchmark', 'npm', ['run', 'benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler'], { timeoutMs: 6 * 60 * 1000 });
     runStep('NN 2D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu2d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN randomized 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-randomized'], { timeoutMs: 3 * 60 * 1000 });

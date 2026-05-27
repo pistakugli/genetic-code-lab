@@ -69,14 +69,17 @@ Phase 3: compact/adaptive/topology boundary extraction.
 Phase 4: deep ND folded recovery.
 
 - Status: first release-gated foundation via
-  `benchmark:nn-deep-blackbox-relu-nd-region-sampler`.
+  `benchmark:nn-deep-blackbox-relu-nd-region-sampler`, now hardened with
+  `benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`.
 - Current proof: controlled 3D/4D folded two-layer ReLU teachers recovered as
   output-equivalent affine-region samplers from oracle-only random local-gradient
-  probes, with query-free kNN region assignment, query-budget accounting, and a
-  global-linear baseline gap.
-- Required gates: deterministic randomized ND teachers, query-budget accounting,
-  and baseline comparison against shallow/linear approximations. Next hardening
-  step is noisy/adaptive adversarial deep ND and stronger query reduction.
+  probes, with query-free kNN region assignment, noisy/quantized repeated-call
+  aggregation, adaptive region-vote/local-affine KNN selection, query-budget
+  accounting, and a global-linear baseline gap.
+- Required gates: deterministic randomized ND teachers, noisy/adaptive
+  adversarial hard-profile sweeps, query-budget accounting, and baseline
+  comparison against shallow/linear approximations. Next hardening step is
+  stronger query reduction and recovered-adjacency geometry beyond 2D.
 
 Phase 5: layer attribution only with extra observability.
 
@@ -126,13 +129,15 @@ The adaptive adversarial noisy 4D/5D ND shallow-ReLU lane and the adaptive
 adversarial noisy folded-2D deep-ReLU lane are now release-gated robustness
 floors. GCL now has release-gated lower-budget deep-2D selection, boundary-
 refined local switching, subcell-boundary adaptive validation with an explicit
-rejected-candidate ledger, and topology-preserving recovered-adjacency boundary
-geometry. The next capability jump is carrying these constraints into deep ND
-folded recovery.
+rejected-candidate ledger, topology-preserving recovered-adjacency boundary
+geometry, and noisy/adaptive adversarial deep-ND folded recovery. The next
+capability jump is reducing deep-ND oracle cost while adding recovered-adjacency
+geometry beyond 2D.
 
 Target commands:
 
 - `npm run benchmark:nn-deep-blackbox-relu-nd-region-sampler`
+- `npm run benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`
 - `npm run benchmark:nn-noisy-deep-blackbox-relu2d-region-graph`
@@ -278,6 +283,25 @@ Current status:
 - Deep ND total raw oracle calls: `315800`.
 - Deep ND artifact:
   `benchmarks/release/nn-deep-blackbox-relu-nd-region-sampler/3d-4d-seed-sweep/report.json`
+- Noisy adaptive-adversarial deep ND benchmark PASS on 2026-05-27.
+- Noisy adaptive-adversarial deep ND teachers: 7 generated 3D/4D folded
+  two-layer ReLU MLPs across near-parallel, cancellation, low-amplitude, and
+  mixed-oblique hard profiles.
+- Noisy adaptive-adversarial deep ND visibility: noisy/quantized oracle calls
+  only, `f(vector)`, no hidden activations, layer widths, or teacher weights.
+- Noisy adaptive-adversarial deep ND passed teachers: 7/7.
+- Noisy adaptive-adversarial selected local-affine KNN attempts: `2`.
+- Noisy adaptive-adversarial minimum recovered regions: `6`.
+- Noisy adaptive-adversarial median deep-only region estimate: `25`.
+- Noisy adaptive-adversarial max MAE: `0.026450213096249696`.
+- Noisy adaptive-adversarial min R2: `0.9830270507435355`.
+- Noisy adaptive-adversarial min global-linear MAE improvement ratio:
+  `7.392219720751436`.
+- Noisy adaptive-adversarial total selected raw oracle calls: `4274160`.
+- Noisy adaptive-adversarial total adaptive-search raw oracle calls:
+  `14132880`.
+- Noisy adaptive-adversarial artifact:
+  `benchmarks/release/nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler/3d-4d-adaptive-search/report.json`
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.

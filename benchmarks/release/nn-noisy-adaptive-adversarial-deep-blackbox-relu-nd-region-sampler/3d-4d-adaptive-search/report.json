@@ -1,0 +1,844 @@
+{
+  "generatedAt": "2026-05-27T15:04:03.038Z",
+  "task": "noisy adaptive-adversarial deep black-box ReLU ND region sampling",
+  "blackBox": {
+    "type": "3D/4D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP adversarial teachers",
+    "visibilityToGcl": "noisy quantized oracle calls only: the decompiler receives repeated f(vector), not hidden activations, layer widths, or teacher weights"
+  },
+  "claimScope": {
+    "proves": "benchmark-scoped noisy output-equivalent deep-ND recovery across generated near-parallel, cancellation, low-amplitude, and mixed-oblique folded teachers with adaptive region-vote/local-affine attempt selection",
+    "doesNotClaim": "unique hidden-layer recovery, exact layer attribution, topology-perfect ND region adjacency, arbitrary production API extraction, or superiority over all model-extraction algorithms"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "dimensionsCovered": true,
+    "adversarialProfilesCovered": true,
+    "adaptiveLocalAffineExercised": true,
+    "minRegionCountAtLeast5": true,
+    "medianDeepOnlyRegionsAbove10": true,
+    "maxMaeBelow0075": true,
+    "r2Above0975": true,
+    "beatsLinearBy2_5x": true,
+    "retainedSamplesAbove85Percent": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 7,
+    "passedTeachers": 7,
+    "dimensions": [
+      3,
+      4
+    ],
+    "profiles": [
+      "near-parallel",
+      "cancellation",
+      "low-amplitude",
+      "mixed-oblique"
+    ],
+    "selectedLocalAffineCount": 2,
+    "minRegionCount": 6,
+    "medianDeepOnlyRegionEstimate": 25,
+    "maxDeepOnlyRegionEstimate": 51,
+    "minRetainedSampleRatio": 0.9047619047619048,
+    "maxMae": 0.026450213096249696,
+    "minR2": 0.9830270507435355,
+    "minLinearMaeImprovementRatio": 7.392219720751436,
+    "totalSelectedRawOracleCalls": 4274160,
+    "totalAdaptiveSearchRawOracleCalls": 14132880
+  },
+  "results": [
+    {
+      "teacherId": "near-parallel-3d-600",
+      "seed": 600,
+      "dimension": 3,
+      "profile": "near-parallel",
+      "pass": true,
+      "selectedAttempt": "region-vote-screen",
+      "selectedPredictionMode": "region-vote",
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 30,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 25,
+        "retainedSampleCount": 4099,
+        "droppedSampleCount": 101,
+        "retainedSampleRatio": 0.9759523809523809,
+        "maxRegionFitRmse": 0.10904728200368315,
+        "neighborCount": 13,
+        "localAffineNeighborCount": 48
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.01084360634770528,
+        "rmse": 0.0358247952049752,
+        "r2": 0.9830270507435355
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.15257986758548048,
+          "rmse": 0.19426031501213803,
+          "r2": 0.5009339152543724
+        },
+        "linearMaeImprovementRatio": 14.070952291418193
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 385080,
+        "allAttemptRawOracleCalls": 1361040
+      },
+      "attempts": [
+        {
+          "label": "region-vote-screen",
+          "predictionMode": "region-vote",
+          "regionCount": 30,
+          "retainedSampleRatio": 0.9759523809523809,
+          "selectionMetrics": {
+            "mae": 0.011546061637335207,
+            "rmse": 0.037577712989494194,
+            "r2": 0.9810361639539408
+          },
+          "cleanMetrics": {
+            "mae": 0.01084360634770528,
+            "rmse": 0.0358247952049752,
+            "r2": 0.9830270507435355
+          },
+          "queryBudget": {
+            "rawOracleCalls": 382200,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 385080,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-screen",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 29,
+          "retainedSampleRatio": 0.98,
+          "selectionMetrics": {
+            "mae": 0.01601401200327173,
+            "rmse": 0.03622838440803368,
+            "r2": 0.9823613761260253
+          },
+          "cleanMetrics": {
+            "mae": 0.018570873555411923,
+            "rmse": 0.04158298784808373,
+            "r2": 0.9771323644186379
+          },
+          "queryBudget": {
+            "rawOracleCalls": 382200,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 385080,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-refined",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 26,
+          "retainedSampleRatio": 0.9916071428571429,
+          "selectionMetrics": {
+            "mae": 0.01681682633926273,
+            "rmse": 0.03841773239181615,
+            "r2": 0.9801612191799167
+          },
+          "cleanMetrics": {
+            "mae": 0.017168391591790035,
+            "rmse": 0.03871310764105512,
+            "r2": 0.9801798950301265
+          },
+          "queryBudget": {
+            "rawOracleCalls": 588000,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 590880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 15
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "cancellation-3d-617",
+      "seed": 617,
+      "dimension": 3,
+      "profile": "cancellation",
+      "pass": true,
+      "selectedAttempt": "region-vote-screen",
+      "selectedPredictionMode": "region-vote",
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 43,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 38,
+        "retainedSampleCount": 3800,
+        "droppedSampleCount": 400,
+        "retainedSampleRatio": 0.9047619047619048,
+        "maxRegionFitRmse": 0.02956851551161146,
+        "neighborCount": 13,
+        "localAffineNeighborCount": 48
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.009741056831680082,
+        "rmse": 0.043172758302539624,
+        "r2": 0.9996903905411649
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.7843126362376979,
+          "rmse": 0.9515948298844156,
+          "r2": 0.84958235851435
+        },
+        "linearMaeImprovementRatio": 80.51617496850433
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 385080,
+        "allAttemptRawOracleCalls": 1361040
+      },
+      "attempts": [
+        {
+          "label": "region-vote-screen",
+          "predictionMode": "region-vote",
+          "regionCount": 43,
+          "retainedSampleRatio": 0.9047619047619048,
+          "selectionMetrics": {
+            "mae": 0.007969369201051766,
+            "rmse": 0.03297958007455626,
+            "r2": 0.9998238371502484
+          },
+          "cleanMetrics": {
+            "mae": 0.009741056831680082,
+            "rmse": 0.043172758302539624,
+            "r2": 0.9996903905411649
+          },
+          "queryBudget": {
+            "rawOracleCalls": 382200,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 385080,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-screen",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 43,
+          "retainedSampleRatio": 0.909047619047619,
+          "selectionMetrics": {
+            "mae": 0.046458292913766,
+            "rmse": 0.0842092119734874,
+            "r2": 0.9988515013234565
+          },
+          "cleanMetrics": {
+            "mae": 0.048765428848941514,
+            "rmse": 0.08754841725237002,
+            "r2": 0.9987268158444207
+          },
+          "queryBudget": {
+            "rawOracleCalls": 382200,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 385080,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-refined",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 70,
+          "retainedSampleRatio": 0.95375,
+          "selectionMetrics": {
+            "mae": 0.035904495561402565,
+            "rmse": 0.061004994888522394,
+            "r2": 0.9993971884267474
+          },
+          "cleanMetrics": {
+            "mae": 0.043783348267864286,
+            "rmse": 0.07702092985023772,
+            "r2": 0.9990146009437599
+          },
+          "queryBudget": {
+            "rawOracleCalls": 588000,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 590880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 15
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "low-amplitude-3d-634",
+      "seed": 634,
+      "dimension": 3,
+      "profile": "low-amplitude",
+      "pass": true,
+      "selectedAttempt": "local-affine-refined",
+      "selectedPredictionMode": "local-affine-knn",
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 19,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 14,
+        "retainedSampleCount": 5562,
+        "droppedSampleCount": 38,
+        "retainedSampleRatio": 0.9932142857142857,
+        "maxRegionFitRmse": 0.08641718851724194,
+        "neighborCount": 15,
+        "localAffineNeighborCount": 64
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.01184634389739626,
+        "rmse": 0.01903670918550055,
+        "r2": 0.9985354232081954
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.21163811428982576,
+          "rmse": 0.274284078809296,
+          "r2": 0.6959607901340475
+        },
+        "linearMaeImprovementRatio": 17.865268484763664
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 590880,
+        "allAttemptRawOracleCalls": 1361040
+      },
+      "attempts": [
+        {
+          "label": "region-vote-screen",
+          "predictionMode": "region-vote",
+          "regionCount": 22,
+          "retainedSampleRatio": 0.9821428571428571,
+          "selectionMetrics": {
+            "mae": 0.026705661468268287,
+            "rmse": 0.0459595854268877,
+            "r2": 0.9909830732157023
+          },
+          "cleanMetrics": {
+            "mae": 0.027040967688068848,
+            "rmse": 0.045146780500655,
+            "r2": 0.9917627552951677
+          },
+          "queryBudget": {
+            "rawOracleCalls": 382200,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 385080,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-screen",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 25,
+          "retainedSampleRatio": 0.9883333333333333,
+          "selectionMetrics": {
+            "mae": 0.012443064183333932,
+            "rmse": 0.018927017784248434,
+            "r2": 0.9984715147012905
+          },
+          "cleanMetrics": {
+            "mae": 0.011927077679591443,
+            "rmse": 0.0186629569846851,
+            "r2": 0.998592367429723
+          },
+          "queryBudget": {
+            "rawOracleCalls": 382200,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 385080,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-refined",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 19,
+          "retainedSampleRatio": 0.9932142857142857,
+          "selectionMetrics": {
+            "mae": 0.012189706380852603,
+            "rmse": 0.018564999933587286,
+            "r2": 0.9985288547363697
+          },
+          "cleanMetrics": {
+            "mae": 0.01184634389739626,
+            "rmse": 0.01903670918550055,
+            "r2": 0.9985354232081954
+          },
+          "queryBudget": {
+            "rawOracleCalls": 588000,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 590880,
+            "finiteDifferenceCallsPerSample": 7,
+            "querySamples": 15
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "near-parallel-4d-700",
+      "seed": 700,
+      "dimension": 4,
+      "profile": "near-parallel",
+      "pass": true,
+      "selectedAttempt": "region-vote-screen",
+      "selectedPredictionMode": "region-vote",
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 6,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 1,
+        "retainedSampleCount": 6187,
+        "droppedSampleCount": 13,
+        "retainedSampleRatio": 0.9979032258064516,
+        "maxRegionFitRmse": 0.04489533693623711,
+        "neighborCount": 17,
+        "localAffineNeighborCount": 72
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.007067514420940592,
+        "rmse": 0.023178586888287504,
+        "r2": 0.9979918568178046
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.17131006581384875,
+          "rmse": 0.2079230286324319,
+          "r2": 0.8384057326299051
+        },
+        "linearMaeImprovementRatio": 24.23908259829906
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 728280,
+        "allAttemptRawOracleCalls": 2512440
+      },
+      "attempts": [
+        {
+          "label": "region-vote-screen",
+          "predictionMode": "region-vote",
+          "regionCount": 6,
+          "retainedSampleRatio": 0.9979032258064516,
+          "selectionMetrics": {
+            "mae": 0.01128026842920673,
+            "rmse": 0.035397343841434614,
+            "r2": 0.9953503955365641
+          },
+          "cleanMetrics": {
+            "mae": 0.007067514420940592,
+            "rmse": 0.023178586888287504,
+            "r2": 0.9979918568178046
+          },
+          "queryBudget": {
+            "rawOracleCalls": 725400,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 728280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-screen",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 7,
+          "retainedSampleRatio": 0.9993548387096775,
+          "selectionMetrics": {
+            "mae": 0.029741239563349363,
+            "rmse": 0.04703364248630047,
+            "r2": 0.9917898760234042
+          },
+          "cleanMetrics": {
+            "mae": 0.029563848447864055,
+            "rmse": 0.04871221388741478,
+            "r2": 0.9911305538598939
+          },
+          "queryBudget": {
+            "rawOracleCalls": 725400,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 728280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-refined",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 6,
+          "retainedSampleRatio": 0.9998717948717949,
+          "selectionMetrics": {
+            "mae": 0.02873995262247256,
+            "rmse": 0.04598265485886245,
+            "r2": 0.9921548075668303
+          },
+          "cleanMetrics": {
+            "mae": 0.02904250295316095,
+            "rmse": 0.04719360609273448,
+            "r2": 0.9916749453809252
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1053000,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 1055880,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 15
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "cancellation-4d-717",
+      "seed": 717,
+      "dimension": 4,
+      "profile": "cancellation",
+      "pass": true,
+      "selectedAttempt": "region-vote-screen",
+      "selectedPredictionMode": "region-vote",
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 56,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 51,
+        "retainedSampleCount": 5964,
+        "droppedSampleCount": 236,
+        "retainedSampleRatio": 0.9619354838709677,
+        "maxRegionFitRmse": 0.06517935112770054,
+        "neighborCount": 17,
+        "localAffineNeighborCount": 72
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.026450213096249696,
+        "rmse": 0.0761465985684092,
+        "r2": 0.9990384851356013
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.8251851255028345,
+          "rmse": 1.0285187018263833,
+          "r2": 0.8245798929250616
+        },
+        "linearMaeImprovementRatio": 31.19767400361078
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 728280,
+        "allAttemptRawOracleCalls": 2512440
+      },
+      "attempts": [
+        {
+          "label": "region-vote-screen",
+          "predictionMode": "region-vote",
+          "regionCount": 56,
+          "retainedSampleRatio": 0.9619354838709677,
+          "selectionMetrics": {
+            "mae": 0.023744999282407253,
+            "rmse": 0.059774981096683555,
+            "r2": 0.999451101611976
+          },
+          "cleanMetrics": {
+            "mae": 0.026450213096249696,
+            "rmse": 0.0761465985684092,
+            "r2": 0.9990384851356013
+          },
+          "queryBudget": {
+            "rawOracleCalls": 725400,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 728280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-screen",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 52,
+          "retainedSampleRatio": 0.9620967741935483,
+          "selectionMetrics": {
+            "mae": 0.06717734983193953,
+            "rmse": 0.09819452709067122,
+            "r2": 0.9985186508222549
+          },
+          "cleanMetrics": {
+            "mae": 0.0670874684685709,
+            "rmse": 0.1010492606877715,
+            "r2": 0.9983067492891697
+          },
+          "queryBudget": {
+            "rawOracleCalls": 725400,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 728280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-refined",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 58,
+          "retainedSampleRatio": 0.9816666666666667,
+          "selectionMetrics": {
+            "mae": 0.06628857452976869,
+            "rmse": 0.10155242300729327,
+            "r2": 0.9984156543163057
+          },
+          "cleanMetrics": {
+            "mae": 0.06511293081717089,
+            "rmse": 0.09707270065053598,
+            "r2": 0.9984373949975991
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1053000,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 1055880,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 15
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "low-amplitude-4d-734",
+      "seed": 734,
+      "dimension": 4,
+      "profile": "low-amplitude",
+      "pass": true,
+      "selectedAttempt": "local-affine-screen",
+      "selectedPredictionMode": "local-affine-knn",
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 19,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 14,
+        "retainedSampleCount": 6179,
+        "droppedSampleCount": 21,
+        "retainedSampleRatio": 0.9966129032258064,
+        "maxRegionFitRmse": 0.11598853943857072,
+        "neighborCount": 17,
+        "localAffineNeighborCount": 72
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.01737370491317421,
+        "rmse": 0.02638211049191521,
+        "r2": 0.9913035108728268
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.12843024408168252,
+          "rmse": 0.16372587084675286,
+          "r2": 0.6650657913105964
+        },
+        "linearMaeImprovementRatio": 7.392219720751436
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 728280,
+        "allAttemptRawOracleCalls": 2512440
+      },
+      "attempts": [
+        {
+          "label": "region-vote-screen",
+          "predictionMode": "region-vote",
+          "regionCount": 18,
+          "retainedSampleRatio": 0.9951612903225806,
+          "selectionMetrics": {
+            "mae": 0.05858737964133318,
+            "rmse": 0.08874883829414243,
+            "r2": 0.8977254105603963
+          },
+          "cleanMetrics": {
+            "mae": 0.05720809711512856,
+            "rmse": 0.08860348130339772,
+            "r2": 0.9019096101607029
+          },
+          "queryBudget": {
+            "rawOracleCalls": 725400,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 728280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-screen",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 19,
+          "retainedSampleRatio": 0.9966129032258064,
+          "selectionMetrics": {
+            "mae": 0.01868702890296645,
+            "rmse": 0.027938931202118253,
+            "r2": 0.9898775411519193
+          },
+          "cleanMetrics": {
+            "mae": 0.01737370491317421,
+            "rmse": 0.02638211049191521,
+            "r2": 0.9913035108728268
+          },
+          "queryBudget": {
+            "rawOracleCalls": 725400,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 728280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-refined",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 12,
+          "retainedSampleRatio": 0.9983333333333333,
+          "selectionMetrics": {
+            "mae": 0.018826894414150912,
+            "rmse": 0.029330360678108323,
+            "r2": 0.9888379185425211
+          },
+          "cleanMetrics": {
+            "mae": 0.01687505148414069,
+            "rmse": 0.02600581327830958,
+            "r2": 0.9915498237276976
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1053000,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 1055880,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 15
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "mixed-oblique-4d-751",
+      "seed": 751,
+      "dimension": 4,
+      "profile": "mixed-oblique",
+      "pass": true,
+      "selectedAttempt": "region-vote-screen",
+      "selectedPredictionMode": "region-vote",
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 47,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 42,
+        "retainedSampleCount": 6026,
+        "droppedSampleCount": 174,
+        "retainedSampleRatio": 0.9719354838709677,
+        "maxRegionFitRmse": 0.08576413384589905,
+        "neighborCount": 17,
+        "localAffineNeighborCount": 72
+      },
+      "noise": {
+        "std": 0.0025,
+        "quantization": 0.001
+      },
+      "metrics": {
+        "mae": 0.019791173183916613,
+        "rmse": 0.04170613434942041,
+        "r2": 0.9986468901298954
+      },
+      "baselines": {
+        "globalLinear": {
+          "mae": 0.4484283811675755,
+          "rmse": 0.5678853110019599,
+          "r2": 0.7491266918009312
+        },
+        "linearMaeImprovementRatio": 22.65799894732834
+      },
+      "queryBudget": {
+        "selectedRawOracleCalls": 728280,
+        "allAttemptRawOracleCalls": 2512440
+      },
+      "attempts": [
+        {
+          "label": "region-vote-screen",
+          "predictionMode": "region-vote",
+          "regionCount": 47,
+          "retainedSampleRatio": 0.9719354838709677,
+          "selectionMetrics": {
+            "mae": 0.02132419463611144,
+            "rmse": 0.046069555841886295,
+            "r2": 0.9981130784217223
+          },
+          "cleanMetrics": {
+            "mae": 0.019791173183916613,
+            "rmse": 0.04170613434942041,
+            "r2": 0.9986468901298954
+          },
+          "queryBudget": {
+            "rawOracleCalls": 725400,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 728280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-screen",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 47,
+          "retainedSampleRatio": 0.9682258064516129,
+          "selectionMetrics": {
+            "mae": 0.04279489052931508,
+            "rmse": 0.060321168288543475,
+            "r2": 0.9967649903189617
+          },
+          "cleanMetrics": {
+            "mae": 0.03902894245549006,
+            "rmse": 0.05520575991562376,
+            "r2": 0.9976291615010515
+          },
+          "queryBudget": {
+            "rawOracleCalls": 725400,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 728280,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 13
+          }
+        },
+        {
+          "label": "local-affine-refined",
+          "predictionMode": "local-affine-knn",
+          "regionCount": 47,
+          "retainedSampleRatio": 0.9902564102564102,
+          "selectionMetrics": {
+            "mae": 0.04016392978045289,
+            "rmse": 0.0560052578865886,
+            "r2": 0.997211524349894
+          },
+          "cleanMetrics": {
+            "mae": 0.03920102388219212,
+            "rmse": 0.05533332935386198,
+            "r2": 0.9976181917767848
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1053000,
+            "selectionOracleCalls": 2880,
+            "totalRawOracleCalls": 1055880,
+            "finiteDifferenceCallsPerSample": 9,
+            "querySamples": 15
+          }
+        }
+      ]
+    }
+  ],
+  "runtimeMs": 13362
+}

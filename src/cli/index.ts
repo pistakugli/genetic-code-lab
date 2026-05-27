@@ -347,6 +347,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler',
+    name: 'NN noisy adaptive-adversarial deep black-box ReLU ND region sampler',
+    status: 'production',
+    summary: 'Adapts between region-vote and local-affine KNN prediction to recover output-equivalent 3D/4D folded two-layer ReLU behavior from noisy quantized oracle calls.',
+    scope: 'Black-box deep ReLU teacher benchmark; proves benchmark-scoped noisy/adaptive output-equivalent recovery on generated near-parallel, cancellation, low-amplitude, and mixed-oblique 3D/4D folded teachers. This does not claim unique hidden-layer weights, exact layer attribution, topology-perfect ND region adjacency, arbitrary production API extraction, or superiority over all model-extraction algorithms.',
+    run: { label: 'NN noisy adaptive-adversarial deep black-box ReLU ND region-sampler benchmark', command: 'npm', args: ['run', 'benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler'] },
+    proofs: [
+      { label: 'NN noisy adaptive-adversarial deep black-box ReLU ND region-sampler benchmark', command: 'npm', args: ['run', 'benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler/3d-4d-adaptive-search/report.json',
+      'benchmarks/release/nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler/3d-4d-adaptive-search/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

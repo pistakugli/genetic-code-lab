@@ -30,6 +30,12 @@ describe('deep black-box ReLU ND region sampler', () => {
     return min + (max - min) * random();
   }
 
+  function gaussian(random: () => number): number {
+    const u1 = Math.max(1e-12, random());
+    const u2 = random();
+    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  }
+
   function dot(a: number[], b: number[]): number {
     return a.reduce((sum, value, index) => sum + value * b[index], 0);
   }
@@ -61,6 +67,35 @@ describe('deep black-box ReLU ND region sampler', () => {
         w: Array.from({ length: 4 }, (_, index) => {
           const sign = index % 2 === 0 ? 1 : -1;
           return sign * randomBetween(random, 0.3, 1.2);
+        }),
+        b: randomBetween(random, -0.1, 0.1),
+        base: Array.from({ length: dimension }, () => randomBetween(random, -0.06, 0.06))
+      }
+    };
+  }
+
+  function makeLowAmplitudeTeacher(seed: number, dimension: number): Teacher {
+    const random = makeRandom(seed);
+    const l1 = Array.from({ length: 4 }, () => ({
+      w: normalize(Array.from({ length: dimension }, () => randomBetween(random, -1, 1)))
+        .map(value => value * randomBetween(random, 0.45, 0.9)),
+      b: randomBetween(random, -0.75, 0.75)
+    }));
+    const l2 = Array.from({ length: 4 }, (_, unitIndex) => ({
+      w: Array.from({ length: 4 }, (_, weightIndex) => {
+        const sign = (unitIndex + weightIndex) % 2 === 0 ? 1 : -1;
+        return sign * randomBetween(random, 0.2, 1.0);
+      }),
+      b: randomBetween(random, -0.55, 0.55)
+    }));
+    return {
+      dimension,
+      l1,
+      l2,
+      out: {
+        w: Array.from({ length: 4 }, (_, index) => {
+          const sign = index % 2 === 0 ? 1 : -1;
+          return sign * randomBetween(random, 0.3, 1.2) * 0.65;
         }),
         b: randomBetween(random, -0.1, 0.1),
         base: Array.from({ length: dimension }, () => randomBetween(random, -0.06, 0.06))
@@ -109,5 +144,40 @@ describe('deep black-box ReLU ND region sampler', () => {
     expect(Math.max(...model.regions.map(region => region.fitRmse))).toBeLessThan(1e-8);
     expect(metrics.mae).toBeLessThan(0.008);
     expect(metrics.r2).toBeGreaterThan(0.9995);
+  });
+
+  it('recovers noisy low-amplitude 3D folded ReLU behavior with local affine KNN prediction', () => {
+    const teacher = makeLowAmplitudeTeacher(634, 3);
+    const noise = makeRandom(260630);
+    const noisyOracle = (input: number[]): number => {
+      const noisy = predictTeacher(teacher, input) + gaussian(noise) * 0.0025;
+      return Math.round(noisy / 0.001) * 0.001;
+    };
+    const model = decompileDeepBlackBoxReluNdRegionSampler(noisyOracle, {
+      dimension: 3,
+      ranges: [[-2, 2], [-2, 2], [-2, 2]],
+      sampleCount: 3600,
+      gradientStep: 0.085,
+      slopeTolerance: 0.22,
+      interceptTolerance: 0.44,
+      minRegionSupport: 6,
+      querySamples: 15,
+      aggregation: 'median',
+      neighborCount: 15,
+      predictionMode: 'local-affine-knn',
+      localAffineNeighborCount: 64,
+      randomSeed: 260631,
+      ridge: 1e-8
+    });
+    const inputs = makeValidationInputs(260632, 3, 1000);
+    const actual = inputs.map(input => predictTeacher(teacher, input));
+    const predicted = predictDeepBlackBoxReluNdRegionSamplerBatch(model, inputs);
+    const metrics = regressionMetrics(actual, predicted);
+
+    expect(model.predictionMode).toBe('local-affine-knn');
+    expect(model.regionCount).toBeGreaterThan(10);
+    expect(model.retainedSampleCount / model.sampleCount).toBeGreaterThan(0.9);
+    expect(metrics.mae).toBeLessThan(0.025);
+    expect(metrics.r2).toBeGreaterThan(0.998);
   });
 });

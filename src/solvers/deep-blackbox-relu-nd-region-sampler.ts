@@ -10,6 +10,7 @@ export type DeepBlackBoxReluNdRegionSamplerRegion = {
 export type DeepBlackBoxReluNdRegionSamplerAssignment = {
   input: number[];
   regionId: number;
+  target: number;
 };
 
 export type DeepBlackBoxReluNdRegionSamplerModel = {
@@ -23,6 +24,9 @@ export type DeepBlackBoxReluNdRegionSamplerModel = {
   aggregation: 'mean' | 'median' | 'trimmed-mean';
   trimFraction: number;
   neighborCount: number;
+  predictionMode: 'region-vote' | 'local-affine-knn';
+  localAffineNeighborCount: number;
+  ridge: number;
   recoveryKind: 'output-equivalent-nd-region-sampler';
   regions: DeepBlackBoxReluNdRegionSamplerRegion[];
   assignments: DeepBlackBoxReluNdRegionSamplerAssignment[];
@@ -42,6 +46,8 @@ export type DeepBlackBoxReluNdRegionSamplerConfig = {
   aggregation?: 'mean' | 'median' | 'trimmed-mean';
   trimFraction?: number;
   neighborCount?: number;
+  predictionMode?: 'region-vote' | 'local-affine-knn';
+  localAffineNeighborCount?: number;
   randomSeed?: number;
   ridge?: number;
 };
@@ -189,6 +195,7 @@ function buildExpression(model: Omit<DeepBlackBoxReluNdRegionSamplerModel, 'expr
     `regions=${model.regionCount}`,
     `samples=${model.retainedSampleCount}/${model.sampleCount}`,
     `k=${model.neighborCount}`,
+    `mode=${model.predictionMode}`,
     ')'
   ].join(' ');
 }
@@ -232,6 +239,9 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
   const aggregationMode = config.aggregation ?? 'mean';
   const trimFraction = Math.max(0, Math.min(0.45, config.trimFraction ?? 0.2));
   const neighborCount = Math.max(1, Math.floor(config.neighborCount ?? 11));
+  const predictionMode = config.predictionMode ?? 'region-vote';
+  const localAffineNeighborCount = Math.max(dimension + 2, Math.floor(config.localAffineNeighborCount ?? Math.max(neighborCount, 3 * (dimension + 1))));
+  const ridge = config.ridge ?? 1e-10;
   const random = makeRandom(config.randomSeed ?? 260526);
 
   const sampleOracle = (input: number[]): number => {
@@ -287,7 +297,7 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
   const clusterToRegion = new Map<number, number>();
   const regions: DeepBlackBoxReluNdRegionSamplerRegion[] = survivors.map((cluster, regionId) => {
     clusterToRegion.set(cluster.id, regionId);
-    const fit = fitAffine(cluster.samples, dimension, config.ridge ?? 1e-10, cluster.weights, cluster.intercept);
+    const fit = fitAffine(cluster.samples, dimension, ridge, cluster.weights, cluster.intercept);
     return {
       id: regionId,
       intercept: fit.intercept,
@@ -302,7 +312,7 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
   const assignments: DeepBlackBoxReluNdRegionSamplerAssignment[] = [];
   for (const sample of samples) {
     const regionId = clusterToRegion.get(sample.clusterId);
-    if (regionId !== undefined) assignments.push({ input: sample.input, regionId });
+    if (regionId !== undefined) assignments.push({ input: sample.input, regionId, target: sample.target });
   }
   if (assignments.length === 0) throw new Error('ND region sampler retained no region assignments');
 
@@ -317,6 +327,9 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
     aggregation: aggregationMode,
     trimFraction,
     neighborCount,
+    predictionMode,
+    localAffineNeighborCount,
+    ridge,
     recoveryKind: 'output-equivalent-nd-region-sampler' as const,
     regions,
     assignments,
@@ -333,6 +346,7 @@ export function predictDeepBlackBoxReluNdRegionSamplerModel(
   input: number[]
 ): number {
   if (input.length !== model.dimension) throw new Error('ND region sampler prediction dimension mismatch');
+  if (model.predictionMode === 'local-affine-knn') return predictLocalAffineKnn(model, input);
   const neighbors: Array<{ distance: number; regionId: number }> = [];
   for (const assignment of model.assignments) {
     insertNeighbor(
@@ -350,6 +364,45 @@ export function predictDeepBlackBoxReluNdRegionSamplerModel(
   const region = model.regions[selectedRegionId];
   const value = region.intercept + dot(region.weights, input);
   return Number.isFinite(value) ? value : 0;
+}
+
+function predictLocalAffineKnn(model: DeepBlackBoxReluNdRegionSamplerModel, input: number[]): number {
+  const neighbors: Array<{ distance: number; assignment: DeepBlackBoxReluNdRegionSamplerAssignment }> = [];
+  for (const assignment of model.assignments) {
+    const candidate = { distance: squaredDistance(input, assignment.input), assignment };
+    let index = 0;
+    while (index < neighbors.length && neighbors[index].distance <= candidate.distance) index++;
+    if (index >= model.localAffineNeighborCount) continue;
+    neighbors.splice(index, 0, candidate);
+    if (neighbors.length > model.localAffineNeighborCount) neighbors.pop();
+  }
+  if (neighbors.length < model.dimension + 1) return predictRegionVoteFallback(model, input);
+  const width = model.dimension + 1;
+  const xtx = Array.from({ length: width }, () => new Array(width).fill(0));
+  const xty = new Array(width).fill(0);
+  for (const neighbor of neighbors) {
+    const row = [1, ...neighbor.assignment.input];
+    const weight = 1 / Math.max(1e-8, neighbor.distance);
+    for (let i = 0; i < width; i++) {
+      xty[i] += weight * row[i] * neighbor.assignment.target;
+      for (let j = 0; j < width; j++) xtx[i][j] += weight * row[i] * row[j];
+    }
+  }
+  for (let i = 1; i < width; i++) xtx[i][i] += model.ridge;
+  try {
+    const coefficients = solveSystem(xtx, xty);
+    const value = coefficients[0] + dot(coefficients.slice(1), input);
+    return Number.isFinite(value) ? value : predictRegionVoteFallback(model, input);
+  } catch {
+    return predictRegionVoteFallback(model, input);
+  }
+}
+
+function predictRegionVoteFallback(model: DeepBlackBoxReluNdRegionSamplerModel, input: number[]): number {
+  const previousMode = model.predictionMode;
+  const fallbackModel = { ...model, predictionMode: 'region-vote' as const };
+  const value = predictDeepBlackBoxReluNdRegionSamplerModel(fallbackModel, input);
+  return Number.isFinite(value) ? value : previousMode === 'local-affine-knn' ? 0 : value;
 }
 
 export function predictDeepBlackBoxReluNdRegionSamplerBatch(
