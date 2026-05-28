@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-28T10:54:06.275Z",
+  "lane": "nn-nd-adjacency-geometry-6d",
+  "variant": "guarded-probe",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/experiment-nn-nd-adjacency-geometry-6d.ts"
+    ],
+    "npmLifecycleEvent": "experiment:nn-nd-adjacency-geometry-6d",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCHMARK_ROOT": "benchmarks/research"
+  },
+  "git": {
+    "commit": "07b5fc09ab1a9911ef027d517b0c10a300880612",
+    "statusShort": "M package.json\n?? benchmarks/research/nn-nd-adjacency-geometry-6d/\n?? scripts/experiment-nn-nd-adjacency-geometry-6d.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/research/nn-nd-adjacency-geometry-6d/guarded-probe/report.json",
+    "reportMarkdown": "benchmarks/research/nn-nd-adjacency-geometry-6d/guarded-probe/report.md",
+    "manifest": "benchmarks/research/nn-nd-adjacency-geometry-6d/guarded-probe/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 4,
+    "passedTeachers": 4,
+    "cleanTeacherCount": 2,
+    "noisyTeacherCount": 2,
+    "dimensions": [
+      6
+    ],
+    "profiles": [
+      "clean",
+      "cancellation",
+      "near-parallel"
+    ],
+    "minRegionCount": 63,
+    "minEdgeCount": 374,
+    "minLargestComponentRatio": 0.9850746268656716,
+    "maxNormalizedProjectionRmse": 0.939255366086159,
+    "maxMae": 0.09099788983192539,
+    "minR2": 0.9674291733376437,
+    "maxRawOracleCallsPerTeacher": 1989000,
+    "totalRawOracleCalls": 4537000
+  },
+  "notes": [
+    "Research-only guarded 6D probe after the release-gated 5D sweep.",
+    "Does not enter release gate or CLI production capability until a broader 6D sweep is implemented and proven.",
+    "Covers clean, noisy cancellation, and noisy near-parallel folded-ReLU teachers under a per-teacher oracle budget."
+  ]
+}

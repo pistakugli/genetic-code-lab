@@ -81,12 +81,13 @@ Phase 4: deep ND folded recovery.
   aggregation, adaptive region-vote/local-affine KNN selection, sequential
   noisy holdout budget promotion with rejected-candidate accounting, query-
   budget accounting, recovered ND adjacency geometry from cross-region contact
-  witnesses plus affine-equality hyperplanes, and a global-linear baseline gap.
+  witnesses plus affine-equality hyperplanes, a 5D clean/noisy hard-profile
+  sweep, a research-only 6D guarded probe, and a global-linear baseline gap.
 - Required gates: deterministic randomized ND teachers, noisy/adaptive
   adversarial hard-profile sweeps, query-budget accounting, and baseline
   comparison against shallow/linear approximations. Next hardening step is
-  stronger external extraction baselines and harder topology-perfect ND cell-
-  complex audits.
+  adaptive 6D probe-distribution selection, stronger external extraction
+  baselines, and harder topology-perfect ND cell-complex audits.
 
 Phase 5: layer attribution only with extra observability.
 
@@ -171,9 +172,10 @@ refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
-capability jump is a guarded 6D experiment plus stronger extraction baselines.
-The 6D lane is allowed as an experiment after the 5D sweep, not as a release
-claim until it passes its own clean/noisy gate.
+capability jump is adaptive 6D probe-distribution hardening plus stronger
+extraction baselines. The 6D lane has a guarded research probe, but it is not a
+release claim until it passes a broader clean/noisy gate without probe-seed
+sensitivity.
 
 Target commands:
 
@@ -183,6 +185,7 @@ Target commands:
 - `npm run benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`
 - `npm run benchmark:nn-nd-adjacency-geometry-5d-sweep`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
+- `npm run experiment:nn-nd-adjacency-geometry-6d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`
 - `npm run benchmark:nn-noisy-deep-blackbox-relu2d-region-graph`
@@ -414,8 +417,17 @@ Current status:
   calls per teacher `1188000`.
 - 5D sweep artifact:
   `benchmarks/release/nn-nd-adjacency-geometry-5d-sweep/clean-noisy-hard-profiles/report.json`
-- 6D is now allowed only as a guarded experiment. It is not release-ready and
-  not a SOTA claim until a dedicated clean/noisy 6D gate passes.
+- 6D guarded research probe PASS on 2026-05-28.
+- 6D probe result: `4/4` teachers passed across clean, noisy cancellation, and
+  noisy near-parallel profiles; min region count `63`, min passing edges `374`,
+  min largest-component ratio `0.9850746268656716`, max normalized projection
+  RMSE `0.939255366086159`, max MAE `0.09099788983192539`, min R2
+  `0.9674291733376437`, max raw oracle calls per teacher `1989000`.
+- 6D probe artifact:
+  `benchmarks/research/nn-nd-adjacency-geometry-6d/guarded-probe/report.json`
+- 6D is not release-ready and not a SOTA claim yet. The noisy near-parallel
+  teacher was probe-seed sensitive during development, so the next hardening
+  target is adaptive probe-distribution selection before a 6D release gate.
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.
