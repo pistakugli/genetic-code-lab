@@ -392,6 +392,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-nd-adjacency-geometry-5d-sweep',
+    name: 'NN ND adjacency-geometry 5D sweep',
+    status: 'production',
+    summary: 'Extends recovered ND adjacency geometry to a clean/noisy 5D folded-ReLU sweep with explicit region-count and query-budget gates.',
+    scope: 'Black-box deep ReLU teacher benchmark; proves benchmark-scoped recovered 5D adjacency geometry across clean, low-amplitude, cancellation, near-parallel, and weak-support folded teachers. This does not claim 6D readiness, topology-perfect full cell-complex recovery, unique hidden-layer weights, exact layer attribution, arbitrary production API extraction, or superiority over all model-extraction algorithms.',
+    run: { label: 'NN ND adjacency-geometry 5D sweep benchmark', command: 'npm', args: ['run', 'benchmark:nn-nd-adjacency-geometry-5d-sweep'] },
+    proofs: [
+      { label: 'NN ND adjacency-geometry 5D sweep benchmark', command: 'npm', args: ['run', 'benchmark:nn-nd-adjacency-geometry-5d-sweep'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-nd-adjacency-geometry-5d-sweep/clean-noisy-hard-profiles/report.json',
+      'benchmarks/release/nn-nd-adjacency-geometry-5d-sweep/clean-noisy-hard-profiles/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

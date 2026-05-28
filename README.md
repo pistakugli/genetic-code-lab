@@ -127,7 +127,7 @@ Release-gate status:
 - default promotion recommendation is `promote-candidate`
 - promotion must not regress exact accuracy, boundary total, or fitness
 
-`npm run release:gate` is green as of 2026-05-21. This is a release-lane proof, not a promotion of scratch experiments, not a pure-GCL superiority claim, and not a SOTA claim.
+`npm run release:gate` is green as of 2026-05-28 after the 5D clean/noisy ND adjacency-geometry sweep addition. This is a release-lane proof, not a promotion of scratch experiments, not a pure-GCL superiority claim, and not a SOTA claim.
 
 See `docs/release-lane-status.md` for the explicit stable/opt-in/research lane matrix.
 

@@ -139,8 +139,9 @@ refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
-capability jump is a release-candidate 5D sweep plus stronger extraction
-baselines before any 6D attempt.
+capability jump is a guarded 6D experiment plus stronger extraction baselines.
+The 6D lane is allowed as an experiment after the 5D sweep, not as a release
+claim until it passes its own clean/noisy gate.
 
 Target commands:
 
@@ -148,6 +149,7 @@ Target commands:
 - `npm run benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`
+- `npm run benchmark:nn-nd-adjacency-geometry-5d-sweep`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`
@@ -366,8 +368,22 @@ Current status:
   `0.5429795030091397`.
 - 5D probe artifact:
   `benchmarks/research/nn-nd-adjacency-geometry-5d/single-probe/report.json`
-- 5D next gate: a multi-seed clean/noisy release-candidate sweep. 6D stays
-  blocked until that 5D sweep passes.
+- 5D clean/noisy sweep PASS on 2026-05-28.
+- First 5D sweep attempt failed correctly instead of being hidden: clean/noisy
+  accuracy passed, but low-amplitude and near-parallel profiles collapsed below
+  the `regionCount > 50` gate. The repaired benchmark tightened per-profile
+  noisy clustering and increased sample budgets while keeping each teacher
+  below `2000000` raw oracle calls.
+- 5D sweep result: `6/6` teachers passed across clean, low-amplitude,
+  cancellation, near-parallel, and weak-support profiles; min region count
+  `57`, min passing edges `462`, min largest-component ratio
+  `0.9672131147540983`, max normalized projection RMSE `1.2786982674727818`,
+  max MAE `0.07984871493240715`, min R2 `0.985430220526229`, max raw oracle
+  calls per teacher `1188000`.
+- 5D sweep artifact:
+  `benchmarks/release/nn-nd-adjacency-geometry-5d-sweep/clean-noisy-hard-profiles/report.json`
+- 6D is now allowed only as a guarded experiment. It is not release-ready and
+  not a SOTA claim until a dedicated clean/noisy 6D gate passes.
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.

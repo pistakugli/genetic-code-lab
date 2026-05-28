@@ -56,6 +56,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-nd-adjacency-geometry-5d-sweep',
+        status: 'production'
       })
     ]));
   });

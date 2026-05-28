@@ -1,0 +1,876 @@
+{
+  "generatedAt": "2026-05-28T06:29:08.385Z",
+  "task": "5D clean/noisy recovered-adjacency geometry sweep for deep black-box ReLU region samplers",
+  "blackBox": {
+    "type": "5D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(vector), not hidden activations, layer widths, teacher weights, or true region adjacency"
+  },
+  "claimScope": {
+    "proves": "benchmark-scoped 5D clean/noisy ND adjacency geometry recovered from affine-region assignments across multiple deterministic folded-ReLU hard profiles",
+    "doesNotClaim": "6D readiness, topology-perfect full ND cell-complex recovery, unique hidden-layer identity, exact layer attribution, arbitrary production API extraction, or superiority over all model-extraction algorithms"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "cleanAndNoisyCovered": true,
+    "only5dTeachers": true,
+    "hardProfilesCovered": true,
+    "minRegionCountAbove50": true,
+    "minEdgesAtLeast30": true,
+    "largestComponentRatioAtLeast12Percent": true,
+    "normalizedProjectionRmseAtMost1_95": true,
+    "cleanR2Above099": true,
+    "noisyR2Above097": true,
+    "maxRawOracleCallsPerTeacherBelow2M": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 6,
+    "passedTeachers": 6,
+    "cleanTeacherCount": 2,
+    "noisyTeacherCount": 4,
+    "dimensions": [
+      5
+    ],
+    "profiles": [
+      "clean",
+      "low-amplitude",
+      "cancellation",
+      "near-parallel",
+      "weak-support"
+    ],
+    "minRegionCount": 57,
+    "minEdgeCount": 462,
+    "minLargestComponentRatio": 0.9672131147540983,
+    "maxNormalizedProjectionRmse": 1.2786982674727818,
+    "maxMae": 0.07984871493240715,
+    "minR2": 0.985430220526229,
+    "maxRawOracleCallsPerTeacher": 1188000,
+    "totalRawOracleCalls": 5049000
+  },
+  "results": [
+    {
+      "teacherId": "clean-5d-29",
+      "seed": 29,
+      "dimension": 5,
+      "profile": "clean",
+      "noisy": false,
+      "pass": true,
+      "criteria": {
+        "geometryPass": true,
+        "edgeCountEnough": true,
+        "largestComponentEnough": true,
+        "projectionRmseBounded": true,
+        "maeBelowGate": true,
+        "r2AboveGate": true,
+        "regionCountAbove50": true,
+        "oracleCallsBelow2M": true
+      },
+      "gates": {
+        "maxMae": 0.035,
+        "minR2": 0.99,
+        "minRegionCount": 51,
+        "maxRawOracleCalls": 2000000
+      },
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 61,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 56,
+        "retainedSampleCount": 17967,
+        "droppedSampleCount": 33,
+        "retainedSampleRatio": 0.9981666666666666,
+        "predictionMode": "region-vote"
+      },
+      "geometry": {
+        "pass": true,
+        "geometryKind": "nd-affine-equality-contact-witness",
+        "candidatePairCount": 697,
+        "edgeCount": 493,
+        "largestComponentSize": 60,
+        "largestComponentRatio": 0.9836065573770492,
+        "maxNormalizedProjectionRmse": 0.546750949761767,
+        "maxProjectionRmse": 0.6445647315479028,
+        "minSupportScore": 1.32854377038861,
+        "sampleEdges": [
+          {
+            "id": 0,
+            "regionA": 0,
+            "regionB": 4,
+            "contacts": 2312,
+            "witnessCount": 2312,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.20180480050650632,
+            "supportScore": 1722.5931584671396
+          },
+          {
+            "id": 1,
+            "regionA": 2,
+            "regionB": 7,
+            "contacts": 1535,
+            "witnessCount": 1535,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.15084039647854083,
+            "supportScore": 1287.0831560112135
+          },
+          {
+            "id": 2,
+            "regionA": 0,
+            "regionB": 6,
+            "contacts": 1729,
+            "witnessCount": 1729,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.19747172011787692,
+            "supportScore": 1265.9854313586663
+          },
+          {
+            "id": 3,
+            "regionA": 0,
+            "regionB": 14,
+            "contacts": 1561,
+            "witnessCount": 1561,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.2248452284894984,
+            "supportScore": 1137.7246451766903
+          },
+          {
+            "id": 4,
+            "regionA": 1,
+            "regionB": 8,
+            "contacts": 1292,
+            "witnessCount": 1292,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.17566046913587297,
+            "supportScore": 1075.314945990272
+          },
+          {
+            "id": 5,
+            "regionA": 3,
+            "regionB": 9,
+            "contacts": 1114,
+            "witnessCount": 1114,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.14940818953789958,
+            "supportScore": 933.2676844654094
+          },
+          {
+            "id": 6,
+            "regionA": 1,
+            "regionB": 12,
+            "contacts": 1091,
+            "witnessCount": 1091,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.15815793186924498,
+            "supportScore": 893.0933393129869
+          },
+          {
+            "id": 7,
+            "regionA": 8,
+            "regionB": 11,
+            "contacts": 866,
+            "witnessCount": 866,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.12448773104299739,
+            "supportScore": 803.8168767683001
+          }
+        ]
+      },
+      "metrics": {
+        "mae": 0.01810015802661558,
+        "rmse": 0.04952599390680719,
+        "r2": 0.9979180365142903
+      },
+      "queryBudget": {
+        "rawOracleCalls": 198000,
+        "geometryOracleCalls": 0,
+        "validationPoints": 2400
+      }
+    },
+    {
+      "teacherId": "clean-5d-83",
+      "seed": 83,
+      "dimension": 5,
+      "profile": "clean",
+      "noisy": false,
+      "pass": true,
+      "criteria": {
+        "geometryPass": true,
+        "edgeCountEnough": true,
+        "largestComponentEnough": true,
+        "projectionRmseBounded": true,
+        "maeBelowGate": true,
+        "r2AboveGate": true,
+        "regionCountAbove50": true,
+        "oracleCallsBelow2M": true
+      },
+      "gates": {
+        "maxMae": 0.04,
+        "minR2": 0.99,
+        "minRegionCount": 51,
+        "maxRawOracleCalls": 2000000
+      },
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 61,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 56,
+        "retainedSampleCount": 17976,
+        "droppedSampleCount": 24,
+        "retainedSampleRatio": 0.9986666666666667,
+        "predictionMode": "region-vote"
+      },
+      "geometry": {
+        "pass": true,
+        "geometryKind": "nd-affine-equality-contact-witness",
+        "candidatePairCount": 682,
+        "edgeCount": 462,
+        "largestComponentSize": 59,
+        "largestComponentRatio": 0.9672131147540983,
+        "maxNormalizedProjectionRmse": 0.6748049258380523,
+        "maxProjectionRmse": 0.6374262222353355,
+        "minSupportScore": 1.1440763253873147,
+        "sampleEdges": [
+          {
+            "id": 0,
+            "regionA": 0,
+            "regionB": 4,
+            "contacts": 2994,
+            "witnessCount": 2994,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.19905650338486555,
+            "supportScore": 2184.837661878271
+          },
+          {
+            "id": 1,
+            "regionA": 1,
+            "regionB": 5,
+            "contacts": 2496,
+            "witnessCount": 2496,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.18604256658934196,
+            "supportScore": 1855.9141354903768
+          },
+          {
+            "id": 2,
+            "regionA": 0,
+            "regionB": 5,
+            "contacts": 1939,
+            "witnessCount": 1939,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.18228620822404654,
+            "supportScore": 1495.7511250157534
+          },
+          {
+            "id": 3,
+            "regionA": 1,
+            "regionB": 4,
+            "contacts": 2038,
+            "witnessCount": 2038,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.21370325832934198,
+            "supportScore": 1474.2386964315615
+          },
+          {
+            "id": 4,
+            "regionA": 1,
+            "regionB": 11,
+            "contacts": 1905,
+            "witnessCount": 1905,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.2131004442479815,
+            "supportScore": 1399.4830708861325
+          },
+          {
+            "id": 5,
+            "regionA": 2,
+            "regionB": 9,
+            "contacts": 1755,
+            "witnessCount": 1755,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.1662464439485517,
+            "supportScore": 1340.4951546494194
+          },
+          {
+            "id": 6,
+            "regionA": 2,
+            "regionB": 6,
+            "contacts": 2134,
+            "witnessCount": 1545,
+            "transitionAgreement": 0.7239925023430178,
+            "normalizedProjectionRmse": 0.32103402391582425,
+            "supportScore": 1051.649342117118
+          },
+          {
+            "id": 7,
+            "regionA": 0,
+            "regionB": 15,
+            "contacts": 1318,
+            "witnessCount": 1318,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.2073378935417647,
+            "supportScore": 983.6689331975613
+          }
+        ]
+      },
+      "metrics": {
+        "mae": 0.010573115880095154,
+        "rmse": 0.03204562361436151,
+        "r2": 0.9984496109441349
+      },
+      "queryBudget": {
+        "rawOracleCalls": 198000,
+        "geometryOracleCalls": 0,
+        "validationPoints": 2400
+      }
+    },
+    {
+      "teacherId": "low-amplitude-5d-634",
+      "seed": 634,
+      "dimension": 5,
+      "profile": "low-amplitude",
+      "noisy": true,
+      "pass": true,
+      "criteria": {
+        "geometryPass": true,
+        "edgeCountEnough": true,
+        "largestComponentEnough": true,
+        "projectionRmseBounded": true,
+        "maeBelowGate": true,
+        "r2AboveGate": true,
+        "regionCountAbove50": true,
+        "oracleCallsBelow2M": true
+      },
+      "gates": {
+        "maxMae": 0.07,
+        "minR2": 0.97,
+        "minRegionCount": 51,
+        "maxRawOracleCalls": 2000000
+      },
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 57,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 52,
+        "retainedSampleCount": 11870,
+        "droppedSampleCount": 130,
+        "retainedSampleRatio": 0.9891666666666666,
+        "predictionMode": "local-affine-knn"
+      },
+      "geometry": {
+        "pass": true,
+        "geometryKind": "nd-affine-equality-contact-witness",
+        "candidatePairCount": 670,
+        "edgeCount": 464,
+        "largestComponentSize": 57,
+        "largestComponentRatio": 1,
+        "maxNormalizedProjectionRmse": 1.2786982674727818,
+        "maxProjectionRmse": 1.2471549033645537,
+        "minSupportScore": 1.6207885431121802,
+        "sampleEdges": [
+          {
+            "id": 0,
+            "regionA": 0,
+            "regionB": 3,
+            "contacts": 3253,
+            "witnessCount": 3230,
+            "transitionAgreement": 0.9929296034429758,
+            "normalizedProjectionRmse": 0.1707946313220379,
+            "supportScore": 2697.3731761412173
+          },
+          {
+            "id": 1,
+            "regionA": 1,
+            "regionB": 4,
+            "contacts": 3338,
+            "witnessCount": 3338,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.2381792228894417,
+            "supportScore": 2675.4234923614226
+          },
+          {
+            "id": 2,
+            "regionA": 2,
+            "regionB": 6,
+            "contacts": 2950,
+            "witnessCount": 2859,
+            "transitionAgreement": 0.9691525423728814,
+            "normalizedProjectionRmse": 0.14963926724291937,
+            "supportScore": 2653.870962725635
+          },
+          {
+            "id": 3,
+            "regionA": 2,
+            "regionB": 4,
+            "contacts": 2628,
+            "witnessCount": 2628,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.14748240090844145,
+            "supportScore": 2480.4312502324747
+          },
+          {
+            "id": 4,
+            "regionA": 0,
+            "regionB": 10,
+            "contacts": 4020,
+            "witnessCount": 2980,
+            "transitionAgreement": 0.7412935323383084,
+            "normalizedProjectionRmse": 0.3110694104398727,
+            "supportScore": 2450.866444198239
+          },
+          {
+            "id": 5,
+            "regionA": 0,
+            "regionB": 5,
+            "contacts": 2293,
+            "witnessCount": 2293,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.18344997447556968,
+            "supportScore": 2142.0922355842317
+          },
+          {
+            "id": 6,
+            "regionA": 6,
+            "regionB": 8,
+            "contacts": 1802,
+            "witnessCount": 1790,
+            "transitionAgreement": 0.9933407325194229,
+            "normalizedProjectionRmse": 0.12065796283188439,
+            "supportScore": 1841.735927134631
+          },
+          {
+            "id": 7,
+            "regionA": 0,
+            "regionB": 8,
+            "contacts": 2203,
+            "witnessCount": 2188,
+            "transitionAgreement": 0.9931911030413073,
+            "normalizedProjectionRmse": 0.16904968641965562,
+            "supportScore": 1839.792809661962
+          }
+        ]
+      },
+      "metrics": {
+        "mae": 0.02346648239561803,
+        "rmse": 0.03144029343569957,
+        "r2": 0.9951919562181445
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1188000,
+        "geometryOracleCalls": 0,
+        "validationPoints": 2400
+      }
+    },
+    {
+      "teacherId": "cancellation-5d-717",
+      "seed": 717,
+      "dimension": 5,
+      "profile": "cancellation",
+      "noisy": true,
+      "pass": true,
+      "criteria": {
+        "geometryPass": true,
+        "edgeCountEnough": true,
+        "largestComponentEnough": true,
+        "projectionRmseBounded": true,
+        "maeBelowGate": true,
+        "r2AboveGate": true,
+        "regionCountAbove50": true,
+        "oracleCallsBelow2M": true
+      },
+      "gates": {
+        "maxMae": 0.08,
+        "minR2": 0.97,
+        "minRegionCount": 51,
+        "maxRawOracleCalls": 2000000
+      },
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 107,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 102,
+        "retainedSampleCount": 11504,
+        "droppedSampleCount": 496,
+        "retainedSampleRatio": 0.9586666666666667,
+        "predictionMode": "local-affine-knn"
+      },
+      "geometry": {
+        "pass": true,
+        "geometryKind": "nd-affine-equality-contact-witness",
+        "candidatePairCount": 1495,
+        "edgeCount": 869,
+        "largestComponentSize": 107,
+        "largestComponentRatio": 1,
+        "maxNormalizedProjectionRmse": 0.690166306553455,
+        "maxProjectionRmse": 0.6546084419356761,
+        "minSupportScore": 1.24759236308903,
+        "sampleEdges": [
+          {
+            "id": 0,
+            "regionA": 0,
+            "regionB": 2,
+            "contacts": 4201,
+            "witnessCount": 4201,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.18858103110926108,
+            "supportScore": 3425.3094394422874
+          },
+          {
+            "id": 1,
+            "regionA": 1,
+            "regionB": 4,
+            "contacts": 3414,
+            "witnessCount": 3414,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.171307565927261,
+            "supportScore": 2923.6611262223623
+          },
+          {
+            "id": 2,
+            "regionA": 0,
+            "regionB": 5,
+            "contacts": 2239,
+            "witnessCount": 2239,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.16454258564029278,
+            "supportScore": 2022.1211412064108
+          },
+          {
+            "id": 3,
+            "regionA": 0,
+            "regionB": 6,
+            "contacts": 2250,
+            "witnessCount": 2250,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.1955480075231988,
+            "supportScore": 1886.9203437248343
+          },
+          {
+            "id": 4,
+            "regionA": 0,
+            "regionB": 9,
+            "contacts": 2903,
+            "witnessCount": 2040,
+            "transitionAgreement": 0.7027213227695488,
+            "normalizedProjectionRmse": 0.2011053023231801,
+            "supportScore": 1788.6202943546123
+          },
+          {
+            "id": 5,
+            "regionA": 2,
+            "regionB": 3,
+            "contacts": 1937,
+            "witnessCount": 1937,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.1848209127050757,
+            "supportScore": 1703.7216278606359
+          },
+          {
+            "id": 6,
+            "regionA": 3,
+            "regionB": 7,
+            "contacts": 1851,
+            "witnessCount": 1851,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.16415309085340393,
+            "supportScore": 1658.9930475885226
+          },
+          {
+            "id": 7,
+            "regionA": 1,
+            "regionB": 8,
+            "contacts": 1824,
+            "witnessCount": 1789,
+            "transitionAgreement": 0.9808114035087719,
+            "normalizedProjectionRmse": 0.1946964184224143,
+            "supportScore": 1548.1255120516164
+          }
+        ]
+      },
+      "metrics": {
+        "mae": 0.07984871493240715,
+        "rmse": 0.10766616199615542,
+        "r2": 0.9927793418039836
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1188000,
+        "geometryOracleCalls": 0,
+        "validationPoints": 2400
+      }
+    },
+    {
+      "teacherId": "near-parallel-5d-805",
+      "seed": 805,
+      "dimension": 5,
+      "profile": "near-parallel",
+      "noisy": true,
+      "pass": true,
+      "criteria": {
+        "geometryPass": true,
+        "edgeCountEnough": true,
+        "largestComponentEnough": true,
+        "projectionRmseBounded": true,
+        "maeBelowGate": true,
+        "r2AboveGate": true,
+        "regionCountAbove50": true,
+        "oracleCallsBelow2M": true
+      },
+      "gates": {
+        "maxMae": 0.08,
+        "minR2": 0.97,
+        "minRegionCount": 51,
+        "maxRawOracleCalls": 2000000
+      },
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 66,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 61,
+        "retainedSampleCount": 11821,
+        "droppedSampleCount": 179,
+        "retainedSampleRatio": 0.9850833333333333,
+        "predictionMode": "local-affine-knn"
+      },
+      "geometry": {
+        "pass": true,
+        "geometryKind": "nd-affine-equality-contact-witness",
+        "candidatePairCount": 1058,
+        "edgeCount": 599,
+        "largestComponentSize": 66,
+        "largestComponentRatio": 1,
+        "maxNormalizedProjectionRmse": 0.7912590248310803,
+        "maxProjectionRmse": 0.7211122916367052,
+        "minSupportScore": 1.4751095413521789,
+        "sampleEdges": [
+          {
+            "id": 0,
+            "regionA": 1,
+            "regionB": 2,
+            "contacts": 7874,
+            "witnessCount": 7874,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.2701520237987612,
+            "supportScore": 5593.9239007495935
+          },
+          {
+            "id": 1,
+            "regionA": 0,
+            "regionB": 4,
+            "contacts": 4790,
+            "witnessCount": 4503,
+            "transitionAgreement": 0.9400835073068894,
+            "normalizedProjectionRmse": 0.2608678893853905,
+            "supportScore": 3196.0712145868115
+          },
+          {
+            "id": 2,
+            "regionA": 0,
+            "regionB": 3,
+            "contacts": 4101,
+            "witnessCount": 4046,
+            "transitionAgreement": 0.986588636917825,
+            "normalizedProjectionRmse": 0.31299001192709824,
+            "supportScore": 2633.201590260285
+          },
+          {
+            "id": 3,
+            "regionA": 0,
+            "regionB": 5,
+            "contacts": 1728,
+            "witnessCount": 1727,
+            "transitionAgreement": 0.9994212962962963,
+            "normalizedProjectionRmse": 0.24636626046168392,
+            "supportScore": 1308.3479151700617
+          },
+          {
+            "id": 4,
+            "regionA": 0,
+            "regionB": 13,
+            "contacts": 2053,
+            "witnessCount": 2031,
+            "transitionAgreement": 0.9892839746712129,
+            "normalizedProjectionRmse": 0.3467790729971339,
+            "supportScore": 1269.2963788676977
+          },
+          {
+            "id": 5,
+            "regionA": 1,
+            "regionB": 14,
+            "contacts": 1815,
+            "witnessCount": 1773,
+            "transitionAgreement": 0.9768595041322314,
+            "normalizedProjectionRmse": 0.35538311227863933,
+            "supportScore": 1110.285865363648
+          },
+          {
+            "id": 6,
+            "regionA": 1,
+            "regionB": 6,
+            "contacts": 1204,
+            "witnessCount": 1204,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.23691177335484087,
+            "supportScore": 888.9760490248174
+          },
+          {
+            "id": 7,
+            "regionA": 1,
+            "regionB": 5,
+            "contacts": 872,
+            "witnessCount": 870,
+            "transitionAgreement": 0.9977064220183486,
+            "normalizedProjectionRmse": 0.16452745406941102,
+            "supportScore": 697.7710164035049
+          }
+        ]
+      },
+      "metrics": {
+        "mae": 0.03759163875066559,
+        "rmse": 0.05968274405308912,
+        "r2": 0.9882657838606778
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1188000,
+        "geometryOracleCalls": 0,
+        "validationPoints": 2400
+      }
+    },
+    {
+      "teacherId": "weak-support-5d-911",
+      "seed": 911,
+      "dimension": 5,
+      "profile": "weak-support",
+      "noisy": true,
+      "pass": true,
+      "criteria": {
+        "geometryPass": true,
+        "edgeCountEnough": true,
+        "largestComponentEnough": true,
+        "projectionRmseBounded": true,
+        "maeBelowGate": true,
+        "r2AboveGate": true,
+        "regionCountAbove50": true,
+        "oracleCallsBelow2M": true
+      },
+      "gates": {
+        "maxMae": 0.09,
+        "minR2": 0.97,
+        "minRegionCount": 51,
+        "maxRawOracleCalls": 2000000
+      },
+      "recovery": {
+        "recoveryKind": "output-equivalent-nd-region-sampler",
+        "regionCount": 64,
+        "firstLayerWidth": 4,
+        "deepOnlyRegionEstimate": 59,
+        "retainedSampleCount": 10825,
+        "droppedSampleCount": 175,
+        "retainedSampleRatio": 0.9840909090909091,
+        "predictionMode": "local-affine-knn"
+      },
+      "geometry": {
+        "pass": true,
+        "geometryKind": "nd-affine-equality-contact-witness",
+        "candidatePairCount": 796,
+        "edgeCount": 502,
+        "largestComponentSize": 64,
+        "largestComponentRatio": 1,
+        "maxNormalizedProjectionRmse": 0.8114987421422325,
+        "maxProjectionRmse": 0.6232232385842249,
+        "minSupportScore": 1.4105627551306503,
+        "sampleEdges": [
+          {
+            "id": 0,
+            "regionA": 0,
+            "regionB": 2,
+            "contacts": 5770,
+            "witnessCount": 5696,
+            "transitionAgreement": 0.9871750433275563,
+            "normalizedProjectionRmse": 0.19370573192286178,
+            "supportScore": 4593.370001353885
+          },
+          {
+            "id": 1,
+            "regionA": 0,
+            "regionB": 3,
+            "contacts": 4378,
+            "witnessCount": 4378,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.18633937906036319,
+            "supportScore": 3744.1814010145204
+          },
+          {
+            "id": 2,
+            "regionA": 4,
+            "regionB": 6,
+            "contacts": 3138,
+            "witnessCount": 3113,
+            "transitionAgreement": 0.9920331421287444,
+            "normalizedProjectionRmse": 0.15386652072835186,
+            "supportScore": 2855.581533623421
+          },
+          {
+            "id": 3,
+            "regionA": 3,
+            "regionB": 4,
+            "contacts": 3087,
+            "witnessCount": 2610,
+            "transitionAgreement": 0.8454810495626822,
+            "normalizedProjectionRmse": 0.21288044986121424,
+            "supportScore": 2442.1880199260995
+          },
+          {
+            "id": 4,
+            "regionA": 1,
+            "regionB": 5,
+            "contacts": 2600,
+            "witnessCount": 2600,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.18259397730075883,
+            "supportScore": 2304.0722692916
+          },
+          {
+            "id": 5,
+            "regionA": 0,
+            "regionB": 10,
+            "contacts": 2427,
+            "witnessCount": 2268,
+            "transitionAgreement": 0.934487021013597,
+            "normalizedProjectionRmse": 0.22584038423042327,
+            "supportScore": 1900.698628520437
+          },
+          {
+            "id": 6,
+            "regionA": 1,
+            "regionB": 8,
+            "contacts": 2136,
+            "witnessCount": 2136,
+            "transitionAgreement": 1,
+            "normalizedProjectionRmse": 0.1791598249594074,
+            "supportScore": 1786.1306382104874
+          },
+          {
+            "id": 7,
+            "regionA": 1,
+            "regionB": 9,
+            "contacts": 1933,
+            "witnessCount": 1880,
+            "transitionAgreement": 0.9725814795654423,
+            "normalizedProjectionRmse": 0.2061798284825329,
+            "supportScore": 1573.1894263419815
+          }
+        ]
+      },
+      "metrics": {
+        "mae": 0.06637261591590274,
+        "rmse": 0.0945437687732493,
+        "r2": 0.985430220526229
+      },
+      "queryBudget": {
+        "rawOracleCalls": 1089000,
+        "geometryOracleCalls": 0,
+        "validationPoints": 2400
+      }
+    }
+  ],
+  "runtimeMs": 16317
+}
