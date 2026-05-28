@@ -1,0 +1,144 @@
+{
+  "generatedAt": "2026-05-28T05:16:58.054Z",
+  "task": "single 5D ND adjacency-geometry probe for deep black-box ReLU region sampler",
+  "blackBox": {
+    "type": "5D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teacher",
+    "visibilityToGcl": "oracle calls only: f(vector), no hidden activations, layer widths, teacher weights, or true adjacency"
+  },
+  "claimScope": {
+    "provesIfPasses": "a single controlled 5D clean folded-ReLU probe satisfies the user-defined next-step thresholds",
+    "doesNotClaim": "5D release readiness, noisy 5D robustness, 6D readiness, topology-perfect full cell-complex recovery, or superiority over external extraction methods"
+  },
+  "hardCriteria": {
+    "r2Above099": true,
+    "regionCountAbove50": true,
+    "oracleCallsBelow2M": true
+  },
+  "geometryCriteria": {
+    "geometryPass": true,
+    "edgeCountAbove30": true,
+    "largestComponentAbove12Percent": true
+  },
+  "pass": true,
+  "teacher": {
+    "id": "clean-5d-29",
+    "seed": 29,
+    "dimension": 5,
+    "firstLayerWidth": 4,
+    "secondLayerWidth": 4
+  },
+  "recovery": {
+    "recoveryKind": "output-equivalent-nd-region-sampler",
+    "regionCount": 57,
+    "deepOnlyRegionEstimate": 52,
+    "retainedSampleCount": 17974,
+    "droppedSampleCount": 26,
+    "retainedSampleRatio": 0.9985555555555555,
+    "predictionMode": "region-vote"
+  },
+  "geometry": {
+    "pass": true,
+    "candidatePairCount": 642,
+    "edgeCount": 432,
+    "largestComponentSize": 55,
+    "largestComponentRatio": 0.9649122807017544,
+    "maxNormalizedProjectionRmse": 0.5429795030091397,
+    "maxProjectionRmse": 0.5873423307765061,
+    "minSupportScore": 1.3616489602232675,
+    "sampleEdges": [
+      {
+        "id": 0,
+        "regionA": 0,
+        "regionB": 1,
+        "contacts": 4472,
+        "witnessCount": 4472,
+        "transitionAgreement": 1,
+        "normalizedProjectionRmse": 0.20291459314510438,
+        "supportScore": 3140.695182844137
+      },
+      {
+        "id": 1,
+        "regionA": 0,
+        "regionB": 6,
+        "contacts": 3015,
+        "witnessCount": 3015,
+        "transitionAgreement": 1,
+        "normalizedProjectionRmse": 0.17818860388097513,
+        "supportScore": 2210.4817725631056
+      },
+      {
+        "id": 2,
+        "regionA": 4,
+        "regionB": 5,
+        "contacts": 2567,
+        "witnessCount": 2567,
+        "transitionAgreement": 1,
+        "normalizedProjectionRmse": 0.16358379065526615,
+        "supportScore": 2071.5516151555425
+      },
+      {
+        "id": 3,
+        "regionA": 1,
+        "regionB": 3,
+        "contacts": 2761,
+        "witnessCount": 2761,
+        "transitionAgreement": 1,
+        "normalizedProjectionRmse": 0.18689161630611267,
+        "supportScore": 2014.4846551254539
+      },
+      {
+        "id": 4,
+        "regionA": 2,
+        "regionB": 4,
+        "contacts": 2263,
+        "witnessCount": 2263,
+        "transitionAgreement": 1,
+        "normalizedProjectionRmse": 0.16952310138857513,
+        "supportScore": 1787.2269206709386
+      },
+      {
+        "id": 5,
+        "regionA": 5,
+        "regionB": 11,
+        "contacts": 1021,
+        "witnessCount": 1021,
+        "transitionAgreement": 1,
+        "normalizedProjectionRmse": 0.18839051368938678,
+        "supportScore": 810.7362358290808
+      },
+      {
+        "id": 6,
+        "regionA": 9,
+        "regionB": 10,
+        "contacts": 967,
+        "witnessCount": 967,
+        "transitionAgreement": 1,
+        "normalizedProjectionRmse": 0.15066470652990938,
+        "supportScore": 780.9086872970565
+      },
+      {
+        "id": 7,
+        "regionA": 3,
+        "regionB": 23,
+        "contacts": 855,
+        "witnessCount": 855,
+        "transitionAgreement": 1,
+        "normalizedProjectionRmse": 0.21267979001439435,
+        "supportScore": 691.6723783902091
+      }
+    ]
+  },
+  "metrics": {
+    "mae": 0.01894093946992718,
+    "rmse": 0.05764773419645686,
+    "r2": 0.9987241546608961
+  },
+  "queryBudget": {
+    "rawOracleCalls": 198000,
+    "finiteDifferenceCallsPerSample": 11,
+    "validationPoints": 2400,
+    "geometryOracleCalls": 0
+  },
+  "nextStep": "5D clean probe passed. Next valid step is a release-candidate 5D sweep before any 6D attempt.",
+  "runtimeMs": 1875
+}

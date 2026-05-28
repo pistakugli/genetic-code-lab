@@ -139,8 +139,8 @@ refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
-capability jump is comparing against stronger extraction baselines while moving
-toward topology-perfect ND cell-complex audits.
+capability jump is a release-candidate 5D sweep plus stronger extraction
+baselines before any 6D attempt.
 
 Target commands:
 
@@ -148,6 +148,7 @@ Target commands:
 - `npm run benchmark:nn-noisy-adaptive-adversarial-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`
+- `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph:randomized`
 - `npm run benchmark:nn-noisy-deep-blackbox-relu2d-region-graph`
@@ -349,6 +350,24 @@ Current status:
 - ND adjacency-geometry total raw oracle calls: `805100`.
 - ND adjacency-geometry artifact:
   `benchmarks/release/nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler/3d-4d-clean-noisy/report.json`
+- ND adjacency-geometry stabilization check on 2026-05-28: the existing 3D/4D
+  clean/noisy release benchmark was run three times consecutively and passed
+  all three cycles with identical gate metrics: `4/4` teachers, min passing
+  edges `62`, min largest-component ratio `0.9622641509433962`, max normalized
+  projection RMSE `0.9926122288520228`, max MAE `0.035446586421537286`, min
+  R2 `0.9973558277920783`.
+- 5D single-probe experiment PASS on 2026-05-28.
+- 5D probe criteria were deliberately narrow: R2 > `0.99`, regionCount > `50`,
+  and raw oracle calls < `2000000`; it was not promoted to release capability.
+- 5D probe result: R2 `0.9987241546608961`, MAE
+  `0.01894093946992718`, regionCount `57`, raw oracle calls `198000`,
+  geometry pass `true`, passing edges `432`, largest-component ratio
+  `0.9649122807017544`, max normalized projection RMSE
+  `0.5429795030091397`.
+- 5D probe artifact:
+  `benchmarks/research/nn-nd-adjacency-geometry-5d/single-probe/report.json`
+- 5D next gate: a multi-seed clean/noisy release-candidate sweep. 6D stays
+  blocked until that 5D sweep passes.
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.
