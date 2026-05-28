@@ -172,10 +172,11 @@ refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
-capability jump is adaptive 6D probe-distribution hardening plus stronger
-extraction baselines. The 6D lane has a guarded research probe, but it is not a
-release claim until it passes a broader clean/noisy gate without probe-seed
-sensitivity.
+capability jump is a broader 6D release-candidate sweep plus stronger
+extraction baselines. The 6D lane now has a guarded research probe and an
+adaptive probe-distribution search with rejected-candidate accounting, but it
+is not a release claim until it passes a broader clean/noisy gate across more
+teachers and external baselines.
 
 Target commands:
 
@@ -184,6 +185,7 @@ Target commands:
 - `npm run benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`
 - `npm run benchmark:nn-nd-adjacency-geometry-5d-sweep`
+- `npm run benchmark:nn-nd-adjacency-geometry-6d-adaptive-probe`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
@@ -425,9 +427,21 @@ Current status:
   `0.9674291733376437`, max raw oracle calls per teacher `1989000`.
 - 6D probe artifact:
   `benchmarks/research/nn-nd-adjacency-geometry-6d/guarded-probe/report.json`
-- 6D is not release-ready and not a SOTA claim yet. The noisy near-parallel
-  teacher was probe-seed sensitive during development, so the next hardening
-  target is adaptive probe-distribution selection before a 6D release gate.
+- 6D adaptive probe-distribution search PASS on 2026-05-28.
+- 6D adaptive search result: `4/4` teachers passed across clean, noisy
+  cancellation, and noisy near-parallel profiles; `9` probe candidates
+  evaluated; `5` rejected candidates were genuine gate failures; min region
+  count `63`, min passing edges `374`, max MAE `0.09099788983192539`, min R2
+  `0.9674291733376437`, max selected raw oracle calls per teacher `1989000`,
+  total selected raw oracle calls `4537000`, and total adaptive search raw
+  oracle calls `14482000`.
+- 6D adaptive artifact:
+  `benchmarks/research/nn-nd-adjacency-geometry-6d-adaptive-probe/adaptive-probe-search/report.json`
+- 6D is not release-ready and not a SOTA claim yet. The current proof removes
+  the manual fixed-seed dependency for this hard-profile set by making probe
+  distribution selection explicit and measured. Next target: a release-
+  candidate 6D sweep with more teachers per profile and external extraction
+  baselines.
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-28T11:00:41.808Z",
+  "lane": "nn-nd-adjacency-geometry-6d-adaptive-probe",
+  "variant": "adaptive-probe-search",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-nd-adjacency-geometry-6d-adaptive-probe.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-nd-adjacency-geometry-6d-adaptive-probe",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCHMARK_ROOT": "benchmarks/research"
+  },
+  "git": {
+    "commit": "98aea7161d69cfed59e8fb6c82247b86e1974959",
+    "statusShort": "M package.json\n?? benchmarks/research/nn-nd-adjacency-geometry-6d-adaptive-probe/\n?? scripts/benchmark-nn-nd-adjacency-geometry-6d-adaptive-probe.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/research/nn-nd-adjacency-geometry-6d-adaptive-probe/adaptive-probe-search/report.json",
+    "reportMarkdown": "benchmarks/research/nn-nd-adjacency-geometry-6d-adaptive-probe/adaptive-probe-search/report.md",
+    "manifest": "benchmarks/research/nn-nd-adjacency-geometry-6d-adaptive-probe/adaptive-probe-search/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 4,
+    "passedTeachers": 4,
+    "cleanTeacherCount": 2,
+    "noisyTeacherCount": 2,
+    "dimensions": [
+      6
+    ],
+    "profiles": [
+      "clean",
+      "cancellation",
+      "near-parallel"
+    ],
+    "candidateCount": 9,
+    "rejectedCandidateCount": 5,
+    "rejectedFailCount": 5,
+    "minRegionCount": 63,
+    "minEdgeCount": 374,
+    "minLargestComponentRatio": 0.9850746268656716,
+    "maxNormalizedProjectionRmse": 0.939255366086159,
+    "maxMae": 0.09099788983192539,
+    "minR2": 0.9674291733376437,
+    "maxSelectedRawOracleCallsPerTeacher": 1989000,
+    "totalSelectedRawOracleCalls": 4537000,
+    "totalSearchRawOracleCalls": 14482000
+  },
+  "notes": [
+    "Research-only adaptive 6D probe-distribution search after the guarded 6D probe exposed probe-seed sensitivity.",
+    "Records rejected candidate probe distributions and separates selected-candidate cost from total search cost.",
+    "Does not enter release gate or CLI production capability until a broader 6D release-candidate sweep is implemented and proven."
+  ]
+}
