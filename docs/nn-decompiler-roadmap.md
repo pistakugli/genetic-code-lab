@@ -172,11 +172,11 @@ refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
-capability jump is a broader 6D release-candidate sweep plus stronger
-extraction baselines. The 6D lane now has a guarded research probe and an
-adaptive probe-distribution search with rejected-candidate accounting, but it
-is not a release claim until it passes a broader clean/noisy gate across more
-teachers and external baselines.
+capability jump is stronger external extraction baselines for the 6D lane. The
+6D lane now has a guarded research probe, adaptive probe-distribution search,
+and a broader clean/noisy hard-profile sweep with rejected-candidate
+accounting. It is not a release claim until external baselines and a promotion
+gate are added.
 
 Target commands:
 
@@ -185,6 +185,7 @@ Target commands:
 - `npm run benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`
 - `npm run benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`
 - `npm run benchmark:nn-nd-adjacency-geometry-5d-sweep`
+- `npm run benchmark:nn-nd-adjacency-geometry-6d-sweep`
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-adaptive-probe`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`
@@ -437,11 +438,23 @@ Current status:
   oracle calls `14482000`.
 - 6D adaptive artifact:
   `benchmarks/research/nn-nd-adjacency-geometry-6d-adaptive-probe/adaptive-probe-search/report.json`
-- 6D is not release-ready and not a SOTA claim yet. The current proof removes
-  the manual fixed-seed dependency for this hard-profile set by making probe
-  distribution selection explicit and measured. Next target: a release-
-  candidate 6D sweep with more teachers per profile and external extraction
-  baselines.
+- 6D release-candidate hard-profile sweep PASS on 2026-05-28.
+- First 6D sweep attempt failed correctly instead of being hidden: weak-support
+  accuracy passed, but region count was only `49` against the `56` floor, and
+  the total search budget was `24836500` raw oracle calls against the
+  `24000000` gate. The repaired sweep tightened weak-support clustering and
+  shortened the near-parallel candidate list while keeping the failure ledger.
+- 6D sweep result: `6/6` teachers passed across clean, cancellation,
+  near-parallel, low-amplitude, and weak-support profiles; `12` candidates
+  evaluated; `4` rejected candidates were genuine gate failures; min region
+  count `57`, min passing edges `374`, max MAE `0.09099788983192539`, min R2
+  `0.9674291733376437`, max selected raw oracle calls per teacher `1989000`,
+  total selected raw oracle calls `8105500`, and total adaptive search raw
+  oracle calls `19220500`.
+- 6D sweep artifact:
+  `benchmarks/research/nn-nd-adjacency-geometry-6d-sweep/release-candidate-hard-profiles/report.json`
+- 6D is not a SOTA claim yet. The next target is external piecewise-linear
+  extraction baselines and then an explicit release-gate promotion decision.
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.

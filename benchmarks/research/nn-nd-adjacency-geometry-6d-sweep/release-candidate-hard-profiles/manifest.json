@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-28T11:09:10.379Z",
+  "lane": "nn-nd-adjacency-geometry-6d-sweep",
+  "variant": "release-candidate-hard-profiles",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-nd-adjacency-geometry-6d-sweep.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-nd-adjacency-geometry-6d-sweep",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCHMARK_ROOT": "benchmarks/research"
+  },
+  "git": {
+    "commit": "6b1b0182d2fceb2c19239a5a389a08511c73035d",
+    "statusShort": "M package.json\n?? benchmarks/research/nn-nd-adjacency-geometry-6d-sweep/\n?? scripts/benchmark-nn-nd-adjacency-geometry-6d-sweep.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/research/nn-nd-adjacency-geometry-6d-sweep/release-candidate-hard-profiles/report.json",
+    "reportMarkdown": "benchmarks/research/nn-nd-adjacency-geometry-6d-sweep/release-candidate-hard-profiles/report.md",
+    "manifest": "benchmarks/research/nn-nd-adjacency-geometry-6d-sweep/release-candidate-hard-profiles/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 6,
+    "passedTeachers": 6,
+    "cleanTeacherCount": 2,
+    "noisyTeacherCount": 4,
+    "dimensions": [
+      6
+    ],
+    "profiles": [
+      "clean",
+      "cancellation",
+      "near-parallel",
+      "low-amplitude",
+      "weak-support"
+    ],
+    "candidateCount": 12,
+    "rejectedCandidateCount": 6,
+    "rejectedFailCount": 4,
+    "minRegionCount": 57,
+    "minEdgeCount": 374,
+    "minLargestComponentRatio": 0.9824561403508771,
+    "maxNormalizedProjectionRmse": 0.939255366086159,
+    "maxMae": 0.09099788983192539,
+    "minR2": 0.9674291733376437,
+    "maxSelectedRawOracleCallsPerTeacher": 1989000,
+    "totalSelectedRawOracleCalls": 8105500,
+    "totalSearchRawOracleCalls": 19220500
+  },
+  "notes": [
+    "Research release-candidate 6D sweep after adaptive probe search.",
+    "Covers clean, cancellation, near-parallel, low-amplitude, and weak-support folded-ReLU hard profiles.",
+    "Records selected and rejected candidate probe distributions, selected-candidate cost, and total adaptive search cost.",
+    "Does not enter release gate or CLI production capability until external baseline comparison is added."
+  ]
+}
