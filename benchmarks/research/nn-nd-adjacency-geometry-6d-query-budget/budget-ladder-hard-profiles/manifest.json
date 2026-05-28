@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-28T11:28:26.137Z",
+  "lane": "nn-nd-adjacency-geometry-6d-query-budget",
+  "variant": "budget-ladder-hard-profiles",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-nd-adjacency-geometry-6d-query-budget.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-nd-adjacency-geometry-6d-query-budget",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCHMARK_ROOT": "benchmarks/research"
+  },
+  "git": {
+    "commit": "b8383dcfd24b284aab709f6b234b8e8b879ac107",
+    "statusShort": "M package.json\n?? benchmarks/research/nn-nd-adjacency-geometry-6d-query-budget/\n?? scripts/benchmark-nn-nd-adjacency-geometry-6d-query-budget.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/research/nn-nd-adjacency-geometry-6d-query-budget/budget-ladder-hard-profiles/report.json",
+    "reportMarkdown": "benchmarks/research/nn-nd-adjacency-geometry-6d-query-budget/budget-ladder-hard-profiles/report.md",
+    "manifest": "benchmarks/research/nn-nd-adjacency-geometry-6d-query-budget/budget-ladder-hard-profiles/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 6,
+    "passedTeachers": 6,
+    "cleanTeacherCount": 2,
+    "noisyTeacherCount": 4,
+    "dimensions": [
+      6
+    ],
+    "profiles": [
+      "clean",
+      "cancellation",
+      "near-parallel",
+      "low-amplitude",
+      "weak-support"
+    ],
+    "selectedTiers": [
+      "low",
+      "low",
+      "mid",
+      "high",
+      "high",
+      "low"
+    ],
+    "lowTierSelections": 3,
+    "midTierSelections": 1,
+    "highTierSelections": 2,
+    "attemptedCandidateCount": 11,
+    "rejectedCandidateCount": 5,
+    "rejectedFailCount": 5,
+    "minRegionCount": 56,
+    "minEdgeCount": 441,
+    "minLargestComponentRatio": 0.9821428571428571,
+    "maxNormalizedProjectionRmse": 1.0911993038304777,
+    "maxMae": 0.09301806108793807,
+    "minR2": 0.961794949120783,
+    "maxSelectedRawOracleCallsPerTeacher": 1547000,
+    "totalSelectedRawOracleCalls": 5460000,
+    "totalSearchRawOracleCalls": 11102000,
+    "previousSweepSelectedRawOracleCalls": 8105500,
+    "previousSweepSearchRawOracleCalls": 19220500,
+    "selectedReduction": 0.326383319967923,
+    "searchReduction": 0.42238755495434566
+  },
+  "notes": [
+    "Research query-budget hardening for the 6D recovered-adjacency lane.",
+    "Evaluates low/mid/high candidates in order and stops at the first passing budget.",
+    "Keeps the hard-profile geometry/accuracy gates while requiring selected-call reduction against the previous 6D sweep."
+  ]
+}

@@ -172,12 +172,12 @@ refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
-capability jump is query-efficiency hardening and stronger external package
-baselines for the 6D lane. The 6D lane now has a guarded research probe,
-adaptive probe-distribution search, a broader clean/noisy hard-profile sweep
-with rejected-candidate accounting, and a dependency-free external-method
-baseline comparison. It is not a broad SOTA claim until query cost and stronger
-external packages are handled in a promotion gate.
+capability jump is a second 6D query-efficiency pass plus stronger external
+package baselines. The 6D lane now has a guarded research probe, adaptive
+probe-distribution search, a broader clean/noisy hard-profile sweep with
+rejected-candidate accounting, a dependency-free external-method baseline
+comparison, and a first query-budget ladder. It is not a broad SOTA claim until
+query cost and stronger external packages are handled in a promotion gate.
 
 Target commands:
 
@@ -189,6 +189,7 @@ Target commands:
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-sweep`
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-adaptive-probe`
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-baselines`
+- `npm run benchmark:nn-nd-adjacency-geometry-6d-query-budget`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
@@ -470,6 +471,21 @@ Current status:
   teacher, while these direct-sample baselines used at most `18000`. Next
   target: query-efficiency hardening plus stronger external package baselines
   before release-gate promotion.
+- 6D query-budget ladder PASS on 2026-05-28.
+- 6D query-budget result: `6/6` teachers passed the same hard-profile
+  accuracy/geometry gates; selected tiers were low/low/mid/high/high/low; `5`
+  rejected candidates were genuine gate failures; selected raw oracle calls
+  dropped from `8105500` to `5460000`, a `32.6383319967923%` reduction; total
+  search raw oracle calls dropped from `19220500` to `11102000`, a
+  `42.238755495434566%` reduction. Max selected calls per teacher dropped from
+  `1989000` to `1547000`, while min region count stayed at `56`, max MAE was
+  `0.09301806108793807`, and min R2 was `0.961794949120783`.
+- 6D query-budget artifact:
+  `benchmarks/research/nn-nd-adjacency-geometry-6d-query-budget/budget-ladder-hard-profiles/report.json`
+- 6D still needs more efficiency work before broad SOTA language: near-parallel
+  and low-amplitude still selected high-tier budgets. The next efficiency
+  target is profile-specific low/mid candidates for those two cases plus
+  stronger external package baselines.
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.
