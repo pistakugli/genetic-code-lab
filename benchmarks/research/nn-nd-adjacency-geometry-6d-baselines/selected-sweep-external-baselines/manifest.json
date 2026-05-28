@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-28T11:18:10.928Z",
+  "lane": "nn-nd-adjacency-geometry-6d-baselines",
+  "variant": "selected-sweep-external-baselines",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-nd-adjacency-geometry-6d-baselines.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-nd-adjacency-geometry-6d-baselines",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCHMARK_ROOT": "benchmarks/research"
+  },
+  "git": {
+    "commit": "a0a1e2006e6e286b284c623479047c70901f0fa1",
+    "statusShort": "M package.json\n?? benchmarks/research/nn-nd-adjacency-geometry-6d-baselines/\n?? scripts/benchmark-nn-nd-adjacency-geometry-6d-baselines.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/research/nn-nd-adjacency-geometry-6d-baselines/selected-sweep-external-baselines/report.json",
+    "reportMarkdown": "benchmarks/research/nn-nd-adjacency-geometry-6d-baselines/selected-sweep-external-baselines/report.md",
+    "manifest": "benchmarks/research/nn-nd-adjacency-geometry-6d-baselines/selected-sweep-external-baselines/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 6,
+    "dimensions": [
+      6
+    ],
+    "profiles": [
+      "clean",
+      "cancellation",
+      "near-parallel",
+      "low-amplitude",
+      "weak-support"
+    ],
+    "noisyTeacherCount": 4,
+    "baselineFamilies": [
+      "global-linear",
+      "global-polynomial",
+      "random-feature-relu",
+      "local-affine",
+      "tree-ensemble"
+    ],
+    "baselineCountPerTeacher": 5,
+    "gclWinsByMae": 6,
+    "bestBaselineWinsByMae": 0,
+    "gclBeatsLinearRidgeCount": 6,
+    "gclBeatsQuadraticRidgeCount": 6,
+    "gclBeatsRandomReluRidgeCount": 6,
+    "maxGclMae": 0.09099788983192539,
+    "minGclR2": 0.9674291733376437,
+    "maxGclMaeRatioVsBestBaseline": 0.8155502106737931,
+    "maxGclRawOracleCalls": 1989000,
+    "maxBaselineDirectRawOracleCalls": 18000
+  },
+  "notes": [
+    "Research comparison for the 6D recovered-adjacency lane.",
+    "Baselines are dependency-free implementations of external method families: ridge, quadratic ridge, random ReLU features, local-affine kNN, and ExtraTrees-style forests.",
+    "If any black-box baseline wins MAE, the report explicitly blocks a pure-accuracy SOTA claim."
+  ]
+}

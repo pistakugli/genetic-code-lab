@@ -172,11 +172,12 @@ refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
-capability jump is stronger external extraction baselines for the 6D lane. The
-6D lane now has a guarded research probe, adaptive probe-distribution search,
-and a broader clean/noisy hard-profile sweep with rejected-candidate
-accounting. It is not a release claim until external baselines and a promotion
-gate are added.
+capability jump is query-efficiency hardening and stronger external package
+baselines for the 6D lane. The 6D lane now has a guarded research probe,
+adaptive probe-distribution search, a broader clean/noisy hard-profile sweep
+with rejected-candidate accounting, and a dependency-free external-method
+baseline comparison. It is not a broad SOTA claim until query cost and stronger
+external packages are handled in a promotion gate.
 
 Target commands:
 
@@ -187,6 +188,7 @@ Target commands:
 - `npm run benchmark:nn-nd-adjacency-geometry-5d-sweep`
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-sweep`
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-adaptive-probe`
+- `npm run benchmark:nn-nd-adjacency-geometry-6d-baselines`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
@@ -453,8 +455,21 @@ Current status:
   oracle calls `19220500`.
 - 6D sweep artifact:
   `benchmarks/research/nn-nd-adjacency-geometry-6d-sweep/release-candidate-hard-profiles/report.json`
-- 6D is not a SOTA claim yet. The next target is external piecewise-linear
-  extraction baselines and then an explicit release-gate promotion decision.
+- 6D dependency-free external-method baseline comparison PASS on 2026-05-28.
+- 6D baseline comparison covered global linear ridge, quadratic ridge,
+  random-ReLU ridge, local-affine kNN, and ExtraTrees-style forest baselines.
+  GCL won MAE on `6/6` teachers; the best measured baseline on every teacher
+  was local-affine kNN. GCL max MAE was `0.09099788983192539`, min R2 was
+  `0.9674291733376437`, and max GCL MAE ratio versus the best baseline was
+  `0.8155502106737931`.
+- 6D baseline artifact:
+  `benchmarks/research/nn-nd-adjacency-geometry-6d-baselines/selected-sweep-external-baselines/report.json`
+- 6D is stronger now, but still not a broad SOTA claim. The baseline comparison
+  shows an accuracy win against the dependency-free methods, while also showing
+  the query-cost boundary: GCL used up to `1989000` raw oracle calls per
+  teacher, while these direct-sample baselines used at most `18000`. Next
+  target: query-efficiency hardening plus stronger external package baselines
+  before release-gate promotion.
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.
