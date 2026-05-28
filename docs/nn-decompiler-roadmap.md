@@ -95,6 +95,36 @@ Phase 5: layer attribution only with extra observability.
 - Output-only lanes must keep the claim at equivalent-function recovery unless
   an identifiability assumption is stated and gated.
 
+Phase 6: smooth LLM activation and FFN recovery.
+
+- Status: planned, not release-gated.
+- Scope: GELU, SiLU, and SwiGLU-style LLM feed-forward channels are not
+  piecewise-linear kink geometry. The 5D ReLU recovered-adjacency gates provide
+  oracle discipline, query accounting, and benchmark hygiene, but they do not
+  prove GELU/SwiGLU recovery.
+- First target command:
+  `npm run benchmark:nn-gelu-swiglu-decompiler`.
+- Stage A: synthetic single-neuron recovery.
+  - GELU teacher: `y = a * gelu(w dot x + b) + c`.
+  - SiLU/SwiGLU teacher: `y = (u dot x + bu) * silu(g dot x + bg)`.
+  - GCL receives only `f(vector)` oracle calls.
+  - Gate: held-out R2 above `0.999` for clean teachers, explicit direction or
+    subspace error where identifiable, and a win against linear/ridge baselines.
+- Stage B: synthetic FFN block recovery.
+  - Multiple GELU/SwiGLU channels are summed into a block output slice.
+  - Gate: output-equivalent transparent surrogate with per-channel or subspace
+    evidence, held-out accuracy, query budget, and failure accounting for
+    collinear/cancelling gates.
+- Stage C: local transformer MLP hook.
+  - Use a small local transformer block with captured residual-stream inputs and
+    one MLP output slice/channel target.
+  - Gate: compare GCL against linear/ridge/MLP surrogate baselines on held-out
+    activation rows, with all data extraction and tokenization failures treated
+    as hard failures.
+- Claim boundary: until these gates exist and pass, GCL may not claim LLM neuron
+  decompilation, GELU/SwiGLU reverse engineering, or mechanistic understanding
+  of production transformer blocks.
+
 The following items are still required before any broad SOTA language:
 
 - Wider randomized and adversarial 3D sweep, beyond the current smoke,
@@ -126,6 +156,8 @@ The following items are still required before any broad SOTA language:
   language.
 - Comparison against strong methods for piecewise-linear model extraction, with
   clear baselines and failure accounting.
+- Smooth activation decompilation for GELU/SwiGLU LLM-style FFN channels, with
+  separate gates from the ReLU recovered-adjacency geometry lane.
 
 ## Current Frontier Target
 
