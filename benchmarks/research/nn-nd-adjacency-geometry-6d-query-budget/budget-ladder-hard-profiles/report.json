@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-28T11:28:26.137Z",
+  "generatedAt": "2026-05-30T19:46:10.499Z",
   "task": "6D query-budget ladder for recovered-adjacency geometry on deep black-box ReLU region samplers",
   "blackBox": {
     "type": "6D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
@@ -23,6 +23,7 @@
     "cleanR2Above099": true,
     "noisyR2Above096": true,
     "maxSelectedRawOracleCallsPerTeacherBelow1_6M": true,
+    "highTierSelectionsAtMost1": true,
     "selectedRawOracleReductionAtLeast30Percent": true,
     "searchRawOracleCallsBelowPreviousSweepSearch": true
   },
@@ -46,29 +47,29 @@
       "low",
       "low",
       "mid",
-      "high",
+      "mid",
       "high",
       "low"
     ],
     "lowTierSelections": 3,
-    "midTierSelections": 1,
-    "highTierSelections": 2,
+    "midTierSelections": 2,
+    "highTierSelections": 1,
     "attemptedCandidateCount": 11,
     "rejectedCandidateCount": 5,
     "rejectedFailCount": 5,
     "minRegionCount": 56,
-    "minEdgeCount": 441,
-    "minLargestComponentRatio": 0.9821428571428571,
-    "maxNormalizedProjectionRmse": 1.0911993038304777,
+    "minEdgeCount": 451,
+    "minLargestComponentRatio": 0.975,
+    "maxNormalizedProjectionRmse": 1.1848901859779233,
     "maxMae": 0.09301806108793807,
-    "minR2": 0.961794949120783,
-    "maxSelectedRawOracleCallsPerTeacher": 1547000,
-    "totalSelectedRawOracleCalls": 5460000,
-    "totalSearchRawOracleCalls": 11102000,
+    "minR2": 0.9601449089658317,
+    "maxSelectedRawOracleCallsPerTeacher": 1501500,
+    "totalSelectedRawOracleCalls": 5414500,
+    "totalSearchRawOracleCalls": 11056500,
     "previousSweepSelectedRawOracleCalls": 8105500,
     "previousSweepSearchRawOracleCalls": 19220500,
-    "selectedReduction": 0.326383319967923,
-    "searchReduction": 0.42238755495434566
+    "selectedReduction": 0.3319967923015237,
+    "searchReduction": 0.4247548190733852
   },
   "results": [
     {
@@ -370,19 +371,19 @@
       "noisy": true,
       "pass": true,
       "selection": {
-        "selectedCandidateId": "near-parallel-high",
-        "selectedTier": "high",
+        "selectedCandidateId": "near-parallel-lhs",
+        "selectedTier": "mid",
         "selectedRandomSeed": 360001,
         "attemptedCandidateCount": 3,
         "rejectedCandidateCount": 2,
         "rejectedFailCount": 2,
-        "totalSearchRawOracleCalls": 4095000,
-        "selectedRawOracleCalls": 1547000,
+        "totalSearchRawOracleCalls": 4049500,
+        "selectedRawOracleCalls": 1501500,
         "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
       },
       "selected": {
-        "candidateId": "near-parallel-high",
-        "tier": "high",
+        "candidateId": "near-parallel-lhs",
+        "tier": "mid",
         "randomSeed": 360001,
         "pass": true,
         "criteria": {
@@ -395,7 +396,7 @@
           "regionCountEnough": true,
           "selectedOracleCallsBelowBudget": true
         },
-        "score": 97.09657699046124,
+        "score": 96.96093812838959,
         "sampler": {
           "querySamples": 7,
           "gradientStep": 0.04,
@@ -406,37 +407,38 @@
           "predictionMode": "region-vote",
           "localAffineNeighborCount": 16,
           "aggregation": "median",
-          "sampleCount": 17000,
+          "sampleCount": 16500,
+          "samplingMode": "latin-hypercube",
           "randomSeed": 360001
         },
         "recovery": {
           "recoveryKind": "output-equivalent-nd-region-sampler",
-          "regionCount": 79,
+          "regionCount": 80,
           "firstLayerWidth": 4,
-          "deepOnlyRegionEstimate": 74,
-          "retainedSampleCount": 16307,
-          "droppedSampleCount": 693,
-          "retainedSampleRatio": 0.9592352941176471,
+          "deepOnlyRegionEstimate": 75,
+          "retainedSampleCount": 15851,
+          "droppedSampleCount": 649,
+          "retainedSampleRatio": 0.9606666666666667,
           "predictionMode": "region-vote"
         },
         "geometry": {
           "pass": true,
           "geometryKind": "nd-affine-equality-contact-witness",
-          "candidatePairCount": 987,
-          "edgeCount": 441,
+          "candidatePairCount": 1046,
+          "edgeCount": 468,
           "largestComponentSize": 78,
-          "largestComponentRatio": 0.9873417721518988,
-          "maxNormalizedProjectionRmse": 1.0911993038304777,
-          "maxProjectionRmse": 1.6105139993350712,
-          "minSupportScore": 0.8557273741181315
+          "largestComponentRatio": 0.975,
+          "maxNormalizedProjectionRmse": 1.1848901859779233,
+          "maxProjectionRmse": 1.7021502649911315,
+          "minSupportScore": 0.9191970608666099
         },
         "metrics": {
-          "mae": 0.014703635902778069,
-          "rmse": 0.04169599202720725,
-          "r2": 0.961794949120783
+          "mae": 0.014981339622159851,
+          "rmse": 0.04258687985931527,
+          "r2": 0.9601449089658317
         },
         "queryBudget": {
-          "rawOracleCalls": 1547000,
+          "rawOracleCalls": 1501500,
           "finiteDifferenceCallsPerSample": 91,
           "geometryOracleCalls": 0,
           "validationPoints": 2600
@@ -803,6 +805,6 @@
       "rejectedCandidates": []
     }
   ],
-  "nextStep": "6D query-budget ladder passed. Next valid step is promotion-gate integration or a second efficiency pass that targets the near-parallel/cancellation high-cost profiles.",
-  "runtimeMs": 25598
+  "nextStep": "6D query-budget ladder passed with the Latin-hypercube near-parallel challenger promoted before high tier. Next efficiency target is low-amplitude, which still selects high tier.",
+  "runtimeMs": 22995
 }

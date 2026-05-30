@@ -33,6 +33,7 @@ type SamplerConfig = {
   predictionMode: 'region-vote' | 'local-affine-knn';
   localAffineNeighborCount?: number;
   aggregation?: 'mean' | 'median' | 'trimmed-mean';
+  samplingMode?: 'random' | 'latin-hypercube';
   randomSeed: number;
 };
 type GeometryConfig = {
@@ -306,6 +307,7 @@ function makeCases(): TeacherCase[] {
       candidates: [
         makeCandidate('near-parallel-low', 'low', { ...nearBase, sampleCount: 13000 }, 360001),
         makeCandidate('near-parallel-mid', 'mid', { ...nearBase, sampleCount: 15000 }, 360001),
+        makeCandidate('near-parallel-lhs', 'mid', { ...nearBase, sampleCount: 16500, samplingMode: 'latin-hypercube' }, 360001),
         makeCandidate('near-parallel-high', 'high', { ...nearBase, sampleCount: 17000 }, 360001)
       ],
       geometry: noisyGeometry,
@@ -364,6 +366,7 @@ function evaluateCandidate(testCase: TeacherCase, candidate: Candidate) {
     neighborCount: candidate.sampler.neighborCount,
     predictionMode: candidate.sampler.predictionMode,
     localAffineNeighborCount: candidate.sampler.localAffineNeighborCount,
+    samplingMode: candidate.sampler.samplingMode ?? 'random',
     randomSeed: candidate.sampler.randomSeed,
     ridge: 1e-8
   });
@@ -519,6 +522,7 @@ const gates = {
   cleanR2Above099: results.filter(result => !result.noisy).every(result => result.selected.metrics.r2 > 0.99),
   noisyR2Above096: results.filter(result => result.noisy).every(result => result.selected.metrics.r2 > 0.96),
   maxSelectedRawOracleCallsPerTeacherBelow1_6M: summary.maxSelectedRawOracleCallsPerTeacher < 1_600_000,
+  highTierSelectionsAtMost1: summary.highTierSelections <= 1,
   selectedRawOracleReductionAtLeast30Percent: summary.selectedReduction >= 0.3,
   searchRawOracleCallsBelowPreviousSweepSearch: summary.totalSearchRawOracleCalls < previousSweepSearchRawOracleCalls
 };
@@ -539,7 +543,7 @@ const report = {
   summary,
   results,
   nextStep: pass
-    ? '6D query-budget ladder passed. Next valid step is promotion-gate integration or a second efficiency pass that targets the near-parallel/cancellation high-cost profiles.'
+    ? '6D query-budget ladder passed with the Latin-hypercube near-parallel challenger promoted before high tier. Next efficiency target is low-amplitude, which still selects high tier.'
     : '6D query-budget ladder failed. Fix the failing budget/profile before claiming query-cost improvement.',
   runtimeMs: Date.now() - started
 };
@@ -608,6 +612,7 @@ writeBenchmarkManifest(repoRoot, output, {
   notes: [
     'Research query-budget hardening for the 6D recovered-adjacency lane.',
     'Evaluates low/mid/high candidates in order and stops at the first passing budget.',
+    'Includes a Latin-hypercube candidate that must pass the same accuracy/geometry gates before it can replace a higher-budget candidate.',
     'Keeps the hard-profile geometry/accuracy gates while requiring selected-call reduction against the previous 6D sweep.'
   ]
 });

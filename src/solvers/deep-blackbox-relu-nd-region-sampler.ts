@@ -17,6 +17,7 @@ export type DeepBlackBoxReluNdRegionSamplerModel = {
   dimension: number;
   ranges: Array<[number, number]>;
   sampleCount: number;
+  samplingMode: 'random' | 'latin-hypercube';
   retainedSampleCount: number;
   droppedSampleCount: number;
   gradientStep: number;
@@ -48,6 +49,7 @@ export type DeepBlackBoxReluNdRegionSamplerConfig = {
   neighborCount?: number;
   predictionMode?: 'region-vote' | 'local-affine-knn';
   localAffineNeighborCount?: number;
+  samplingMode?: 'random' | 'latin-hypercube';
   randomSeed?: number;
   ridge?: number;
 };
@@ -107,6 +109,34 @@ function randomPoint(random: () => number, ranges: Array<[number, number]>, marg
     const boundedMargin = Math.min(margin, (max - min) * 0.2);
     return randomBetween(random, min + boundedMargin, max - boundedMargin);
   });
+}
+
+function shuffledIndexes(random: () => number, count: number): number[] {
+  const indexes = Array.from({ length: count }, (_, index) => index);
+  for (let index = indexes.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [indexes[index], indexes[swapIndex]] = [indexes[swapIndex], indexes[index]];
+  }
+  return indexes;
+}
+
+function makeLatinHypercubePoints(
+  random: () => number,
+  ranges: Array<[number, number]>,
+  count: number,
+  margin: number
+): number[][] {
+  const dimension = ranges.length;
+  const permutations = Array.from({ length: dimension }, () => shuffledIndexes(random, count));
+  return Array.from({ length: count }, (_, sampleIndex) => (
+    ranges.map(([min, max], axis) => {
+      const boundedMargin = Math.min(margin, (max - min) * 0.2);
+      const low = min + boundedMargin;
+      const high = max - boundedMargin;
+      const stratum = (permutations[axis][sampleIndex] + random()) / count;
+      return low + (high - low) * stratum;
+    })
+  ));
 }
 
 function maxAbsWeightDelta(a: number[], b: number[]): number {
@@ -194,6 +224,7 @@ function buildExpression(model: Omit<DeepBlackBoxReluNdRegionSamplerModel, 'expr
     `dimension=${model.dimension}`,
     `regions=${model.regionCount}`,
     `samples=${model.retainedSampleCount}/${model.sampleCount}`,
+    `sampling=${model.samplingMode}`,
     `k=${model.neighborCount}`,
     `mode=${model.predictionMode}`,
     ')'
@@ -241,6 +272,7 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
   const neighborCount = Math.max(1, Math.floor(config.neighborCount ?? 11));
   const predictionMode = config.predictionMode ?? 'region-vote';
   const localAffineNeighborCount = Math.max(dimension + 2, Math.floor(config.localAffineNeighborCount ?? Math.max(neighborCount, 3 * (dimension + 1))));
+  const samplingMode = config.samplingMode ?? 'random';
   const ridge = config.ridge ?? 1e-10;
   const random = makeRandom(config.randomSeed ?? 260526);
 
@@ -252,8 +284,11 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
   const clusters: GradientCluster[] = [];
   const samples: GradientSample[] = [];
   const margin = gradientStep * 4;
+  const samplePoints = samplingMode === 'latin-hypercube'
+    ? makeLatinHypercubePoints(random, config.ranges, sampleCount, margin)
+    : Array.from({ length: sampleCount }, () => randomPoint(random, config.ranges, margin));
   for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
-    const input = randomPoint(random, config.ranges, margin);
+    const input = samplePoints[sampleIndex];
     const center = sampleOracle(input);
     const weights: number[] = [];
     for (let axis = 0; axis < dimension; axis++) {
@@ -320,6 +355,7 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
     dimension,
     ranges: config.ranges,
     sampleCount,
+    samplingMode,
     retainedSampleCount: assignments.length,
     droppedSampleCount: sampleCount - assignments.length,
     gradientStep,

@@ -1,6 +1,6 @@
 # 6D ND Recovered-Adjacency Geometry Query-Budget Ladder
 
-Generated: 2026-05-28T11:28:26.137Z
+Generated: 2026-05-30T19:46:10.499Z
 
 ## Claim Scope
 
@@ -11,20 +11,20 @@ Generated: 2026-05-28T11:28:26.137Z
 
 - Pass: true
 - Teachers passed: 6/6
-- Selected tiers: low, low, mid, high, high, low
-- Low/mid/high selections: 3/1/2
+- Selected tiers: low, low, mid, mid, high, low
+- Low/mid/high selections: 3/2/1
 - Rejected failed candidates: 5
 - Min region count: 56
-- Min adjacency edges: 441
+- Min adjacency edges: 451
 - Max MAE: 0.09301806108793807
-- Min R2: 0.961794949120783
-- Max selected raw oracle calls per teacher: 1547000
+- Min R2: 0.9601449089658317
+- Max selected raw oracle calls per teacher: 1501500
 - Previous selected raw oracle calls: 8105500
-- New selected raw oracle calls: 5460000
-- Selected-call reduction: 0.326383319967923
+- New selected raw oracle calls: 5414500
+- Selected-call reduction: 0.3319967923015237
 - Previous search raw oracle calls: 19220500
-- New search raw oracle calls: 11102000
-- Search-call reduction: 0.42238755495434566
+- New search raw oracle calls: 11056500
+- Search-call reduction: 0.4247548190733852
 
 ## Results
 
@@ -84,17 +84,17 @@ Generated: 2026-05-28T11:28:26.137Z
 - Pass: true
 - Profile: near-parallel
 - Noisy oracle: true
-- Selected candidate: near-parallel-high
-- Selected tier: high
+- Selected candidate: near-parallel-lhs
+- Selected tier: mid
 - Candidates attempted: 3
 - Rejected failures: 2
-- Region count: 79
+- Region count: 80
 - Geometry pass: true
-- Passing edges: 441
-- GCL MAE: 0.014703635902778069
-- GCL R2: 0.961794949120783
-- Selected raw oracle calls: 1547000
-- Search raw oracle calls: 4095000
+- Passing edges: 468
+- GCL MAE: 0.014981339622159851
+- GCL R2: 0.9601449089658317
+- Selected raw oracle calls: 1501500
+- Search raw oracle calls: 4049500
 
 ### low-amplitude-6d-634
 
@@ -132,4 +132,4 @@ Generated: 2026-05-28T11:28:26.137Z
 
 ## Next Step
 
-6D query-budget ladder passed. Next valid step is promotion-gate integration or a second efficiency pass that targets the near-parallel/cancellation high-cost profiles.
+6D query-budget ladder passed with the Latin-hypercube near-parallel challenger promoted before high tier. Next efficiency target is low-amplitude, which still selects high tier.

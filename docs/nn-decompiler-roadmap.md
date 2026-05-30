@@ -471,21 +471,28 @@ Current status:
   teacher, while these direct-sample baselines used at most `18000`. Next
   target: query-efficiency hardening plus stronger external package baselines
   before release-gate promotion.
-- 6D query-budget ladder PASS on 2026-05-28.
+- 6D query-budget ladder PASS on 2026-05-30 after adding an optional
+  Latin-hypercube sampling mode to the ND region sampler. The old random
+  sampling mode remains the default, and the high-budget candidates remain as
+  fallback proof.
 - 6D query-budget result: `6/6` teachers passed the same hard-profile
-  accuracy/geometry gates; selected tiers were low/low/mid/high/high/low; `5`
-  rejected candidates were genuine gate failures; selected raw oracle calls
-  dropped from `8105500` to `5460000`, a `32.6383319967923%` reduction; total
-  search raw oracle calls dropped from `19220500` to `11102000`, a
-  `42.238755495434566%` reduction. Max selected calls per teacher dropped from
-  `1989000` to `1547000`, while min region count stayed at `56`, max MAE was
-  `0.09301806108793807`, and min R2 was `0.961794949120783`.
+  accuracy/geometry gates; selected tiers improved from low/low/mid/high/high/low
+  to low/low/mid/mid/high/low after the near-parallel Latin-hypercube challenger
+  passed before high tier. `5` rejected candidates were genuine gate failures;
+  selected raw oracle calls dropped from `8105500` to `5414500`, a
+  `33.19967923015237%` reduction; total search raw oracle calls dropped from
+  `19220500` to `11056500`, a `42.47548190733852%` reduction. Max selected
+  calls per teacher dropped from `1989000` to `1501500`, while min region count
+  stayed at `56`, min adjacency edges stayed at `451`, max MAE was
+  `0.09301806108793807`, and min R2 was `0.9601449089658317`. The gate now
+  also requires `highTierSelectionsAtMost1`.
 - 6D query-budget artifact:
   `benchmarks/research/nn-nd-adjacency-geometry-6d-query-budget/budget-ladder-hard-profiles/report.json`
-- 6D still needs more efficiency work before broad SOTA language: near-parallel
-  and low-amplitude still selected high-tier budgets. The next efficiency
-  target is profile-specific low/mid candidates for those two cases plus
-  stronger external package baselines.
+- 6D still needs more efficiency work before broad SOTA language: low-amplitude
+  remains the only high-tier budget profile. The next efficiency target is a
+  low-amplitude-specific coverage strategy that increases supported region
+  count without weakening the min-region gate, plus stronger external package
+  baselines.
 - Topology-boundary max endpoint line residual: `4.441e-16`.
 - Topology-boundary minimum topology segment length: `0.070194`.
 - Topology-boundary minimum boundary compression ratio: `10.022222x`.
