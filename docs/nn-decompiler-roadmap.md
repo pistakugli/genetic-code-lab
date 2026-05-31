@@ -119,14 +119,23 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   - GELU teacher: `y = a * gelu(w dot x + b) + c`.
   - SiLU/SwiGLU teacher: `y = (u dot x + bu) * silu(g dot x + bg)`.
   - GCL receives only `f(vector)` oracle calls.
-  - Current gate: controlled 256D/1024D teachers, held-out R2 above `0.995`
-    for single-channel GELU and above `0.99` for two-direction SwiGLU, explicit
-    active-subspace projection evidence, query budget below `50000`, and a win
-    against mean/random-subspace/coordinate-subspace baselines.
-  - Current result: 4/4 passed, max MAE `0.00022774732575327203`, min R2
+  - Current foundation gate: controlled 256D/1024D teachers, held-out R2 above
+    `0.995` for single-channel GELU and above `0.99` for two-direction SwiGLU,
+    explicit active-subspace projection evidence, query budget below `50000`,
+    and a win against mean/random-subspace/coordinate-subspace baselines.
+  - Foundation result: 4/4 passed, max MAE `0.00022774732575327203`, min R2
     `0.9999942261682238`, min selected gradient-energy ratio
     `0.9999999999999994`, min true-direction projection score
     `0.9999999999999991`, max raw oracle calls `45360`.
+  - Current 4096D stress gate: `npm run
+    benchmark:nn-active-subspace-ffn-4096d-stress`, controlled 4096D GELU and
+    SwiGLU-style teachers, held-out R2 above `0.999`, explicit true-direction
+    projection evidence, query budget below `115000`, and a win against
+    mean/random-subspace/coordinate-subspace baselines.
+  - 4096D result: 2/2 passed, max MAE `0.0003824201749357419`, min R2
+    `0.9999571961681036`, min selected gradient-energy ratio
+    `0.9999999999999987`, min true-direction projection score
+    `0.9999999999999992`, max raw oracle calls `103504`.
 - Stage B: synthetic FFN block recovery.
   - Multiple GELU/SwiGLU channels are summed into a block output slice.
   - Gate: output-equivalent transparent surrogate with per-channel or subspace
@@ -176,9 +185,11 @@ The following items are still required before any broad SOTA language:
   clear baselines and failure accounting.
 - Smooth activation decompilation for GELU/SwiGLU LLM-style FFN channels, with
   separate gates from the ReLU recovered-adjacency geometry lane. Status:
-  started with `benchmark:nn-active-subspace-ffn-decompiler`; next evidence
-  must cover 4096D stress, mixed multi-channel FFN blocks, and package-backed
-  external baselines before broad claims.
+  started with `benchmark:nn-active-subspace-ffn-decompiler` and extended to a
+  controlled 4096D stress gate with
+  `benchmark:nn-active-subspace-ffn-4096d-stress`; next evidence must cover
+  mixed multi-channel FFN blocks and package-backed external baselines before
+  broad claims.
 
 ## Current Frontier Target
 
@@ -195,10 +206,10 @@ rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
 capability jump is no longer simply 7D/8D ReLU scaling. The next move is active-
-subspace smooth FFN recovery: first 256D/1024D controlled GELU/SwiGLU channels,
-then 4096D stress, mixed multi-channel FFN blocks, package-backed external
-baselines, and finally a local transformer MLP hook. The 6D ReLU lane remains a
-foundation and is not a broad SOTA claim by itself.
+subspace smooth FFN recovery: 256D/1024D controlled GELU/SwiGLU channels and
+4096D stress are now release-gated; next are mixed multi-channel FFN blocks,
+package-backed external baselines, and finally a local transformer MLP hook. The
+6D ReLU lane remains a foundation and is not a broad SOTA claim by itself.
 
 Target commands:
 
@@ -212,6 +223,7 @@ Target commands:
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-baselines`
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-query-budget`
 - `npm run benchmark:nn-active-subspace-ffn-decompiler`
+- `npm run benchmark:nn-active-subspace-ffn-4096d-stress`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`

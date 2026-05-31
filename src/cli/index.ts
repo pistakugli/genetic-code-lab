@@ -452,6 +452,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-active-subspace-ffn-4096d-stress',
+    name: 'NN active-subspace FFN 4096D stress',
+    status: 'production',
+    summary: 'Stress-tests the active-subspace FFN decompiler at 4096 input dimensions on controlled GELU and SwiGLU-style black-box channels with explicit query-budget and baseline-court gates.',
+    scope: 'Black-box smooth activation benchmark; proves benchmark-scoped active-subspace discovery and faithful output surrogate recovery for controlled 4096D single-channel GELU and two-direction SwiGLU-style teachers. This does not claim real LLM decompilation, production transformer hook extraction, exact GELU/SwiGLU parameter recovery, multi-channel FFN block recovery, tokenizer/model integration, or broad SOTA status.',
+    run: { label: 'NN active-subspace FFN 4096D stress benchmark', command: 'npm', args: ['run', 'benchmark:nn-active-subspace-ffn-4096d-stress'] },
+    proofs: [
+      { label: 'NN active-subspace FFN 4096D stress benchmark', command: 'npm', args: ['run', 'benchmark:nn-active-subspace-ffn-4096d-stress'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-active-subspace-ffn-4096d-stress/gelu-swiglu-single-and-rank2/report.json',
+      'benchmarks/release/nn-active-subspace-ffn-4096d-stress/gelu-swiglu-single-and-rank2/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

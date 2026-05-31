@@ -72,6 +72,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-active-subspace-ffn-decompiler',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-active-subspace-ffn-4096d-stress',
+        status: 'production'
       })
     ]));
   });

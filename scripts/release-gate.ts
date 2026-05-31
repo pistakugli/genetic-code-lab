@@ -132,6 +132,7 @@ function main(): void {
     runStep('NN ND adjacency-geometry 6D robustness benchmark', 'npm', ['run', 'benchmark:nn-nd-adjacency-geometry-6d-robustness'], { timeoutMs: 5 * 60 * 1000 });
     runStep('NN ND adjacency-geometry 6D baseline court benchmark', 'npm', ['run', 'benchmark:nn-nd-adjacency-geometry-6d-baselines'], { timeoutMs: 6 * 60 * 1000 });
     runStep('NN active-subspace FFN decompiler benchmark', 'npm', ['run', 'benchmark:nn-active-subspace-ffn-decompiler'], { timeoutMs: 3 * 60 * 1000 });
+    runStep('NN active-subspace FFN 4096D stress benchmark', 'npm', ['run', 'benchmark:nn-active-subspace-ffn-4096d-stress'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 2D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu2d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN randomized 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-randomized'], { timeoutMs: 3 * 60 * 1000 });
