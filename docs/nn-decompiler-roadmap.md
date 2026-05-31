@@ -74,7 +74,9 @@ Phase 4: deep ND folded recovery.
   and budget-hardened with
   `benchmark:nn-adaptive-budget-noisy-deep-blackbox-relu-nd-region-sampler`,
   then geometry-hardened with
-  `benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`.
+  `benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`,
+  `benchmark:nn-nd-adjacency-geometry-5d-sweep`, and
+  `benchmark:nn-nd-adjacency-geometry-6d-robustness`.
 - Current proof: controlled 3D/4D folded two-layer ReLU teachers recovered as
   output-equivalent affine-region samplers from oracle-only random local-gradient
   probes, with query-free kNN region assignment, noisy/quantized repeated-call
@@ -82,12 +84,13 @@ Phase 4: deep ND folded recovery.
   noisy holdout budget promotion with rejected-candidate accounting, query-
   budget accounting, recovered ND adjacency geometry from cross-region contact
   witnesses plus affine-equality hyperplanes, a 5D clean/noisy hard-profile
-  sweep, a research-only 6D guarded probe, and a global-linear baseline gap.
+  sweep, a 12-teacher 6D clean/noisy randomized/adversarial robustness gate
+  with zero high-tier selections, and a global-linear baseline gap.
 - Required gates: deterministic randomized ND teachers, noisy/adaptive
   adversarial hard-profile sweeps, query-budget accounting, and baseline
   comparison against shallow/linear approximations. Next hardening step is
-  adaptive 6D probe-distribution selection, stronger external extraction
-  baselines, and harder topology-perfect ND cell-complex audits.
+  stronger external extraction baselines on the exact 6D robustness manifest,
+  then harder topology-perfect ND cell-complex audits.
 
 Phase 5: layer attribution only with extra observability.
 

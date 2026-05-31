@@ -407,6 +407,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-nd-adjacency-geometry-6d-robustness',
+    name: 'NN ND adjacency-geometry 6D robustness',
+    status: 'production',
+    summary: 'Extends recovered ND adjacency geometry to a 12-teacher 6D clean/noisy randomized hard-profile gate with zero high-tier selections and explicit query-budget accounting.',
+    scope: 'Black-box deep ReLU teacher benchmark; proves benchmark-scoped recovered 6D adjacency geometry across clean, low-amplitude, cancellation, near-parallel, and weak-support folded teachers. This does not claim broad SOTA status, topology-perfect full cell-complex recovery, unique hidden-layer weights, exact layer attribution, GELU/SwiGLU recovery, arbitrary production API extraction, or superiority over all extraction algorithms.',
+    run: { label: 'NN ND adjacency-geometry 6D robustness benchmark', command: 'npm', args: ['run', 'benchmark:nn-nd-adjacency-geometry-6d-robustness'] },
+    proofs: [
+      { label: 'NN ND adjacency-geometry 6D robustness benchmark', command: 'npm', args: ['run', 'benchmark:nn-nd-adjacency-geometry-6d-robustness'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-nd-adjacency-geometry-6d-robustness/randomized-hard-profiles/report.json',
+      'benchmarks/release/nn-nd-adjacency-geometry-6d-robustness/randomized-hard-profiles/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

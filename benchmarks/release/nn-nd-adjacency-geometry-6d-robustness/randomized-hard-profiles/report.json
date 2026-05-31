@@ -1,0 +1,1477 @@
+{
+  "generatedAt": "2026-05-31T07:07:59.712Z",
+  "task": "randomized/adversarial 6D robustness gate for recovered-adjacency geometry on deep black-box ReLU region samplers",
+  "blackBox": {
+    "type": "6D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
+    "visibilityToGcl": "oracle calls only: the decompiler receives f(vector), not hidden activations, layer widths, teacher weights, or true region adjacency"
+  },
+  "claimScope": {
+    "provesIfPasses": "the 6D recovered-adjacency lane keeps the fixed hard-profile geometry/accuracy gates on a wider deterministic randomized/adversarial seed set while still avoiding high-tier selections",
+    "doesNotClaim": "broad SOTA status, topology-perfect full ND cell-complex recovery, unique hidden-layer identity, exact layer attribution, GELU/SwiGLU recovery, or arbitrary production API extraction"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "cleanAndNoisyCovered": true,
+    "only6dTeachers": true,
+    "hardProfilesCovered": true,
+    "budgetLadderActuallyRejectedFailures": true,
+    "minRegionCountAbove55": true,
+    "minEdgesAtLeast35": true,
+    "largestComponentRatioAtLeast10Percent": true,
+    "normalizedProjectionRmseAtMost2_15": true,
+    "cleanR2Above099": true,
+    "noisyR2Above096": true,
+    "maxSelectedRawOracleCallsPerTeacherBelow1_6M": true,
+    "averageSelectedRawOracleCallsPerTeacherBelow1_05M": true,
+    "averageSearchRawOracleCallsPerTeacherBelow2_25M": true,
+    "noHighTierSelections": true,
+    "fixedQueryBudgetAverageSelectedCallsNotRegressed": true,
+    "searchAverageWithin25PercentOfFixedQueryBudget": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 12,
+    "passedTeachers": 12,
+    "cleanTeacherCount": 4,
+    "noisyTeacherCount": 8,
+    "dimensions": [
+      6
+    ],
+    "profiles": [
+      "clean",
+      "cancellation",
+      "near-parallel",
+      "low-amplitude",
+      "weak-support"
+    ],
+    "selectedTiers": [
+      "low",
+      "low",
+      "mid",
+      "mid",
+      "mid",
+      "low",
+      "mid",
+      "low",
+      "low",
+      "low",
+      "mid",
+      "low"
+    ],
+    "lowTierSelections": 7,
+    "midTierSelections": 5,
+    "highTierSelections": 0,
+    "attemptedCandidateCount": 20,
+    "rejectedCandidateCount": 8,
+    "rejectedFailCount": 8,
+    "minRegionCount": 56,
+    "minEdgeCount": 468,
+    "minLargestComponentRatio": 0.935064935064935,
+    "maxNormalizedProjectionRmse": 1.1848901859779233,
+    "maxMae": 0.09301806108793807,
+    "minR2": 0.9601449089658317,
+    "maxSelectedRawOracleCallsPerTeacher": 1501500,
+    "averageSelectedRawOracleCallsPerTeacher": 804375,
+    "averageSearchRawOracleCallsPerTeacher": 1456541.6666666667,
+    "totalSelectedRawOracleCalls": 9652500,
+    "totalSearchRawOracleCalls": 17478500,
+    "fixedQueryBudgetTeacherCount": 6,
+    "fixedAverageSelectedRawOracleCalls": 841750,
+    "fixedAverageSearchRawOracleCalls": 1782083.3333333333,
+    "averageSelectedReductionVsFixedQueryBudget": 0.044401544401544424,
+    "averageSearchReductionVsFixedQueryBudget": 0.1826747720364741
+  },
+  "results": [
+    {
+      "teacherId": "clean-6d-29",
+      "seed": 29,
+      "dimension": 6,
+      "profile": "clean",
+      "noisy": false,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "clean-low",
+        "selectedTier": "low",
+        "selectedRandomSeed": 360561,
+        "attemptedCandidateCount": 1,
+        "rejectedCandidateCount": 0,
+        "rejectedFailCount": 0,
+        "totalSearchRawOracleCalls": 182000,
+        "selectedRawOracleCalls": 182000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "clean-low",
+        "tier": "low",
+        "randomSeed": 360561,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 100.62627386495924,
+        "sampler": {
+          "querySamples": 1,
+          "gradientStep": 0.00001,
+          "slopeTolerance": 0.00001,
+          "interceptTolerance": 0.00001,
+          "minRegionSupport": 6,
+          "neighborCount": 27,
+          "predictionMode": "region-vote",
+          "sampleCount": 14000,
+          "randomSeed": 360561
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 65,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 60,
+          "retainedSampleCount": 13970,
+          "droppedSampleCount": 30,
+          "retainedSampleRatio": 0.9978571428571429,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 986,
+          "edgeCount": 667,
+          "largestComponentSize": 65,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.5487487040118095,
+          "maxProjectionRmse": 0.7631133802432628,
+          "minSupportScore": 0.9243734345715285
+        },
+        "metrics": {
+          "mae": 0.02514738606591309,
+          "rmse": 0.0628856080503183,
+          "r2": 0.996313022034061
+        },
+        "queryBudget": {
+          "rawOracleCalls": 182000,
+          "finiteDifferenceCallsPerSample": 13,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": []
+    },
+    {
+      "teacherId": "clean-6d-83",
+      "seed": 83,
+      "dimension": 6,
+      "profile": "clean",
+      "noisy": false,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "clean-low",
+        "selectedTier": "low",
+        "selectedRandomSeed": 360615,
+        "attemptedCandidateCount": 1,
+        "rejectedCandidateCount": 0,
+        "rejectedFailCount": 0,
+        "totalSearchRawOracleCalls": 182000,
+        "selectedRawOracleCalls": 182000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "clean-low",
+        "tier": "low",
+        "randomSeed": 360615,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 100.44487696156914,
+        "sampler": {
+          "querySamples": 1,
+          "gradientStep": 0.00001,
+          "slopeTolerance": 0.00001,
+          "interceptTolerance": 0.00001,
+          "minRegionSupport": 6,
+          "neighborCount": 27,
+          "predictionMode": "region-vote",
+          "sampleCount": 14000,
+          "randomSeed": 360615
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 59,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 54,
+          "retainedSampleCount": 13956,
+          "droppedSampleCount": 44,
+          "retainedSampleRatio": 0.9968571428571429,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 915,
+          "edgeCount": 596,
+          "largestComponentSize": 59,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.4789558711217752,
+          "maxProjectionRmse": 0.7200150130852595,
+          "minSupportScore": 0.8995570864292931
+        },
+        "metrics": {
+          "mae": 0.03946414407557655,
+          "rmse": 0.11414797242790982,
+          "r2": 0.9956624586754947
+        },
+        "queryBudget": {
+          "rawOracleCalls": 182000,
+          "finiteDifferenceCallsPerSample": 13,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": []
+    },
+    {
+      "teacherId": "cancellation-6d-717",
+      "seed": 717,
+      "dimension": 6,
+      "profile": "cancellation",
+      "noisy": true,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "cancellation-mid",
+        "selectedTier": "mid",
+        "selectedRandomSeed": 361249,
+        "attemptedCandidateCount": 2,
+        "rejectedCandidateCount": 1,
+        "rejectedFailCount": 1,
+        "totalSearchRawOracleCalls": 2366000,
+        "selectedRawOracleCalls": 1274000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "cancellation-mid",
+        "tier": "mid",
+        "randomSeed": 361249,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 100.76300244762142,
+        "sampler": {
+          "querySamples": 7,
+          "gradientStep": 0.08,
+          "slopeTolerance": 0.12,
+          "interceptTolerance": 0.28,
+          "minRegionSupport": 6,
+          "neighborCount": 27,
+          "predictionMode": "local-affine-knn",
+          "localAffineNeighborCount": 32,
+          "aggregation": "median",
+          "sampleCount": 14000,
+          "randomSeed": 361249
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 102,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 97,
+          "retainedSampleCount": 13191,
+          "droppedSampleCount": 809,
+          "retainedSampleRatio": 0.9422142857142857,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 1803,
+          "edgeCount": 1048,
+          "largestComponentSize": 102,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.7169119234386496,
+          "maxProjectionRmse": 0.8100027884342575,
+          "minSupportScore": 1.0434563800665655
+        },
+        "metrics": {
+          "mae": 0.09301806108793807,
+          "rmse": 0.1374838533263275,
+          "r2": 0.9925411574680458
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1274000,
+          "finiteDifferenceCallsPerSample": 91,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": [
+        {
+          "candidateId": "cancellation-low",
+          "tier": "low",
+          "pass": false,
+          "criteria": {
+            "geometryPass": true,
+            "edgeCountEnough": true,
+            "largestComponentEnough": true,
+            "projectionRmseBounded": true,
+            "maeBelowGate": false,
+            "r2AboveGate": true,
+            "regionCountEnough": true,
+            "selectedOracleCallsBelowBudget": true
+          },
+          "score": 100.57059409104072,
+          "recovery": {
+            "recoveryKind": "output-equivalent-nd-region-sampler",
+            "regionCount": 96,
+            "effectiveMinRegionSupport": 8,
+            "firstLayerWidth": 4,
+            "deepOnlyRegionEstimate": 91,
+            "retainedSampleCount": 11251,
+            "droppedSampleCount": 749,
+            "retainedSampleRatio": 0.9375833333333333,
+            "predictionMode": "local-affine-knn"
+          },
+          "geometry": {
+            "pass": true,
+            "geometryKind": "nd-affine-equality-contact-witness",
+            "candidatePairCount": 1641,
+            "edgeCount": 930,
+            "largestComponentSize": 95,
+            "largestComponentRatio": 0.9895833333333334,
+            "maxNormalizedProjectionRmse": 0.7281376213099124,
+            "maxProjectionRmse": 0.8629230972177026,
+            "minSupportScore": 1.1606429539714134
+          },
+          "metrics": {
+            "mae": 0.09629945163413639,
+            "rmse": 0.1418329702941484,
+            "r2": 0.9920617925696057
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1092000,
+            "finiteDifferenceCallsPerSample": 91,
+            "geometryOracleCalls": 0,
+            "validationPoints": 2600
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "near-parallel-6d-805",
+      "seed": 805,
+      "dimension": 6,
+      "profile": "near-parallel",
+      "noisy": true,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "near-parallel-lhs",
+        "selectedTier": "mid",
+        "selectedRandomSeed": 360001,
+        "attemptedCandidateCount": 3,
+        "rejectedCandidateCount": 2,
+        "rejectedFailCount": 2,
+        "totalSearchRawOracleCalls": 4049500,
+        "selectedRawOracleCalls": 1501500,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "near-parallel-lhs",
+        "tier": "mid",
+        "randomSeed": 360001,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 96.96093812838959,
+        "sampler": {
+          "querySamples": 7,
+          "gradientStep": 0.04,
+          "slopeTolerance": 0.05,
+          "interceptTolerance": 0.12,
+          "minRegionSupport": 4,
+          "neighborCount": 27,
+          "predictionMode": "region-vote",
+          "localAffineNeighborCount": 16,
+          "aggregation": "median",
+          "sampleCount": 16500,
+          "samplingMode": "latin-hypercube",
+          "randomSeed": 360001
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 80,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 75,
+          "retainedSampleCount": 15851,
+          "droppedSampleCount": 649,
+          "retainedSampleRatio": 0.9606666666666667,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 1046,
+          "edgeCount": 468,
+          "largestComponentSize": 78,
+          "largestComponentRatio": 0.975,
+          "maxNormalizedProjectionRmse": 1.1848901859779233,
+          "maxProjectionRmse": 1.7021502649911315,
+          "minSupportScore": 0.9191970608666099
+        },
+        "metrics": {
+          "mae": 0.014981339622159851,
+          "rmse": 0.04258687985931527,
+          "r2": 0.9601449089658317
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1501500,
+          "finiteDifferenceCallsPerSample": 91,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": [
+        {
+          "candidateId": "near-parallel-low",
+          "tier": "low",
+          "pass": false,
+          "criteria": {
+            "geometryPass": true,
+            "edgeCountEnough": true,
+            "largestComponentEnough": true,
+            "projectionRmseBounded": true,
+            "maeBelowGate": true,
+            "r2AboveGate": false,
+            "regionCountEnough": true,
+            "selectedOracleCallsBelowBudget": true
+          },
+          "score": 95.43195129668285,
+          "recovery": {
+            "recoveryKind": "output-equivalent-nd-region-sampler",
+            "regionCount": 68,
+            "effectiveMinRegionSupport": 8,
+            "firstLayerWidth": 4,
+            "deepOnlyRegionEstimate": 63,
+            "retainedSampleCount": 12392,
+            "droppedSampleCount": 608,
+            "retainedSampleRatio": 0.9532307692307692,
+            "predictionMode": "region-vote"
+          },
+          "geometry": {
+            "pass": true,
+            "geometryKind": "nd-affine-equality-contact-witness",
+            "candidatePairCount": 892,
+            "edgeCount": 392,
+            "largestComponentSize": 66,
+            "largestComponentRatio": 0.9705882352941176,
+            "maxNormalizedProjectionRmse": 1.0029642506930243,
+            "maxProjectionRmse": 1.3027635674414841,
+            "minSupportScore": 0.9180605436659768
+          },
+          "metrics": {
+            "mae": 0.01677339834634995,
+            "rmse": 0.04940425884206138,
+            "r2": 0.9463634374264825
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1183000,
+            "finiteDifferenceCallsPerSample": 91,
+            "geometryOracleCalls": 0,
+            "validationPoints": 2600
+          }
+        },
+        {
+          "candidateId": "near-parallel-mid",
+          "tier": "mid",
+          "pass": false,
+          "criteria": {
+            "geometryPass": true,
+            "edgeCountEnough": true,
+            "largestComponentEnough": true,
+            "projectionRmseBounded": true,
+            "maeBelowGate": true,
+            "r2AboveGate": false,
+            "regionCountEnough": true,
+            "selectedOracleCallsBelowBudget": true
+          },
+          "score": 96.01075107309316,
+          "recovery": {
+            "recoveryKind": "output-equivalent-nd-region-sampler",
+            "regionCount": 75,
+            "effectiveMinRegionSupport": 8,
+            "firstLayerWidth": 4,
+            "deepOnlyRegionEstimate": 70,
+            "retainedSampleCount": 14348,
+            "droppedSampleCount": 652,
+            "retainedSampleRatio": 0.9565333333333333,
+            "predictionMode": "region-vote"
+          },
+          "geometry": {
+            "pass": true,
+            "geometryKind": "nd-affine-equality-contact-witness",
+            "candidatePairCount": 951,
+            "edgeCount": 418,
+            "largestComponentSize": 74,
+            "largestComponentRatio": 0.9866666666666667,
+            "maxNormalizedProjectionRmse": 1.8188628492697654,
+            "maxProjectionRmse": 2.045760283405165,
+            "minSupportScore": 0.9344997527493034
+          },
+          "metrics": {
+            "mae": 0.015711503969350345,
+            "rmse": 0.04701583202306897,
+            "r2": 0.951424149580149
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1365000,
+            "finiteDifferenceCallsPerSample": 91,
+            "geometryOracleCalls": 0,
+            "validationPoints": 2600
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "low-amplitude-6d-634",
+      "seed": 634,
+      "dimension": 6,
+      "profile": "low-amplitude",
+      "noisy": true,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "low-amplitude-coverage",
+        "selectedTier": "mid",
+        "selectedRandomSeed": 460001,
+        "attemptedCandidateCount": 3,
+        "rejectedCandidateCount": 2,
+        "rejectedFailCount": 2,
+        "totalSearchRawOracleCalls": 2912000,
+        "selectedRawOracleCalls": 910000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "low-amplitude-coverage",
+        "tier": "mid",
+        "randomSeed": 460001,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 100.17774449284039,
+        "sampler": {
+          "querySamples": 5,
+          "gradientStep": 0.055,
+          "slopeTolerance": 0.08,
+          "interceptTolerance": 0.18,
+          "minRegionSupport": 4,
+          "neighborCount": 27,
+          "predictionMode": "local-affine-knn",
+          "localAffineNeighborCount": 64,
+          "aggregation": "median",
+          "sampleCount": 14000,
+          "minRegionSupportFloor": 4,
+          "randomSeed": 460001
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 77,
+          "effectiveMinRegionSupport": 4,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 72,
+          "retainedSampleCount": 13867,
+          "droppedSampleCount": 133,
+          "retainedSampleRatio": 0.9905,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 805,
+          "edgeCount": 527,
+          "largestComponentSize": 72,
+          "largestComponentRatio": 0.935064935064935,
+          "maxNormalizedProjectionRmse": 0.48167834109972624,
+          "maxProjectionRmse": 0.6650605718582581,
+          "minSupportScore": 0.9776242826671412
+        },
+        "metrics": {
+          "mae": 0.031089536651472263,
+          "rmse": 0.042660164035652245,
+          "r2": 0.992196673628252
+        },
+        "queryBudget": {
+          "rawOracleCalls": 910000,
+          "finiteDifferenceCallsPerSample": 65,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": [
+        {
+          "candidateId": "low-amplitude-low",
+          "tier": "low",
+          "pass": false,
+          "criteria": {
+            "geometryPass": true,
+            "edgeCountEnough": true,
+            "largestComponentEnough": true,
+            "projectionRmseBounded": true,
+            "maeBelowGate": true,
+            "r2AboveGate": true,
+            "regionCountEnough": false,
+            "selectedOracleCallsBelowBudget": true
+          },
+          "score": 99.65639775671951,
+          "recovery": {
+            "recoveryKind": "output-equivalent-nd-region-sampler",
+            "regionCount": 44,
+            "effectiveMinRegionSupport": 8,
+            "firstLayerWidth": 4,
+            "deepOnlyRegionEstimate": 39,
+            "retainedSampleCount": 9769,
+            "droppedSampleCount": 231,
+            "retainedSampleRatio": 0.9769,
+            "predictionMode": "local-affine-knn"
+          },
+          "geometry": {
+            "pass": true,
+            "geometryKind": "nd-affine-equality-contact-witness",
+            "candidatePairCount": 489,
+            "edgeCount": 370,
+            "largestComponentSize": 44,
+            "largestComponentRatio": 1,
+            "maxNormalizedProjectionRmse": 0.505239798272088,
+            "maxProjectionRmse": 0.6687524756827115,
+            "minSupportScore": 1.1645230578488763
+          },
+          "metrics": {
+            "mae": 0.03395676150028647,
+            "rmse": 0.04662858275753223,
+            "r2": 0.9906773547060075
+          },
+          "queryBudget": {
+            "rawOracleCalls": 910000,
+            "finiteDifferenceCallsPerSample": 91,
+            "geometryOracleCalls": 0,
+            "validationPoints": 2600
+          }
+        },
+        {
+          "candidateId": "low-amplitude-mid",
+          "tier": "mid",
+          "pass": false,
+          "criteria": {
+            "geometryPass": true,
+            "edgeCountEnough": true,
+            "largestComponentEnough": true,
+            "projectionRmseBounded": true,
+            "maeBelowGate": true,
+            "r2AboveGate": true,
+            "regionCountEnough": false,
+            "selectedOracleCallsBelowBudget": true
+          },
+          "score": 99.78409268988398,
+          "recovery": {
+            "recoveryKind": "output-equivalent-nd-region-sampler",
+            "regionCount": 48,
+            "effectiveMinRegionSupport": 8,
+            "firstLayerWidth": 4,
+            "deepOnlyRegionEstimate": 43,
+            "retainedSampleCount": 11761,
+            "droppedSampleCount": 239,
+            "retainedSampleRatio": 0.9800833333333333,
+            "predictionMode": "local-affine-knn"
+          },
+          "geometry": {
+            "pass": true,
+            "geometryKind": "nd-affine-equality-contact-witness",
+            "candidatePairCount": 536,
+            "edgeCount": 398,
+            "largestComponentSize": 48,
+            "largestComponentRatio": 1,
+            "maxNormalizedProjectionRmse": 0.4902013337690061,
+            "maxProjectionRmse": 0.5679292835034219,
+            "minSupportScore": 1.2150762561944959
+          },
+          "metrics": {
+            "mae": 0.03249207947771614,
+            "rmse": 0.04473123105506624,
+            "r2": 0.991420609598379
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1092000,
+            "finiteDifferenceCallsPerSample": 91,
+            "geometryOracleCalls": 0,
+            "validationPoints": 2600
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "weak-support-6d-911",
+      "seed": 911,
+      "dimension": 6,
+      "profile": "weak-support",
+      "noisy": true,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "weak-support-low",
+        "selectedTier": "low",
+        "selectedRandomSeed": 360001,
+        "attemptedCandidateCount": 1,
+        "rejectedCandidateCount": 0,
+        "rejectedFailCount": 0,
+        "totalSearchRawOracleCalls": 1001000,
+        "selectedRawOracleCalls": 1001000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "weak-support-low",
+        "tier": "low",
+        "randomSeed": 360001,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 99.52327690468408,
+        "sampler": {
+          "querySamples": 7,
+          "gradientStep": 0.085,
+          "slopeTolerance": 0.09,
+          "interceptTolerance": 0.24,
+          "minRegionSupport": 4,
+          "neighborCount": 27,
+          "predictionMode": "local-affine-knn",
+          "localAffineNeighborCount": 48,
+          "aggregation": "median",
+          "sampleCount": 11000,
+          "randomSeed": 360001
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 58,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 53,
+          "retainedSampleCount": 10735,
+          "droppedSampleCount": 265,
+          "retainedSampleRatio": 0.975909090909091,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 763,
+          "edgeCount": 520,
+          "largestComponentSize": 58,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.8150731136897836,
+          "maxProjectionRmse": 0.8455523254085193,
+          "minSupportScore": 1.1946082954051507
+        },
+        "metrics": {
+          "mae": 0.04180015414938247,
+          "rmse": 0.05818116222251628,
+          "r2": 0.9871745801121442
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1001000,
+          "finiteDifferenceCallsPerSample": 91,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": []
+    },
+    {
+      "teacherId": "clean-6d-151",
+      "seed": 151,
+      "dimension": 6,
+      "profile": "clean",
+      "noisy": false,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "clean-mid",
+        "selectedTier": "mid",
+        "selectedRandomSeed": 360681,
+        "attemptedCandidateCount": 2,
+        "rejectedCandidateCount": 1,
+        "rejectedFailCount": 1,
+        "totalSearchRawOracleCalls": 416000,
+        "selectedRawOracleCalls": 234000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "clean-mid",
+        "tier": "mid",
+        "randomSeed": 360681,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 100.46805268029583,
+        "sampler": {
+          "querySamples": 1,
+          "gradientStep": 0.00001,
+          "slopeTolerance": 0.00001,
+          "interceptTolerance": 0.00001,
+          "minRegionSupport": 6,
+          "neighborCount": 27,
+          "predictionMode": "region-vote",
+          "sampleCount": 18000,
+          "randomSeed": 360681
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 56,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 51,
+          "retainedSampleCount": 17950,
+          "droppedSampleCount": 50,
+          "retainedSampleRatio": 0.9972222222222222,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 665,
+          "edgeCount": 469,
+          "largestComponentSize": 56,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.39310558527700235,
+          "maxProjectionRmse": 0.5523882575979993,
+          "minSupportScore": 1.0936097143790333
+        },
+        "metrics": {
+          "mae": 0.02706279487397642,
+          "rmse": 0.08850873815006693,
+          "r2": 0.9970428214183646
+        },
+        "queryBudget": {
+          "rawOracleCalls": 234000,
+          "finiteDifferenceCallsPerSample": 13,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": [
+        {
+          "candidateId": "clean-low",
+          "tier": "low",
+          "pass": false,
+          "criteria": {
+            "geometryPass": true,
+            "edgeCountEnough": true,
+            "largestComponentEnough": true,
+            "projectionRmseBounded": true,
+            "maeBelowGate": true,
+            "r2AboveGate": true,
+            "regionCountEnough": false,
+            "selectedOracleCallsBelowBudget": true
+          },
+          "score": 100.34453240118955,
+          "recovery": {
+            "recoveryKind": "output-equivalent-nd-region-sampler",
+            "regionCount": 52,
+            "effectiveMinRegionSupport": 8,
+            "firstLayerWidth": 4,
+            "deepOnlyRegionEstimate": 47,
+            "retainedSampleCount": 13940,
+            "droppedSampleCount": 60,
+            "retainedSampleRatio": 0.9957142857142857,
+            "predictionMode": "region-vote"
+          },
+          "geometry": {
+            "pass": true,
+            "geometryKind": "nd-affine-equality-contact-witness",
+            "candidatePairCount": 654,
+            "edgeCount": 462,
+            "largestComponentSize": 51,
+            "largestComponentRatio": 0.9807692307692307,
+            "maxNormalizedProjectionRmse": 0.4842741617979357,
+            "maxProjectionRmse": 0.6218768777151668,
+            "minSupportScore": 1.1028009560279728
+          },
+          "metrics": {
+            "mae": 0.03120904533877533,
+            "rmse": 0.10042260145302191,
+            "r2": 0.9961931287509975
+          },
+          "queryBudget": {
+            "rawOracleCalls": 182000,
+            "finiteDifferenceCallsPerSample": 13,
+            "geometryOracleCalls": 0,
+            "validationPoints": 2600
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "clean-6d-211",
+      "seed": 211,
+      "dimension": 6,
+      "profile": "clean",
+      "noisy": false,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "clean-low",
+        "selectedTier": "low",
+        "selectedRandomSeed": 360743,
+        "attemptedCandidateCount": 1,
+        "rejectedCandidateCount": 0,
+        "rejectedFailCount": 0,
+        "totalSearchRawOracleCalls": 182000,
+        "selectedRawOracleCalls": 182000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "clean-low",
+        "tier": "low",
+        "randomSeed": 360743,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 100.60292715279198,
+        "sampler": {
+          "querySamples": 1,
+          "gradientStep": 0.00001,
+          "slopeTolerance": 0.00001,
+          "interceptTolerance": 0.00001,
+          "minRegionSupport": 6,
+          "neighborCount": 27,
+          "predictionMode": "region-vote",
+          "sampleCount": 14000,
+          "randomSeed": 360743
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 57,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 52,
+          "retainedSampleCount": 13956,
+          "droppedSampleCount": 44,
+          "retainedSampleRatio": 0.9968571428571429,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 850,
+          "edgeCount": 619,
+          "largestComponentSize": 57,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.5721032152753661,
+          "maxProjectionRmse": 0.669550712376001,
+          "minSupportScore": 1.035015558972226
+        },
+        "metrics": {
+          "mae": 0.037607319823290956,
+          "rmse": 0.09924359777181598,
+          "r2": 0.9971755828213908
+        },
+        "queryBudget": {
+          "rawOracleCalls": 182000,
+          "finiteDifferenceCallsPerSample": 13,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": []
+    },
+    {
+      "teacherId": "cancellation-6d-742",
+      "seed": 742,
+      "dimension": 6,
+      "profile": "cancellation",
+      "noisy": true,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "cancellation-low",
+        "selectedTier": "low",
+        "selectedRandomSeed": 361274,
+        "attemptedCandidateCount": 1,
+        "rejectedCandidateCount": 0,
+        "rejectedFailCount": 0,
+        "totalSearchRawOracleCalls": 1092000,
+        "selectedRawOracleCalls": 1092000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "cancellation-low",
+        "tier": "low",
+        "randomSeed": 361274,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 100.65537964677172,
+        "sampler": {
+          "querySamples": 7,
+          "gradientStep": 0.08,
+          "slopeTolerance": 0.12,
+          "interceptTolerance": 0.28,
+          "minRegionSupport": 6,
+          "neighborCount": 27,
+          "predictionMode": "local-affine-knn",
+          "localAffineNeighborCount": 32,
+          "aggregation": "median",
+          "sampleCount": 12000,
+          "randomSeed": 361274
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 91,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 86,
+          "retainedSampleCount": 11587,
+          "droppedSampleCount": 413,
+          "retainedSampleRatio": 0.9655833333333333,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 1597,
+          "edgeCount": 960,
+          "largestComponentSize": 91,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.6908847855666106,
+          "maxProjectionRmse": 0.8251597807242965,
+          "minSupportScore": 0.9903382572253681
+        },
+        "metrics": {
+          "mae": 0.05805537550049842,
+          "rmse": 0.08128632200554016,
+          "r2": 0.9926343502227222
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1092000,
+          "finiteDifferenceCallsPerSample": 91,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": []
+    },
+    {
+      "teacherId": "near-parallel-6d-829",
+      "seed": 829,
+      "dimension": 6,
+      "profile": "near-parallel",
+      "noisy": true,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "near-parallel-low",
+        "selectedTier": "low",
+        "selectedRandomSeed": 360025,
+        "attemptedCandidateCount": 1,
+        "rejectedCandidateCount": 0,
+        "rejectedFailCount": 0,
+        "totalSearchRawOracleCalls": 1183000,
+        "selectedRawOracleCalls": 1183000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "near-parallel-low",
+        "tier": "low",
+        "randomSeed": 360025,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 99.11981653003934,
+        "sampler": {
+          "querySamples": 7,
+          "gradientStep": 0.04,
+          "slopeTolerance": 0.05,
+          "interceptTolerance": 0.12,
+          "minRegionSupport": 4,
+          "neighborCount": 27,
+          "predictionMode": "region-vote",
+          "localAffineNeighborCount": 16,
+          "aggregation": "median",
+          "sampleCount": 13000,
+          "randomSeed": 360025
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 95,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 90,
+          "retainedSampleCount": 12089,
+          "droppedSampleCount": 911,
+          "retainedSampleRatio": 0.929923076923077,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 1457,
+          "edgeCount": 729,
+          "largestComponentSize": 93,
+          "largestComponentRatio": 0.9789473684210527,
+          "maxNormalizedProjectionRmse": 0.9676458836613427,
+          "maxProjectionRmse": 1.3240942756526817,
+          "minSupportScore": 0.9888836529216805
+        },
+        "metrics": {
+          "mae": 0.018791016075038764,
+          "rmse": 0.05258933991141483,
+          "r2": 0.9785253611754295
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1183000,
+          "finiteDifferenceCallsPerSample": 91,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": []
+    },
+    {
+      "teacherId": "low-amplitude-6d-658",
+      "seed": 658,
+      "dimension": 6,
+      "profile": "low-amplitude",
+      "noisy": true,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "low-amplitude-coverage",
+        "selectedTier": "mid",
+        "selectedRandomSeed": 460025,
+        "attemptedCandidateCount": 3,
+        "rejectedCandidateCount": 2,
+        "rejectedFailCount": 2,
+        "totalSearchRawOracleCalls": 2912000,
+        "selectedRawOracleCalls": 910000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "low-amplitude-coverage",
+        "tier": "mid",
+        "randomSeed": 460025,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 100.2940928216171,
+        "sampler": {
+          "querySamples": 5,
+          "gradientStep": 0.055,
+          "slopeTolerance": 0.08,
+          "interceptTolerance": 0.18,
+          "minRegionSupport": 4,
+          "neighborCount": 27,
+          "predictionMode": "local-affine-knn",
+          "localAffineNeighborCount": 64,
+          "aggregation": "median",
+          "sampleCount": 14000,
+          "minRegionSupportFloor": 4,
+          "randomSeed": 460025
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 65,
+          "effectiveMinRegionSupport": 4,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 60,
+          "retainedSampleCount": 13938,
+          "droppedSampleCount": 62,
+          "retainedSampleRatio": 0.9955714285714286,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 896,
+          "edgeCount": 538,
+          "largestComponentSize": 63,
+          "largestComponentRatio": 0.9692307692307692,
+          "maxNormalizedProjectionRmse": 0.8025932788828035,
+          "maxProjectionRmse": 0.944543911218954,
+          "minSupportScore": 0.8629004901536298
+        },
+        "metrics": {
+          "mae": 0.0342815325985024,
+          "rmse": 0.04580997371356053,
+          "r2": 0.9941575530659655
+        },
+        "queryBudget": {
+          "rawOracleCalls": 910000,
+          "finiteDifferenceCallsPerSample": 65,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": [
+        {
+          "candidateId": "low-amplitude-low",
+          "tier": "low",
+          "pass": false,
+          "criteria": {
+            "geometryPass": true,
+            "edgeCountEnough": true,
+            "largestComponentEnough": true,
+            "projectionRmseBounded": true,
+            "maeBelowGate": true,
+            "r2AboveGate": true,
+            "regionCountEnough": false,
+            "selectedOracleCallsBelowBudget": true
+          },
+          "score": 99.96425370552097,
+          "recovery": {
+            "recoveryKind": "output-equivalent-nd-region-sampler",
+            "regionCount": 45,
+            "effectiveMinRegionSupport": 8,
+            "firstLayerWidth": 4,
+            "deepOnlyRegionEstimate": 40,
+            "retainedSampleCount": 9852,
+            "droppedSampleCount": 148,
+            "retainedSampleRatio": 0.9852,
+            "predictionMode": "local-affine-knn"
+          },
+          "geometry": {
+            "pass": true,
+            "geometryKind": "nd-affine-equality-contact-witness",
+            "candidatePairCount": 640,
+            "edgeCount": 410,
+            "largestComponentSize": 45,
+            "largestComponentRatio": 1,
+            "maxNormalizedProjectionRmse": 0.9356449373725849,
+            "maxProjectionRmse": 0.9706387910502644,
+            "minSupportScore": 0.8135102653387284
+          },
+          "metrics": {
+            "mae": 0.036903442369598506,
+            "rmse": 0.04876085819694944,
+            "r2": 0.9933806190979533
+          },
+          "queryBudget": {
+            "rawOracleCalls": 910000,
+            "finiteDifferenceCallsPerSample": 91,
+            "geometryOracleCalls": 0,
+            "validationPoints": 2600
+          }
+        },
+        {
+          "candidateId": "low-amplitude-mid",
+          "tier": "mid",
+          "pass": false,
+          "criteria": {
+            "geometryPass": true,
+            "edgeCountEnough": true,
+            "largestComponentEnough": true,
+            "projectionRmseBounded": true,
+            "maeBelowGate": true,
+            "r2AboveGate": true,
+            "regionCountEnough": false,
+            "selectedOracleCallsBelowBudget": true
+          },
+          "score": 100.05932169893808,
+          "recovery": {
+            "recoveryKind": "output-equivalent-nd-region-sampler",
+            "regionCount": 47,
+            "effectiveMinRegionSupport": 8,
+            "firstLayerWidth": 4,
+            "deepOnlyRegionEstimate": 42,
+            "retainedSampleCount": 11833,
+            "droppedSampleCount": 167,
+            "retainedSampleRatio": 0.9860833333333333,
+            "predictionMode": "local-affine-knn"
+          },
+          "geometry": {
+            "pass": true,
+            "geometryKind": "nd-affine-equality-contact-witness",
+            "candidatePairCount": 695,
+            "edgeCount": 461,
+            "largestComponentSize": 47,
+            "largestComponentRatio": 1,
+            "maxNormalizedProjectionRmse": 0.6917182676721989,
+            "maxProjectionRmse": 0.9036245456388448,
+            "minSupportScore": 0.9710822556040544
+          },
+          "metrics": {
+            "mae": 0.03567025057242816,
+            "rmse": 0.04737662236788653,
+            "r2": 0.9937511099712955
+          },
+          "queryBudget": {
+            "rawOracleCalls": 1092000,
+            "finiteDifferenceCallsPerSample": 91,
+            "geometryOracleCalls": 0,
+            "validationPoints": 2600
+          }
+        }
+      ]
+    },
+    {
+      "teacherId": "weak-support-6d-937",
+      "seed": 937,
+      "dimension": 6,
+      "profile": "weak-support",
+      "noisy": true,
+      "pass": true,
+      "selection": {
+        "selectedCandidateId": "weak-support-low",
+        "selectedTier": "low",
+        "selectedRandomSeed": 360027,
+        "attemptedCandidateCount": 1,
+        "rejectedCandidateCount": 0,
+        "rejectedFailCount": 0,
+        "totalSearchRawOracleCalls": 1001000,
+        "selectedRawOracleCalls": 1001000,
+        "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
+      },
+      "selected": {
+        "candidateId": "weak-support-low",
+        "tier": "low",
+        "randomSeed": 360027,
+        "pass": true,
+        "criteria": {
+          "geometryPass": true,
+          "edgeCountEnough": true,
+          "largestComponentEnough": true,
+          "projectionRmseBounded": true,
+          "maeBelowGate": true,
+          "r2AboveGate": true,
+          "regionCountEnough": true,
+          "selectedOracleCallsBelowBudget": true
+        },
+        "score": 101.04062943505157,
+        "sampler": {
+          "querySamples": 7,
+          "gradientStep": 0.085,
+          "slopeTolerance": 0.09,
+          "interceptTolerance": 0.24,
+          "minRegionSupport": 4,
+          "neighborCount": 27,
+          "predictionMode": "local-affine-knn",
+          "localAffineNeighborCount": 48,
+          "aggregation": "median",
+          "sampleCount": 11000,
+          "randomSeed": 360027
+        },
+        "recovery": {
+          "recoveryKind": "output-equivalent-nd-region-sampler",
+          "regionCount": 112,
+          "effectiveMinRegionSupport": 8,
+          "firstLayerWidth": 4,
+          "deepOnlyRegionEstimate": 107,
+          "retainedSampleCount": 10379,
+          "droppedSampleCount": 621,
+          "retainedSampleRatio": 0.9435454545454546,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "geometryKind": "nd-affine-equality-contact-witness",
+          "candidatePairCount": 2078,
+          "edgeCount": 1069,
+          "largestComponentSize": 112,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 1.0791405553039848,
+          "maxProjectionRmse": 1.2168957850825706,
+          "minSupportScore": 1.0438163854663205
+        },
+        "metrics": {
+          "mae": 0.08742366261199823,
+          "rmse": 0.11652803825298697,
+          "r2": 0.9943721976433024
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1001000,
+          "finiteDifferenceCallsPerSample": 91,
+          "geometryOracleCalls": 0,
+          "validationPoints": 2600
+        }
+      },
+      "rejectedCandidates": []
+    }
+  ],
+  "nextStep": "6D randomized/adversarial robustness passed with zero high-tier selections. Next target is external extraction baselines on the same teacher manifest.",
+  "runtimeMs": 41458
+}

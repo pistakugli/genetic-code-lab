@@ -60,6 +60,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-nd-adjacency-geometry-5d-sweep',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-nd-adjacency-geometry-6d-robustness',
+        status: 'production'
       })
     ]));
   });
