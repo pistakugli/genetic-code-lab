@@ -81,10 +81,10 @@ const benchmarkOutput = resolveBenchmarkOutput(repoRoot, 'open-source-symbolic-r
 const benchmarkDir = benchmarkOutput.outputDir;
 const jsonOutputPath = benchmarkOutput.jsonOutputPath;
 const markdownOutputPath = benchmarkOutput.markdownOutputPath;
-const pythonBin = process.env.GCL_OPEN_SOURCE_PYTHON
-  ?? (fs.existsSync('/tmp/gcl-open-source-bench-venv/bin/python')
-    ? '/tmp/gcl-open-source-bench-venv/bin/python'
-    : 'python3');
+const requiredPythonModules = ['numpy', 'sklearn', 'gplearn', 'deap'];
+const pythonRequirementsPath = path.join(repoRoot, 'scripts', 'open-source-python-requirements.txt');
+const defaultPythonVenvPath = process.env.GCL_OPEN_SOURCE_PYTHON_VENV ?? '/tmp/gcl-open-source-bench-venv';
+const pythonBin = resolvePythonBin();
 
 const smokeTasks: TaskSpec[] = [
   {
@@ -189,6 +189,106 @@ const wideExtraTasks: TaskSpec[] = [
 ];
 
 const tasks: TaskSpec[] = taskSet === 'wide' ? [...smokeTasks, ...wideExtraTasks] : smokeTasks;
+
+function resolvePythonBin(): string {
+  const configuredPython = process.env.GCL_OPEN_SOURCE_PYTHON;
+  if (configuredPython) {
+    const probe = probePythonBaselineEnv(configuredPython);
+    if (!probe.ok) {
+      throw new Error([
+        `GCL_OPEN_SOURCE_PYTHON is missing required open-source baseline modules: ${configuredPython}`,
+        probe.message,
+        'Install the baseline requirements in that environment or unset GCL_OPEN_SOURCE_PYTHON so GCL can use its managed benchmark venv.'
+      ].filter(Boolean).join('\n'));
+    }
+    return configuredPython;
+  }
+
+  const venvPython = path.join(defaultPythonVenvPath, 'bin', 'python');
+  const probe = fs.existsSync(venvPython)
+    ? probePythonBaselineEnv(venvPython)
+    : { ok: false, message: 'managed benchmark venv does not exist' };
+  if (!probe.ok) bootstrapManagedPythonBaselineEnv(defaultPythonVenvPath, venvPython, probe.message);
+  return venvPython;
+}
+
+function probePythonBaselineEnv(pythonExecutable: string): { ok: boolean; message: string } {
+  const result = spawnSync(pythonExecutable, ['-c', [
+    'import importlib',
+    `required = ${JSON.stringify(requiredPythonModules)}`,
+    'missing = []',
+    'versions = {}',
+    'for name in required:',
+    '    try:',
+    '        module = importlib.import_module(name)',
+    "        versions[name] = getattr(module, '__version__', 'unknown')",
+    '    except Exception as exc:',
+    "        missing.append(f'{name}: {exc!r}')",
+    'if missing:',
+    "    raise SystemExit('\\n'.join(missing))",
+    "print('open-source-baseline-python-ok ' + ' '.join(f'{k}={v}' for k, v in sorted(versions.items())))"
+  ].join('\n')], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    timeout: 30 * 1000,
+    maxBuffer: 2 * 1024 * 1024
+  });
+
+  if (result.status === 0) return { ok: true, message: (result.stdout || '').trim() };
+  return {
+    ok: false,
+    message: [
+      (result.stderr || '').trim(),
+      (result.stdout || '').trim(),
+      result.error ? String(result.error) : ''
+    ].filter(Boolean).join('\n')
+  };
+}
+
+function bootstrapManagedPythonBaselineEnv(venvPath: string, venvPython: string, reason: string): void {
+  if (!fs.existsSync(pythonRequirementsPath)) {
+    throw new Error(`open-source Python requirements file is missing: ${pythonRequirementsPath}`);
+  }
+
+  console.log(`[open-source-benchmark] preparing managed Python baseline env at ${venvPath}`);
+  if (reason) console.log(`[open-source-benchmark] reason: ${reason}`);
+
+  if (!fs.existsSync(venvPython)) {
+    const create = spawnSync('python3', ['-m', 'venv', '--system-site-packages', venvPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      timeout: 2 * 60 * 1000,
+      maxBuffer: 8 * 1024 * 1024
+    });
+    if (create.stdout) process.stdout.write(create.stdout);
+    if (create.stderr) process.stderr.write(create.stderr);
+    if (create.error) throw create.error;
+    if (create.status !== 0) throw new Error(`could not create Python baseline venv at ${venvPath}`);
+  }
+
+  const install = spawnSync(venvPython, [
+    '-m',
+    'pip',
+    'install',
+    '--disable-pip-version-check',
+    '--quiet',
+    '-r',
+    pythonRequirementsPath
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    timeout: 5 * 60 * 1000,
+    maxBuffer: 64 * 1024 * 1024
+  });
+  if (install.stdout) process.stdout.write(install.stdout);
+  if (install.stderr) process.stderr.write(install.stderr);
+  if (install.error) throw install.error;
+  if (install.status !== 0) throw new Error(`could not install Python baseline requirements into ${venvPath}`);
+
+  const finalProbe = probePythonBaselineEnv(venvPython);
+  if (!finalProbe.ok) throw new Error(`managed Python baseline env is still invalid after install:\n${finalProbe.message}`);
+  console.log(`[open-source-benchmark] ${finalProbe.message}`);
+}
 
 async function main(): Promise<void> {
   fs.mkdirSync(benchmarkDir, { recursive: true });
