@@ -68,6 +68,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-nd-adjacency-geometry-6d-baseline-court',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-active-subspace-ffn-decompiler',
+        status: 'production'
       })
     ]));
   });

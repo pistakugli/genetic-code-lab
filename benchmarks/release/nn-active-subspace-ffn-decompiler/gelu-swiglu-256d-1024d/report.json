@@ -1,0 +1,476 @@
+{
+  "generatedAt": "2026-05-31T12:06:51.150Z",
+  "task": "active-subspace FFN decompiler for controlled high-dimensional GELU/SwiGLU teachers",
+  "blackBox": {
+    "type": "256D/1024D single-channel GELU and two-direction SwiGLU FFN teachers",
+    "visibilityToGcl": "oracle calls only: f(vector), no active directions, no weights, no hidden activations"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL can discover a low-dimensional active subspace in controlled high-dimensional GELU/SwiGLU-style FFN channels and build a faithful output-equivalent surrogate with explicit query budget",
+    "doesNotClaim": "real LLM weight recovery, arbitrary 4096D production model extraction, exact GELU/SwiGLU parameter recovery, tokenizer/model integration, or broad SOTA status"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "dimensionsCovered": true,
+    "geluAndSwiGluCovered": true,
+    "allR2ThresholdsPassed": true,
+    "allMaeThresholdsPassed": true,
+    "activeEnergyRatioAtLeast099": true,
+    "projectionScoreAtLeast098": true,
+    "gclWinsEveryBaselineCourt": true,
+    "maxGclMaeRatioVsBestBaselineAtMost08": true,
+    "maxRawOracleCallsBelow50k": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 4,
+    "passedTeachers": 4,
+    "dimensions": [
+      256,
+      1024
+    ],
+    "kinds": [
+      "gelu-single-channel",
+      "swiglu-two-direction"
+    ],
+    "maxMae": 0.00022774732575327203,
+    "minR2": 0.9999942261682238,
+    "minSelectedGradientEnergyRatio": 0.9999999999999994,
+    "maxMeanGradientResidualRatio": 2.7349292596535903e-8,
+    "minProjectionScore": 0.9999999999999991,
+    "gclWinsByMae": 4,
+    "bestBaselineWinsByMae": 0,
+    "maxGclMaeRatioVsBestBaseline": 0.0006138582300879202,
+    "maxRawOracleCalls": 45360,
+    "maxBaselineRawOracleCalls": 4400
+  },
+  "results": [
+    {
+      "teacherId": "gelu-256d-3101",
+      "kind": "gelu-single-channel",
+      "dimension": 256,
+      "activeRank": 1,
+      "thresholds": {
+        "minR2": 0.995,
+        "maxMae": 0.012
+      },
+      "gcl": {
+        "metrics": {
+          "mae": 7.650774461605817e-7,
+          "rmse": 0.000012222019050163727,
+          "r2": 0.9999999998338722
+        },
+        "expression": "active_subspace_ffn( dimension=256 rank=1 gradient_probes=12 samples=2200 energy=1.00000 queries=8344 )",
+        "queryBudget": {
+          "rawOracleCalls": 8344,
+          "gradientRawOracleCalls": 6144,
+          "trainingRawOracleCalls": 2200,
+          "finiteDifferenceCallsPerProbe": 512
+        },
+        "activeSubspace": {
+          "selectedGradientEnergyRatio": 1.0000000000000007,
+          "meanGradientResidualRatio": 5.796184283797751e-9,
+          "gradientEigenvalues": [
+            0.7478085523365048
+          ],
+          "projectionScores": [
+            1.0000000000000002
+          ],
+          "minProjectionScore": 1.0000000000000002
+        }
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "queryBudget": 2200,
+          "metrics": {
+            "mae": 0.7122936554181115,
+            "rmse": 0.9482722875348943,
+            "r2": -0.00005146987388249258
+          }
+        },
+        {
+          "id": "random-projection-local-quadratic-rank1",
+          "family": "random-subspace-local-quadratic",
+          "queryBudget": 2200,
+          "metrics": {
+            "mae": 0.7842906486262999,
+            "rmse": 1.153596788736828,
+            "r2": -0.48000884768088525
+          }
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank1",
+          "family": "coordinate-subspace-local-quadratic",
+          "queryBudget": 2200,
+          "metrics": {
+            "mae": 0.7688741585775277,
+            "rmse": 1.124454891657136,
+            "r2": -0.4061780386806979
+          }
+        }
+      ],
+      "ranking": [
+        {
+          "id": "gcl-active-subspace",
+          "family": "active-subspace-ffn-surrogate",
+          "mae": 7.650774461605817e-7,
+          "r2": 0.9999999998338722,
+          "queryBudget": 8344
+        },
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "mae": 0.7122936554181115,
+          "r2": -0.00005146987388249258,
+          "queryBudget": 2200
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank1",
+          "family": "coordinate-subspace-local-quadratic",
+          "mae": 0.7688741585775277,
+          "r2": -0.4061780386806979,
+          "queryBudget": 2200
+        },
+        {
+          "id": "random-projection-local-quadratic-rank1",
+          "family": "random-subspace-local-quadratic",
+          "mae": 0.7842906486262999,
+          "r2": -0.48000884768088525,
+          "queryBudget": 2200
+        }
+      ],
+      "comparison": {
+        "bestBaselineId": "mean-output",
+        "bestBaselineMae": 0.7122936554181115,
+        "bestBaselineR2": -0.00005146987388249258,
+        "gclBeatsBestBaselineByMae": true,
+        "gclMaeRatioVsBestBaseline": 0.0000010741039743102674
+      },
+      "pass": true
+    },
+    {
+      "teacherId": "swiglu-256d-3201",
+      "kind": "swiglu-two-direction",
+      "dimension": 256,
+      "activeRank": 2,
+      "thresholds": {
+        "minR2": 0.99,
+        "maxMae": 0.035
+      },
+      "gcl": {
+        "metrics": {
+          "mae": 0.00022774732575327203,
+          "rmse": 0.0016326303199926055,
+          "r2": 0.9999942261682238
+        },
+        "expression": "active_subspace_ffn( dimension=256 rank=2 gradient_probes=18 samples=3600 energy=1.00000 queries=12816 )",
+        "queryBudget": {
+          "rawOracleCalls": 12816,
+          "gradientRawOracleCalls": 9216,
+          "trainingRawOracleCalls": 3600,
+          "finiteDifferenceCallsPerProbe": 512
+        },
+        "activeSubspace": {
+          "selectedGradientEnergyRatio": 1.0000000000000002,
+          "meanGradientResidualRatio": 1.846795221206449e-8,
+          "gradientEigenvalues": [
+            0.9639213963754795,
+            0.45210065467779825
+          ],
+          "projectionScores": [
+            1,
+            0.9999999999999994
+          ],
+          "minProjectionScore": 0.9999999999999994
+        }
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "queryBudget": 3600,
+          "metrics": {
+            "mae": 0.37100964781502205,
+            "rmse": 0.6794861125097514,
+            "r2": -0.00011417090318688317
+          }
+        },
+        {
+          "id": "random-projection-local-quadratic-rank2",
+          "family": "random-subspace-local-quadratic",
+          "queryBudget": 3600,
+          "metrics": {
+            "mae": 0.4695973933456651,
+            "rmse": 0.7635453343119128,
+            "r2": -0.2628683133351777
+          }
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank2",
+          "family": "coordinate-subspace-local-quadratic",
+          "queryBudget": 3600,
+          "metrics": {
+            "mae": 0.47050761701087135,
+            "rmse": 0.7563777870398615,
+            "r2": -0.23927001981833307
+          }
+        }
+      ],
+      "ranking": [
+        {
+          "id": "gcl-active-subspace",
+          "family": "active-subspace-ffn-surrogate",
+          "mae": 0.00022774732575327203,
+          "r2": 0.9999942261682238,
+          "queryBudget": 12816
+        },
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "mae": 0.37100964781502205,
+          "r2": -0.00011417090318688317,
+          "queryBudget": 3600
+        },
+        {
+          "id": "random-projection-local-quadratic-rank2",
+          "family": "random-subspace-local-quadratic",
+          "mae": 0.4695973933456651,
+          "r2": -0.2628683133351777,
+          "queryBudget": 3600
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank2",
+          "family": "coordinate-subspace-local-quadratic",
+          "mae": 0.47050761701087135,
+          "r2": -0.23927001981833307,
+          "queryBudget": 3600
+        }
+      ],
+      "comparison": {
+        "bestBaselineId": "mean-output",
+        "bestBaselineMae": 0.37100964781502205,
+        "bestBaselineR2": -0.00011417090318688317,
+        "gclBeatsBestBaselineByMae": true,
+        "gclMaeRatioVsBestBaseline": 0.0006138582300879202
+      },
+      "pass": true
+    },
+    {
+      "teacherId": "gelu-1024d-3301",
+      "kind": "gelu-single-channel",
+      "dimension": 1024,
+      "activeRank": 1,
+      "thresholds": {
+        "minR2": 0.995,
+        "maxMae": 0.014
+      },
+      "gcl": {
+        "metrics": {
+          "mae": 0.000014829314606933888,
+          "rmse": 0.0004971830749852514,
+          "r2": 0.9999997377788716
+        },
+        "expression": "active_subspace_ffn( dimension=1024 rank=1 gradient_probes=10 samples=2400 energy=1.00000 queries=22880 )",
+        "queryBudget": {
+          "rawOracleCalls": 22880,
+          "gradientRawOracleCalls": 20480,
+          "trainingRawOracleCalls": 2400,
+          "finiteDifferenceCallsPerProbe": 2048
+        },
+        "activeSubspace": {
+          "selectedGradientEnergyRatio": 1.0000000000000016,
+          "meanGradientResidualRatio": 2.7349292596535903e-8,
+          "gradientEigenvalues": [
+            1.2036722226582381
+          ],
+          "projectionScores": [
+            0.9999999999999991
+          ],
+          "minProjectionScore": 0.9999999999999991
+        }
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "queryBudget": 2400,
+          "metrics": {
+            "mae": 0.7187611237846011,
+            "rmse": 0.9709294915570013,
+            "r2": -0.000023936636280197376
+          }
+        },
+        {
+          "id": "random-projection-local-quadratic-rank1",
+          "family": "random-subspace-local-quadratic",
+          "queryBudget": 2400,
+          "metrics": {
+            "mae": 0.8045945598427616,
+            "rmse": 1.17341186335224,
+            "r2": -0.4606156821151972
+          }
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank1",
+          "family": "coordinate-subspace-local-quadratic",
+          "queryBudget": 2400,
+          "metrics": {
+            "mae": 0.8078573972816085,
+            "rmse": 1.1908691367465671,
+            "r2": -0.5043991861223449
+          }
+        }
+      ],
+      "ranking": [
+        {
+          "id": "gcl-active-subspace",
+          "family": "active-subspace-ffn-surrogate",
+          "mae": 0.000014829314606933888,
+          "r2": 0.9999997377788716,
+          "queryBudget": 22880
+        },
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "mae": 0.7187611237846011,
+          "r2": -0.000023936636280197376,
+          "queryBudget": 2400
+        },
+        {
+          "id": "random-projection-local-quadratic-rank1",
+          "family": "random-subspace-local-quadratic",
+          "mae": 0.8045945598427616,
+          "r2": -0.4606156821151972,
+          "queryBudget": 2400
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank1",
+          "family": "coordinate-subspace-local-quadratic",
+          "mae": 0.8078573972816085,
+          "r2": -0.5043991861223449,
+          "queryBudget": 2400
+        }
+      ],
+      "comparison": {
+        "bestBaselineId": "mean-output",
+        "bestBaselineMae": 0.7187611237846011,
+        "bestBaselineR2": -0.000023936636280197376,
+        "gclBeatsBestBaselineByMae": true,
+        "gclMaeRatioVsBestBaseline": 0.00002063177057886891
+      },
+      "pass": true
+    },
+    {
+      "teacherId": "swiglu-1024d-3401",
+      "kind": "swiglu-two-direction",
+      "dimension": 1024,
+      "activeRank": 2,
+      "thresholds": {
+        "minR2": 0.99,
+        "maxMae": 0.04
+      },
+      "gcl": {
+        "metrics": {
+          "mae": 0.00021232318128152567,
+          "rmse": 0.001288599869652181,
+          "r2": 0.9999962229228001
+        },
+        "expression": "active_subspace_ffn( dimension=1024 rank=2 gradient_probes=20 samples=4400 energy=1.00000 queries=45360 )",
+        "queryBudget": {
+          "rawOracleCalls": 45360,
+          "gradientRawOracleCalls": 40960,
+          "trainingRawOracleCalls": 4400,
+          "finiteDifferenceCallsPerProbe": 2048
+        },
+        "activeSubspace": {
+          "selectedGradientEnergyRatio": 0.9999999999999994,
+          "meanGradientResidualRatio": 1.450839663483251e-8,
+          "gradientEigenvalues": [
+            1.265273285754392,
+            0.4524299467427635
+          ],
+          "projectionScores": [
+            0.9999999999999999,
+            1.0000000000000002
+          ],
+          "minProjectionScore": 0.9999999999999999
+        }
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "queryBudget": 4400,
+          "metrics": {
+            "mae": 0.36673254915926795,
+            "rmse": 0.6630515755210856,
+            "r2": -0.00003296902823191061
+          }
+        },
+        {
+          "id": "random-projection-local-quadratic-rank2",
+          "family": "random-subspace-local-quadratic",
+          "queryBudget": 4400,
+          "metrics": {
+            "mae": 0.46792646828003454,
+            "rmse": 0.7601276765811801,
+            "r2": -0.31429479109398994
+          }
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank2",
+          "family": "coordinate-subspace-local-quadratic",
+          "queryBudget": 4400,
+          "metrics": {
+            "mae": 0.47457066968885925,
+            "rmse": 0.7673108803210313,
+            "r2": -0.33925232266868854
+          }
+        }
+      ],
+      "ranking": [
+        {
+          "id": "gcl-active-subspace",
+          "family": "active-subspace-ffn-surrogate",
+          "mae": 0.00021232318128152567,
+          "r2": 0.9999962229228001,
+          "queryBudget": 45360
+        },
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "mae": 0.36673254915926795,
+          "r2": -0.00003296902823191061,
+          "queryBudget": 4400
+        },
+        {
+          "id": "random-projection-local-quadratic-rank2",
+          "family": "random-subspace-local-quadratic",
+          "mae": 0.46792646828003454,
+          "r2": -0.31429479109398994,
+          "queryBudget": 4400
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank2",
+          "family": "coordinate-subspace-local-quadratic",
+          "mae": 0.47457066968885925,
+          "r2": -0.33925232266868854,
+          "queryBudget": 4400
+        }
+      ],
+      "comparison": {
+        "bestBaselineId": "mean-output",
+        "bestBaselineMae": 0.36673254915926795,
+        "bestBaselineR2": -0.00003296902823191061,
+        "gclBeatsBestBaselineByMae": true,
+        "gclMaeRatioVsBestBaseline": 0.0005789591945636547
+      },
+      "pass": true
+    }
+  ],
+  "conclusion": "Active-subspace FFN foundation passed on controlled 256D/1024D GELU and SwiGLU teachers; next step is 4096D stress plus package-backed external baselines.",
+  "runtimeMs": 6036
+}

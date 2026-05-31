@@ -437,6 +437,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-active-subspace-ffn-decompiler',
+    name: 'NN active-subspace FFN decompiler',
+    status: 'production',
+    summary: 'Discovers low-dimensional active subspaces in controlled 256D/1024D GELU and SwiGLU-style black-box FFN channels, then fits an output-equivalent smooth surrogate with query-budget and baseline-court accounting.',
+    scope: 'Black-box smooth activation benchmark; proves benchmark-scoped active-subspace discovery and faithful output surrogate recovery for controlled high-dimensional single-channel GELU and two-direction SwiGLU-style teachers. This does not claim real LLM decompilation, arbitrary 4096D production model extraction, exact GELU/SwiGLU parameter recovery, tokenizer/model integration, or broad SOTA status.',
+    run: { label: 'NN active-subspace FFN decompiler benchmark', command: 'npm', args: ['run', 'benchmark:nn-active-subspace-ffn-decompiler'] },
+    proofs: [
+      { label: 'NN active-subspace FFN decompiler benchmark', command: 'npm', args: ['run', 'benchmark:nn-active-subspace-ffn-decompiler'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-active-subspace-ffn-decompiler/gelu-swiglu-256d-1024d/report.json',
+      'benchmarks/release/nn-active-subspace-ffn-decompiler/gelu-swiglu-256d-1024d/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

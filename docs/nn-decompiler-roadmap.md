@@ -101,21 +101,32 @@ Phase 5: layer attribution only with extra observability.
 - Output-only lanes must keep the claim at equivalent-function recovery unless
   an identifiability assumption is stated and gated.
 
-Phase 6: smooth LLM activation and FFN recovery.
+Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN recovery.
 
-- Status: planned, not release-gated.
+- Status: first foundation release-gated with
+  `benchmark:nn-active-subspace-ffn-decompiler`.
+- Direction: GCL should not brute-force 4096D. It should query a high-
+  dimensional black-box channel, discover the low-dimensional active subspace
+  where the function actually changes, then reconstruct a faithful transparent
+  surrogate in that subspace.
 - Scope: GELU, SiLU, and SwiGLU-style LLM feed-forward channels are not
-  piecewise-linear kink geometry. The 5D ReLU recovered-adjacency gates provide
+  piecewise-linear kink geometry. The ReLU recovered-adjacency gates provide
   oracle discipline, query accounting, and benchmark hygiene, but they do not
-  prove GELU/SwiGLU recovery.
-- First target command:
-  `npm run benchmark:nn-gelu-swiglu-decompiler`.
-- Stage A: synthetic single-neuron recovery.
+  prove GELU/SwiGLU recovery by themselves.
+- Current command:
+  `npm run benchmark:nn-active-subspace-ffn-decompiler`.
+- Stage A: controlled high-dimensional single-channel recovery.
   - GELU teacher: `y = a * gelu(w dot x + b) + c`.
   - SiLU/SwiGLU teacher: `y = (u dot x + bu) * silu(g dot x + bg)`.
   - GCL receives only `f(vector)` oracle calls.
-  - Gate: held-out R2 above `0.999` for clean teachers, explicit direction or
-    subspace error where identifiable, and a win against linear/ridge baselines.
+  - Current gate: controlled 256D/1024D teachers, held-out R2 above `0.995`
+    for single-channel GELU and above `0.99` for two-direction SwiGLU, explicit
+    active-subspace projection evidence, query budget below `50000`, and a win
+    against mean/random-subspace/coordinate-subspace baselines.
+  - Current result: 4/4 passed, max MAE `0.00022774732575327203`, min R2
+    `0.9999942261682238`, min selected gradient-energy ratio
+    `0.9999999999999994`, min true-direction projection score
+    `0.9999999999999991`, max raw oracle calls `45360`.
 - Stage B: synthetic FFN block recovery.
   - Multiple GELU/SwiGLU channels are summed into a block output slice.
   - Gate: output-equivalent transparent surrogate with per-channel or subspace
@@ -128,8 +139,9 @@ Phase 6: smooth LLM activation and FFN recovery.
     activation rows, with all data extraction and tokenization failures treated
     as hard failures.
 - Claim boundary: until these gates exist and pass, GCL may not claim LLM neuron
-  decompilation, GELU/SwiGLU reverse engineering, or mechanistic understanding
-  of production transformer blocks.
+  decompilation, exact GELU/SwiGLU parameter recovery, or mechanistic
+  understanding of production transformer blocks. The current Stage A gate is a
+  controlled active-subspace foundation, not a real LLM claim.
 
 The following items are still required before any broad SOTA language:
 
@@ -163,12 +175,17 @@ The following items are still required before any broad SOTA language:
 - Comparison against strong methods for piecewise-linear model extraction, with
   clear baselines and failure accounting.
 - Smooth activation decompilation for GELU/SwiGLU LLM-style FFN channels, with
-  separate gates from the ReLU recovered-adjacency geometry lane.
+  separate gates from the ReLU recovered-adjacency geometry lane. Status:
+  started with `benchmark:nn-active-subspace-ffn-decompiler`; next evidence
+  must cover 4096D stress, mixed multi-channel FFN blocks, and package-backed
+  external baselines before broad claims.
 
 ## Current Frontier Target
 
-The current frontier target is deep ND folded recovery, using the now-gated
-deep 2D topology-boundary lane as the boundary-geometry floor.
+The current frontier target is Active-Subspace Neural Decompilation, using the
+release-gated ReLU recovered-geometry lanes as the oracle/probing discipline
+floor and the new GELU/SwiGLU active-subspace lane as the bridge toward
+LLM-style FFN channels.
 
 The adaptive adversarial noisy 4D/5D ND shallow-ReLU lane and the adaptive
 adversarial noisy folded-2D deep-ReLU lane are now release-gated robustness
@@ -177,12 +194,11 @@ refined local switching, subcell-boundary adaptive validation with an explicit
 rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
-capability jump is a second 6D query-efficiency pass plus stronger external
-package baselines. The 6D lane now has a guarded research probe, adaptive
-probe-distribution search, a broader clean/noisy hard-profile sweep with
-rejected-candidate accounting, a dependency-free external-method baseline
-comparison, and a first query-budget ladder. It is not a broad SOTA claim until
-query cost and stronger external packages are handled in a promotion gate.
+capability jump is no longer simply 7D/8D ReLU scaling. The next move is active-
+subspace smooth FFN recovery: first 256D/1024D controlled GELU/SwiGLU channels,
+then 4096D stress, mixed multi-channel FFN blocks, package-backed external
+baselines, and finally a local transformer MLP hook. The 6D ReLU lane remains a
+foundation and is not a broad SOTA claim by itself.
 
 Target commands:
 
@@ -195,6 +211,7 @@ Target commands:
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-adaptive-probe`
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-baselines`
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-query-budget`
+- `npm run benchmark:nn-active-subspace-ffn-decompiler`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
