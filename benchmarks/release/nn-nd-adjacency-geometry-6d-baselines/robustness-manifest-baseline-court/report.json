@@ -1,0 +1,1899 @@
+{
+  "generatedAt": "2026-05-31T11:16:13.244Z",
+  "task": "6D robustness-manifest baseline court for recovered-adjacency geometry",
+  "blackBox": {
+    "type": "6D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
+    "visibilityToGcl": "oracle calls only: f(vector), no hidden activations, layer widths, teacher weights, or true region adjacency"
+  },
+  "claimScope": {
+    "provesIfPasses": "the exact 12-teacher 6D robustness manifest has an executable comparison against several non-GCL baseline families with query budgets, winners, and failure-to-be-SOTA evidence recorded",
+    "doesNotClaim": "SOTA if any measured black-box baseline beats GCL on MAE; topology-perfect ND cell-complex recovery; exact layer attribution; GELU/SwiGLU recovery; arbitrary production API extraction"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersCovered": true,
+    "cleanAndNoisyCovered": true,
+    "only6dTeachers": true,
+    "hardProfilesCovered": true,
+    "allBaselineFamiliesCovered": true,
+    "allMetricsFinite": true,
+    "gclGeometryPassEverywhere": true,
+    "gclRegionCountAtLeast56Everywhere": true,
+    "gclEdgeCountAtLeast300Everywhere": true,
+    "gclProjectionRmseAtMost2_15Everywhere": true,
+    "gclWinsByMaeEverywhere": true,
+    "gclBeatsLinearRidgeEverywhere": true,
+    "gclBeatsQuadraticRidgeEverywhere": true,
+    "gclBeatsRandomReluRidgeEverywhere": true,
+    "maxGclMaeRatioVsBestBaselineAtMost0_95": true,
+    "medianGclMaeRatioVsBestBaselineAtMost0_85": true,
+    "winnersRecordedForEveryTeacher": true,
+    "claimBoundaryBlocksSotaIfAnyBaselineWins": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 12,
+    "dimensions": [
+      6
+    ],
+    "profiles": [
+      "clean",
+      "cancellation",
+      "near-parallel",
+      "low-amplitude",
+      "weak-support"
+    ],
+    "noisyTeacherCount": 8,
+    "baselineFamilies": [
+      "global-linear",
+      "global-polynomial",
+      "random-feature-relu",
+      "local-affine",
+      "tree-ensemble"
+    ],
+    "baselineCountPerTeacher": 5,
+    "gclWinsByMae": 12,
+    "bestBaselineWinsByMae": 0,
+    "gclBeatsLinearRidgeCount": 12,
+    "gclBeatsQuadraticRidgeCount": 12,
+    "gclBeatsRandomReluRidgeCount": 12,
+    "minGclRegionCount": 56,
+    "minGclEdgeCount": 468,
+    "minGclLargestComponentRatio": 0.935064935064935,
+    "maxGclNormalizedProjectionRmse": 1.1848901859779233,
+    "maxGclMae": 0.09301806108793807,
+    "minGclR2": 0.9601449089658317,
+    "medianGclMaeRatioVsBestBaseline": 0.7684385065146409,
+    "maxGclMaeRatioVsBestBaseline": 0.8778374199232243,
+    "maxGclRawOracleCalls": 1501500,
+    "maxBaselineDirectRawOracleCalls": 18000
+  },
+  "results": [
+    {
+      "teacherId": "clean-6d-29",
+      "seed": 29,
+      "dimension": 6,
+      "profile": "clean",
+      "noisy": false,
+      "gcl": {
+        "metrics": {
+          "mae": 0.02514738606591309,
+          "rmse": 0.0628856080503183,
+          "r2": 0.996313022034061
+        },
+        "queryBudget": {
+          "rawOracleCalls": 182000,
+          "finiteDifferenceCallsPerSample": 13
+        },
+        "recovery": {
+          "regionCount": 65,
+          "retainedSampleRatio": 0.9978571428571429,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 667,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.5487487040118095
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 11375,
+        "directRawOracleCalls": 11375,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 11375,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.3191605501946337,
+            "rmse": 0.40024499676688774,
+            "r2": 0.8506449757679888
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.16082782656745137,
+            "rmse": 0.20413869673966356,
+            "r2": 0.9611475250793535
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.11673668080237043,
+            "rmse": 0.14888987543642618,
+            "r2": 0.9793320050724412
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.07661978601932518,
+            "rmse": 0.10009646215948033,
+            "r2": 0.9906587398114751
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.2576549938867859,
+            "rmse": 0.33426942343355953,
+            "r2": 0.8958255256690695
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 182000,
+        "metrics": {
+          "mae": 0.02514738606591309,
+          "rmse": 0.0628856080503183,
+          "r2": 0.996313022034061
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.02514738606591309,
+          "r2": 0.996313022034061,
+          "queryBudget": 182000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.07661978601932518,
+          "r2": 0.9906587398114751,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.11673668080237043,
+          "r2": 0.9793320050724412,
+          "queryBudget": 11375
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.16082782656745137,
+          "r2": 0.9611475250793535,
+          "queryBudget": 11375
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.2576549938867859,
+          "r2": 0.8958255256690695,
+          "queryBudget": 11375
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.3191605501946337,
+          "r2": 0.8506449757679888,
+          "queryBudget": 11375
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.07661978601932518,
+        "bestBaselineR2": 0.9906587398114751,
+        "gclMaeRatioVsBestBaseline": 0.3282100795683556,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "clean-6d-83",
+      "seed": 83,
+      "dimension": 6,
+      "profile": "clean",
+      "noisy": false,
+      "gcl": {
+        "metrics": {
+          "mae": 0.03946414407557655,
+          "rmse": 0.11414797242790982,
+          "r2": 0.9956624586754947
+        },
+        "queryBudget": {
+          "rawOracleCalls": 182000,
+          "finiteDifferenceCallsPerSample": 13
+        },
+        "recovery": {
+          "regionCount": 59,
+          "retainedSampleRatio": 0.9968571428571429,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 596,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.4789558711217752
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 11375,
+        "directRawOracleCalls": 11375,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 11375,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.5242412988079692,
+            "rmse": 0.7050037783075794,
+            "r2": 0.8345411082491987
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.23300283952458278,
+            "rmse": 0.3215780192044553,
+            "r2": 0.965574525606957
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.1804527959868152,
+            "rmse": 0.23642401526806264,
+            "r2": 0.9813923983673911
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.11070360278467173,
+            "rmse": 0.1518120742730061,
+            "r2": 0.9923278011476343
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.3907527539514094,
+            "rmse": 0.5171962770604426,
+            "r2": 0.9109532645984673
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 182000,
+        "metrics": {
+          "mae": 0.03946414407557655,
+          "rmse": 0.11414797242790982,
+          "r2": 0.9956624586754947
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.03946414407557655,
+          "r2": 0.9956624586754947,
+          "queryBudget": 182000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.11070360278467173,
+          "r2": 0.9923278011476343,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.1804527959868152,
+          "r2": 0.9813923983673911,
+          "queryBudget": 11375
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.23300283952458278,
+          "r2": 0.965574525606957,
+          "queryBudget": 11375
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.3907527539514094,
+          "r2": 0.9109532645984673,
+          "queryBudget": 11375
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.5242412988079692,
+          "r2": 0.8345411082491987,
+          "queryBudget": 11375
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.11070360278467173,
+        "bestBaselineR2": 0.9923278011476343,
+        "gclMaeRatioVsBestBaseline": 0.3564847311459031,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "cancellation-6d-717",
+      "seed": 717,
+      "dimension": 6,
+      "profile": "cancellation",
+      "noisy": true,
+      "gcl": {
+        "metrics": {
+          "mae": 0.09301806108793807,
+          "rmse": 0.1374838533263275,
+          "r2": 0.9925411574680458
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1274000,
+          "finiteDifferenceCallsPerSample": 91
+        },
+        "recovery": {
+          "regionCount": 102,
+          "retainedSampleRatio": 0.9422142857142857,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 1048,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.7169119234386496
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 18000,
+        "directRawOracleCalls": 18000,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.4478026705716438,
+            "rmse": 0.5576484058363845,
+            "r2": 0.8772874511225205
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.2578336684024766,
+            "rmse": 0.32365627616383763,
+            "r2": 0.958663270489265
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.18707628358945574,
+            "rmse": 0.23672527485810613,
+            "r2": 0.9778865091539825
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.12104815193324234,
+            "rmse": 0.16776747910049963,
+            "r2": 0.9888933367458964
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.3982716624813128,
+            "rmse": 0.5047751528248323,
+            "r2": 0.8994541882164802
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 1274000,
+        "metrics": {
+          "mae": 0.09301806108793807,
+          "rmse": 0.1374838533263275,
+          "r2": 0.9925411574680458
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.09301806108793807,
+          "r2": 0.9925411574680458,
+          "queryBudget": 1274000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.12104815193324234,
+          "r2": 0.9888933367458964,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.18707628358945574,
+          "r2": 0.9778865091539825,
+          "queryBudget": 18000
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.2578336684024766,
+          "r2": 0.958663270489265,
+          "queryBudget": 18000
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.3982716624813128,
+          "r2": 0.8994541882164802,
+          "queryBudget": 12000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.4478026705716438,
+          "r2": 0.8772874511225205,
+          "queryBudget": 18000
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.12104815193324234,
+        "bestBaselineR2": 0.9888933367458964,
+        "gclMaeRatioVsBestBaseline": 0.7684385065146409,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "near-parallel-6d-805",
+      "seed": 805,
+      "dimension": 6,
+      "profile": "near-parallel",
+      "noisy": true,
+      "gcl": {
+        "metrics": {
+          "mae": 0.014981339622159851,
+          "rmse": 0.04258687985931527,
+          "r2": 0.9601449089658317
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1501500,
+          "finiteDifferenceCallsPerSample": 91
+        },
+        "recovery": {
+          "regionCount": 80,
+          "retainedSampleRatio": 0.9606666666666667,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 468,
+          "largestComponentRatio": 0.975,
+          "maxNormalizedProjectionRmse": 1.1848901859779233
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 18000,
+        "directRawOracleCalls": 18000,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.12689920179199365,
+            "rmse": 0.15998036487882059,
+            "r2": 0.4375738223274773
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.12094112505891756,
+            "rmse": 0.14760727354281233,
+            "r2": 0.5212071268407694
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.08857208105828804,
+            "rmse": 0.11118499387752143,
+            "r2": 0.7283407399687587
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.051357273787714985,
+            "rmse": 0.07510988668816897,
+            "r2": 0.8760272103087766
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.10418166761264609,
+            "rmse": 0.13534434581368535,
+            "r2": 0.5974568924439174
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 1501500,
+        "metrics": {
+          "mae": 0.014981339622159851,
+          "rmse": 0.04258687985931527,
+          "r2": 0.9601449089658317
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.014981339622159851,
+          "r2": 0.9601449089658317,
+          "queryBudget": 1501500
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.051357273787714985,
+          "r2": 0.8760272103087766,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.08857208105828804,
+          "r2": 0.7283407399687587,
+          "queryBudget": 18000
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.10418166761264609,
+          "r2": 0.5974568924439174,
+          "queryBudget": 12000
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.12094112505891756,
+          "r2": 0.5212071268407694,
+          "queryBudget": 18000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.12689920179199365,
+          "r2": 0.4375738223274773,
+          "queryBudget": 18000
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.051357273787714985,
+        "bestBaselineR2": 0.8760272103087766,
+        "gclMaeRatioVsBestBaseline": 0.291708233659075,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "low-amplitude-6d-634",
+      "seed": 634,
+      "dimension": 6,
+      "profile": "low-amplitude",
+      "noisy": true,
+      "gcl": {
+        "metrics": {
+          "mae": 0.031089536651472263,
+          "rmse": 0.042660164035652245,
+          "r2": 0.992196673628252
+        },
+        "queryBudget": {
+          "rawOracleCalls": 910000,
+          "finiteDifferenceCallsPerSample": 65
+        },
+        "recovery": {
+          "regionCount": 77,
+          "retainedSampleRatio": 0.9905,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 527,
+          "largestComponentRatio": 0.935064935064935,
+          "maxNormalizedProjectionRmse": 0.48167834109972624
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 18000,
+        "directRawOracleCalls": 18000,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.16054218841170873,
+            "rmse": 0.21785399638785252,
+            "r2": 0.7964993541873276
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.0951805510382065,
+            "rmse": 0.12406375535040128,
+            "r2": 0.934002942129862
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.05786408159883345,
+            "rmse": 0.07480736942058486,
+            "r2": 0.9760048485302184
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.037227880350513186,
+            "rmse": 0.05080316266783705,
+            "r2": 0.9889333486409498
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.12710123510611743,
+            "rmse": 0.16249165020169892,
+            "r2": 0.8867868620785937
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 910000,
+        "metrics": {
+          "mae": 0.031089536651472263,
+          "rmse": 0.042660164035652245,
+          "r2": 0.992196673628252
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.031089536651472263,
+          "r2": 0.992196673628252,
+          "queryBudget": 910000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.037227880350513186,
+          "r2": 0.9889333486409498,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.05786408159883345,
+          "r2": 0.9760048485302184,
+          "queryBudget": 18000
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.0951805510382065,
+          "r2": 0.934002942129862,
+          "queryBudget": 18000
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.12710123510611743,
+          "r2": 0.8867868620785937,
+          "queryBudget": 12000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.16054218841170873,
+          "r2": 0.7964993541873276,
+          "queryBudget": 18000
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.037227880350513186,
+        "bestBaselineR2": 0.9889333486409498,
+        "gclMaeRatioVsBestBaseline": 0.8351143379304348,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "weak-support-6d-911",
+      "seed": 911,
+      "dimension": 6,
+      "profile": "weak-support",
+      "noisy": true,
+      "gcl": {
+        "metrics": {
+          "mae": 0.04180015414938247,
+          "rmse": 0.05818116222251628,
+          "r2": 0.9871745801121442
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1001000,
+          "finiteDifferenceCallsPerSample": 91
+        },
+        "recovery": {
+          "regionCount": 58,
+          "retainedSampleRatio": 0.975909090909091,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 520,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.8150731136897836
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 18000,
+        "directRawOracleCalls": 18000,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.2911996697115297,
+            "rmse": 0.37404110843389543,
+            "r2": 0.4699150451460802
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.1021345419577603,
+            "rmse": 0.13180435951769487,
+            "r2": 0.9341787148525629
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.08932258978916617,
+            "rmse": 0.11241375270317441,
+            "r2": 0.9521209307200792
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.04948786046568404,
+            "rmse": 0.06606967838359121,
+            "r2": 0.9834609259036211
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.15255978439427104,
+            "rmse": 0.2006967160355028,
+            "r2": 0.847388472265666
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 1001000,
+        "metrics": {
+          "mae": 0.04180015414938247,
+          "rmse": 0.05818116222251628,
+          "r2": 0.9871745801121442
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.04180015414938247,
+          "r2": 0.9871745801121442,
+          "queryBudget": 1001000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.04948786046568404,
+          "r2": 0.9834609259036211,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.08932258978916617,
+          "r2": 0.9521209307200792,
+          "queryBudget": 18000
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.1021345419577603,
+          "r2": 0.9341787148525629,
+          "queryBudget": 18000
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.15255978439427104,
+          "r2": 0.847388472265666,
+          "queryBudget": 12000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.2911996697115297,
+          "r2": 0.4699150451460802,
+          "queryBudget": 18000
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.04948786046568404,
+        "bestBaselineR2": 0.9834609259036211,
+        "gclMaeRatioVsBestBaseline": 0.8446547043262783,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "clean-6d-151",
+      "seed": 151,
+      "dimension": 6,
+      "profile": "clean",
+      "noisy": false,
+      "gcl": {
+        "metrics": {
+          "mae": 0.02706279487397642,
+          "rmse": 0.08850873815006693,
+          "r2": 0.9970428214183646
+        },
+        "queryBudget": {
+          "rawOracleCalls": 234000,
+          "finiteDifferenceCallsPerSample": 13
+        },
+        "recovery": {
+          "regionCount": 56,
+          "retainedSampleRatio": 0.9972222222222222,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 469,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.39310558527700235
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 14625,
+        "directRawOracleCalls": 14625,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 14625,
+          "metrics": {
+            "mae": 0.7267849164355925,
+            "rmse": 0.9142441470149452,
+            "r2": 0.6844780109586222
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 14625,
+          "metrics": {
+            "mae": 0.2645911132715835,
+            "rmse": 0.33965203212817047,
+            "r2": 0.9564514510946953
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 14625,
+          "metrics": {
+            "mae": 0.20064787795671607,
+            "rmse": 0.25366965397349056,
+            "r2": 0.9757091737971441
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.12162154249024444,
+            "rmse": 0.1731748838526469,
+            "r2": 0.9886792535465146
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.36011944798872797,
+            "rmse": 0.5166377965212379,
+            "r2": 0.8992424486625701
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 234000,
+        "metrics": {
+          "mae": 0.02706279487397642,
+          "rmse": 0.08850873815006693,
+          "r2": 0.9970428214183646
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.02706279487397642,
+          "r2": 0.9970428214183646,
+          "queryBudget": 234000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.12162154249024444,
+          "r2": 0.9886792535465146,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.20064787795671607,
+          "r2": 0.9757091737971441,
+          "queryBudget": 14625
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.2645911132715835,
+          "r2": 0.9564514510946953,
+          "queryBudget": 14625
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.36011944798872797,
+          "r2": 0.8992424486625701,
+          "queryBudget": 12000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.7267849164355925,
+          "r2": 0.6844780109586222,
+          "queryBudget": 14625
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.12162154249024444,
+        "bestBaselineR2": 0.9886792535465146,
+        "gclMaeRatioVsBestBaseline": 0.2225164581854172,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "clean-6d-211",
+      "seed": 211,
+      "dimension": 6,
+      "profile": "clean",
+      "noisy": false,
+      "gcl": {
+        "metrics": {
+          "mae": 0.037607319823290956,
+          "rmse": 0.09924359777181598,
+          "r2": 0.9971755828213908
+        },
+        "queryBudget": {
+          "rawOracleCalls": 182000,
+          "finiteDifferenceCallsPerSample": 13
+        },
+        "recovery": {
+          "regionCount": 57,
+          "retainedSampleRatio": 0.9968571428571429,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 619,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.5721032152753661
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 11375,
+        "directRawOracleCalls": 11375,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 11375,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.6391590844880918,
+            "rmse": 0.8009773895564316,
+            "r2": 0.8160226504354596
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.2603744231601138,
+            "rmse": 0.32523507155106046,
+            "r2": 0.9696667749533494
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.2261376440854124,
+            "rmse": 0.2879674028301576,
+            "r2": 0.9762200737416434
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.12607379597732338,
+            "rmse": 0.1708335682727223,
+            "r2": 0.9916310635691375
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 11375,
+          "metrics": {
+            "mae": 0.36364039134436105,
+            "rmse": 0.48252102698379384,
+            "r2": 0.9332338503606612
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 182000,
+        "metrics": {
+          "mae": 0.037607319823290956,
+          "rmse": 0.09924359777181598,
+          "r2": 0.9971755828213908
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.037607319823290956,
+          "r2": 0.9971755828213908,
+          "queryBudget": 182000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.12607379597732338,
+          "r2": 0.9916310635691375,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.2261376440854124,
+          "r2": 0.9762200737416434,
+          "queryBudget": 11375
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.2603744231601138,
+          "r2": 0.9696667749533494,
+          "queryBudget": 11375
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.36364039134436105,
+          "r2": 0.9332338503606612,
+          "queryBudget": 11375
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.6391590844880918,
+          "r2": 0.8160226504354596,
+          "queryBudget": 11375
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.12607379597732338,
+        "bestBaselineR2": 0.9916310635691375,
+        "gclMaeRatioVsBestBaseline": 0.2982960854930973,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "cancellation-6d-742",
+      "seed": 742,
+      "dimension": 6,
+      "profile": "cancellation",
+      "noisy": true,
+      "gcl": {
+        "metrics": {
+          "mae": 0.05805537550049842,
+          "rmse": 0.08128632200554016,
+          "r2": 0.9926343502227222
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1092000,
+          "finiteDifferenceCallsPerSample": 91
+        },
+        "recovery": {
+          "regionCount": 91,
+          "retainedSampleRatio": 0.9655833333333333,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 960,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 0.6908847855666106
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 18000,
+        "directRawOracleCalls": 18000,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.3307664632443247,
+            "rmse": 0.40658558745433193,
+            "r2": 0.8157192045825366
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.1231910474622956,
+            "rmse": 0.15473837977728627,
+            "r2": 0.9733085474436268
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.1215248423248104,
+            "rmse": 0.15306174872353853,
+            "r2": 0.9738838316099667
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.07349018815460347,
+            "rmse": 0.09613090530359106,
+            "r2": 0.9896984592922534
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.2288120730902971,
+            "rmse": 0.29109395728997445,
+            "r2": 0.9055411837189284
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 1092000,
+        "metrics": {
+          "mae": 0.05805537550049842,
+          "rmse": 0.08128632200554016,
+          "r2": 0.9926343502227222
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.05805537550049842,
+          "r2": 0.9926343502227222,
+          "queryBudget": 1092000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.07349018815460347,
+          "r2": 0.9896984592922534,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.1215248423248104,
+          "r2": 0.9738838316099667,
+          "queryBudget": 18000
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.1231910474622956,
+          "r2": 0.9733085474436268,
+          "queryBudget": 18000
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.2288120730902971,
+          "r2": 0.9055411837189284,
+          "queryBudget": 12000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.3307664632443247,
+          "r2": 0.8157192045825366,
+          "queryBudget": 18000
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.07349018815460347,
+        "bestBaselineR2": 0.9896984592922534,
+        "gclMaeRatioVsBestBaseline": 0.7899745116772,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "near-parallel-6d-829",
+      "seed": 829,
+      "dimension": 6,
+      "profile": "near-parallel",
+      "noisy": true,
+      "gcl": {
+        "metrics": {
+          "mae": 0.018791016075038764,
+          "rmse": 0.05258933991141483,
+          "r2": 0.9785253611754295
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1183000,
+          "finiteDifferenceCallsPerSample": 91
+        },
+        "recovery": {
+          "regionCount": 95,
+          "retainedSampleRatio": 0.929923076923077,
+          "predictionMode": "region-vote"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 729,
+          "largestComponentRatio": 0.9789473684210527,
+          "maxNormalizedProjectionRmse": 0.9676458836613427
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 18000,
+        "directRawOracleCalls": 18000,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.20024319487180386,
+            "rmse": 0.24614150283011313,
+            "r2": 0.5295644592241024
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.07717213971240097,
+            "rmse": 0.0953376251905878,
+            "r2": 0.9294236672089703
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.0670818948169614,
+            "rmse": 0.08761342932786984,
+            "r2": 0.9403964965231257
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.037826279698820235,
+            "rmse": 0.05682516060655914,
+            "r2": 0.9749266840867121
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.0733188176064956,
+            "rmse": 0.10680757591233243,
+            "r2": 0.9114202304838682
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 1183000,
+        "metrics": {
+          "mae": 0.018791016075038764,
+          "rmse": 0.05258933991141483,
+          "r2": 0.9785253611754295
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.018791016075038764,
+          "r2": 0.9785253611754295,
+          "queryBudget": 1183000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.037826279698820235,
+          "r2": 0.9749266840867121,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.0670818948169614,
+          "r2": 0.9403964965231257,
+          "queryBudget": 18000
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.0733188176064956,
+          "r2": 0.9114202304838682,
+          "queryBudget": 12000
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.07717213971240097,
+          "r2": 0.9294236672089703,
+          "queryBudget": 18000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.20024319487180386,
+          "r2": 0.5295644592241024,
+          "queryBudget": 18000
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.037826279698820235,
+        "bestBaselineR2": 0.9749266840867121,
+        "gclMaeRatioVsBestBaseline": 0.4967714568986502,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "low-amplitude-6d-658",
+      "seed": 658,
+      "dimension": 6,
+      "profile": "low-amplitude",
+      "noisy": true,
+      "gcl": {
+        "metrics": {
+          "mae": 0.0342815325985024,
+          "rmse": 0.04580997371356053,
+          "r2": 0.9941575530659655
+        },
+        "queryBudget": {
+          "rawOracleCalls": 910000,
+          "finiteDifferenceCallsPerSample": 65
+        },
+        "recovery": {
+          "regionCount": 65,
+          "retainedSampleRatio": 0.9955714285714286,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 538,
+          "largestComponentRatio": 0.9692307692307692,
+          "maxNormalizedProjectionRmse": 0.8025932788828035
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 18000,
+        "directRawOracleCalls": 18000,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.0941041913491464,
+            "rmse": 0.1178673360860383,
+            "r2": 0.961322212085739
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.06958988344462302,
+            "rmse": 0.08825921665805793,
+            "r2": 0.9783132322533177
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.05385879306956264,
+            "rmse": 0.06854707563837246,
+            "r2": 0.986918650334717
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.03905225708138605,
+            "rmse": 0.051504302559421504,
+            "r2": 0.9926148093276596
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.12862304650411385,
+            "rmse": 0.15924792377148303,
+            "r2": 0.929397147305333
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 910000,
+        "metrics": {
+          "mae": 0.0342815325985024,
+          "rmse": 0.04580997371356053,
+          "r2": 0.9941575530659655
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.0342815325985024,
+          "r2": 0.9941575530659655,
+          "queryBudget": 910000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.03905225708138605,
+          "r2": 0.9926148093276596,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.05385879306956264,
+          "r2": 0.986918650334717,
+          "queryBudget": 18000
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.06958988344462302,
+          "r2": 0.9783132322533177,
+          "queryBudget": 18000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.0941041913491464,
+          "r2": 0.961322212085739,
+          "queryBudget": 18000
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.12862304650411385,
+          "r2": 0.929397147305333,
+          "queryBudget": 12000
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.03905225708138605,
+        "bestBaselineR2": 0.9926148093276596,
+        "gclMaeRatioVsBestBaseline": 0.8778374199232243,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    },
+    {
+      "teacherId": "weak-support-6d-937",
+      "seed": 937,
+      "dimension": 6,
+      "profile": "weak-support",
+      "noisy": true,
+      "gcl": {
+        "metrics": {
+          "mae": 0.08742366261199823,
+          "rmse": 0.11652803825298697,
+          "r2": 0.9943721976433024
+        },
+        "queryBudget": {
+          "rawOracleCalls": 1001000,
+          "finiteDifferenceCallsPerSample": 91
+        },
+        "recovery": {
+          "regionCount": 112,
+          "retainedSampleRatio": 0.9435454545454546,
+          "predictionMode": "local-affine-knn"
+        },
+        "geometry": {
+          "pass": true,
+          "edgeCount": 1069,
+          "largestComponentRatio": 1,
+          "maxNormalizedProjectionRmse": 1.0791405553039848
+        }
+      },
+      "baselineTraining": {
+        "directTrainCount": 18000,
+        "directRawOracleCalls": 18000,
+        "knnTrainCount": 9000,
+        "forestTrainCount": 12000,
+        "trainingVisibility": "baselines receive direct f(vector) samples only; no teacher weights, hidden activations, or true region adjacency"
+      },
+      "baselines": [
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.3933276192757912,
+            "rmse": 0.5032268870600634,
+            "r2": 0.8950443939207683
+          }
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.18332568119109866,
+            "rmse": 0.23815920717908506,
+            "r2": 0.9764921604168721
+          }
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "queryBudget": 18000,
+          "metrics": {
+            "mae": 0.1597808571972155,
+            "rmse": 0.20326493247151792,
+            "r2": 0.9828760919651205
+          }
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "queryBudget": 9000,
+          "metrics": {
+            "mae": 0.10045298312308844,
+            "rmse": 0.1295011704144625,
+            "r2": 0.9930493510634893
+          }
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "queryBudget": 12000,
+          "metrics": {
+            "mae": 0.3154331376737245,
+            "rmse": 0.41073734699284564,
+            "r2": 0.9300792055970728
+          }
+        }
+      ],
+      "winner": {
+        "id": "gcl-recovered-adjacency",
+        "family": "transparent-recovered-geometry",
+        "queryBudget": 1001000,
+        "metrics": {
+          "mae": 0.08742366261199823,
+          "rmse": 0.11652803825298697,
+          "r2": 0.9943721976433024
+        }
+      },
+      "ranking": [
+        {
+          "id": "gcl-recovered-adjacency",
+          "family": "transparent-recovered-geometry",
+          "mae": 0.08742366261199823,
+          "r2": 0.9943721976433024,
+          "queryBudget": 1001000
+        },
+        {
+          "id": "local-affine-knn-96",
+          "family": "local-affine",
+          "mae": 0.10045298312308844,
+          "r2": 0.9930493510634893,
+          "queryBudget": 9000
+        },
+        {
+          "id": "random-relu-ridge-128",
+          "family": "random-feature-relu",
+          "mae": 0.1597808571972155,
+          "r2": 0.9828760919651205,
+          "queryBudget": 18000
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "global-polynomial",
+          "mae": 0.18332568119109866,
+          "r2": 0.9764921604168721,
+          "queryBudget": 18000
+        },
+        {
+          "id": "extra-trees-24x9",
+          "family": "tree-ensemble",
+          "mae": 0.3154331376737245,
+          "r2": 0.9300792055970728,
+          "queryBudget": 12000
+        },
+        {
+          "id": "linear-ridge",
+          "family": "global-linear",
+          "mae": 0.3933276192757912,
+          "r2": 0.8950443939207683,
+          "queryBudget": 18000
+        }
+      ],
+      "comparison": {
+        "gclBeatsBestBaselineByMae": true,
+        "bestBaselineId": "local-affine-knn-96",
+        "bestBaselineMae": 0.10045298312308844,
+        "bestBaselineR2": 0.9930493510634893,
+        "gclMaeRatioVsBestBaseline": 0.8702943396402182,
+        "gclBeatsLinearRidge": true,
+        "gclBeatsQuadraticRidge": true,
+        "gclBeatsRandomReluRidge": true
+      }
+    }
+  ],
+  "conclusion": "GCL won MAE against every measured baseline on this 6D suite; this court is release-gated, and the next step is stronger package-backed external baselines plus adaptive-adversarial teacher generation.",
+  "runtimeMs": 58813
+}

@@ -422,6 +422,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-nd-adjacency-geometry-6d-baseline-court',
+    name: 'NN ND adjacency-geometry 6D baseline court',
+    status: 'production',
+    summary: 'Compares the 12-teacher 6D robustness manifest against dependency-free baseline families and fails promotion if a measured baseline beats GCL by MAE.',
+    scope: 'Black-box deep ReLU teacher benchmark; proves benchmark-scoped recovered 6D adjacency geometry beats the measured linear ridge, quadratic ridge, random ReLU ridge, local-affine kNN, and ExtraTrees-style dependency-free baselines on the exact robustness manifest. This does not claim superiority over all external packages, topology-perfect full cell-complex recovery, unique hidden-layer weights, exact layer attribution, GELU/SwiGLU recovery, or arbitrary production API extraction.',
+    run: { label: 'NN ND adjacency-geometry 6D baseline court benchmark', command: 'npm', args: ['run', 'benchmark:nn-nd-adjacency-geometry-6d-baselines'] },
+    proofs: [
+      { label: 'NN ND adjacency-geometry 6D baseline court benchmark', command: 'npm', args: ['run', 'benchmark:nn-nd-adjacency-geometry-6d-baselines'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-nd-adjacency-geometry-6d-baselines/robustness-manifest-baseline-court/report.json',
+      'benchmarks/release/nn-nd-adjacency-geometry-6d-baselines/robustness-manifest-baseline-court/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

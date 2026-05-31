@@ -76,7 +76,8 @@ Phase 4: deep ND folded recovery.
   then geometry-hardened with
   `benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler`,
   `benchmark:nn-nd-adjacency-geometry-5d-sweep`, and
-  `benchmark:nn-nd-adjacency-geometry-6d-robustness`.
+  `benchmark:nn-nd-adjacency-geometry-6d-robustness`, plus the dependency-free
+  baseline court `benchmark:nn-nd-adjacency-geometry-6d-baselines`.
 - Current proof: controlled 3D/4D folded two-layer ReLU teachers recovered as
   output-equivalent affine-region samplers from oracle-only random local-gradient
   probes, with query-free kNN region assignment, noisy/quantized repeated-call
@@ -85,12 +86,13 @@ Phase 4: deep ND folded recovery.
   budget accounting, recovered ND adjacency geometry from cross-region contact
   witnesses plus affine-equality hyperplanes, a 5D clean/noisy hard-profile
   sweep, a 12-teacher 6D clean/noisy randomized/adversarial robustness gate
-  with zero high-tier selections, and a global-linear baseline gap.
+  with zero high-tier selections, and a 12-teacher 6D baseline court where GCL
+  beats the measured dependency-free baseline families on MAE.
 - Required gates: deterministic randomized ND teachers, noisy/adaptive
   adversarial hard-profile sweeps, query-budget accounting, and baseline
-  comparison against shallow/linear approximations. Next hardening step is
-  stronger external extraction baselines on the exact 6D robustness manifest,
-  then harder topology-perfect ND cell-complex audits.
+  comparison against shallow/linear approximations. Next hardening step is a
+  generated adaptive-adversarial 6D teacher pool, then stronger package-backed
+  external baselines and harder topology-perfect ND cell-complex audits.
 
 Phase 5: layer attribution only with extra observability.
 
@@ -459,21 +461,21 @@ Current status:
   oracle calls `19220500`.
 - 6D sweep artifact:
   `benchmarks/research/nn-nd-adjacency-geometry-6d-sweep/release-candidate-hard-profiles/report.json`
-- 6D dependency-free external-method baseline comparison PASS on 2026-05-28.
-- 6D baseline comparison covered global linear ridge, quadratic ridge,
-  random-ReLU ridge, local-affine kNN, and ExtraTrees-style forest baselines.
-  GCL won MAE on `6/6` teachers; the best measured baseline on every teacher
-  was local-affine kNN. GCL max MAE was `0.09099788983192539`, min R2 was
-  `0.9674291733376437`, and max GCL MAE ratio versus the best baseline was
-  `0.8155502106737931`.
-- 6D baseline artifact:
-  `benchmarks/research/nn-nd-adjacency-geometry-6d-baselines/selected-sweep-external-baselines/report.json`
+- 6D dependency-free external-method baseline court PASS on 2026-05-31.
+- 6D baseline court covered the exact 12-teacher robustness manifest against
+  global linear ridge, quadratic ridge, random-ReLU ridge, local-affine kNN, and
+  ExtraTrees-style forest baselines. GCL won MAE on `12/12` teachers; max GCL
+  MAE was `0.09301806108793807`, min R2 was `0.9601449089658317`, max GCL MAE
+  ratio versus the best baseline was `0.8778374199232243`, and median ratio was
+  `0.7684385065146409`.
+- 6D baseline court artifact:
+  `benchmarks/release/nn-nd-adjacency-geometry-6d-baselines/robustness-manifest-baseline-court/report.json`
 - 6D is stronger now, but still not a broad SOTA claim. The baseline comparison
   shows an accuracy win against the dependency-free methods, while also showing
-  the query-cost boundary: GCL used up to `1989000` raw oracle calls per
-  teacher, while these direct-sample baselines used at most `18000`. Next
-  target: query-efficiency hardening plus stronger external package baselines
-  before release-gate promotion.
+  the query-cost boundary: GCL used up to `1501500` raw oracle calls per
+  teacher, while these direct-sample baselines used at most `18000`. This
+  baseline court is now in `release:gate`; next target: query-efficiency
+  hardening plus stronger external package baselines.
 - 6D query-budget ladder PASS on 2026-05-31 after adding optional
   Latin-hypercube sampling and explicit weak-region support floors to the ND
   region sampler. The old random sampling mode and default support floor remain

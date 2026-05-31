@@ -130,6 +130,7 @@ function main(): void {
     runStep('NN ND adjacency-geometry deep black-box ReLU region-sampler benchmark', 'npm', ['run', 'benchmark:nn-nd-adjacency-geometry-deep-blackbox-relu-region-sampler'], { timeoutMs: 4 * 60 * 1000 });
     runStep('NN ND adjacency-geometry 5D sweep benchmark', 'npm', ['run', 'benchmark:nn-nd-adjacency-geometry-5d-sweep'], { timeoutMs: 5 * 60 * 1000 });
     runStep('NN ND adjacency-geometry 6D robustness benchmark', 'npm', ['run', 'benchmark:nn-nd-adjacency-geometry-6d-robustness'], { timeoutMs: 5 * 60 * 1000 });
+    runStep('NN ND adjacency-geometry 6D baseline court benchmark', 'npm', ['run', 'benchmark:nn-nd-adjacency-geometry-6d-baselines'], { timeoutMs: 6 * 60 * 1000 });
     runStep('NN 2D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu2d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN randomized 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-randomized'], { timeoutMs: 3 * 60 * 1000 });

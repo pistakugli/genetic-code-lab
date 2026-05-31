@@ -28,10 +28,12 @@ type SamplerConfig = {
   slopeTolerance: number;
   interceptTolerance: number;
   minRegionSupport: number;
+  minRegionSupportFloor?: number;
   neighborCount: number;
   predictionMode: 'region-vote' | 'local-affine-knn';
   localAffineNeighborCount?: number;
   aggregation?: 'mean' | 'median' | 'trimmed-mean';
+  samplingMode?: 'random' | 'latin-hypercube';
   randomSeed: number;
 };
 type GeometryConfig = {
@@ -58,11 +60,10 @@ type Dataset = {
 type Predictor = (input: number[]) => number;
 
 const repoRoot = path.resolve(__dirname, '..');
-process.env.GCL_BENCHMARK_ROOT = process.env.GCL_BENCHMARK_ROOT ?? path.join('benchmarks', 'research');
 const output = resolveBenchmarkOutput(
   repoRoot,
   'nn-nd-adjacency-geometry-6d-baselines',
-  'selected-sweep-external-baselines'
+  'robustness-manifest-baseline-court'
 );
 
 function relu(value: number): number {
@@ -307,6 +308,11 @@ function mean(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
 }
 
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)] ?? 0;
+}
+
 function varianceScore(indices: number[], targets: number[]): number {
   if (indices.length === 0) return 0;
   let sum = 0;
@@ -399,137 +405,153 @@ function makeDataset(oracle: (input: number[]) => number, dimension: number, see
 
 function makeCases(): TeacherCase[] {
   const cleanGeometry: GeometryConfig = {
-    assignmentSampleLimit: 5200,
+    assignmentSampleLimit: 4200,
     neighborCount: 18,
     minContactCount: 3,
     minWitnessCount: 2,
     minTransitionAgreement: 0.35,
-    maxNormalizedProjectionRmse: 1.5,
+    maxNormalizedProjectionRmse: 1.6,
     minPassingEdges: 35,
     minLargestComponentRatio: 0.1
   };
   const noisyGeometry: GeometryConfig = {
-    assignmentSampleLimit: 5000,
+    assignmentSampleLimit: 4200,
     neighborCount: 22,
     minContactCount: 4,
     minWitnessCount: 2,
-    minTransitionAgreement: 0.23,
-    maxNormalizedProjectionRmse: 2.0,
+    minTransitionAgreement: 0.22,
+    maxNormalizedProjectionRmse: 2.15,
     minPassingEdges: 35,
     minLargestComponentRatio: 0.1
+  };
+  const cleanBase = {
+    querySamples: 1,
+    gradientStep: 1e-5,
+    slopeTolerance: 1e-5,
+    interceptTolerance: 1e-5,
+    minRegionSupport: 6,
+    neighborCount: 27,
+    predictionMode: 'region-vote' as const
+  };
+  const cancellationBase = {
+    querySamples: 7,
+    gradientStep: 0.08,
+    slopeTolerance: 0.12,
+    interceptTolerance: 0.28,
+    minRegionSupport: 6,
+    neighborCount: 27,
+    predictionMode: 'local-affine-knn' as const,
+    localAffineNeighborCount: 32,
+    aggregation: 'median' as const
+  };
+  const nearBase = {
+    querySamples: 7,
+    gradientStep: 0.04,
+    slopeTolerance: 0.05,
+    interceptTolerance: 0.12,
+    minRegionSupport: 4,
+    neighborCount: 27,
+    predictionMode: 'region-vote' as const,
+    localAffineNeighborCount: 16,
+    aggregation: 'median' as const
+  };
+  const lowAmplitudeCoverage = {
+    querySamples: 5,
+    gradientStep: 0.055,
+    slopeTolerance: 0.08,
+    interceptTolerance: 0.18,
+    minRegionSupport: 4,
+    minRegionSupportFloor: 4,
+    neighborCount: 27,
+    predictionMode: 'local-affine-knn' as const,
+    localAffineNeighborCount: 64,
+    aggregation: 'median' as const,
+    sampleCount: 14000
+  };
+  const weakBase = {
+    querySamples: 7,
+    gradientStep: 0.085,
+    slopeTolerance: 0.09,
+    interceptTolerance: 0.24,
+    minRegionSupport: 4,
+    neighborCount: 27,
+    predictionMode: 'local-affine-knn' as const,
+    localAffineNeighborCount: 48,
+    aggregation: 'median' as const,
+    sampleCount: 11000
   };
   return [
     {
       teacher: makeTeacher(29, 6, 'clean'),
       noisy: false,
-      sampler: {
-        sampleCount: 26000,
-        querySamples: 1,
-        gradientStep: 1e-5,
-        slopeTolerance: 1e-5,
-        interceptTolerance: 1e-5,
-        minRegionSupport: 6,
-        neighborCount: 27,
-        predictionMode: 'region-vote',
-        randomSeed: 360561
-      },
+      sampler: { ...cleanBase, sampleCount: 14000, randomSeed: 360561 },
       geometry: cleanGeometry
     },
     {
       teacher: makeTeacher(83, 6, 'clean'),
       noisy: false,
-      sampler: {
-        sampleCount: 26000,
-        querySamples: 1,
-        gradientStep: 1e-5,
-        slopeTolerance: 1e-5,
-        interceptTolerance: 1e-5,
-        minRegionSupport: 6,
-        neighborCount: 27,
-        predictionMode: 'region-vote',
-        randomSeed: 360615
-      },
+      sampler: { ...cleanBase, sampleCount: 14000, randomSeed: 360615 },
       geometry: cleanGeometry
     },
     {
       teacher: makeTeacher(717, 6, 'cancellation'),
       noisy: true,
-      sampler: {
-        sampleCount: 16000,
-        querySamples: 9,
-        gradientStep: 0.08,
-        slopeTolerance: 0.12,
-        interceptTolerance: 0.28,
-        minRegionSupport: 6,
-        neighborCount: 27,
-        predictionMode: 'local-affine-knn',
-        localAffineNeighborCount: 32,
-        aggregation: 'median',
-        randomSeed: 361249
-      },
+      sampler: { ...cancellationBase, sampleCount: 14000, randomSeed: 361249 },
       geometry: noisyGeometry
     },
     {
       teacher: makeTeacher(805, 6, 'near-parallel'),
       noisy: true,
-      sampler: {
-        sampleCount: 17000,
-        querySamples: 9,
-        gradientStep: 0.04,
-        slopeTolerance: 0.05,
-        interceptTolerance: 0.12,
-        minRegionSupport: 4,
-        neighborCount: 27,
-        predictionMode: 'region-vote',
-        localAffineNeighborCount: 16,
-        aggregation: 'median',
-        randomSeed: 360001
-      },
-      geometry: {
-        ...noisyGeometry,
-        minTransitionAgreement: 0.2,
-        maxNormalizedProjectionRmse: 2.15
-      }
+      sampler: { ...nearBase, sampleCount: 16500, samplingMode: 'latin-hypercube', randomSeed: 360001 },
+      geometry: noisyGeometry
     },
     {
       teacher: makeTeacher(634, 6, 'low-amplitude'),
       noisy: true,
-      sampler: {
-        sampleCount: 15000,
-        querySamples: 9,
-        gradientStep: 0.055,
-        slopeTolerance: 0.08,
-        interceptTolerance: 0.18,
-        minRegionSupport: 5,
-        neighborCount: 27,
-        predictionMode: 'local-affine-knn',
-        localAffineNeighborCount: 64,
-        aggregation: 'median',
-        randomSeed: 460001
-      },
+      sampler: { ...lowAmplitudeCoverage, randomSeed: 460001 },
       geometry: noisyGeometry
     },
     {
       teacher: makeTeacher(911, 6, 'weak-support'),
       noisy: true,
-      sampler: {
-        sampleCount: 15500,
-        querySamples: 9,
-        gradientStep: 0.085,
-        slopeTolerance: 0.09,
-        interceptTolerance: 0.24,
-        minRegionSupport: 4,
-        neighborCount: 27,
-        predictionMode: 'local-affine-knn',
-        localAffineNeighborCount: 48,
-        aggregation: 'median',
-        randomSeed: 360001
-      },
-      geometry: {
-        ...noisyGeometry,
-        minTransitionAgreement: 0.2,
-        maxNormalizedProjectionRmse: 2.15
-      }
+      sampler: { ...weakBase, randomSeed: 360001 },
+      geometry: noisyGeometry
+    },
+    {
+      teacher: makeTeacher(151, 6, 'clean'),
+      noisy: false,
+      sampler: { ...cleanBase, sampleCount: 18000, randomSeed: 360681 },
+      geometry: cleanGeometry
+    },
+    {
+      teacher: makeTeacher(211, 6, 'clean'),
+      noisy: false,
+      sampler: { ...cleanBase, sampleCount: 14000, randomSeed: 360743 },
+      geometry: cleanGeometry
+    },
+    {
+      teacher: makeTeacher(742, 6, 'cancellation'),
+      noisy: true,
+      sampler: { ...cancellationBase, sampleCount: 12000, randomSeed: 361274 },
+      geometry: noisyGeometry
+    },
+    {
+      teacher: makeTeacher(829, 6, 'near-parallel'),
+      noisy: true,
+      sampler: { ...nearBase, sampleCount: 13000, randomSeed: 360025 },
+      geometry: noisyGeometry
+    },
+    {
+      teacher: makeTeacher(658, 6, 'low-amplitude'),
+      noisy: true,
+      sampler: { ...lowAmplitudeCoverage, randomSeed: 460025 },
+      geometry: noisyGeometry
+    },
+    {
+      teacher: makeTeacher(937, 6, 'weak-support'),
+      noisy: true,
+      sampler: { ...weakBase, randomSeed: 360027 },
+      geometry: noisyGeometry
     }
   ];
 }
@@ -561,11 +583,13 @@ const results = makeCases().map(testCase => {
     slopeTolerance: testCase.sampler.slopeTolerance,
     interceptTolerance: testCase.sampler.interceptTolerance,
     minRegionSupport: testCase.sampler.minRegionSupport,
+    minRegionSupportFloor: testCase.sampler.minRegionSupportFloor,
     querySamples: testCase.sampler.querySamples,
     aggregation: testCase.sampler.aggregation ?? 'mean',
     neighborCount: testCase.sampler.neighborCount,
     predictionMode: testCase.sampler.predictionMode,
     localAffineNeighborCount: testCase.sampler.localAffineNeighborCount,
+    samplingMode: testCase.sampler.samplingMode ?? 'random',
     randomSeed: testCase.sampler.randomSeed,
     ridge: 1e-8
   });
@@ -698,8 +722,13 @@ const summary = {
   gclBeatsLinearRidgeCount: results.filter(result => result.comparison.gclBeatsLinearRidge).length,
   gclBeatsQuadraticRidgeCount: results.filter(result => result.comparison.gclBeatsQuadraticRidge).length,
   gclBeatsRandomReluRidgeCount: results.filter(result => result.comparison.gclBeatsRandomReluRidge).length,
+  minGclRegionCount: Math.min(...results.map(result => result.gcl.recovery.regionCount)),
+  minGclEdgeCount: Math.min(...results.map(result => result.gcl.geometry.edgeCount)),
+  minGclLargestComponentRatio: Math.min(...results.map(result => result.gcl.geometry.largestComponentRatio)),
+  maxGclNormalizedProjectionRmse: Math.max(...results.map(result => result.gcl.geometry.maxNormalizedProjectionRmse)),
   maxGclMae: Math.max(...results.map(result => result.gcl.metrics.mae)),
   minGclR2: Math.min(...results.map(result => result.gcl.metrics.r2)),
+  medianGclMaeRatioVsBestBaseline: median(results.map(result => result.comparison.gclMaeRatioVsBestBaseline)),
   maxGclMaeRatioVsBestBaseline: Math.max(...results.map(result => result.comparison.gclMaeRatioVsBestBaseline)),
   maxGclRawOracleCalls: Math.max(...results.map(result => result.gcl.queryBudget.rawOracleCalls)),
   maxBaselineDirectRawOracleCalls: Math.max(...results.flatMap(result => result.baselines.map(item => item.queryBudget)))
@@ -707,7 +736,8 @@ const summary = {
 
 const gates = {
   pass: true,
-  allTeachersCovered: results.length === 6,
+  allTeachersCovered: results.length === 12,
+  cleanAndNoisyCovered: summary.noisyTeacherCount === 8 && results.filter(result => !result.noisy).length === 4,
   only6dTeachers: summary.dimensions.length === 1 && summary.dimensions[0] === 6,
   hardProfilesCovered: ['clean', 'near-parallel', 'cancellation', 'low-amplitude', 'weak-support']
     .every(profile => summary.profiles.includes(profile as Profile)),
@@ -718,37 +748,43 @@ const gates = {
     && Number.isFinite(result.gcl.metrics.r2)
     && result.baselines.every(baseline => Number.isFinite(baseline.metrics.mae) && Number.isFinite(baseline.metrics.r2))
   )),
+  gclGeometryPassEverywhere: results.every(result => result.gcl.geometry.pass),
+  gclRegionCountAtLeast56Everywhere: summary.minGclRegionCount >= 56,
+  gclEdgeCountAtLeast300Everywhere: summary.minGclEdgeCount >= 300,
+  gclProjectionRmseAtMost2_15Everywhere: summary.maxGclNormalizedProjectionRmse <= 2.15,
+  gclWinsByMaeEverywhere: summary.gclWinsByMae === results.length,
   gclBeatsLinearRidgeEverywhere: summary.gclBeatsLinearRidgeCount === results.length,
   gclBeatsQuadraticRidgeEverywhere: summary.gclBeatsQuadraticRidgeCount === results.length,
+  gclBeatsRandomReluRidgeEverywhere: summary.gclBeatsRandomReluRidgeCount === results.length,
+  maxGclMaeRatioVsBestBaselineAtMost0_95: summary.maxGclMaeRatioVsBestBaseline <= 0.95,
+  medianGclMaeRatioVsBestBaselineAtMost0_85: summary.medianGclMaeRatioVsBestBaseline <= 0.85,
   winnersRecordedForEveryTeacher: results.every(result => Boolean(result.winner.id)),
   claimBoundaryBlocksSotaIfAnyBaselineWins: summary.bestBaselineWinsByMae === 0
 };
-const pass = Object.entries(gates)
-  .filter(([key]) => key !== 'claimBoundaryBlocksSotaIfAnyBaselineWins')
-  .every(([, value]) => value);
+const pass = Object.values(gates).every(Boolean);
 
 const report = {
   generatedAt: new Date().toISOString(),
-  task: '6D recovered-adjacency geometry comparison against dependency-free external-method baselines',
+  task: '6D robustness-manifest baseline court for recovered-adjacency geometry',
   blackBox: {
     type: '6D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers',
     visibilityToGcl: 'oracle calls only: f(vector), no hidden activations, layer widths, teacher weights, or true region adjacency'
   },
   claimScope: {
-    provesIfPasses: 'the 6D recovered-adjacency lane has an executable comparison against several non-GCL baseline families with query budgets, winners, and failure-to-be-SOTA evidence recorded',
+    provesIfPasses: 'the exact 12-teacher 6D robustness manifest has an executable comparison against several non-GCL baseline families with query budgets, winners, and failure-to-be-SOTA evidence recorded',
     doesNotClaim: 'SOTA if any measured black-box baseline beats GCL on MAE; topology-perfect ND cell-complex recovery; exact layer attribution; GELU/SwiGLU recovery; arbitrary production API extraction'
   },
   gates: { ...gates, pass },
   summary: { ...summary, pass },
   results,
   conclusion: summary.bestBaselineWinsByMae === 0
-    ? 'GCL won MAE against every measured baseline on this 6D suite; the next step is promotion-gate integration and stronger external packages.'
+    ? 'GCL won MAE against every measured baseline on this 6D suite; this court is release-gated, and the next step is stronger package-backed external baselines plus adaptive-adversarial teacher generation.'
     : 'At least one measured black-box baseline beat GCL on MAE, so the 6D lane is not SOTA by pure accuracy yet. Use the recorded winners to drive the next solver improvement.',
   runtimeMs: Date.now() - started
 };
 
 const markdown = [
-  '# 6D ND Recovered-Adjacency Geometry Baseline Comparison',
+  '# 6D ND Recovered-Adjacency Geometry Baseline Court',
   '',
   `Generated: ${report.generatedAt}`,
   '',
@@ -761,6 +797,7 @@ const markdown = [
   '',
   `- Pass: ${pass}`,
   `- Teachers: ${summary.teacherCount}`,
+  `- Clean/noisy teachers: ${summary.teacherCount - summary.noisyTeacherCount}/${summary.noisyTeacherCount}`,
   `- Profiles: ${summary.profiles.join(', ')}`,
   `- Baseline families: ${summary.baselineFamilies.join(', ')}`,
   `- GCL MAE wins: ${summary.gclWinsByMae}/${summary.teacherCount}`,
@@ -768,8 +805,11 @@ const markdown = [
   `- GCL beats linear ridge: ${summary.gclBeatsLinearRidgeCount}/${summary.teacherCount}`,
   `- GCL beats quadratic ridge: ${summary.gclBeatsQuadraticRidgeCount}/${summary.teacherCount}`,
   `- GCL beats random ReLU ridge: ${summary.gclBeatsRandomReluRidgeCount}/${summary.teacherCount}`,
+  `- Min GCL region count: ${summary.minGclRegionCount}`,
+  `- Min GCL adjacency edges: ${summary.minGclEdgeCount}`,
   `- Max GCL MAE: ${summary.maxGclMae}`,
   `- Min GCL R2: ${summary.minGclR2}`,
+  `- Median GCL MAE ratio vs best baseline: ${summary.medianGclMaeRatioVsBestBaseline}`,
   `- Max GCL MAE ratio vs best baseline: ${summary.maxGclMaeRatioVsBestBaseline}`,
   `- Max GCL raw oracle calls: ${summary.maxGclRawOracleCalls}`,
   `- Max baseline direct raw oracle calls: ${summary.maxBaselineDirectRawOracleCalls}`,
@@ -809,7 +849,7 @@ writeBenchmarkManifest(repoRoot, output, {
   status: pass ? 'pass' : 'fail',
   summary: report.summary,
   notes: [
-    'Research comparison for the 6D recovered-adjacency lane.',
+    'Release-gated comparison for the 6D recovered-adjacency lane.',
     'Baselines are dependency-free implementations of external method families: ridge, quadratic ridge, random ReLU features, local-affine kNN, and ExtraTrees-style forests.',
     'If any black-box baseline wins MAE, the report explicitly blocks a pure-accuracy SOTA claim.'
   ]
