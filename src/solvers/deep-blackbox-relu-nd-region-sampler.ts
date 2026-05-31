@@ -18,6 +18,7 @@ export type DeepBlackBoxReluNdRegionSamplerModel = {
   ranges: Array<[number, number]>;
   sampleCount: number;
   samplingMode: 'random' | 'latin-hypercube';
+  minRegionSupport: number;
   retainedSampleCount: number;
   droppedSampleCount: number;
   gradientStep: number;
@@ -43,6 +44,7 @@ export type DeepBlackBoxReluNdRegionSamplerConfig = {
   slopeTolerance?: number;
   interceptTolerance?: number;
   minRegionSupport?: number;
+  minRegionSupportFloor?: number;
   querySamples?: number;
   aggregation?: 'mean' | 'median' | 'trimmed-mean';
   trimFraction?: number;
@@ -225,6 +227,7 @@ function buildExpression(model: Omit<DeepBlackBoxReluNdRegionSamplerModel, 'expr
     `regions=${model.regionCount}`,
     `samples=${model.retainedSampleCount}/${model.sampleCount}`,
     `sampling=${model.samplingMode}`,
+    `support=${model.minRegionSupport}`,
     `k=${model.neighborCount}`,
     `mode=${model.predictionMode}`,
     ')'
@@ -265,7 +268,8 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
   const gradientStep = Math.max(1e-8, Math.min(config.gradientStep ?? minRange * 1e-6, minRange * 0.05));
   const slopeTolerance = config.slopeTolerance ?? 1e-5;
   const interceptTolerance = config.interceptTolerance ?? 1e-5;
-  const minRegionSupport = Math.max(dimension + 2, Math.floor(config.minRegionSupport ?? dimension + 3));
+  const minRegionSupportFloor = Math.max(1, Math.floor(config.minRegionSupportFloor ?? dimension + 2));
+  const minRegionSupport = Math.max(minRegionSupportFloor, Math.floor(config.minRegionSupport ?? dimension + 3));
   const querySamples = Math.max(1, Math.floor(config.querySamples ?? 1));
   const aggregationMode = config.aggregation ?? 'mean';
   const trimFraction = Math.max(0, Math.min(0.45, config.trimFraction ?? 0.2));
@@ -356,6 +360,7 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
     ranges: config.ranges,
     sampleCount,
     samplingMode,
+    minRegionSupport,
     retainedSampleCount: assignments.length,
     droppedSampleCount: sampleCount - assignments.length,
     gradientStep,

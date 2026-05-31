@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-30T19:46:10.499Z",
+  "generatedAt": "2026-05-31T05:55:11.605Z",
   "task": "6D query-budget ladder for recovered-adjacency geometry on deep black-box ReLU region samplers",
   "blackBox": {
     "type": "6D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP teachers",
     "visibilityToGcl": "oracle calls only: the decompiler receives f(vector), not hidden activations, layer widths, teacher weights, or true region adjacency"
   },
   "claimScope": {
-    "provesIfPasses": "the 6D recovered-adjacency lane keeps the hard-profile accuracy/geometry gates while reducing selected raw oracle calls versus the prior 6D sweep",
+    "provesIfPasses": "the 6D recovered-adjacency lane keeps the hard-profile accuracy/geometry gates, eliminates high-tier selections, and reduces selected raw oracle calls versus the prior 6D sweep",
     "doesNotClaim": "SOTA query efficiency, topology-perfect full ND cell-complex recovery, unique hidden-layer identity, exact layer attribution, GELU/SwiGLU recovery, or arbitrary production API extraction"
   },
   "gates": {
@@ -23,7 +23,7 @@
     "cleanR2Above099": true,
     "noisyR2Above096": true,
     "maxSelectedRawOracleCallsPerTeacherBelow1_6M": true,
-    "highTierSelectionsAtMost1": true,
+    "noHighTierSelections": true,
     "selectedRawOracleReductionAtLeast30Percent": true,
     "searchRawOracleCallsBelowPreviousSweepSearch": true
   },
@@ -48,28 +48,28 @@
       "low",
       "mid",
       "mid",
-      "high",
+      "mid",
       "low"
     ],
     "lowTierSelections": 3,
-    "midTierSelections": 2,
-    "highTierSelections": 1,
+    "midTierSelections": 3,
+    "highTierSelections": 0,
     "attemptedCandidateCount": 11,
     "rejectedCandidateCount": 5,
     "rejectedFailCount": 5,
-    "minRegionCount": 56,
-    "minEdgeCount": 451,
-    "minLargestComponentRatio": 0.975,
+    "minRegionCount": 58,
+    "minEdgeCount": 468,
+    "minLargestComponentRatio": 0.935064935064935,
     "maxNormalizedProjectionRmse": 1.1848901859779233,
     "maxMae": 0.09301806108793807,
     "minR2": 0.9601449089658317,
     "maxSelectedRawOracleCallsPerTeacher": 1501500,
-    "totalSelectedRawOracleCalls": 5414500,
-    "totalSearchRawOracleCalls": 11056500,
+    "totalSelectedRawOracleCalls": 5050500,
+    "totalSearchRawOracleCalls": 10692500,
     "previousSweepSelectedRawOracleCalls": 8105500,
     "previousSweepSearchRawOracleCalls": 19220500,
-    "selectedReduction": 0.3319967923015237,
-    "searchReduction": 0.4247548190733852
+    "selectedReduction": 0.3769045709703288,
+    "searchReduction": 0.4436929320257017
   },
   "results": [
     {
@@ -120,6 +120,7 @@
         "recovery": {
           "recoveryKind": "output-equivalent-nd-region-sampler",
           "regionCount": 65,
+          "effectiveMinRegionSupport": 8,
           "firstLayerWidth": 4,
           "deepOnlyRegionEstimate": 60,
           "retainedSampleCount": 13970,
@@ -200,6 +201,7 @@
         "recovery": {
           "recoveryKind": "output-equivalent-nd-region-sampler",
           "regionCount": 59,
+          "effectiveMinRegionSupport": 8,
           "firstLayerWidth": 4,
           "deepOnlyRegionEstimate": 54,
           "retainedSampleCount": 13956,
@@ -282,6 +284,7 @@
         "recovery": {
           "recoveryKind": "output-equivalent-nd-region-sampler",
           "regionCount": 102,
+          "effectiveMinRegionSupport": 8,
           "firstLayerWidth": 4,
           "deepOnlyRegionEstimate": 97,
           "retainedSampleCount": 13191,
@@ -331,6 +334,7 @@
           "recovery": {
             "recoveryKind": "output-equivalent-nd-region-sampler",
             "regionCount": 96,
+            "effectiveMinRegionSupport": 8,
             "firstLayerWidth": 4,
             "deepOnlyRegionEstimate": 91,
             "retainedSampleCount": 11251,
@@ -414,6 +418,7 @@
         "recovery": {
           "recoveryKind": "output-equivalent-nd-region-sampler",
           "regionCount": 80,
+          "effectiveMinRegionSupport": 8,
           "firstLayerWidth": 4,
           "deepOnlyRegionEstimate": 75,
           "retainedSampleCount": 15851,
@@ -463,6 +468,7 @@
           "recovery": {
             "recoveryKind": "output-equivalent-nd-region-sampler",
             "regionCount": 68,
+            "effectiveMinRegionSupport": 8,
             "firstLayerWidth": 4,
             "deepOnlyRegionEstimate": 63,
             "retainedSampleCount": 12392,
@@ -511,6 +517,7 @@
           "recovery": {
             "recoveryKind": "output-equivalent-nd-region-sampler",
             "regionCount": 75,
+            "effectiveMinRegionSupport": 8,
             "firstLayerWidth": 4,
             "deepOnlyRegionEstimate": 70,
             "retainedSampleCount": 14348,
@@ -551,19 +558,19 @@
       "noisy": true,
       "pass": true,
       "selection": {
-        "selectedCandidateId": "low-amplitude-high",
-        "selectedTier": "high",
+        "selectedCandidateId": "low-amplitude-coverage",
+        "selectedTier": "mid",
         "selectedRandomSeed": 460001,
         "attemptedCandidateCount": 3,
         "rejectedCandidateCount": 2,
         "rejectedFailCount": 2,
-        "totalSearchRawOracleCalls": 3276000,
-        "selectedRawOracleCalls": 1274000,
+        "totalSearchRawOracleCalls": 2912000,
+        "selectedRawOracleCalls": 910000,
         "policy": "evaluate low/mid/high candidates in order and stop at the first candidate that passes all geometry/accuracy/region gates"
       },
       "selected": {
-        "candidateId": "low-amplitude-high",
-        "tier": "high",
+        "candidateId": "low-amplitude-coverage",
+        "tier": "mid",
         "randomSeed": 460001,
         "pass": true,
         "criteria": {
@@ -576,49 +583,51 @@
           "regionCountEnough": true,
           "selectedOracleCallsBelowBudget": true
         },
-        "score": 99.96007906995344,
+        "score": 100.17774449284039,
         "sampler": {
-          "querySamples": 7,
+          "querySamples": 5,
           "gradientStep": 0.055,
           "slopeTolerance": 0.08,
           "interceptTolerance": 0.18,
-          "minRegionSupport": 5,
+          "minRegionSupport": 4,
           "neighborCount": 27,
           "predictionMode": "local-affine-knn",
           "localAffineNeighborCount": 64,
           "aggregation": "median",
           "sampleCount": 14000,
+          "minRegionSupportFloor": 4,
           "randomSeed": 460001
         },
         "recovery": {
           "recoveryKind": "output-equivalent-nd-region-sampler",
-          "regionCount": 56,
+          "regionCount": 77,
+          "effectiveMinRegionSupport": 4,
           "firstLayerWidth": 4,
-          "deepOnlyRegionEstimate": 51,
-          "retainedSampleCount": 13781,
-          "droppedSampleCount": 219,
-          "retainedSampleRatio": 0.9843571428571428,
+          "deepOnlyRegionEstimate": 72,
+          "retainedSampleCount": 13867,
+          "droppedSampleCount": 133,
+          "retainedSampleRatio": 0.9905,
           "predictionMode": "local-affine-knn"
         },
         "geometry": {
           "pass": true,
           "geometryKind": "nd-affine-equality-contact-witness",
-          "candidatePairCount": 636,
-          "edgeCount": 451,
-          "largestComponentSize": 55,
-          "largestComponentRatio": 0.9821428571428571,
-          "maxNormalizedProjectionRmse": 0.49482111792856126,
-          "maxProjectionRmse": 0.6580699696808555,
-          "minSupportScore": 1.2471596868303583
+          "candidatePairCount": 805,
+          "edgeCount": 527,
+          "largestComponentSize": 72,
+          "largestComponentRatio": 0.935064935064935,
+          "maxNormalizedProjectionRmse": 0.48167834109972624,
+          "maxProjectionRmse": 0.6650605718582581,
+          "minSupportScore": 0.9776242826671412
         },
         "metrics": {
-          "mae": 0.031144792182850257,
-          "rmse": 0.042776909845179296,
-          "r2": 0.9921539052880295
+          "mae": 0.031089536651472263,
+          "rmse": 0.042660164035652245,
+          "r2": 0.992196673628252
         },
         "queryBudget": {
-          "rawOracleCalls": 1274000,
-          "finiteDifferenceCallsPerSample": 91,
+          "rawOracleCalls": 910000,
+          "finiteDifferenceCallsPerSample": 65,
           "geometryOracleCalls": 0,
           "validationPoints": 2600
         }
@@ -642,6 +651,7 @@
           "recovery": {
             "recoveryKind": "output-equivalent-nd-region-sampler",
             "regionCount": 44,
+            "effectiveMinRegionSupport": 8,
             "firstLayerWidth": 4,
             "deepOnlyRegionEstimate": 39,
             "retainedSampleCount": 9769,
@@ -690,6 +700,7 @@
           "recovery": {
             "recoveryKind": "output-equivalent-nd-region-sampler",
             "regionCount": 48,
+            "effectiveMinRegionSupport": 8,
             "firstLayerWidth": 4,
             "deepOnlyRegionEstimate": 43,
             "retainedSampleCount": 11761,
@@ -772,6 +783,7 @@
         "recovery": {
           "recoveryKind": "output-equivalent-nd-region-sampler",
           "regionCount": 58,
+          "effectiveMinRegionSupport": 8,
           "firstLayerWidth": 4,
           "deepOnlyRegionEstimate": 53,
           "retainedSampleCount": 10735,
@@ -805,6 +817,6 @@
       "rejectedCandidates": []
     }
   ],
-  "nextStep": "6D query-budget ladder passed with the Latin-hypercube near-parallel challenger promoted before high tier. Next efficiency target is low-amplitude, which still selects high tier.",
-  "runtimeMs": 22995
+  "nextStep": "6D query-budget ladder passed with zero high-tier selections. Next efficiency target is stronger external extraction baselines and wider 6D randomized coverage.",
+  "runtimeMs": 22676
 }
