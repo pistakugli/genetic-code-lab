@@ -545,7 +545,7 @@ const CAPABILITIES: Capability[] = [
     id: 'nn-gelu-ffn-negative-cases',
     name: 'NN GELU FFN formalization negative cases',
     status: 'production',
-    summary: 'Executes negative-case guardrails for the neural decompiler formalization: duplicate/cancellation canonicalization, weak-under-noise non-identifiability, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets.',
+    summary: 'Executes negative-case guardrails for the neural decompiler formalization: duplicate/cancellation canonicalization, weak-under-noise non-identifiability, weak-above-noise exact recovery, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets.',
     scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped guardrails that prevent unsupported structure promotion in selected failure modes. It does not claim semantic identity of original hidden neurons, noisy full mixed-block recovery, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM decompilation, or broad SOTA status.',
     run: { label: 'NN GELU FFN formalization negative-case benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-negative-cases'] },
     proofs: [
@@ -554,6 +554,21 @@ const CAPABILITIES: Capability[] = [
     artifacts: [
       'benchmarks/release/nn-gelu-ffn-negative-cases/formalization-negative-cases/report.json',
       'benchmarks/release/nn-gelu-ffn-negative-cases/formalization-negative-cases/report.md'
+    ]
+  },
+  {
+    id: 'nn-gelu-ffn-provenance-verifier',
+    name: 'NN GELU FFN source-neuron provenance verifier',
+    status: 'production',
+    summary: 'Maps recovered GELU FFN atoms to exact source neuron ids, layers, indices, duplicate source groups, and why-reacts evidence when a source-neuron manifest or equivalent instrumentation is available.',
+    scope: 'Provenance-mode smooth activation structure benchmark; proves benchmark-scoped source-neuron identity mapping for controlled distinguishable and duplicate-split GELU FFN source neurons. It does not claim exact source identity from output-only access without source provenance, mathematical uniqueness for arbitrary neural networks, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, tokenizer/model integration, or broad SOTA status.',
+    run: { label: 'NN GELU FFN source-neuron provenance verifier benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-provenance-verifier'] },
+    proofs: [
+      { label: 'NN GELU FFN source-neuron provenance verifier benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-provenance-verifier'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-gelu-ffn-provenance-verifier/source-neuron-mapping/report.json',
+      'benchmarks/release/nn-gelu-ffn-provenance-verifier/source-neuron-mapping/report.md'
     ]
   },
   {

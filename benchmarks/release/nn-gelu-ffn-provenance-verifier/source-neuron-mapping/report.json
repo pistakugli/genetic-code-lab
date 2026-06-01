@@ -1,0 +1,654 @@
+{
+  "generatedAt": "2026-06-01T14:00:06.491Z",
+  "task": "GELU FFN source-neuron provenance verifier",
+  "blackBoxBoundary": {
+    "solverInput": "oracle f(vector) plus source-neuron manifest for provenance verification",
+    "note": "Exact source identity is a provenance-mode claim. Output-only recovery still produces canonical function atoms; source-neuron identity requires source weights, activation hooks, or an equivalent signed provenance manifest."
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL can map recovered GELU atoms to exact source neuron ids/layers/indices for distinguishable source neurons, and to exact source groups for duplicate-split neurons, while recording why each mapped source reacts.",
+    "doesNotClaim": "Exact original-neuron identity from output-only access without provenance information, mathematical uniqueness for arbitrary neural networks, full GPT-2 FFN extraction, or arbitrary 3072-channel LLM block decompilation."
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 2,
+    "passedCases": 2,
+    "failedCases": [],
+    "maxMae": 0.004659687044604257,
+    "minR2": 0.9998833857503274,
+    "maxAgreementMae": 0.004659687044604257,
+    "minConfidence": 0.9050399718933542,
+    "duplicateGroupCases": 1,
+    "maxRawOracleCalls": 18184
+  },
+  "gates": {
+    "pass": true,
+    "allCasesPassed": true,
+    "coversDistinctOneToOneMapping": true,
+    "coversDuplicateSplitGroupMapping": true,
+    "allWhyReactEvidencePresent": true
+  },
+  "rows": [
+    {
+      "id": "distinct-source-neurons-24d",
+      "pass": true,
+      "teacher": {
+        "dimension": 24,
+        "outputBias": 0.06,
+        "sourceNeuronCount": 3,
+        "expectedSourceGroups": 3,
+        "sources": [
+          {
+            "id": "transformer.h0.mlp.c_fc[17]",
+            "layer": "transformer.h0.mlp.c_fc",
+            "index": 17,
+            "origin": "synthetic FFN expansion neuron 17",
+            "inputWeightNorm": 1.18,
+            "inputBias": -0.2,
+            "outputWeight": 0.82
+          },
+          {
+            "id": "transformer.h0.mlp.c_fc[42]",
+            "layer": "transformer.h0.mlp.c_fc",
+            "index": 42,
+            "origin": "synthetic FFN expansion neuron 42",
+            "inputWeightNorm": 0.9599999999999999,
+            "inputBias": 0.24,
+            "outputWeight": -0.61
+          },
+          {
+            "id": "transformer.h0.mlp.c_fc[203]",
+            "layer": "transformer.h0.mlp.c_fc",
+            "index": 203,
+            "origin": "synthetic FFN expansion neuron 203",
+            "inputWeightNorm": 0.8199999999999998,
+            "inputBias": -0.08,
+            "outputWeight": 0.37
+          }
+        ]
+      },
+      "gcl": {
+        "effectiveChannelCount": 3,
+        "rawChannelCount": 4,
+        "selectedCandidateKind": "trained-3-strength-threshold",
+        "metrics": {
+          "mae": 0.004659687044604257,
+          "rmse": 0.006232802009094023,
+          "r2": 0.9998833857503274
+        },
+        "agreementMae": 0.004659687044604257,
+        "queryBudget": {
+          "rawOracleCalls": 18184,
+          "gradientRawOracleCalls": 6144,
+          "trainingRawOracleCalls": 8800,
+          "validationRawOracleCalls": 3240,
+          "finiteDifferenceCallsPerProbe": 48,
+          "aggregatedProbePoints": 18184,
+          "querySamples": 1,
+          "selectionRestarts": 8,
+          "selectedRestart": 5
+        }
+      },
+      "provenance": {
+        "verified": true,
+        "mode": "instrumented-source-provenance",
+        "claim": "Recovered GELU atoms are matched to instrumented source neuron groups. Duplicate/split source neurons are reported as groups, not hallucinated as a unique single original neuron.",
+        "sourceNeuronCount": 3,
+        "sourceGroupCount": 3,
+        "recoveredAtomCount": 3,
+        "matches": [
+          {
+            "recoveredAtomIndex": 2,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[203]",
+            "sourceIds": [
+              "transformer.h0.mlp.c_fc[203]"
+            ],
+            "sourceLayer": "transformer.h0.mlp.c_fc",
+            "sourceIndices": [
+              203
+            ],
+            "sourceOrigin": "synthetic FFN expansion neuron 203",
+            "duplicateSplit": false,
+            "confidence": 0.9741690737839342,
+            "directionCosine": 0.9998822686829256,
+            "inputWeightNormError": 0.01837694463769768,
+            "inputBiasError": 0.0016491879754588351,
+            "outputWeightError": 0.013517630176087314,
+            "activationCorrelation": 0.9998001490608573,
+            "contributionCorrelation": 0.999800149060857,
+            "contributionMae": 0.0023374458526689806,
+            "whyReacts": {
+              "formula": "0.370000 * GELU(0.0375864*x0 + -0.291008*x1 + -0.132409*x2 + -0.0230113*x3 + -0.0266178*x4 + 0.193853*x5 + -0.194418*x6 + 0.0679737*x7 + -0.0556175*x8 + -0.157909*x9 + 0.168427*x10 + 0.210154*x11 + 0.0967100*x12 + -0.250109*x13 + -0.231166*x14 + -0.260524*x15 + 0.185186*x16 + -0.187472*x17 + -0.125398*x18 + -0.0147503*x19 + 0.0487101*x20 + 0.204147*x21 + -0.244345*x22 + -0.0679624*x23 + -0.0800000)",
+              "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
+              "topTriggers": [
+                {
+                  "probeIndex": 287,
+                  "preactivation": 1.9308989199623037,
+                  "activation": 1.8792902521239008,
+                  "contribution": 0.6953373932858433,
+                  "inputProjection": 2.452315756051591
+                },
+                {
+                  "probeIndex": 162,
+                  "preactivation": 1.7296848881530535,
+                  "activation": 1.6571947442883999,
+                  "contribution": 0.613162055386708,
+                  "inputProjection": 2.206932790430553
+                },
+                {
+                  "probeIndex": 32,
+                  "preactivation": 1.6464891543027076,
+                  "activation": 1.5642796327180604,
+                  "contribution": 0.5787834641056824,
+                  "inputProjection": 2.1054745784179367
+                },
+                {
+                  "probeIndex": 250,
+                  "preactivation": 1.4104267970678241,
+                  "activation": 1.2984794482143036,
+                  "contribution": 0.48043739583929235,
+                  "inputProjection": 1.8175936549607614
+                },
+                {
+                  "probeIndex": 183,
+                  "preactivation": 1.2513664396527227,
+                  "activation": 1.1192480969662923,
+                  "contribution": 0.4141217958775282,
+                  "inputProjection": 1.6236176093325887
+                }
+              ]
+            }
+          },
+          {
+            "recoveredAtomIndex": 1,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[42]",
+            "sourceIds": [
+              "transformer.h0.mlp.c_fc[42]"
+            ],
+            "sourceLayer": "transformer.h0.mlp.c_fc",
+            "sourceIndices": [
+              42
+            ],
+            "sourceOrigin": "synthetic FFN expansion neuron 42",
+            "duplicateSplit": false,
+            "confidence": 0.9393093516535741,
+            "directionCosine": 0.9998627839608416,
+            "inputWeightNormError": 0.0606906483464259,
+            "inputBiasError": 0.01525209900831892,
+            "outputWeightError": 0.046115593446822256,
+            "activationCorrelation": 0.9997859553906733,
+            "contributionCorrelation": 0.999785955390672,
+            "contributionMae": 0.006072548635663222,
+            "whyReacts": {
+              "formula": "-0.610000 * GELU(0.291536*x0 + 0.0417953*x1 + 0.154285*x2 + -0.0408485*x3 + 0.134184*x4 + -0.540100*x5 + -0.0406162*x6 + -0.00794859*x7 + -0.0964815*x8 + -0.386751*x9 + -0.240952*x10 + 0.193679*x11 + -0.103227*x12 + -0.287139*x13 + -0.134867*x14 + -0.134131*x15 + -0.0255442*x16 + 0.0188200*x17 + 0.127824*x18 + 0.106024*x19 + -0.0718423*x20 + -0.0295009*x21 + 0.206931*x22 + -0.191788*x23 + 0.240000)",
+              "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
+              "topTriggers": [
+                {
+                  "probeIndex": 273,
+                  "preactivation": 2.2583088902248747,
+                  "activation": 2.2316019946277397,
+                  "contribution": -1.3612772167229212,
+                  "inputProjection": 2.102405093984246
+                },
+                {
+                  "probeIndex": 201,
+                  "preactivation": 2.1172808257378373,
+                  "activation": 2.081236090097541,
+                  "contribution": -1.2695540149595,
+                  "inputProjection": 1.955500860143581
+                },
+                {
+                  "probeIndex": 76,
+                  "preactivation": 2.068652302411736,
+                  "activation": 2.0289067714960294,
+                  "contribution": -1.2376331306125778,
+                  "inputProjection": 1.9048461483455592
+                },
+                {
+                  "probeIndex": 247,
+                  "preactivation": 2.0652578640349972,
+                  "activation": 2.0252445648855986,
+                  "contribution": -1.235399184580215,
+                  "inputProjection": 1.9013102750364566
+                },
+                {
+                  "probeIndex": 132,
+                  "preactivation": 2.0428163115198537,
+                  "activation": 2.001001562224972,
+                  "contribution": -1.2206109529572329,
+                  "inputProjection": 1.8779336578331804
+                }
+              ]
+            }
+          },
+          {
+            "recoveredAtomIndex": 0,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[17]",
+            "sourceIds": [
+              "transformer.h0.mlp.c_fc[17]"
+            ],
+            "sourceLayer": "transformer.h0.mlp.c_fc",
+            "sourceIndices": [
+              17
+            ],
+            "sourceOrigin": "synthetic FFN expansion neuron 17",
+            "duplicateSplit": false,
+            "confidence": 0.9050399718933542,
+            "directionCosine": 0.9999558958819256,
+            "inputWeightNormError": 0.11205283316584214,
+            "inputBiasError": 0.002846196127466921,
+            "outputWeightError": 0.0886476557198349,
+            "activationCorrelation": 0.9998481935850536,
+            "contributionCorrelation": 0.9998481935850544,
+            "contributionMae": 0.012496861963984219,
+            "whyReacts": {
+              "formula": "0.820000 * GELU(-0.260353*x0 + 0.143909*x1 + 0.299591*x2 + 0.0609103*x3 + -0.0797647*x4 + 0.433482*x5 + -0.281471*x6 + 0.0431322*x7 + -0.480023*x8 + -0.124609*x9 + -0.108308*x10 + 0.0652683*x11 + -0.260419*x12 + -0.110930*x13 + 0.116088*x14 + -0.0800916*x15 + -0.294972*x16 + 0.180539*x17 + -0.369868*x18 + 0.375451*x19 + -0.0681693*x20 + -0.290413*x21 + -0.00287484*x22 + -0.294563*x23 + -0.200000)",
+              "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
+              "topTriggers": [
+                {
+                  "probeIndex": 287,
+                  "preactivation": 2.8084616244446177,
+                  "activation": 2.8019356864375573,
+                  "contribution": 2.297587262878797,
+                  "inputProjection": 2.5495437495293376
+                },
+                {
+                  "probeIndex": 140,
+                  "preactivation": 2.308884755091444,
+                  "activation": 2.285043457869869,
+                  "contribution": 1.8737356354532926,
+                  "inputProjection": 2.126173521263936
+                },
+                {
+                  "probeIndex": 212,
+                  "preactivation": 2.115141898704061,
+                  "activation": 2.0789396747295923,
+                  "contribution": 1.7047305332782656,
+                  "inputProjection": 1.9619846599186963
+                },
+                {
+                  "probeIndex": 289,
+                  "preactivation": 1.9800829876603003,
+                  "activation": 1.932944455859637,
+                  "contribution": 1.5850144538049022,
+                  "inputProjection": 1.8475279556443225
+                },
+                {
+                  "probeIndex": 22,
+                  "preactivation": 1.9527559629853297,
+                  "activation": 1.9031657845364593,
+                  "contribution": 1.5605959433198966,
+                  "inputProjection": 1.8243694601570593
+                }
+              ]
+            }
+          }
+        ],
+        "unmatchedRecoveredAtomIndices": [],
+        "unmatchedSourceGroupIds": [],
+        "duplicateSourceGroups": [],
+        "ambiguous": false,
+        "gates": {
+          "allRecoveredAtomsMatched": true,
+          "allSourceGroupsMatched": true,
+          "noUnresolvedAmbiguity": true,
+          "directionCosinePassed": true,
+          "parameterErrorsPassed": true,
+          "activationCorrelationPassed": true,
+          "contributionCorrelationPassed": true,
+          "contributionMaePassed": true,
+          "confidencePassed": true
+        }
+      },
+      "gates": {
+        "outputFaithful": true,
+        "modelAgreementMaeSmall": true,
+        "expectedSourceGroupCount": true,
+        "allRecoveredAtomsMapped": true,
+        "allSourceGroupsMapped": true,
+        "provenanceVerified": true,
+        "whyReactEvidencePresent": true,
+        "rawOracleCallsBelow120000": true
+      }
+    },
+    {
+      "id": "duplicate-split-source-group-24d",
+      "pass": true,
+      "teacher": {
+        "dimension": 24,
+        "outputBias": -0.03,
+        "sourceNeuronCount": 3,
+        "expectedSourceGroups": 2,
+        "sources": [
+          {
+            "id": "transformer.h1.mlp.c_fc[8]",
+            "layer": "transformer.h1.mlp.c_fc",
+            "index": 8,
+            "origin": "duplicate split source group A part 1",
+            "inputWeightNorm": 1.05,
+            "inputBias": -0.18,
+            "outputWeight": 0.31
+          },
+          {
+            "id": "transformer.h1.mlp.c_fc[9]",
+            "layer": "transformer.h1.mlp.c_fc",
+            "index": 9,
+            "origin": "duplicate split source group A part 2",
+            "inputWeightNorm": 1.05,
+            "inputBias": -0.18,
+            "outputWeight": 0.43
+          },
+          {
+            "id": "transformer.h1.mlp.c_fc[77]",
+            "layer": "transformer.h1.mlp.c_fc",
+            "index": 77,
+            "origin": "separate negative FFN expansion neuron",
+            "inputWeightNorm": 0.9000000000000001,
+            "inputBias": 0.14,
+            "outputWeight": -0.52
+          }
+        ]
+      },
+      "gcl": {
+        "effectiveChannelCount": 2,
+        "rawChannelCount": 3,
+        "selectedCandidateKind": "trained-2-strength-threshold",
+        "metrics": {
+          "mae": 0.0013510293868686397,
+          "rmse": 0.001973695941119448,
+          "r2": 0.9999796455622774
+        },
+        "agreementMae": 0.0013510293868686397,
+        "queryBudget": {
+          "rawOracleCalls": 13728,
+          "gradientRawOracleCalls": 4608,
+          "trainingRawOracleCalls": 6600,
+          "validationRawOracleCalls": 2520,
+          "finiteDifferenceCallsPerProbe": 48,
+          "aggregatedProbePoints": 13728,
+          "querySamples": 1,
+          "selectionRestarts": 6,
+          "selectedRestart": 2
+        }
+      },
+      "provenance": {
+        "verified": true,
+        "mode": "instrumented-source-provenance",
+        "claim": "Recovered GELU atoms are matched to instrumented source neuron groups. Duplicate/split source neurons are reported as groups, not hallucinated as a unique single original neuron.",
+        "sourceNeuronCount": 3,
+        "sourceGroupCount": 2,
+        "recoveredAtomCount": 2,
+        "matches": [
+          {
+            "recoveredAtomIndex": 1,
+            "sourceGroupId": "transformer.h1.mlp.c_fc[77]",
+            "sourceIds": [
+              "transformer.h1.mlp.c_fc[77]"
+            ],
+            "sourceLayer": "transformer.h1.mlp.c_fc",
+            "sourceIndices": [
+              77
+            ],
+            "sourceOrigin": "separate negative FFN expansion neuron",
+            "duplicateSplit": false,
+            "confidence": 0.986851479827466,
+            "directionCosine": 0.9999454019664195,
+            "inputWeightNormError": 0.0005359596361519392,
+            "inputBiasError": 0.0034780001605729804,
+            "outputWeightError": 0.001252295632610756,
+            "activationCorrelation": 0.9999287643327714,
+            "contributionCorrelation": 0.9999287643327719,
+            "contributionMae": 0.0027428336009453127,
+            "whyReacts": {
+              "formula": "-0.520000 * GELU(-0.301012*x0 + 0.101682*x1 + -0.0112128*x2 + -0.128510*x3 + -0.106372*x4 + 0.185919*x5 + 0.000837430*x6 + -0.292781*x7 + 0.302300*x8 + -0.0260534*x9 + -0.118248*x10 + -0.239489*x11 + -0.137375*x12 + -0.319435*x13 + 0.0696695*x14 + 0.149986*x15 + -0.166130*x16 + -0.349455*x17 + -0.0299015*x18 + 0.247101*x19 + -0.0350210*x20 + 0.0945310*x21 + 0.0824913*x22 + -0.143212*x23 + 0.140000)",
+              "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
+              "topTriggers": [
+                {
+                  "probeIndex": 277,
+                  "preactivation": 2.2290312549228295,
+                  "activation": 2.2005518557592367,
+                  "contribution": -1.144286964994803,
+                  "inputProjection": 2.321145838803143
+                },
+                {
+                  "probeIndex": 47,
+                  "preactivation": 2.1356211631411437,
+                  "activation": 2.1009069814143237,
+                  "contribution": -1.0924716303354485,
+                  "inputProjection": 2.2173568479346035
+                },
+                {
+                  "probeIndex": 276,
+                  "preactivation": 2.133823440838135,
+                  "activation": 2.098980404995274,
+                  "contribution": -1.0914698105975424,
+                  "inputProjection": 2.2153593787090387
+                },
+                {
+                  "probeIndex": 245,
+                  "preactivation": 1.905863448227715,
+                  "activation": 1.8518803515731046,
+                  "contribution": -0.9629777828180144,
+                  "inputProjection": 1.9620704980307941
+                },
+                {
+                  "probeIndex": 142,
+                  "preactivation": 1.8773152375238906,
+                  "activation": 1.8205441020296502,
+                  "contribution": -0.9466829330554182,
+                  "inputProjection": 1.9303502639154337
+                }
+              ]
+            }
+          },
+          {
+            "recoveredAtomIndex": 0,
+            "sourceGroupId": "transformer.h1.mlp.c_fc[8+9]",
+            "sourceIds": [
+              "transformer.h1.mlp.c_fc[8]",
+              "transformer.h1.mlp.c_fc[9]"
+            ],
+            "sourceLayer": "transformer.h1.mlp.c_fc",
+            "sourceIndices": [
+              8,
+              9
+            ],
+            "sourceOrigin": "duplicate split source group A part 1",
+            "duplicateSplit": true,
+            "confidence": 0.9633454870448102,
+            "directionCosine": 0.9999866273187501,
+            "inputWeightNormError": 0.038487238602949336,
+            "inputBiasError": 0.0007684688766084469,
+            "outputWeightError": 0.03539122060330524,
+            "activationCorrelation": 0.9999667708378313,
+            "contributionCorrelation": 0.9999667708378319,
+            "contributionMae": 0.004240946958794905,
+            "whyReacts": {
+              "formula": "0.740000 * GELU(0.103239*x0 + -0.287191*x1 + 0.312123*x2 + 0.0259996*x3 + 0.181312*x4 + -0.120578*x5 + -0.000873848*x6 + 0.103924*x7 + 0.196374*x8 + -0.0660505*x9 + 0.164969*x10 + -0.0969681*x11 + -0.109575*x12 + -0.101816*x13 + 0.197363*x14 + 0.160529*x15 + 0.0646075*x16 + -0.0652801*x17 + 0.319323*x18 + 0.123538*x19 + 0.681969*x20 + 0.137921*x21 + -0.265434*x22 + 0.0786851*x23 + -0.180000)",
+              "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
+              "topTriggers": [
+                {
+                  "probeIndex": 49,
+                  "preactivation": 2.391706874083779,
+                  "activation": 2.3720450865277622,
+                  "contribution": 1.755313364030544,
+                  "inputProjection": 2.449244641984552
+                },
+                {
+                  "probeIndex": 210,
+                  "preactivation": 2.1554666847204715,
+                  "activation": 2.1221524446435147,
+                  "contribution": 1.570392809036201,
+                  "inputProjection": 2.224253985448068
+                },
+                {
+                  "probeIndex": 67,
+                  "preactivation": 2.1039359909702213,
+                  "activation": 2.06690075207422,
+                  "contribution": 1.5295065565349228,
+                  "inputProjection": 2.1751771342573543
+                },
+                {
+                  "probeIndex": 186,
+                  "preactivation": 1.8769831038970202,
+                  "activation": 1.8201790322807272,
+                  "contribution": 1.3469324838877381,
+                  "inputProjection": 1.9590315275209709
+                },
+                {
+                  "probeIndex": 175,
+                  "preactivation": 1.853469470842194,
+                  "activation": 1.794304775674537,
+                  "contribution": 1.3277855339991573,
+                  "inputProjection": 1.9366375912782792
+                }
+              ]
+            }
+          }
+        ],
+        "unmatchedRecoveredAtomIndices": [],
+        "unmatchedSourceGroupIds": [],
+        "duplicateSourceGroups": [
+          {
+            "id": "transformer.h1.mlp.c_fc[8+9]",
+            "layer": "transformer.h1.mlp.c_fc",
+            "sourceIds": [
+              "transformer.h1.mlp.c_fc[8]",
+              "transformer.h1.mlp.c_fc[9]"
+            ],
+            "sourceIndices": [
+              8,
+              9
+            ],
+            "origin": "duplicate split source group A part 1",
+            "inputWeight": [
+              0.10323850758323318,
+              -0.2871914806555137,
+              0.31212321144971544,
+              0.02599964523810872,
+              0.18131175071751807,
+              -0.12057773956237876,
+              -0.0008738481728593769,
+              0.10392443814563877,
+              0.19637403069124998,
+              -0.06605053989095831,
+              0.16496942806008816,
+              -0.09696810172035959,
+              -0.10957506800138221,
+              -0.10181598425104965,
+              0.19736254591344193,
+              0.1605290411789844,
+              0.06460745138244832,
+              -0.06528009396484134,
+              0.3193225921943452,
+              0.12353796445459292,
+              0.6819686156121271,
+              0.1379210860490771,
+              -0.26543393030041784,
+              0.07868508224253544
+            ],
+            "inputWeightNorm": 1.05,
+            "inputBias": -0.18,
+            "outputWeight": 0.74,
+            "members": [
+              {
+                "id": "transformer.h1.mlp.c_fc[8]",
+                "layer": "transformer.h1.mlp.c_fc",
+                "index": 8,
+                "origin": "duplicate split source group A part 1",
+                "inputWeight": [
+                  0.10323850758323318,
+                  -0.2871914806555137,
+                  0.31212321144971544,
+                  0.02599964523810872,
+                  0.18131175071751807,
+                  -0.12057773956237876,
+                  -0.0008738481728593769,
+                  0.10392443814563877,
+                  0.19637403069124998,
+                  -0.06605053989095831,
+                  0.16496942806008816,
+                  -0.09696810172035959,
+                  -0.10957506800138221,
+                  -0.10181598425104965,
+                  0.19736254591344193,
+                  0.1605290411789844,
+                  0.06460745138244832,
+                  -0.06528009396484134,
+                  0.3193225921943452,
+                  0.12353796445459292,
+                  0.6819686156121271,
+                  0.1379210860490771,
+                  -0.26543393030041784,
+                  0.07868508224253544
+                ],
+                "inputBias": -0.18,
+                "outputWeight": 0.31,
+                "activation": "gelu"
+              },
+              {
+                "id": "transformer.h1.mlp.c_fc[9]",
+                "layer": "transformer.h1.mlp.c_fc",
+                "index": 9,
+                "origin": "duplicate split source group A part 2",
+                "inputWeight": [
+                  0.10323850758323318,
+                  -0.2871914806555137,
+                  0.31212321144971544,
+                  0.02599964523810872,
+                  0.18131175071751807,
+                  -0.12057773956237876,
+                  -0.0008738481728593769,
+                  0.10392443814563877,
+                  0.19637403069124998,
+                  -0.06605053989095831,
+                  0.16496942806008816,
+                  -0.09696810172035959,
+                  -0.10957506800138221,
+                  -0.10181598425104965,
+                  0.19736254591344193,
+                  0.1605290411789844,
+                  0.06460745138244832,
+                  -0.06528009396484134,
+                  0.3193225921943452,
+                  0.12353796445459292,
+                  0.6819686156121271,
+                  0.1379210860490771,
+                  -0.26543393030041784,
+                  0.07868508224253544
+                ],
+                "inputBias": -0.18,
+                "outputWeight": 0.43,
+                "activation": "gelu"
+              }
+            ],
+            "duplicateSplit": true
+          }
+        ],
+        "ambiguous": true,
+        "gates": {
+          "allRecoveredAtomsMatched": true,
+          "allSourceGroupsMatched": true,
+          "noUnresolvedAmbiguity": true,
+          "directionCosinePassed": true,
+          "parameterErrorsPassed": true,
+          "activationCorrelationPassed": true,
+          "contributionCorrelationPassed": true,
+          "contributionMaePassed": true,
+          "confidencePassed": true
+        }
+      },
+      "gates": {
+        "outputFaithful": true,
+        "modelAgreementMaeSmall": true,
+        "expectedSourceGroupCount": true,
+        "allRecoveredAtomsMapped": true,
+        "allSourceGroupsMapped": true,
+        "provenanceVerified": true,
+        "whyReactEvidencePresent": true,
+        "rawOracleCallsBelow120000": true
+      }
+    }
+  ],
+  "runtimeMs": 25754
+}

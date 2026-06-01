@@ -169,6 +169,25 @@ canonical structure recovery under oracle equivalence
 canonicalized neural basis recovery
 ```
 
+### Level 2.5: Instrumented Source-Neuron Provenance
+
+Allowed when GCL first recovers explicit atoms and then verifies those atoms
+against a source-neuron manifest, weight hook, activation hook, or equivalent
+signed provenance record. The verifier may claim exact source ids, layers,
+indices, duplicate source groups, and why-reacts evidence only for the supplied
+instrumented source.
+
+Allowed wording:
+
+```text
+source-neuron provenance verification
+instrumented source-neuron mapping
+why-reacts evidence for mapped source neurons
+```
+
+This is not an output-only claim. If the manifest or hook is removed, the claim
+downgrades to Level 1 or Level 2 depending on the available gate.
+
 ### Level 3: Semantic Hidden-Neuron Identity
 
 Not currently proven for output-only GCL lanes.
@@ -190,7 +209,7 @@ structure.
 
 The current release-gated GELU structure work does not prove:
 
-- original hidden-neuron semantic identity;
+- original hidden-neuron semantic identity from output-only access;
 - uniqueness of the original teacher basis;
 - an invertible mapping from oracle output back to training-time weights;
 - full GPT-2 FFN extraction;
@@ -198,6 +217,11 @@ The current release-gated GELU structure work does not prove:
 - arbitrary 4096D production LLM block decompilation;
 - noisy/cancellation-heavy mixed GELU or SwiGLU block recovery;
 - broad SOTA status.
+
+The provenance verifier separately proves benchmark-scoped source-neuron
+mapping only when the source manifest or equivalent instrumentation is supplied.
+That is a stronger engineering mode than a surrogate, but it is not evidence
+that output-only access can recover original neurons in arbitrary networks.
 
 ## Required Negative Cases
 
@@ -232,8 +256,11 @@ npm run benchmark:nn-gelu-ffn-negative-cases
 ```
 
 Current coverage: duplicate/cancellation/weak canonicalization,
-weak-under-noise non-identifiability, activation-family mismatch rejection, and
-minimum equivalent structure under overcomplete budgets. Near-collinear
+weak-under-noise non-identifiability, weak-but-resolvable channel recovery,
+activation-family mismatch rejection, and minimum equivalent structure under
+overcomplete budgets. The weak-channel pair is intentional: below the noise
+floor the correct result is a smaller observable structure, while above the
+noise floor the gate fails unless the third channel is recovered. Near-collinear
 ambiguity under noisy mixed blocks and adversarial quantization still need
 broader follow-up gates.
 

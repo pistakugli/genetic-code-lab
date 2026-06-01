@@ -1,17 +1,17 @@
 # GELU FFN Formalization Negative-Case Benchmark
 
-Generated: 2026-06-01T11:49:36.576Z
+Generated: 2026-06-01T13:46:43.778Z
 
 ## Claim Scope
 
-- Proves if pass: GCL has executable guardrails for duplicate/cancellation canonicalization, weak-under-noise non-identifiability, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets
+- Proves if pass: GCL has executable guardrails for duplicate/cancellation canonicalization, weak-under-noise non-identifiability, weak-but-resolvable channel recovery, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets
 - Does not claim: semantic identity of original hidden neurons, noisy full mixed-block recovery, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM decompilation, or broad SOTA status
 
 ## Summary
 
 - Pass: true
-- Cases: 4
-- Passed cases: 4
+- Cases: 5
+- Passed cases: 5
 - Failed cases: none
 
 ## Cases
@@ -20,6 +20,7 @@ Generated: 2026-06-01T11:49:36.576Z
 | --- | --- | --- | --- |
 | manual-duplicate-cancellation-weak-canonicalizer | exact duplicate split + equal/opposite cancellation + weak atom | collapse duplicate split, remove cancelling pair, prune weak atom, and keep only observable canonical support | true |
 | weak-channel-below-noise | weak hidden channel under stochastic output noise and quantization | keep output fidelity but refuse to claim all original hidden channels are identifiable | true |
+| weak-channel-above-noise-must-recover | weak but resolvable hidden channel above stochastic output noise and quantization | recover the third channel when held-out oracle evidence makes it identifiable; do not always collapse to the smallest model | true |
 | mis-specified-activation-family | sinusoidal teacher passed to GELU structure finder | do not promote a GELU structure claim when held-out residuals show activation-family mismatch | true |
 | overcomplete-budget-minimum-equivalent | two-channel GELU teacher with five-channel solver budget | select the smallest held-out-valid structure instead of promoting the overcomplete budget | true |
 
@@ -47,6 +48,18 @@ Generated: 2026-06-01T11:49:36.576Z
 - hiddenWeakAtomNotPromotedAsSemanticRecovery: true
 - weakOrPrunedEvidenceRecorded: true
 - rawOracleCallsBelow80000: true
+
+### weak-channel-above-noise-must-recover
+
+- Family: weak but resolvable hidden channel above stochastic output noise and quantization
+- Expected correct behavior: recover the third channel when held-out oracle evidence makes it identifiable; do not always collapse to the smallest model
+- Pass: true
+- Summary: `{"effectiveChannelCount":3,"canonicalAtomCount":3,"selectedCandidateKind":"trained-3-strength-threshold","selectedCandidateRank":5,"bestCandidateMetrics":{"mae":0.006772337571127612,"rmse":0.00880801277207202,"r2":0.9996273783515787},"selectedValidationMetrics":{"mae":0.011372461639168507,"rmse":0.013805598666581412,"r2":0.9990845751456228},"prunedWeakAtomCount":0,"selectedAtomStrengths":[0.857706044816364,0.5220840237278643,0.06893052988147018],"mae":0.010968259412436983,"r2":0.9992502726292716,"strongOnlyMae":0.03121065181034743,"strongOnlyR2":0.9904076987558283,"maxWeakContribution":0.21016262002998667,"meanWeakContribution":0.03121065181034743,"noiseStd":0.003,"quantization":0.001,"rawOracleCalls":104524}`
+- outputFaithful: true
+- weakSignalAboveNoiseFloor: true
+- strongOnlyUnderfitsHeldoutOracle: true
+- exactlyResolvableThreeAtomsRecovered: true
+- rawOracleCallsBelow120000: true
 
 ### mis-specified-activation-family
 

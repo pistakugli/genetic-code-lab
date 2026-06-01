@@ -100,6 +100,12 @@ function worstAbsoluteError(actual: number[], predicted: number[]): number {
   return Math.max(0, ...actual.map((value, index) => Math.abs(value - predicted[index])));
 }
 
+function atomStrengthSummary(model: { atoms: GeluFfnStructureAtom[] }): number[] {
+  return model.atoms
+    .map(atom => Math.abs(atom.outputWeight) * norm(atom.inputWeight))
+    .sort((a, b) => b - a);
+}
+
 function runCanonicalManualNegativeCase(): NegativeCaseRow {
   const directions = [
     normalize([1, 0.2, -0.1, 0.05]),
@@ -211,6 +217,95 @@ function runWeakChannelBelowNoiseCase(): NegativeCaseRow {
       mae: metrics.mae,
       r2: metrics.r2,
       maxWeakContribution,
+      rawOracleCalls: model.queryBudget.rawOracleCalls
+    },
+    gates
+  };
+}
+
+function runWeakChannelAboveNoiseCase(): NegativeCaseRow {
+  const dimension = 12;
+  const directions = makeDirections(dimension, 3, 281701);
+  const strongAtoms = [
+    { direction: directions[0], inputScale: 1.12, inputBias: -0.22, outputWeight: 0.78 },
+    { direction: directions[1], inputScale: 0.94, inputBias: 0.24, outputWeight: -0.57 }
+  ];
+  const weakAtom = { direction: directions[2], inputScale: 1.08, inputBias: -0.08, outputWeight: 0.09 };
+  const strongOnlyOracle = (input: number[]): number => (
+    0.025
+    + strongAtoms.reduce((sum, atom) => sum + atom.outputWeight * gelu(atom.inputScale * dot(atom.direction, input) + atom.inputBias), 0)
+  );
+  const noiselessOracle = (input: number[]): number => (
+    strongOnlyOracle(input)
+    + weakAtom.outputWeight * gelu(weakAtom.inputScale * dot(weakAtom.direction, input) + weakAtom.inputBias)
+  );
+  const noiseStd = 0.003;
+  const quantization = 0.001;
+  const noisyRandom = makeRandom(281801);
+  const noisyOracle = (input: number[]): number => {
+    const noisy = noiselessOracle(input) + gaussian(noisyRandom) * noiseStd;
+    return Math.round(noisy / quantization) * quantization;
+  };
+  const model = decompileRankAdaptiveGeluFfnStructure(noisyOracle, {
+    dimension,
+    ranges: Array.from({ length: dimension }, () => [-1.5, 1.5] as [number, number]),
+    maxChannelCount: 4,
+    selectionRestarts: 2,
+    gradientProbeCount: 16,
+    trainingSampleCount: 1100,
+    validationSampleCount: 340,
+    randomSeed: 281901,
+    restarts: 6,
+    iterations: 420,
+    learningRate: 0.028,
+    querySamples: 7,
+    aggregation: 'median',
+    atomRelativeStrengthThreshold: 0.015,
+    atomAbsoluteStrengthThreshold: 0.004,
+    pruneValidationToleranceRatio: 0.2,
+    pruneValidationToleranceAbsolute: 0.01
+  });
+  const inputs = makeInputs(282001, dimension, 800);
+  const actual = inputs.map(noiselessOracle);
+  const predicted = predictGeluFfnStructureBatch(model, inputs);
+  const metrics = regressionMetrics(actual, predicted);
+  const strongOnlyMetrics = regressionMetrics(actual, inputs.map(strongOnlyOracle));
+  const weakContribution = inputs.map(input => Math.abs(weakAtom.outputWeight * gelu(weakAtom.inputScale * dot(weakAtom.direction, input) + weakAtom.inputBias)));
+  const maxWeakContribution = Math.max(...weakContribution);
+  const meanWeakContribution = weakContribution.reduce((sum, value) => sum + value, 0) / weakContribution.length;
+  const signature = canonicalizeGeluFfnStructure(model, {
+    atomRelativeStrengthThreshold: 0.012,
+    atomAbsoluteStrengthThreshold: 0.003
+  });
+  const gates = {
+    outputFaithful: metrics.r2 > 0.997 && metrics.mae < 0.02,
+    weakSignalAboveNoiseFloor: maxWeakContribution > 3 * noiseStd + quantization && meanWeakContribution > noiseStd + quantization,
+    strongOnlyUnderfitsHeldoutOracle: strongOnlyMetrics.mae > Math.max(0.015, metrics.mae * 2.5),
+    exactlyResolvableThreeAtomsRecovered: (model.effectiveChannelCount ?? model.atoms.length) === 3 && signature.canonicalAtomCount === 3,
+    rawOracleCallsBelow120000: model.queryBudget.rawOracleCalls < 120000
+  };
+  return {
+    id: 'weak-channel-above-noise-must-recover',
+    family: 'weak but resolvable hidden channel above stochastic output noise and quantization',
+    expectedCorrectBehavior: 'recover the third channel when held-out oracle evidence makes it identifiable; do not always collapse to the smallest model',
+    pass: Object.values(gates).every(Boolean),
+    summary: {
+      effectiveChannelCount: model.effectiveChannelCount,
+      canonicalAtomCount: signature.canonicalAtomCount,
+      selectedCandidateKind: model.adaptiveSelection?.selectedCandidateKind,
+      selectedCandidateRank: model.adaptiveSelection?.selectedCandidateRank,
+      bestCandidateMetrics: model.adaptiveSelection?.bestCandidateMetrics,
+      selectedValidationMetrics: model.validationMetrics,
+      prunedWeakAtomCount: model.adaptiveSelection?.prunedWeakAtomCount ?? 0,
+      selectedAtomStrengths: atomStrengthSummary(model),
+      mae: metrics.mae,
+      r2: metrics.r2,
+      strongOnlyMae: strongOnlyMetrics.mae,
+      strongOnlyR2: strongOnlyMetrics.r2,
+      maxWeakContribution,
+      meanWeakContribution,
+      noiseStd,
+      quantization,
       rawOracleCalls: model.queryBudget.rawOracleCalls
     },
     gates
@@ -329,6 +424,7 @@ const started = Date.now();
 const rows = [
   runCanonicalManualNegativeCase(),
   runWeakChannelBelowNoiseCase(),
+  runWeakChannelAboveNoiseCase(),
   runActivationMismatchCase(),
   runOvercompleteBudgetCase()
 ];
@@ -341,7 +437,7 @@ const report = {
     visibilityToGcl: 'oracle calls only for solver cases; manual canonicalizer case uses recovered-atom objects to test canonical equivalence rules'
   },
   claimScope: {
-    provesIfPasses: 'GCL has executable guardrails for duplicate/cancellation canonicalization, weak-under-noise non-identifiability, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets',
+    provesIfPasses: 'GCL has executable guardrails for duplicate/cancellation canonicalization, weak-under-noise non-identifiability, weak-but-resolvable channel recovery, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets',
     doesNotClaim: 'semantic identity of original hidden neurons, noisy full mixed-block recovery, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM decompilation, or broad SOTA status'
   },
   gates: {
@@ -350,6 +446,7 @@ const report = {
     noUnsupportedStructurePromotion: rows
       .filter(row => row.id.includes('weak-channel') || row.id.includes('mis-specified'))
       .every(row => row.pass),
+    resolvableWeakChannelRecoveryPassed: rows.find(row => row.id === 'weak-channel-above-noise-must-recover')?.pass === true,
     minimumEquivalentSelectionPassed: rows.find(row => row.id === 'overcomplete-budget-minimum-equivalent')?.pass === true,
     canonicalizerNegativeCasesPassed: rows.find(row => row.id === 'manual-duplicate-cancellation-weak-canonicalizer')?.pass === true
   },
@@ -414,6 +511,7 @@ writeBenchmarkManifest(repoRoot, output, {
   notes: [
     'Executable negative-case gate for docs/neural-decompiler-formalization.md.',
     'Fails if weak/noisy or activation-family-mismatch cases are promoted as unsupported structure recovery.',
+    'Fails if a weak but measurable held-out channel is collapsed away by minimum-model bias.',
     'Keeps semantic hidden-neuron identity and full LLM FFN extraction out of scope.'
   ]
 });

@@ -100,6 +100,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-gelu-ffn-negative-cases',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-gelu-ffn-provenance-verifier',
+        status: 'production'
       })
     ]));
   });

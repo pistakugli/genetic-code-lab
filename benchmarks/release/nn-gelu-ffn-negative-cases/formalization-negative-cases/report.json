@@ -1,25 +1,26 @@
 {
-  "generatedAt": "2026-06-01T11:49:36.576Z",
+  "generatedAt": "2026-06-01T13:46:43.778Z",
   "task": "GELU FFN formalization negative-case benchmark",
   "formalization": "docs/neural-decompiler-formalization.md",
   "blackBox": {
     "visibilityToGcl": "oracle calls only for solver cases; manual canonicalizer case uses recovered-atom objects to test canonical equivalence rules"
   },
   "claimScope": {
-    "provesIfPasses": "GCL has executable guardrails for duplicate/cancellation canonicalization, weak-under-noise non-identifiability, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets",
+    "provesIfPasses": "GCL has executable guardrails for duplicate/cancellation canonicalization, weak-under-noise non-identifiability, weak-but-resolvable channel recovery, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets",
     "doesNotClaim": "semantic identity of original hidden neurons, noisy full mixed-block recovery, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM decompilation, or broad SOTA status"
   },
   "gates": {
     "pass": true,
     "allNegativeCasesPassed": true,
     "noUnsupportedStructurePromotion": true,
+    "resolvableWeakChannelRecoveryPassed": true,
     "minimumEquivalentSelectionPassed": true,
     "canonicalizerNegativeCasesPassed": true
   },
   "summary": {
     "pass": true,
-    "caseCount": 4,
-    "passedCases": 4,
+    "caseCount": 5,
+    "passedCases": 5,
     "failedCases": []
   },
   "rows": [
@@ -76,6 +77,50 @@
       }
     },
     {
+      "id": "weak-channel-above-noise-must-recover",
+      "family": "weak but resolvable hidden channel above stochastic output noise and quantization",
+      "expectedCorrectBehavior": "recover the third channel when held-out oracle evidence makes it identifiable; do not always collapse to the smallest model",
+      "pass": true,
+      "summary": {
+        "effectiveChannelCount": 3,
+        "canonicalAtomCount": 3,
+        "selectedCandidateKind": "trained-3-strength-threshold",
+        "selectedCandidateRank": 5,
+        "bestCandidateMetrics": {
+          "mae": 0.006772337571127612,
+          "rmse": 0.00880801277207202,
+          "r2": 0.9996273783515787
+        },
+        "selectedValidationMetrics": {
+          "mae": 0.011372461639168507,
+          "rmse": 0.013805598666581412,
+          "r2": 0.9990845751456228
+        },
+        "prunedWeakAtomCount": 0,
+        "selectedAtomStrengths": [
+          0.857706044816364,
+          0.5220840237278643,
+          0.06893052988147018
+        ],
+        "mae": 0.010968259412436983,
+        "r2": 0.9992502726292716,
+        "strongOnlyMae": 0.03121065181034743,
+        "strongOnlyR2": 0.9904076987558283,
+        "maxWeakContribution": 0.21016262002998667,
+        "meanWeakContribution": 0.03121065181034743,
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "rawOracleCalls": 104524
+      },
+      "gates": {
+        "outputFaithful": true,
+        "weakSignalAboveNoiseFloor": true,
+        "strongOnlyUnderfitsHeldoutOracle": true,
+        "exactlyResolvableThreeAtomsRecovered": true,
+        "rawOracleCallsBelow120000": true
+      }
+    },
+    {
       "id": "mis-specified-activation-family",
       "family": "sinusoidal teacher passed to GELU structure finder",
       "expectedCorrectBehavior": "do not promote a GELU structure claim when held-out residuals show activation-family mismatch",
@@ -119,5 +164,5 @@
       }
     }
   ],
-  "runtimeMs": 9998
+  "runtimeMs": 21486
 }

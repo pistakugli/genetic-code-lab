@@ -115,7 +115,10 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   stability is now release-gated with
   `benchmark:nn-gelu-ffn-near-parallel-family`, and canonical structure
   invariance under equivalent hidden decompositions is release-gated with
-  `benchmark:nn-gelu-ffn-cross-decomposition-invariance`.
+  `benchmark:nn-gelu-ffn-cross-decomposition-invariance`. The first
+  source-neuron provenance verifier is release-gated with
+  `benchmark:nn-gelu-ffn-provenance-verifier` for cases where source manifests
+  or equivalent instrumentation are available.
 - Direction: GCL should not brute-force 4096D. It should query a high-
   dimensional black-box channel, discover the low-dimensional active subspace
   where the function actually changes, then recover either a faithful
@@ -214,6 +217,17 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     structure recovery under an equivalence class. It does not prove semantic
     identity of the original hidden neurons, noisy invariance, or full LLM FFN
     extraction.
+  - Current provenance command: `npm run
+    benchmark:nn-gelu-ffn-provenance-verifier`.
+  - Provenance result: 2/2 controlled 24D source-manifest GELU FFN cases passed,
+    including distinct one-to-one source-neuron mapping and duplicate-split
+    source-group mapping. Max MAE `0.004659687044604257`, min R2
+    `0.9998833857503274`, max model-agreement MAE `0.004659687044604257`,
+    min provenance confidence `0.9050399718933542`, max raw oracle calls
+    `18184`.
+  - Provenance boundary: this is exact source identity only in instrumented
+    provenance mode. Output-only recovery remains canonical functional
+    structure, not original-neuron identity without source manifests or hooks.
   - Formal contract: `docs/neural-decompiler-formalization.md` defines atom,
     functional equivalence, canonical structure, canonical signature, allowed
     claim levels, mandatory negative cases, and the scaling stress ladder.
@@ -240,20 +254,26 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        `benchmark:nn-gelu-ffn-negative-cases`, where the correct result is
        sometimes "surrogate" or "non-identifiable", not forced atom recovery.
        The current gate covers duplicate split/cancellation canonicalization,
-       weak channels below noise, activation-family mismatch, and overcomplete
-       budgets.
-    6. NEXT: Add noisy/quantized repeated-query variants with median aggregation,
+       weak channels below noise, weak-but-resolvable channels above noise that
+       must recover exactly three atoms, activation-family mismatch, and
+       overcomplete budgets.
+    6. DONE for first source identity bridge: Add
+       `benchmark:nn-gelu-ffn-provenance-verifier`, where recovered GELU atoms
+       are mapped to exact source ids/layers/indices and duplicate source
+       groups only when a source-neuron manifest or equivalent instrumentation
+       is available. The benchmark must record why each mapped source reacts.
+    7. NEXT: Add noisy/quantized repeated-query variants with median aggregation,
        near-collinear ambiguity, weak channels, cancellation profiles, and
        adversarial quantization beyond the first negative-case gate. Failed
        candidates must be recorded instead of hidden.
-    7. NEXT: Add package-backed baseline court for the mixed-channel block: mean/ridge,
+    8. NEXT: Add package-backed baseline court for the mixed-channel block: mean/ridge,
        active-subspace surrogate, and at least one nonlinear baseline. The GCL
        structure lane must report both output fit and structural evidence.
-    8. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
+    9. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
        itself.
-    9. NEXT: Only after this passes should GPT-2 top-K expansion or full FFN slices be
+    10. NEXT: Only after this passes should GPT-2 top-K expansion or full FFN slices be
        used as research stress tests. They must not replace the generic mixed-
        channel gate.
 - Stage D: local transformer MLP hook.
@@ -333,7 +353,8 @@ subspace smooth FFN recovery: 256D/1024D controlled GELU/SwiGLU channels, 4096D
 stress, noisy 128D/256D rank-1 GELU recovery, explicit GELU atom recovery, the
 first clean rank-adaptive mixed GELU block, the near-parallel epsilon family,
 cross-decomposition canonical invariance, and the first formalization
-negative-case gate are now release-gated. Next are broader noisy/quantized mixed
+negative-case gate including both weak-under-noise pruning and weak-above-noise
+exact recovery are now release-gated. Next are broader noisy/quantized mixed
 multi-channel FFN blocks, package-backed external baselines, and finally a local
 transformer MLP hook. The 6D ReLU lane remains a foundation and is not a broad
 SOTA claim by itself.

@@ -6,6 +6,10 @@ import {
   GeluFfnStructureAtom,
   predictGeluFfnStructureBatch
 } from '../src/solvers/gelu-ffn-structure-finder';
+import {
+  GeluFfnSourceNeuron,
+  verifyGeluFfnNeuronProvenance
+} from '../src/solvers/gelu-ffn-provenance-verifier';
 import { regressionMetrics } from '../src/solvers/symbolic-residual-ensemble';
 
 describe('GELU FFN structure finder', () => {
@@ -55,6 +59,26 @@ describe('GELU FFN structure finder', () => {
       inputWeightNorm,
       inputBias,
       outputWeight
+    };
+  }
+
+  function makeSourceNeuron(
+    layer: string,
+    index: number,
+    direction: number[],
+    inputWeightNorm: number,
+    inputBias: number,
+    outputWeight: number
+  ): GeluFfnSourceNeuron {
+    return {
+      id: `${layer}[${index}]`,
+      layer,
+      index,
+      origin: `unit test source neuron ${index}`,
+      inputWeight: direction.map(value => value * inputWeightNorm),
+      inputBias,
+      outputWeight,
+      activation: 'gelu'
     };
   }
 
@@ -199,5 +223,50 @@ describe('GELU FFN structure finder', () => {
     expect(Math.min(...projectionScores)).toBeGreaterThan(0.995);
     expect(metrics.mae).toBeLessThan(0.02);
     expect(metrics.r2).toBeGreaterThan(0.999);
+  });
+
+  it('verifies recovered GELU atoms against exact source neuron provenance groups', () => {
+    const dimension = 6;
+    const firstDirection = normalize([1, 0.2, -0.35, 0.12, -0.18, 0.08]);
+    const secondDirection = normalize([-0.22, 0.91, 0.11, -0.16, 0.27, -0.14]);
+    const sources = [
+      makeSourceNeuron('transformer.h2.mlp.c_fc', 11, firstDirection, 1.12, -0.18, 0.31),
+      makeSourceNeuron('transformer.h2.mlp.c_fc', 12, firstDirection, 1.12, -0.18, 0.43),
+      makeSourceNeuron('transformer.h2.mlp.c_fc', 87, secondDirection, 0.9, 0.14, -0.52)
+    ];
+    const model = {
+      dimension,
+      atoms: [
+        makeAtom(firstDirection, 1.12, -0.18, 0.74),
+        makeAtom(secondDirection, 0.9, 0.14, -0.52)
+      ]
+    } as any;
+    const report = verifyGeluFfnNeuronProvenance(model, sources, {
+      probeInputs: makeInputs(88317, dimension, 90),
+      minDirectionCosine: 0.999,
+      maxInputWeightNormError: 1e-10,
+      maxInputBiasError: 1e-10,
+      maxOutputWeightError: 1e-10,
+      minActivationCorrelation: 0.999999,
+      minContributionCorrelation: 0.999999,
+      maxContributionMae: 1e-10,
+      minConfidence: 0.999999
+    });
+
+    expect(report.verified).toBe(true);
+    expect(report.sourceNeuronCount).toBe(3);
+    expect(report.sourceGroupCount).toBe(2);
+    expect(report.recoveredAtomCount).toBe(2);
+    expect(report.duplicateSourceGroups).toHaveLength(1);
+    expect(report.duplicateSourceGroups[0].sourceIds).toEqual([
+      'transformer.h2.mlp.c_fc[11]',
+      'transformer.h2.mlp.c_fc[12]'
+    ]);
+    expect(report.matches).toHaveLength(2);
+    expect(report.matches.every(match => match.whyReacts.formula.includes('GELU'))).toBe(true);
+    expect(report.matches.every(match => match.whyReacts.topTriggers.length >= 3)).toBe(true);
+    expect(report.matches.some(match => match.sourceIds.length === 2 && match.duplicateSplit)).toBe(true);
+    expect(report.unmatchedRecoveredAtomIndices).toHaveLength(0);
+    expect(report.unmatchedSourceGroupIds).toHaveLength(0);
   });
 });
