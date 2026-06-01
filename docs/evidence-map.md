@@ -202,6 +202,10 @@ files only so old local datasets remain usable while the new layout is adopted.
 
 ## Current Claim Boundaries
 
+Project focus is governed first by `docs/gcl-north-star.md`, then by this
+evidence map and `docs/nn-decompiler-roadmap.md`. If those files appear to
+conflict, the stricter claim boundary wins.
+
 Neural-decompiler terms such as "atom", "canonical structure", "canonical
 signature", "surrogate", "non-identifiable", and "semantic hidden-neuron
 identity" are governed by `docs/neural-decompiler-formalization.md`.

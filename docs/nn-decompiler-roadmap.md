@@ -3,6 +3,24 @@
 This roadmap keeps the neural-network decompiler work honest. A lane becomes a
 release claim only when it has a command, artifact, gate, and clear boundary.
 
+## Focus Reset
+
+Read `docs/gcl-north-star.md` before adding new neural-decompiler work. The
+current mainline is Active-Subspace Neural Decompilation:
+
+```text
+high-dimensional black-box channel/block
+-> active subspace discovery
+-> explicit atom/canonical structure recovery
+-> provenance mapping when source manifests or hooks exist
+-> held-out fidelity, query budget, baselines, and negative cases
+```
+
+Do not let new 7D/8D ReLU probes, GPT-2 fixture experiments, or scratch
+surrogate results replace the mainline. They are useful only when they improve
+the active-subspace structure finder, provenance verifier, baseline court, or
+failure-generation machinery.
+
 ## Engineering Rule
 
 Problems must not be silenced or bypassed. If a benchmark reveals a failure,
@@ -378,6 +396,7 @@ Target commands:
 - `npm run benchmark:nn-gelu-ffn-near-parallel-family`
 - `npm run benchmark:nn-gelu-ffn-cross-decomposition-invariance`
 - `npm run benchmark:nn-gelu-ffn-negative-cases`
+- `npm run benchmark:nn-gelu-ffn-provenance-verifier`
 - `npm run research:nn-gpt2-gelu-ffn-structure-finder`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`

@@ -1,6 +1,9 @@
 # Release Lane Status
 
-This document separates production-gated behavior from research or diagnostic lanes.
+This document separates production-gated behavior from research or diagnostic
+lanes. For project focus and next-step ordering, read
+`docs/gcl-north-star.md` first; this file is the evidence ledger, not the
+strategy document.
 
 ## Overall Status
 

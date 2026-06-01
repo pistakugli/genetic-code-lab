@@ -4,6 +4,22 @@ Genetic Code Lab is a TypeScript genetic-programming toolkit for evolving small 
 
 Current product status: MVP candidate. The core engine, built-in examples, CLI smoke path, and threshold production lane are build/test gated. Adaptive-duel threshold compose and guarded promotion are now production defaults with a positive-use-case proof.
 
+## Current North Star
+
+The active research/product direction is documented in
+[`docs/gcl-north-star.md`](docs/gcl-north-star.md).
+
+Short version: GCL is being developed into an Active-Subspace Neural
+Decompiler. The target is not to brute-force huge neural inputs, but to find the
+small active subspace of a black-box neuron/channel/block, recover explicit
+GELU/SwiGLU/ReLU-style structure when identifiable, validate the recovered
+structure against held-out oracle probes, and attach exact source-neuron
+provenance when source manifests or hooks are available.
+
+The current mainline is smooth FFN structure recovery and provenance. ReLU
+geometry, archive, and symbolic-regression lanes remain important foundations,
+but they are not the center of the neural-decompiler roadmap.
+
 ## What Is Stable
 
 - Core `EvolutionEngine` API for problem definitions, genomes, population evolution, and result stats.

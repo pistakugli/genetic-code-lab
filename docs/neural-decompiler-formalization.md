@@ -3,7 +3,9 @@
 This document defines the current scientific claim surface for the GCL neural
 decompiler work. It is intentionally stricter than the implementation: if a
 benchmark or report cannot satisfy these definitions, it must use weaker
-language.
+language. The product direction is summarized in `docs/gcl-north-star.md`;
+this document defines the terms and claim levels used to keep that direction
+honest.
 
 ## Current Classification
 
