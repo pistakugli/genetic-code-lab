@@ -557,6 +557,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-gelu-ffn-noisy-mixed-structure',
+    name: 'NN noisy mixed GELU FFN structure',
+    status: 'production',
+    summary: 'Recovers explicit mixed GELU atom structure under controlled stochastic output noise and finite-precision quantization, with separate structure and accuracy-court gates.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped noisy/quantized mixed GELU recovery for controlled balanced, near-parallel, and weak-but-resolvable three-channel FFN teachers. This is not a local KNN or polynomial surrogate. It does not claim full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, semantic original-neuron identity from output-only access, or broad SOTA status.',
+    run: { label: 'NN noisy mixed GELU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-noisy-mixed-structure'] },
+    proofs: [
+      { label: 'NN noisy mixed GELU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-noisy-mixed-structure'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-gelu-ffn-noisy-mixed-structure/quantized-noisy-family/report.json',
+      'benchmarks/release/nn-gelu-ffn-noisy-mixed-structure/quantized-noisy-family/report.md'
+    ]
+  },
+  {
     id: 'nn-gelu-ffn-provenance-verifier',
     name: 'NN GELU FFN source-neuron provenance verifier',
     status: 'production',

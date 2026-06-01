@@ -103,9 +103,9 @@ The full gate runs:
 - TypeScript build
 - Jest test suite
 - release-lane NN decompiler benchmarks listed in `docs/release-lane-status.md`,
-  including active-subspace FFN, GELU structure, near-parallel, and
-  cross-decomposition invariance, negative-case, and source-neuron provenance
-  gates
+  including active-subspace FFN, GELU structure, near-parallel,
+  cross-decomposition invariance, negative-case, noisy mixed GELU, and
+  source-neuron provenance gates
 - GCL hybrid wide symbolic-regression production gate
 - semantic archive composition benchmark
 - closed-loop archive emergence benchmark
@@ -140,6 +140,7 @@ npm run benchmark:nn-gelu-ffn-mixed-structure
 npm run benchmark:nn-gelu-ffn-near-parallel-family
 npm run benchmark:nn-gelu-ffn-cross-decomposition-invariance
 npm run benchmark:nn-gelu-ffn-negative-cases
+npm run benchmark:nn-gelu-ffn-noisy-mixed-structure
 npm run benchmark:nn-gelu-ffn-provenance-verifier
 ```
 
@@ -160,6 +161,9 @@ What these gates currently support:
   canonicalization, weak-under-noise non-identifiability, weak-but-resolvable
   channel recovery, activation-family mismatch rejection, and minimum
   equivalent structure under overcomplete budgets.
+- Noisy/quantized mixed GELU recovery for controlled balanced, near-parallel,
+  and weak-but-resolvable three-channel FFN teachers, with separate structure
+  and accuracy-court gates.
 - Provenance-mode source-neuron verification when an explicit source-neuron
   manifest or equivalent activation/weight instrumentation is available: exact
   source ids, layer names, indices, duplicate source groups, and why-reacts
@@ -172,7 +176,8 @@ What they do not support yet:
 - Semantic identity of the original hidden neurons from output-only access
   without a source manifest, weight hook, activation hook, or equivalent
   provenance instrumentation.
-- Noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs.
+- Arbitrary noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs beyond the
+  controlled release-gated noisy mixed GELU family.
 - Broad "SOTA" or "GCL understands every LLM neuron/block" language.
 
 Use `docs/nn-decompiler-roadmap.md` for the active development plan and
@@ -210,7 +215,7 @@ randomized/adversarial robustness and baseline court, active-subspace FFN
 decompiler, 4096D/noisy active-subspace gates, explicit GELU structure finder,
 rank-adaptive mixed GELU gate, near-parallel mixed GELU family, and
 cross-decomposition GELU invariance gate, GELU formalization negative-case
-gate, and source-neuron provenance verifier gate. This is release-lane proof, not a promotion of scratch experiments, not
+gate, noisy mixed GELU gate, and source-neuron provenance verifier gate. This is release-lane proof, not a promotion of scratch experiments, not
 full GPT-2/LLM extraction, not a pure-GCL universal superiority claim, and not a
 broad SOTA claim.
 

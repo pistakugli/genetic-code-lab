@@ -57,6 +57,8 @@ Current status: release-gated for:
 - near-parallel mixed-channel stability;
 - cross-decomposition canonical invariance;
 - formal negative cases;
+- noisy/quantized mixed GELU block recovery for controlled balanced,
+  near-parallel, and weak-but-resolvable teachers;
 - source-neuron provenance verification when source manifests or equivalent
   instrumentation are provided.
 
@@ -82,12 +84,11 @@ neuron identity without extra observability.
 
 The next development must stay on this order:
 
-1. noisy/quantized mixed GELU block recovery;
-2. package-backed baseline court for mixed structure recovery;
-3. SwiGLU mixed-block structure recovery;
-4. real local transformer MLP hook with captured activations and provenance;
-5. scaling stress ladder: 768D -> 4096D -> 16384D;
-6. GPT-2/full FFN research stress only after the generic mixed-block lane is
+1. package-backed baseline court for mixed structure recovery;
+2. SwiGLU mixed-block structure recovery;
+3. real local transformer MLP hook with captured activations and provenance;
+4. scaling stress ladder: 768D -> 4096D -> 16384D;
+5. GPT-2/full FFN research stress only after the generic mixed-block lane is
    strong enough.
 
 Do not make 7D/8D ReLU scaling the center of the project. ReLU ND work remains

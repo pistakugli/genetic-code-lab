@@ -139,6 +139,7 @@ function main(): void {
     runStep('NN near-parallel mixed GELU FFN family benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-near-parallel-family'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN GELU FFN cross-decomposition invariance benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-cross-decomposition-invariance'], { timeoutMs: 4 * 60 * 1000 });
     runStep('NN GELU FFN formalization negative-case benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-negative-cases'], { timeoutMs: 4 * 60 * 1000 });
+    runStep('NN noisy mixed GELU FFN structure benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-noisy-mixed-structure'], { timeoutMs: 4 * 60 * 1000 });
     runStep('NN GELU FFN source-neuron provenance verifier benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-provenance-verifier'], { timeoutMs: 4 * 60 * 1000 });
     runStep('NN 2D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu2d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-decompile'], { timeoutMs: 3 * 60 * 1000 });

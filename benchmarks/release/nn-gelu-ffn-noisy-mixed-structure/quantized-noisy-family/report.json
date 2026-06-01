@@ -1,0 +1,775 @@
+{
+  "generatedAt": "2026-06-01T16:23:44.938Z",
+  "task": "noisy quantized mixed GELU FFN structure recovery",
+  "blackBox": {
+    "visibilityToGcl": "oracle calls only: f(vector); true channel count, directions, biases, readout weights, noise seed, and clean target are hidden from the solver",
+    "oracleNoise": "stochastic Gaussian output noise plus finite-precision quantization; solver uses repeated median queries"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free surrogate baselines on held-out noiseless truth",
+    "doesNotClaim": "full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, semantic original-neuron identity from output-only access, or broad SOTA status"
+  },
+  "config": {
+    "maxChannelBudgetGivenToGcl": 4,
+    "caseCount": 3
+  },
+  "gates": {
+    "pass": true,
+    "structureRecoveryPass": true,
+    "accuracyCourtPass": true,
+    "allCasesPassed": true,
+    "allEffectiveCountsMatch": true,
+    "allCanonicalCountsMatch": true,
+    "allDirectionRecoveryAboveThreshold": true,
+    "allBeatBestBaselineByMae": true,
+    "allRawOracleCallsBelowBudget": true,
+    "coversBalancedNoise": true,
+    "coversNearParallelNoise": true,
+    "coversWeakResolvableNoise": true
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 3,
+    "passedCases": 3,
+    "failedCases": [],
+    "maxMae": 0.003728882150765997,
+    "minR2": 0.9997459345781228,
+    "maxWorstError": 0.04908248358529477,
+    "minDirectionProjection": 0.9987338205891503,
+    "effectiveChannelCounts": [
+      3,
+      3,
+      3
+    ],
+    "canonicalAtomCounts": [
+      3,
+      3,
+      3
+    ],
+    "maxGclVsBestBaselineMaeRatio": 0.04297672596679889,
+    "maxRawOracleCalls": 155012
+  },
+  "rows": [
+    {
+      "id": "balanced-three-channel-noisy-24d",
+      "profile": "balanced-noisy",
+      "teacher": {
+        "dimension": 24,
+        "trueChannelCount": 3,
+        "noiseStd": 0.0025,
+        "quantization": 0.001,
+        "querySamples": 15
+      },
+      "summary": {
+        "pass": true,
+        "mae": 0.0032677474320668303,
+        "rmse": 0.004301418014557782,
+        "r2": 0.999944613493118,
+        "worstError": 0.018258777737773624,
+        "effectiveChannelCount": 3,
+        "canonicalAtomCount": 3,
+        "minDirectionProjection": 0.9997152450697433,
+        "duplicatePairCount": 0,
+        "nearParallelPairCount": 0,
+        "prunedWeakAtomCount": 0,
+        "bestBaselineId": "random-gelu-ridge",
+        "bestBaselineMae": 0.22230867808919938,
+        "gclVsBestBaselineMaeRatio": 0.014699144721447517,
+        "strongOnlyMae": 0.22900940666322703,
+        "rawOracleCalls": 137970
+      },
+      "gates": {
+        "outputR2AboveThreshold": true,
+        "outputMaeBelowThreshold": true,
+        "worstErrorBelowThreshold": true,
+        "effectiveChannelCountMatches": true,
+        "canonicalAtomCountMatches": true,
+        "directionRecoveryAboveThreshold": true,
+        "noDuplicateCollapse": true,
+        "weakResolvableSignalNotPruned": true,
+        "beatsBestBaselineByMae": true,
+        "rawOracleCallsBelowBudget": true
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "metrics": {
+            "mae": 0.433702189541776,
+            "rmse": 0.5780733905053913,
+            "r2": -0.0003376943223234452
+          },
+          "worstError": 2.5003232397470874,
+          "trainingRawOracleCalls": 0
+        },
+        {
+          "id": "linear-ridge",
+          "family": "linear ridge",
+          "metrics": {
+            "mae": 0.2338375843301547,
+            "rmse": 0.304295721630049,
+            "r2": 0.7228133120550233
+          },
+          "worstError": 1.0688877315931005,
+          "trainingRawOracleCalls": 18750
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "linear + squared coordinates ridge",
+          "metrics": {
+            "mae": 0.23589448948904254,
+            "rmse": 0.30515614842542527,
+            "r2": 0.7212435493116449
+          },
+          "worstError": 1.1245933446012986,
+          "trainingRawOracleCalls": 18750
+        },
+        {
+          "id": "random-gelu-ridge",
+          "family": "random GELU feature ridge surrogate",
+          "metrics": {
+            "mae": 0.22230867808919938,
+            "rmse": 0.28286992139232225,
+            "r2": 0.7604731427981122
+          },
+          "worstError": 0.8760905163222443,
+          "trainingRawOracleCalls": 18750
+        }
+      ],
+      "gcl": {
+        "metrics": {
+          "mae": 0.0032677474320668303,
+          "rmse": 0.004301418014557782,
+          "r2": 0.999944613493118
+        },
+        "worstError": 0.018258777737773624,
+        "projectionScores": [
+          0.9999872326735992,
+          0.9998897976963487,
+          0.9997152450697433
+        ],
+        "canonicalSignature": {
+          "atoms": [
+            {
+              "direction": [
+                -0.21957861292806358,
+                -0.061260367314994686,
+                0.029170686336590184,
+                0.41653610141333847,
+                -0.03384675376523189,
+                -0.2105115896496245,
+                0.1666800530298731,
+                -0.09492868701210154,
+                0.021522129184232835,
+                -0.24378145621793348,
+                0.02509526447607989,
+                0.22655476903875157,
+                0.14197876775442214,
+                -0.014054863044927045,
+                0.13169228996776913,
+                -0.2995798182702527,
+                0.16859362673115388,
+                -0.07923580041861901,
+                -0.24821474684416553,
+                -0.32006082480470777,
+                -0.09323515859981245,
+                0.23551099893341246,
+                0.22899594451599142,
+                -0.3698376182620054
+              ],
+              "inputWeightNorm": 1.1730808907653667,
+              "inputBias": -0.22169040224238487,
+              "outputWeight": 0.8247738222709068,
+              "strength": 0.9675264101095116
+            },
+            {
+              "direction": [
+                -0.21495435829353418,
+                0.014738709203932786,
+                0.11480344685229754,
+                0.1522768695510575,
+                -0.249975743467977,
+                -0.26273523733476367,
+                0.13766412647209486,
+                0.10662342923911192,
+                0.22545733771300197,
+                0.277269926144265,
+                0.000024882479697272125,
+                -0.12251193905462142,
+                -0.18994147059877897,
+                -0.0804741109483232,
+                0.0005478376985698928,
+                0.16227115338631315,
+                -0.013529009787130612,
+                0.050495465246193964,
+                -0.10151787339993924,
+                0.07510682066773845,
+                -0.2338016469240829,
+                -0.49459489811061064,
+                0.4668675241201359,
+                0.08851245420745721
+              ],
+              "inputWeightNorm": 0.9980068090021285,
+              "inputBias": 0.18147302633746668,
+              "outputWeight": -0.607255593504922,
+              "strength": 0.6060452171225408
+            },
+            {
+              "direction": [
+                0.11007434866892271,
+                -0.13410870694238694,
+                -0.26512925974768237,
+                -0.22017411026542993,
+                0.08974572296949244,
+                -0.09909749716748698,
+                -0.10871656976960191,
+                -0.07541957513441218,
+                0.11796857929023581,
+                0.20789538842581057,
+                0.2665090171027904,
+                -0.3403026304678927,
+                0.07937749587599262,
+                0.17383764695376117,
+                -0.24950562709062885,
+                0.039549582858416574,
+                0.42903692136410215,
+                -0.11249287957584406,
+                0.0041167412918438505,
+                0.1488002561527439,
+                0.06615536319718535,
+                0.1382395082247466,
+                0.20282924605876082,
+                -0.433504983532007
+              ],
+              "inputWeightNorm": 0.942886673936342,
+              "inputBias": 0.3644822423201363,
+              "outputWeight": 0.43899957300038295,
+              "strength": 0.4139268472458054
+            }
+          ],
+          "canonicalAtomCount": 3,
+          "removedWeakAtomCount": 0,
+          "mergedDuplicateCount": 0,
+          "removedCancellationCount": 0
+        },
+        "adaptiveSelection": {
+          "atomStrengthThreshold": 0.02418816025273779,
+          "maxAtomStrength": 0.9675264101095116,
+          "prunedWeakAtomCount": 0,
+          "duplicatePairCount": 0,
+          "nearParallelPairCount": 0,
+          "duplicateDirectionCosine": 0.998,
+          "duplicateBiasTolerance": 0.12,
+          "nearParallelDirectionCosine": 0.999,
+          "selectionRestarts": 3,
+          "candidateCount": 9,
+          "selectedCandidateKind": "trained-3-strength-threshold",
+          "selectedCandidateRank": 1,
+          "bestCandidateMetrics": {
+            "mae": 0.003114218161109288,
+            "rmse": 0.004272294668334294,
+            "r2": 0.9999490571500192
+          },
+          "unprunedValidationMetrics": {
+            "mae": 0.003114218161109288,
+            "rmse": 0.004272294668334294,
+            "r2": 0.9999490571500192
+          }
+        },
+        "queryBudget": {
+          "rawOracleCalls": 137970,
+          "gradientRawOracleCalls": 47520,
+          "trainingRawOracleCalls": 65250,
+          "validationRawOracleCalls": 25200,
+          "finiteDifferenceCallsPerProbe": 48,
+          "aggregatedProbePoints": 9198,
+          "querySamples": 15,
+          "selectionRestarts": 3,
+          "selectedRestart": 1
+        },
+        "expression": "0.039585992 + 0.82477382 * gelu(dot(w0, x) + -0.2216904) + -0.60725559 * gelu(dot(w1, x) + 0.18147303) + 0.43899957 * gelu(dot(w2, x) + 0.36448224)",
+        "atoms": [
+          {
+            "inputWeightNorm": 1.1730808907653667,
+            "inputBias": -0.22169040224238487,
+            "outputWeight": 0.8247738222709068,
+            "strength": 0.9675264101095116
+          },
+          {
+            "inputWeightNorm": 0.9980068090021285,
+            "inputBias": 0.18147302633746668,
+            "outputWeight": -0.607255593504922,
+            "strength": 0.6060452171225408
+          },
+          {
+            "inputWeightNorm": 0.942886673936342,
+            "inputBias": 0.3644822423201363,
+            "outputWeight": 0.43899957300038295,
+            "strength": 0.4139268472458054
+          }
+        ]
+      }
+    },
+    {
+      "id": "near-parallel-three-channel-noisy-16d",
+      "profile": "near-parallel-noisy",
+      "teacher": {
+        "dimension": 16,
+        "trueChannelCount": 3,
+        "noiseStd": 0.002,
+        "quantization": 0.001,
+        "querySamples": 11
+      },
+      "summary": {
+        "pass": true,
+        "mae": 0.003600342312263999,
+        "rmse": 0.004711240353647738,
+        "r2": 0.9997459345781228,
+        "worstError": 0.019976668856817058,
+        "effectiveChannelCount": 3,
+        "canonicalAtomCount": 3,
+        "minDirectionProjection": 0.9995791895618263,
+        "duplicatePairCount": 0,
+        "nearParallelPairCount": 1,
+        "prunedWeakAtomCount": 0,
+        "bestBaselineId": "random-gelu-ridge",
+        "bestBaselineMae": 0.08377423433896282,
+        "gclVsBestBaselineMaeRatio": 0.04297672596679889,
+        "strongOnlyMae": 0.2478805455002617,
+        "rawOracleCalls": 116468
+      },
+      "gates": {
+        "outputR2AboveThreshold": true,
+        "outputMaeBelowThreshold": true,
+        "worstErrorBelowThreshold": true,
+        "effectiveChannelCountMatches": true,
+        "canonicalAtomCountMatches": true,
+        "directionRecoveryAboveThreshold": true,
+        "noDuplicateCollapse": true,
+        "weakResolvableSignalNotPruned": true,
+        "beatsBestBaselineByMae": true,
+        "rawOracleCallsBelowBudget": true
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "metrics": {
+            "mae": 0.2327726473493254,
+            "rmse": 0.29808849504156787,
+            "r2": -0.017104248247738374
+          },
+          "worstError": 1.1876060249696054,
+          "trainingRawOracleCalls": 0
+        },
+        {
+          "id": "linear-ridge",
+          "family": "linear ridge",
+          "metrics": {
+            "mae": 0.10290593079748848,
+            "rmse": 0.13566665530759803,
+            "r2": 0.7893209866899734
+          },
+          "worstError": 0.6365542300232565,
+          "trainingRawOracleCalls": 13750
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "linear + squared coordinates ridge",
+          "metrics": {
+            "mae": 0.09953855252663446,
+            "rmse": 0.1304613863529966,
+            "r2": 0.8051775421867893
+          },
+          "worstError": 0.5899551133891223,
+          "trainingRawOracleCalls": 13750
+        },
+        {
+          "id": "random-gelu-ridge",
+          "family": "random GELU feature ridge surrogate",
+          "metrics": {
+            "mae": 0.08377423433896282,
+            "rmse": 0.10732031411990134,
+            "r2": 0.8681625149571092
+          },
+          "worstError": 0.5266293901228569,
+          "trainingRawOracleCalls": 13750
+        }
+      ],
+      "gcl": {
+        "metrics": {
+          "mae": 0.003600342312263999,
+          "rmse": 0.004711240353647738,
+          "r2": 0.9997459345781228
+        },
+        "worstError": 0.019976668856817058,
+        "projectionScores": [
+          0.9999097310524111,
+          0.9996218586058737,
+          0.9995791895618263
+        ],
+        "canonicalSignature": {
+          "atoms": [
+            {
+              "direction": [
+                0.06852605364343453,
+                0.3428254400614832,
+                -0.158874086128879,
+                -0.30313647993213766,
+                0.24058611437121746,
+                0.24159171587819298,
+                -0.30161128893763683,
+                -0.16895249026064138,
+                0.3376270954725869,
+                0.06913822662126967,
+                -0.35676565471063526,
+                0.020496980158115317,
+                0.3489916888645504,
+                -0.10878950170785351,
+                -0.327306443565936,
+                0.19402519575615434
+              ],
+              "inputWeightNorm": 1.1174533957985213,
+              "inputBias": -0.5032227527057386,
+              "outputWeight": 0.5109609503990509,
+              "strength": 0.5709750491438592
+            },
+            {
+              "direction": [
+                0.2985073392405885,
+                -0.1529917438131966,
+                0.16358587127327076,
+                -0.12282800172338841,
+                -0.2093084123303748,
+                0.27897527576484266,
+                -0.23564862177715268,
+                0.3506978028438383,
+                0.3444416728159208,
+                0.22727077191818534,
+                -0.4911764125187294,
+                0.052782022024175826,
+                0.031583335627067964,
+                0.11370685577680849,
+                0.0534593029808937,
+                -0.33818111805979906
+              ],
+              "inputWeightNorm": 0.8527281663137658,
+              "inputBias": 0.27193419760683823,
+              "outputWeight": 0.5447439410846528,
+              "strength": 0.46451850199165007
+            },
+            {
+              "direction": [
+                0.09104645158398109,
+                0.33447934894487485,
+                -0.1585543033976865,
+                -0.29443225256450817,
+                0.22861168318834701,
+                0.24430679807902259,
+                -0.2987026035063471,
+                -0.1586981158514391,
+                0.33820197120926987,
+                0.0870724775953045,
+                -0.3716185105570846,
+                0.014892340385948794,
+                0.35258589836107807,
+                -0.10861911353334222,
+                -0.32775578194231675,
+                0.19448334297159625
+              ],
+              "inputWeightNorm": 1.0695177005695264,
+              "inputBias": 0.6547949328917848,
+              "outputWeight": -0.2908092397152814,
+              "strength": 0.31102562936465994
+            }
+          ],
+          "canonicalAtomCount": 3,
+          "removedWeakAtomCount": 0,
+          "mergedDuplicateCount": 0,
+          "removedCancellationCount": 0
+        },
+        "adaptiveSelection": {
+          "atomStrengthThreshold": 0.011419500982877185,
+          "maxAtomStrength": 0.5709750491438592,
+          "prunedWeakAtomCount": 0,
+          "duplicatePairCount": 0,
+          "nearParallelPairCount": 1,
+          "duplicateDirectionCosine": 0.9994,
+          "duplicateBiasTolerance": 0.16,
+          "nearParallelDirectionCosine": 0.999,
+          "selectionRestarts": 3,
+          "candidateCount": 9,
+          "selectedCandidateKind": "trained-3-strength-threshold",
+          "selectedCandidateRank": 3,
+          "bestCandidateMetrics": {
+            "mae": 0.003439464495698356,
+            "rmse": 0.004283952001970788,
+            "r2": 0.9997617333523473
+          },
+          "unprunedValidationMetrics": {
+            "mae": 0.003775142193704268,
+            "rmse": 0.0048615072038239,
+            "r2": 0.999693157205633
+          }
+        },
+        "queryBudget": {
+          "rawOracleCalls": 116468,
+          "gradientRawOracleCalls": 29568,
+          "trainingRawOracleCalls": 62700,
+          "validationRawOracleCalls": 24200,
+          "finiteDifferenceCallsPerProbe": 32,
+          "aggregatedProbePoints": 10588,
+          "querySamples": 11,
+          "selectionRestarts": 3,
+          "selectedRestart": 1
+        },
+        "expression": "0.0021194672 + 0.51096095 * gelu(dot(w0, x) + -0.50322275) + 0.54474394 * gelu(dot(w1, x) + 0.2719342) + -0.29080924 * gelu(dot(w2, x) + 0.65479493)",
+        "atoms": [
+          {
+            "inputWeightNorm": 1.1174533957985213,
+            "inputBias": -0.5032227527057386,
+            "outputWeight": 0.5109609503990509,
+            "strength": 0.5709750491438592
+          },
+          {
+            "inputWeightNorm": 0.8527281663137658,
+            "inputBias": 0.27193419760683823,
+            "outputWeight": 0.5447439410846528,
+            "strength": 0.46451850199165007
+          },
+          {
+            "inputWeightNorm": 1.0695177005695264,
+            "inputBias": 0.6547949328917848,
+            "outputWeight": -0.2908092397152814,
+            "strength": 0.31102562936465994
+          }
+        ]
+      }
+    },
+    {
+      "id": "weak-resolvable-three-channel-noisy-12d",
+      "profile": "weak-resolvable-noisy",
+      "teacher": {
+        "dimension": 12,
+        "trueChannelCount": 3,
+        "noiseStd": 0.003,
+        "quantization": 0.001,
+        "querySamples": 13
+      },
+      "summary": {
+        "pass": true,
+        "mae": 0.003728882150765997,
+        "rmse": 0.004872093510514659,
+        "r2": 0.9999181646486015,
+        "worstError": 0.04908248358529477,
+        "effectiveChannelCount": 3,
+        "canonicalAtomCount": 3,
+        "minDirectionProjection": 0.9987338205891503,
+        "duplicatePairCount": 0,
+        "nearParallelPairCount": 0,
+        "prunedWeakAtomCount": 0,
+        "bestBaselineId": "random-gelu-ridge",
+        "bestBaselineMae": 0.1213257518909473,
+        "gclVsBestBaselineMaeRatio": 0.030734465623733977,
+        "strongOnlyMae": 0.03284863477358395,
+        "rawOracleCalls": 155012
+      },
+      "gates": {
+        "outputR2AboveThreshold": true,
+        "outputMaeBelowThreshold": true,
+        "worstErrorBelowThreshold": true,
+        "effectiveChannelCountMatches": true,
+        "canonicalAtomCountMatches": true,
+        "directionRecoveryAboveThreshold": true,
+        "noDuplicateCollapse": true,
+        "weakResolvableSignalNotPruned": true,
+        "beatsBestBaselineByMae": true,
+        "rawOracleCallsBelowBudget": true
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "metrics": {
+            "mae": 0.39083136776476085,
+            "rmse": 0.5385758446405351,
+            "r2": -0.000007975547768213076
+          },
+          "worstError": 2.2160095209440045,
+          "trainingRawOracleCalls": 0
+        },
+        {
+          "id": "linear-ridge",
+          "family": "linear ridge",
+          "metrics": {
+            "mae": 0.21050278298548675,
+            "rmse": 0.2745473032260912,
+            "r2": 0.7401372167682545
+          },
+          "worstError": 1.1422026401158494,
+          "trainingRawOracleCalls": 16250
+        },
+        {
+          "id": "quadratic-ridge",
+          "family": "linear + squared coordinates ridge",
+          "metrics": {
+            "mae": 0.205428326184698,
+            "rmse": 0.2650784556678382,
+            "r2": 0.7577529010688409
+          },
+          "worstError": 1.0535554195584038,
+          "trainingRawOracleCalls": 16250
+        },
+        {
+          "id": "random-gelu-ridge",
+          "family": "random GELU feature ridge surrogate",
+          "metrics": {
+            "mae": 0.1213257518909473,
+            "rmse": 0.15621629682745197,
+            "r2": 0.9158677704308447
+          },
+          "worstError": 0.5936696898246477,
+          "trainingRawOracleCalls": 16250
+        }
+      ],
+      "gcl": {
+        "metrics": {
+          "mae": 0.003728882150765997,
+          "rmse": 0.004872093510514659,
+          "r2": 0.9999181646486015
+        },
+        "worstError": 0.04908248358529477,
+        "projectionScores": [
+          0.9999834624079205,
+          0.9999308258242157,
+          0.9987338205891503
+        ],
+        "canonicalSignature": {
+          "atoms": [
+            {
+              "direction": [
+                0.184353932512838,
+                0.3956475870362251,
+                0.2932599287796987,
+                0.26061042615176544,
+                0.23810443099207232,
+                -0.06311439994320246,
+                0.38198451041516923,
+                -0.2881360571239488,
+                0.16024423757507697,
+                0.16340371467142792,
+                0.4665011098096305,
+                0.3097474102300591
+              ],
+              "inputWeightNorm": 1.117220876422272,
+              "inputBias": -0.20201391768938057,
+              "outputWeight": 0.7800345730520984,
+              "strength": 0.8714709093449382
+            },
+            {
+              "direction": [
+                -0.11710999541879603,
+                0.23207715309791746,
+                -0.12449330971743472,
+                -0.4862664129524711,
+                -0.039389506576749285,
+                -0.05641122994981851,
+                -0.29830954494771983,
+                -0.12635165245916619,
+                0.11787018974926294,
+                0.7431580977854855,
+                0.01507357510429296,
+                0.06618306484236681
+              ],
+              "inputWeightNorm": 0.946401144212649,
+              "inputBias": 0.24643456213885165,
+              "outputWeight": -0.5641531501858432,
+              "strength": 0.5339151868470524
+            },
+            {
+              "direction": [
+                -0.2058899938784752,
+                -0.21724045972952957,
+                -0.312704522464715,
+                -0.27625586838725463,
+                0.17422463684407924,
+                -0.018178411383615298,
+                -0.06862592230181938,
+                -0.7207210463677809,
+                -0.1932512043684344,
+                -0.2726006919923978,
+                0.24709591936920608,
+                0.0936370046633129
+              ],
+              "inputWeightNorm": 0.5422276171425033,
+              "inputBias": -0.22300710836932175,
+              "outputWeight": 0.2515774200712717,
+              "strength": 0.13641222501210426
+            }
+          ],
+          "canonicalAtomCount": 3,
+          "removedWeakAtomCount": 0,
+          "mergedDuplicateCount": 0,
+          "removedCancellationCount": 0
+        },
+        "adaptiveSelection": {
+          "atomStrengthThreshold": 0.013072063640174072,
+          "maxAtomStrength": 0.8714709093449382,
+          "prunedWeakAtomCount": 0,
+          "duplicatePairCount": 0,
+          "nearParallelPairCount": 0,
+          "duplicateDirectionCosine": 0.998,
+          "duplicateBiasTolerance": 0.12,
+          "nearParallelDirectionCosine": 0.999,
+          "selectionRestarts": 3,
+          "candidateCount": 9,
+          "selectedCandidateKind": "trained-3-strength-threshold",
+          "selectedCandidateRank": 3,
+          "bestCandidateMetrics": {
+            "mae": 0.0033791410749166076,
+            "rmse": 0.004259488893062222,
+            "r2": 0.9999247812150681
+          },
+          "unprunedValidationMetrics": {
+            "mae": 0.003682938424133479,
+            "rmse": 0.0046178290888316586,
+            "r2": 0.9999115929205722
+          }
+        },
+        "queryBudget": {
+          "rawOracleCalls": 155012,
+          "gradientRawOracleCalls": 29952,
+          "trainingRawOracleCalls": 89700,
+          "validationRawOracleCalls": 35360,
+          "finiteDifferenceCallsPerProbe": 24,
+          "aggregatedProbePoints": 11924,
+          "querySamples": 13,
+          "selectionRestarts": 3,
+          "selectedRestart": 1
+        },
+        "expression": "0.05163832 + 0.78003457 * gelu(dot(w0, x) + -0.20201392) + -0.56415315 * gelu(dot(w1, x) + 0.24643456) + 0.25157742 * gelu(dot(w2, x) + -0.22300711)",
+        "atoms": [
+          {
+            "inputWeightNorm": 1.117220876422272,
+            "inputBias": -0.20201391768938057,
+            "outputWeight": 0.7800345730520984,
+            "strength": 0.8714709093449382
+          },
+          {
+            "inputWeightNorm": 0.946401144212649,
+            "inputBias": 0.24643456213885165,
+            "outputWeight": -0.5641531501858432,
+            "strength": 0.5339151868470524
+          },
+          {
+            "inputWeightNorm": 0.5422276171425033,
+            "inputBias": -0.22300710836932175,
+            "outputWeight": 0.2515774200712717,
+            "strength": 0.13641222501210426
+          }
+        ]
+      }
+    }
+  ],
+  "runtimeMs": 111995
+}

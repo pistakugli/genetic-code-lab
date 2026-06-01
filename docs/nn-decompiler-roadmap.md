@@ -133,7 +133,9 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   stability is now release-gated with
   `benchmark:nn-gelu-ffn-near-parallel-family`, and canonical structure
   invariance under equivalent hidden decompositions is release-gated with
-  `benchmark:nn-gelu-ffn-cross-decomposition-invariance`. The first
+  `benchmark:nn-gelu-ffn-cross-decomposition-invariance`. Noisy/quantized
+  mixed GELU structure recovery is release-gated with
+  `benchmark:nn-gelu-ffn-noisy-mixed-structure`. The first
   source-neuron provenance verifier is release-gated with
   `benchmark:nn-gelu-ffn-provenance-verifier` for cases where source manifests
   or equivalent instrumentation are available.
@@ -227,6 +229,16 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `0.052726404715341284`, max atom distance `0.07144167430917188`, max MAE
     `0.0019376881321900733`, min R2 `0.9999767700614473`, model-agreement MAE
     `0.0021717078319734404`, and max raw oracle calls `25710`.
+  - Current noisy mixed GELU command: `npm run
+    benchmark:nn-gelu-ffn-noisy-mixed-structure`.
+  - Noisy mixed GELU result: 3/3 controlled stochastic/quantized cases passed,
+    covering balanced, near-parallel, and weak-but-resolvable three-channel
+    teachers. Max MAE `0.003728882150765997`, min R2
+    `0.9997459345781228`, max worst error `0.04908248358529477`, min
+    direction projection `0.9987338205891503`, effective channel counts
+    `3,3,3`, canonical atom counts `3,3,3`, max GCL/best-baseline MAE ratio
+    `0.04297672596679889`, max raw oracle calls `155012`, with separate
+    `structureRecoveryPass` and `accuracyCourtPass` gates.
   - Gate: explicit atom recovery where identifiable, plus output-equivalent
     fallback only when non-identifiability is stated and gated; must include
     per-channel/subspace evidence, held-out accuracy, query budget, and failure
@@ -280,10 +292,12 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        are mapped to exact source ids/layers/indices and duplicate source
        groups only when a source-neuron manifest or equivalent instrumentation
        is available. The benchmark must record why each mapped source reacts.
-    7. NEXT: Add noisy/quantized repeated-query variants with median aggregation,
-       near-collinear ambiguity, weak channels, cancellation profiles, and
-       adversarial quantization beyond the first negative-case gate. Failed
-       candidates must be recorded instead of hidden.
+    7. DONE for controlled noisy/quantized mixed GELU: Add
+       `benchmark:nn-gelu-ffn-noisy-mixed-structure`, where repeated median
+       queries recover balanced, near-parallel, and weak-but-resolvable
+       three-channel structures under stochastic output noise and finite
+       precision. The gate separates structure recovery from accuracy-court
+       output fit and records baseline winners.
     8. NEXT: Add package-backed baseline court for the mixed-channel block: mean/ridge,
        active-subspace surrogate, and at least one nonlinear baseline. The GCL
        structure lane must report both output fit and structural evidence.
@@ -348,9 +362,11 @@ The following items are still required before any broad SOTA language:
   clean canonical structure invariance under equivalent hidden decompositions is
   covered by `benchmark:nn-gelu-ffn-cross-decomposition-invariance`; and the
   first formalization negative-case enforcement gate is covered by
-  `benchmark:nn-gelu-ffn-negative-cases`. Next evidence must cover broader
-  noisy/quantized mixed multi-channel FFN blocks and package-backed external
-  baselines before broad claims.
+  `benchmark:nn-gelu-ffn-negative-cases`; controlled noisy/quantized mixed
+  GELU structure recovery is covered by
+  `benchmark:nn-gelu-ffn-noisy-mixed-structure`. Next evidence must cover a
+  stronger package-backed external baseline court and SwiGLU mixed-block
+  structure before broad claims.
 
 ## Current Frontier Target
 
@@ -372,10 +388,10 @@ stress, noisy 128D/256D rank-1 GELU recovery, explicit GELU atom recovery, the
 first clean rank-adaptive mixed GELU block, the near-parallel epsilon family,
 cross-decomposition canonical invariance, and the first formalization
 negative-case gate including both weak-under-noise pruning and weak-above-noise
-exact recovery are now release-gated. Next are broader noisy/quantized mixed
-multi-channel FFN blocks, package-backed external baselines, and finally a local
-transformer MLP hook. The 6D ReLU lane remains a foundation and is not a broad
-SOTA claim by itself.
+exact recovery, plus controlled noisy/quantized mixed GELU structure recovery,
+are now release-gated. Next are a stronger package-backed external baseline
+court, SwiGLU mixed-block structure, and finally a local transformer MLP hook.
+The 6D ReLU lane remains a foundation and is not a broad SOTA claim by itself.
 
 Target commands:
 
@@ -396,6 +412,7 @@ Target commands:
 - `npm run benchmark:nn-gelu-ffn-near-parallel-family`
 - `npm run benchmark:nn-gelu-ffn-cross-decomposition-invariance`
 - `npm run benchmark:nn-gelu-ffn-negative-cases`
+- `npm run benchmark:nn-gelu-ffn-noisy-mixed-structure`
 - `npm run benchmark:nn-gelu-ffn-provenance-verifier`
 - `npm run research:nn-gpt2-gelu-ffn-structure-finder`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
