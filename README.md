@@ -163,7 +163,8 @@ What these gates currently support:
   equivalent structure under overcomplete budgets.
 - Noisy/quantized mixed GELU recovery for controlled balanced, near-parallel,
   and weak-but-resolvable three-channel FFN teachers, with separate structure
-  and accuracy-court gates.
+  and accuracy-court gates plus dependency-free and scikit-learn package-backed
+  baselines.
 - Provenance-mode source-neuron verification when an explicit source-neuron
   manifest or equivalent activation/weight instrumentation is available: exact
   source ids, layer names, indices, duplicate source groups, and why-reacts

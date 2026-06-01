@@ -237,8 +237,11 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `0.9997459345781228`, max worst error `0.04908248358529477`, min
     direction projection `0.9987338205891503`, effective channel counts
     `3,3,3`, canonical atom counts `3,3,3`, max GCL/best-baseline MAE ratio
-    `0.04297672596679889`, max raw oracle calls `155012`, with separate
-    `structureRecoveryPass` and `accuracyCourtPass` gates.
+    `0.08120754460430137`, max raw oracle calls `155012`, with separate
+    `structureRecoveryPass` and `accuracyCourtPass` gates. The court now covers
+    dependency-free baselines plus scikit-learn Ridge, polynomial Ridge,
+    RandomForest, ExtraTrees, HistGradientBoosting, and PLS active-subspace
+    polynomial Ridge.
   - Gate: explicit atom recovery where identifiable, plus output-equivalent
     fallback only when non-identifiability is stated and gated; must include
     per-channel/subspace evidence, held-out accuracy, query budget, and failure
@@ -298,14 +301,18 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        three-channel structures under stochastic output noise and finite
        precision. The gate separates structure recovery from accuracy-court
        output fit and records baseline winners.
-    8. NEXT: Add package-backed baseline court for the mixed-channel block: mean/ridge,
-       active-subspace surrogate, and at least one nonlinear baseline. The GCL
-       structure lane must report both output fit and structural evidence.
-    9. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
+    8. DONE for scikit-learn package-backed baseline court: the noisy mixed GELU gate
+       now compares against mean/ridge/random-GELU dependency-free baselines
+       plus scikit-learn Ridge, polynomial Ridge, RandomForest, ExtraTrees,
+       HistGradientBoosting, and PLS active-subspace polynomial Ridge. The gate
+       still reports structure evidence separately from output fit.
+    9. NEXT: Add SwiGLU mixed-block structure recovery with the same structure
+       vs accuracy-court separation.
+    10. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
        itself.
-    10. NEXT: Only after this passes should GPT-2 top-K expansion or full FFN slices be
+    11. NEXT: Only after this passes should GPT-2 top-K expansion or full FFN slices be
        used as research stress tests. They must not replace the generic mixed-
        channel gate.
 - Stage D: local transformer MLP hook.
@@ -364,9 +371,9 @@ The following items are still required before any broad SOTA language:
   first formalization negative-case enforcement gate is covered by
   `benchmark:nn-gelu-ffn-negative-cases`; controlled noisy/quantized mixed
   GELU structure recovery is covered by
-  `benchmark:nn-gelu-ffn-noisy-mixed-structure`. Next evidence must cover a
-  stronger package-backed external baseline court and SwiGLU mixed-block
-  structure before broad claims.
+  `benchmark:nn-gelu-ffn-noisy-mixed-structure`, which now includes a
+  scikit-learn package-backed baseline court. Next evidence must cover SwiGLU
+  mixed-block structure before broad claims.
 
 ## Current Frontier Target
 
@@ -389,8 +396,9 @@ first clean rank-adaptive mixed GELU block, the near-parallel epsilon family,
 cross-decomposition canonical invariance, and the first formalization
 negative-case gate including both weak-under-noise pruning and weak-above-noise
 exact recovery, plus controlled noisy/quantized mixed GELU structure recovery,
-are now release-gated. Next are a stronger package-backed external baseline
-court, SwiGLU mixed-block structure, and finally a local transformer MLP hook.
+are now release-gated, including the scikit-learn package-backed court for the
+controlled noisy mixed GELU lane. Next are SwiGLU mixed-block structure and
+finally a local transformer MLP hook.
 The 6D ReLU lane remains a foundation and is not a broad SOTA claim by itself.
 
 Target commands:

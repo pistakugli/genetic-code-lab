@@ -1,5 +1,6 @@
 #!/usr/bin/env ts-node
 
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
@@ -46,6 +47,14 @@ type TeacherCase = {
 };
 
 type Predictor = (input: number[]) => number;
+type BaselineRow = {
+  id: string;
+  family: string;
+  metrics: ReturnType<typeof regressionMetrics>;
+  worstError: number;
+  trainingRawOracleCalls: number;
+  package?: string;
+};
 
 const repoRoot = path.resolve(__dirname, '..');
 const output = resolveBenchmarkOutput(
@@ -205,6 +214,100 @@ function makeRandomGeluFeature(seed: number, dimension: number, count: number): 
   ];
 }
 
+const sklearnBaselineProgram = String.raw`
+import json
+import math
+import sys
+
+try:
+    import numpy as np
+    from sklearn.cross_decomposition import PLSRegression
+    from sklearn.ensemble import ExtraTreesRegressor, HistGradientBoostingRegressor, RandomForestRegressor
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+except Exception as exc:
+    print(json.dumps({"ok": False, "error": f"missing sklearn baseline package: {type(exc).__name__}: {exc}"}))
+    sys.exit(2)
+
+payload = json.loads(sys.stdin.read())
+X_train = np.asarray(payload["trainInputs"], dtype=float)
+y_train = np.asarray(payload["trainTargets"], dtype=float)
+X_test = np.asarray(payload["validationInputs"], dtype=float)
+y_true = np.asarray(payload["actual"], dtype=float)
+seed = int(payload["seed"])
+raw_calls = int(payload["trainingRawOracleCalls"])
+
+def score(pred):
+    pred = np.asarray(pred, dtype=float).reshape(-1)
+    diff = y_true - pred
+    mae = float(np.mean(np.abs(diff)))
+    rmse = float(math.sqrt(np.mean(diff * diff)))
+    denom = float(np.sum((y_true - np.mean(y_true)) ** 2))
+    r2 = 1.0 - float(np.sum(diff * diff)) / denom if denom > 0 else 1.0
+    worst = float(np.max(np.abs(diff))) if len(diff) else 0.0
+    return {"mae": mae, "rmse": rmse, "r2": r2}, worst
+
+models = [
+    (
+        "sklearn-ridge",
+        "sklearn linear ridge",
+        make_pipeline(StandardScaler(), Ridge(alpha=1e-4))
+    ),
+    (
+        "sklearn-poly2-ridge",
+        "sklearn polynomial ridge",
+        make_pipeline(PolynomialFeatures(degree=2, include_bias=True), StandardScaler(with_mean=False), Ridge(alpha=1e-3))
+    ),
+    (
+        "sklearn-random-forest",
+        "sklearn random forest",
+        RandomForestRegressor(n_estimators=140, max_depth=12, min_samples_leaf=2, random_state=seed, n_jobs=1)
+    ),
+    (
+        "sklearn-extra-trees",
+        "sklearn extra trees",
+        ExtraTreesRegressor(n_estimators=180, max_depth=14, min_samples_leaf=2, random_state=seed + 11, n_jobs=1)
+    ),
+    (
+        "sklearn-hist-gradient-boosting",
+        "sklearn histogram gradient boosting",
+        HistGradientBoostingRegressor(max_iter=180, max_leaf_nodes=31, learning_rate=0.055, l2_regularization=1e-4, random_state=seed + 23)
+    )
+]
+
+rows = []
+for ident, family, model in models:
+    model.fit(X_train, y_train)
+    metrics, worst = score(model.predict(X_test))
+    rows.append({
+        "id": ident,
+        "family": family,
+        "metrics": metrics,
+        "worstError": worst,
+        "trainingRawOracleCalls": raw_calls,
+        "package": "scikit-learn"
+    })
+
+component_count = max(1, min(4, X_train.shape[1], X_train.shape[0] - 1))
+pls = PLSRegression(n_components=component_count)
+Z_train = pls.fit_transform(X_train, y_train)[0]
+Z_test = pls.transform(X_test)
+active_model = make_pipeline(PolynomialFeatures(degree=3, include_bias=True), StandardScaler(with_mean=False), Ridge(alpha=1e-4))
+active_model.fit(Z_train, y_train)
+metrics, worst = score(active_model.predict(Z_test))
+rows.append({
+    "id": "sklearn-pls-active-subspace-poly-ridge",
+    "family": "sklearn active-subspace surrogate",
+    "metrics": metrics,
+    "worstError": worst,
+    "trainingRawOracleCalls": raw_calls,
+    "package": "scikit-learn"
+})
+
+print(json.dumps({"ok": True, "rows": rows}))
+`;
+
 function makeTeacherCases(): TeacherCase[] {
   const balancedDirections = makeDirections(24, 3, 300101);
   const nearBase = normalize(Array.from({ length: 16 }, (_, index) => Math.sin(index * 1.7 + 0.2)));
@@ -348,7 +451,7 @@ function runBaselines(teacher: TeacherCase, validationInputs: number[][], actual
       trainingRawOracleCalls: rawOracleCalls
     }
   ];
-  return baselines.map(baseline => {
+  const rows: BaselineRow[] = baselines.map(baseline => {
     const predicted = validationInputs.map(baseline.predict);
     return {
       id: baseline.id,
@@ -358,6 +461,25 @@ function runBaselines(teacher: TeacherCase, validationInputs: number[][], actual
       trainingRawOracleCalls: baseline.trainingRawOracleCalls
     };
   });
+  const sklearn = spawnSync('python3', ['-c', sklearnBaselineProgram], {
+    input: JSON.stringify({
+      trainInputs,
+      trainTargets,
+      validationInputs,
+      actual,
+      seed: teacher.randomSeed + 404,
+      trainingRawOracleCalls: rawOracleCalls
+    }),
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024
+  });
+  if (sklearn.status !== 0) {
+    throw new Error(`sklearn baseline court failed for ${teacher.id}: ${sklearn.stderr || sklearn.stdout}`);
+  }
+  const parsed = JSON.parse(sklearn.stdout);
+  if (!parsed.ok) throw new Error(`sklearn baseline court failed for ${teacher.id}: ${parsed.error}`);
+  rows.push(...parsed.rows);
+  return rows;
 }
 
 fs.mkdirSync(output.outputDir, { recursive: true });
@@ -421,6 +543,11 @@ const rows = makeTeacherCases().map((teacher, index) => {
     noDuplicateCollapse: (model.adaptiveSelection?.duplicatePairCount ?? 0) === 0,
     weakResolvableSignalNotPruned: weakSignalResolvable && (teacher.profile !== 'weak-resolvable-noisy' || (model.effectiveChannelCount ?? 0) === 3),
     beatsBestBaselineByMae: metrics.mae < bestBaseline.metrics.mae,
+    packageBackedBaselinesCovered: baselines.some(baseline => baseline.package === 'scikit-learn'),
+    activeSubspaceBaselineCovered: baselines.some(baseline => baseline.id === 'sklearn-pls-active-subspace-poly-ridge'),
+    nonlinearPackageBaselinesCovered: baselines.some(baseline => baseline.id === 'sklearn-extra-trees')
+      && baselines.some(baseline => baseline.id === 'sklearn-random-forest')
+      && baselines.some(baseline => baseline.id === 'sklearn-hist-gradient-boosting'),
     rawOracleCallsBelowBudget: model.queryBudget.rawOracleCalls < 220000
   };
   return {
@@ -480,7 +607,7 @@ const report = {
     oracleNoise: 'stochastic Gaussian output noise plus finite-precision quantization; solver uses repeated median queries'
   },
   claimScope: {
-    provesIfPasses: 'GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free surrogate baselines on held-out noiseless truth',
+    provesIfPasses: 'GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free and scikit-learn package-backed surrogate baselines on held-out noiseless truth',
     doesNotClaim: 'full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, semantic original-neuron identity from output-only access, or broad SOTA status'
   },
   config: {
@@ -501,12 +628,18 @@ const report = {
       && row.gates.outputMaeBelowThreshold
       && row.gates.worstErrorBelowThreshold
       && row.gates.beatsBestBaselineByMae
+      && row.gates.packageBackedBaselinesCovered
+      && row.gates.activeSubspaceBaselineCovered
+      && row.gates.nonlinearPackageBaselinesCovered
     )),
     allCasesPassed: rows.every(row => row.summary.pass),
     allEffectiveCountsMatch: rows.every(row => row.gates.effectiveChannelCountMatches),
     allCanonicalCountsMatch: rows.every(row => row.gates.canonicalAtomCountMatches),
     allDirectionRecoveryAboveThreshold: rows.every(row => row.gates.directionRecoveryAboveThreshold),
     allBeatBestBaselineByMae: rows.every(row => row.gates.beatsBestBaselineByMae),
+    allPackageBackedBaselinesCovered: rows.every(row => row.gates.packageBackedBaselinesCovered),
+    allActiveSubspaceBaselinesCovered: rows.every(row => row.gates.activeSubspaceBaselineCovered),
+    allNonlinearPackageBaselinesCovered: rows.every(row => row.gates.nonlinearPackageBaselinesCovered),
     allRawOracleCallsBelowBudget: rows.every(row => row.gates.rawOracleCallsBelowBudget),
     coversBalancedNoise: rows.some(row => row.profile === 'balanced-noisy' && row.summary.pass),
     coversNearParallelNoise: rows.some(row => row.profile === 'near-parallel-noisy' && row.summary.pass),
@@ -579,7 +712,7 @@ const markdown = [
   '## Conclusion',
   '',
   pass
-    ? 'The noisy mixed GELU structure gate passed. GCL recovered explicit atom structure under stochastic noise/quantization and beat the dependency-free baseline court on held-out noiseless truth.'
+    ? 'The noisy mixed GELU structure gate passed. GCL recovered explicit atom structure under stochastic noise/quantization and beat the dependency-free plus scikit-learn package-backed baseline court on held-out noiseless truth.'
     : 'The noisy mixed GELU structure gate failed. Do not promote noisy mixed GELU recovery until the failing case is repaired.'
 ].join('\n');
 
@@ -592,7 +725,7 @@ writeBenchmarkManifest(repoRoot, output, {
   notes: [
     'Release-gated noisy/quantized mixed GELU structure recovery family.',
     'Fails if output fidelity is good but effective/canonical atom structure is wrong.',
-    'Includes dependency-free baseline court on held-out noiseless truth.',
+    'Includes dependency-free and scikit-learn package-backed baseline court on held-out noiseless truth.',
     'Keeps full GPT-2 FFN extraction, arbitrary 3072-channel recovery, and broad SOTA out of scope.'
   ]
 });

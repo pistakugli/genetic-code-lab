@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-01T16:23:44.938Z",
+  "generatedAt": "2026-06-01T17:03:44.959Z",
   "task": "noisy quantized mixed GELU FFN structure recovery",
   "blackBox": {
     "visibilityToGcl": "oracle calls only: f(vector); true channel count, directions, biases, readout weights, noise seed, and clean target are hidden from the solver",
     "oracleNoise": "stochastic Gaussian output noise plus finite-precision quantization; solver uses repeated median queries"
   },
   "claimScope": {
-    "provesIfPasses": "GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free surrogate baselines on held-out noiseless truth",
+    "provesIfPasses": "GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free and scikit-learn package-backed surrogate baselines on held-out noiseless truth",
     "doesNotClaim": "full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, semantic original-neuron identity from output-only access, or broad SOTA status"
   },
   "config": {
@@ -22,6 +22,9 @@
     "allCanonicalCountsMatch": true,
     "allDirectionRecoveryAboveThreshold": true,
     "allBeatBestBaselineByMae": true,
+    "allPackageBackedBaselinesCovered": true,
+    "allActiveSubspaceBaselinesCovered": true,
+    "allNonlinearPackageBaselinesCovered": true,
     "allRawOracleCallsBelowBudget": true,
     "coversBalancedNoise": true,
     "coversNearParallelNoise": true,
@@ -46,7 +49,7 @@
       3,
       3
     ],
-    "maxGclVsBestBaselineMaeRatio": 0.04297672596679889,
+    "maxGclVsBestBaselineMaeRatio": 0.08120754460430137,
     "maxRawOracleCalls": 155012
   },
   "rows": [
@@ -72,9 +75,9 @@
         "duplicatePairCount": 0,
         "nearParallelPairCount": 0,
         "prunedWeakAtomCount": 0,
-        "bestBaselineId": "random-gelu-ridge",
-        "bestBaselineMae": 0.22230867808919938,
-        "gclVsBestBaselineMaeRatio": 0.014699144721447517,
+        "bestBaselineId": "sklearn-poly2-ridge",
+        "bestBaselineMae": 0.06013052581134432,
+        "gclVsBestBaselineMaeRatio": 0.05434423511145036,
         "strongOnlyMae": 0.22900940666322703,
         "rawOracleCalls": 137970
       },
@@ -88,6 +91,9 @@
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
         "beatsBestBaselineByMae": true,
+        "packageBackedBaselinesCovered": true,
+        "activeSubspaceBaselineCovered": true,
+        "nonlinearPackageBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
       },
       "baselines": [
@@ -134,6 +140,78 @@
           },
           "worstError": 0.8760905163222443,
           "trainingRawOracleCalls": 18750
+        },
+        {
+          "id": "sklearn-ridge",
+          "family": "sklearn linear ridge",
+          "metrics": {
+            "mae": 0.23383758696943768,
+            "rmse": 0.30429572298205176,
+            "r2": 0.7228133095919116
+          },
+          "worstError": 1.0688877573104316,
+          "trainingRawOracleCalls": 18750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-poly2-ridge",
+          "family": "sklearn polynomial ridge",
+          "metrics": {
+            "mae": 0.06013052581134432,
+            "rmse": 0.09373997314486278,
+            "r2": 0.9736954833361307
+          },
+          "worstError": 0.9871689343689098,
+          "trainingRawOracleCalls": 18750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-random-forest",
+          "family": "sklearn random forest",
+          "metrics": {
+            "mae": 0.273892242592728,
+            "rmse": 0.3664278638871162,
+            "r2": 0.5980633038481517
+          },
+          "worstError": 1.8737312705700249,
+          "trainingRawOracleCalls": 18750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-extra-trees",
+          "family": "sklearn extra trees",
+          "metrics": {
+            "mae": 0.2628939839093808,
+            "rmse": 0.35050334373190506,
+            "r2": 0.6322395624270738
+          },
+          "worstError": 1.818987406246518,
+          "trainingRawOracleCalls": 18750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-hist-gradient-boosting",
+          "family": "sklearn histogram gradient boosting",
+          "metrics": {
+            "mae": 0.22182342475505012,
+            "rmse": 0.29201307083884576,
+            "r2": 0.7447385337923029
+          },
+          "worstError": 1.4295380538165285,
+          "trainingRawOracleCalls": 18750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-pls-active-subspace-poly-ridge",
+          "family": "sklearn active-subspace surrogate",
+          "metrics": {
+            "mae": 0.21315315676816593,
+            "rmse": 0.2859313684569575,
+            "r2": 0.7552603795141261
+          },
+          "worstError": 1.2677529318735088,
+          "trainingRawOracleCalls": 18750,
+          "package": "scikit-learn"
         }
       ],
       "gcl": {
@@ -332,9 +410,9 @@
         "duplicatePairCount": 0,
         "nearParallelPairCount": 1,
         "prunedWeakAtomCount": 0,
-        "bestBaselineId": "random-gelu-ridge",
-        "bestBaselineMae": 0.08377423433896282,
-        "gclVsBestBaselineMaeRatio": 0.04297672596679889,
+        "bestBaselineId": "sklearn-poly2-ridge",
+        "bestBaselineMae": 0.052894699949889996,
+        "gclVsBestBaselineMaeRatio": 0.06806622054146819,
         "strongOnlyMae": 0.2478805455002617,
         "rawOracleCalls": 116468
       },
@@ -348,6 +426,9 @@
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
         "beatsBestBaselineByMae": true,
+        "packageBackedBaselinesCovered": true,
+        "activeSubspaceBaselineCovered": true,
+        "nonlinearPackageBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
       },
       "baselines": [
@@ -394,6 +475,78 @@
           },
           "worstError": 0.5266293901228569,
           "trainingRawOracleCalls": 13750
+        },
+        {
+          "id": "sklearn-ridge",
+          "family": "sklearn linear ridge",
+          "metrics": {
+            "mae": 0.10290593011517626,
+            "rmse": 0.13566665458562194,
+            "r2": 0.7893209889323108
+          },
+          "worstError": 0.6365542271198299,
+          "trainingRawOracleCalls": 13750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-poly2-ridge",
+          "family": "sklearn polynomial ridge",
+          "metrics": {
+            "mae": 0.052894699949889996,
+            "rmse": 0.06879489712775538,
+            "r2": 0.9458264257156784
+          },
+          "worstError": 0.3379258543621837,
+          "trainingRawOracleCalls": 13750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-random-forest",
+          "family": "sklearn random forest",
+          "metrics": {
+            "mae": 0.13151247228676016,
+            "rmse": 0.17281811628939123,
+            "r2": 0.6581358396585251
+          },
+          "worstError": 0.7541070830194918,
+          "trainingRawOracleCalls": 13750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-extra-trees",
+          "family": "sklearn extra trees",
+          "metrics": {
+            "mae": 0.12573428709433027,
+            "rmse": 0.16489397500627553,
+            "r2": 0.6887677343159031
+          },
+          "worstError": 0.7410558471918277,
+          "trainingRawOracleCalls": 13750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-hist-gradient-boosting",
+          "family": "sklearn histogram gradient boosting",
+          "metrics": {
+            "mae": 0.10199081379739103,
+            "rmse": 0.13493825815779167,
+            "r2": 0.791577193756668
+          },
+          "worstError": 0.6894837855633065,
+          "trainingRawOracleCalls": 13750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-pls-active-subspace-poly-ridge",
+          "family": "sklearn active-subspace surrogate",
+          "metrics": {
+            "mae": 0.06807450395368782,
+            "rmse": 0.09581158152576999,
+            "r2": 0.8949221792124629
+          },
+          "worstError": 0.6854821657957275,
+          "trainingRawOracleCalls": 13750,
+          "package": "scikit-learn"
         }
       ],
       "gcl": {
@@ -568,9 +721,9 @@
         "duplicatePairCount": 0,
         "nearParallelPairCount": 0,
         "prunedWeakAtomCount": 0,
-        "bestBaselineId": "random-gelu-ridge",
-        "bestBaselineMae": 0.1213257518909473,
-        "gclVsBestBaselineMaeRatio": 0.030734465623733977,
+        "bestBaselineId": "sklearn-poly2-ridge",
+        "bestBaselineMae": 0.04591792756369693,
+        "gclVsBestBaselineMaeRatio": 0.08120754460430137,
         "strongOnlyMae": 0.03284863477358395,
         "rawOracleCalls": 155012
       },
@@ -584,6 +737,9 @@
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
         "beatsBestBaselineByMae": true,
+        "packageBackedBaselinesCovered": true,
+        "activeSubspaceBaselineCovered": true,
+        "nonlinearPackageBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
       },
       "baselines": [
@@ -630,6 +786,78 @@
           },
           "worstError": 0.5936696898246477,
           "trainingRawOracleCalls": 16250
+        },
+        {
+          "id": "sklearn-ridge",
+          "family": "sklearn linear ridge",
+          "metrics": {
+            "mae": 0.21050278249135282,
+            "rmse": 0.274547302352867,
+            "r2": 0.7401372184212918
+          },
+          "worstError": 1.1422026144442077,
+          "trainingRawOracleCalls": 16250,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-poly2-ridge",
+          "family": "sklearn polynomial ridge",
+          "metrics": {
+            "mae": 0.04591792756369693,
+            "rmse": 0.056814501117813415,
+            "r2": 0.9888717181575581
+          },
+          "worstError": 0.31355674742912387,
+          "trainingRawOracleCalls": 16250,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-random-forest",
+          "family": "sklearn random forest",
+          "metrics": {
+            "mae": 0.17690953336883689,
+            "rmse": 0.2563948847721684,
+            "r2": 0.7733642412115537
+          },
+          "worstError": 1.3347837031718486,
+          "trainingRawOracleCalls": 16250,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-extra-trees",
+          "family": "sklearn extra trees",
+          "metrics": {
+            "mae": 0.16523576265606477,
+            "rmse": 0.24066166218935214,
+            "r2": 0.8003250680181462
+          },
+          "worstError": 1.4404766585762325,
+          "trainingRawOracleCalls": 16250,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-hist-gradient-boosting",
+          "family": "sklearn histogram gradient boosting",
+          "metrics": {
+            "mae": 0.134122795594484,
+            "rmse": 0.18935572150193408,
+            "r2": 0.8763863057907293
+          },
+          "worstError": 1.0429938296189962,
+          "trainingRawOracleCalls": 16250,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "sklearn-pls-active-subspace-poly-ridge",
+          "family": "sklearn active-subspace surrogate",
+          "metrics": {
+            "mae": 0.18042973904527154,
+            "rmse": 0.2402866907517371,
+            "r2": 0.8009468044993469
+          },
+          "worstError": 1.135699904768135,
+          "trainingRawOracleCalls": 16250,
+          "package": "scikit-learn"
         }
       ],
       "gcl": {
@@ -771,5 +999,5 @@
       }
     }
   ],
-  "runtimeMs": 111995
+  "runtimeMs": 118339
 }

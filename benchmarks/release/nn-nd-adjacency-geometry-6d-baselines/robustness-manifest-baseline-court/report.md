@@ -1,6 +1,6 @@
 # 6D ND Recovered-Adjacency Geometry Baseline Court
 
-Generated: 2026-06-01T16:16:30.477Z
+Generated: 2026-06-01T16:56:23.050Z
 
 ## Claim Scope
 

@@ -1,6 +1,6 @@
 # Multi-island + NN archive benchmark
 
-Generated: 2026-06-01T16:11:53.613Z
+Generated: 2026-06-01T16:51:44.244Z
 
 ## Scope
 
