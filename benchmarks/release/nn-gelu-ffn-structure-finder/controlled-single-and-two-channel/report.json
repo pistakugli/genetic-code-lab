@@ -1,0 +1,165 @@
+{
+  "generatedAt": "2026-06-01T11:45:10.734Z",
+  "task": "GELU FFN structural finder for controlled high-dimensional channels",
+  "blackBox": {
+    "type": "96D single/two-channel GELU FFN teachers",
+    "visibilityToGcl": "oracle calls only: f(vector), no weights, no hidden activations"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL can recover explicit GELU atom structure for controlled high-dimensional one/two-channel FFN teachers, including directions and approximate atom parameters",
+    "doesNotClaim": "full GPT-2 FFN extraction, arbitrary channel count recovery, exact parameter identity under non-identifiability, SwiGLU recovery, or broad SOTA status"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "coversSingleAndTwoChannel": true,
+    "minR2AboveThresholds": true,
+    "maxMaeBelowThresholds": true,
+    "directionProjectionAboveThresholds": true,
+    "structuralParameterErrorsBelowThresholds": true,
+    "beatsMeanBaseline": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 2,
+    "passedTeachers": 2,
+    "maxMae": 0.002229589390805771,
+    "minR2": 0.9999894428635375,
+    "minDirectionProjection": 0.9999995030788708,
+    "maxWeightNormError": 0.044204547411414996,
+    "maxBiasError": 0.006098221054376296,
+    "maxRawOracleCalls": 6088
+  },
+  "results": [
+    {
+      "teacherId": "gelu-structure-single-96d",
+      "dimension": 96,
+      "channelCount": 1,
+      "thresholds": {
+        "minR2": 0.999,
+        "maxMae": 0.015,
+        "minProjection": 0.995,
+        "maxWeightNormError": 0.14,
+        "maxBiasError": 0.14
+      },
+      "gcl": {
+        "metrics": {
+          "mae": 0.00022745631345987545,
+          "rmse": 0.0003272539602403776,
+          "r2": 0.9999998657083056
+        },
+        "expression": "0.16996034 + 1.3497653 * gelu(dot(w0, x) + -0.21949068)",
+        "atoms": [
+          {
+            "inputWeightNorm": 1.4496128887825441,
+            "inputBias": -0.21949067927425986,
+            "outputWeight": 1.3497653401914773
+          }
+        ],
+        "structure": {
+          "projectionScores": [
+            0.9999999855706445
+          ],
+          "minProjection": 0.9999999855706445,
+          "maxWeightNormError": 0.00038711121745582666,
+          "maxBiasError": 0.0005093207257401422
+        },
+        "optimizer": {
+          "restarts": 8,
+          "iterations": 1000,
+          "learningRate": 0.035
+        },
+        "queryBudget": {
+          "rawOracleCalls": 4220,
+          "gradientRawOracleCalls": 1920,
+          "trainingRawOracleCalls": 1600,
+          "validationRawOracleCalls": 700,
+          "finiteDifferenceCallsPerProbe": 192,
+          "aggregatedProbePoints": 4220,
+          "querySamples": 1
+        }
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "metrics": {
+            "mae": 0.6409823764924152,
+            "rmse": 0.893018249178604,
+            "r2": 0
+          }
+        }
+      ],
+      "pass": true
+    },
+    {
+      "teacherId": "gelu-structure-two-channel-96d",
+      "dimension": 96,
+      "channelCount": 2,
+      "thresholds": {
+        "minR2": 0.992,
+        "maxMae": 0.06,
+        "minProjection": 0.985,
+        "maxWeightNormError": 0.35,
+        "maxBiasError": 0.35
+      },
+      "gcl": {
+        "metrics": {
+          "mae": 0.002229589390805771,
+          "rmse": 0.002706073510698514,
+          "r2": 0.9999894428635375
+        },
+        "expression": "-0.08020824 + 0.93900148 * gelu(dot(w0, x) + -0.17840734) + -0.76195948 * gelu(dot(w1, x) + 0.23390178)",
+        "atoms": [
+          {
+            "inputWeightNorm": 1.227253627213767,
+            "inputBias": -0.1784073409335934,
+            "outputWeight": 0.9390014783875688
+          },
+          {
+            "inputWeightNorm": 1.505795452588585,
+            "inputBias": 0.2339017789456237,
+            "outputWeight": -0.7619594774453987
+          }
+        ],
+        "structure": {
+          "projectionScores": [
+            0.9999995030788708,
+            0.999999663308559
+          ],
+          "minProjection": 0.9999995030788708,
+          "maxWeightNormError": 0.044204547411414996,
+          "maxBiasError": 0.006098221054376296
+        },
+        "optimizer": {
+          "restarts": 12,
+          "iterations": 1200,
+          "learningRate": 0.028
+        },
+        "queryBudget": {
+          "rawOracleCalls": 6088,
+          "gradientRawOracleCalls": 2688,
+          "trainingRawOracleCalls": 2600,
+          "validationRawOracleCalls": 800,
+          "finiteDifferenceCallsPerProbe": 192,
+          "aggregatedProbePoints": 6088,
+          "querySamples": 1
+        }
+      },
+      "baselines": [
+        {
+          "id": "mean-output",
+          "family": "constant",
+          "metrics": {
+            "mae": 0.5963590207760218,
+            "rmse": 0.832849486685454,
+            "r2": 0
+          }
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "conclusion": "GELU FFN structural finder gate passed for controlled single/two-channel high-dimensional teachers; next step is GPT-2 top-K structural stress and rank selection.",
+  "runtimeMs": 21457
+}

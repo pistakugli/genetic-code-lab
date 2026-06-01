@@ -40,6 +40,16 @@ describe('active-subspace FFN decompiler', () => {
     return normalize(Array.from({ length: dimension }, () => randomBetween(random, -1, 1)));
   }
 
+  function makeGaussianDirection(seed: number, dimension: number): number[] {
+    const random = makeRandom(seed);
+    const gaussian = (): number => {
+      const u1 = Math.max(1e-12, random());
+      const u2 = random();
+      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    };
+    return normalize(Array.from({ length: dimension }, gaussian));
+  }
+
   function makeOrthogonalPair(seed: number, dimension: number): [number[], number[]] {
     const first = makeDirection(seed, dimension);
     const random = makeRandom(seed + 77);
@@ -119,5 +129,69 @@ describe('active-subspace FFN decompiler', () => {
     expect(model.queryBudget.rawOracleCalls).toBe(16 * 2 * dimension + 2200);
     expect(metrics.mae).toBeLessThan(0.018);
     expect(metrics.r2).toBeGreaterThan(0.997);
+  });
+
+  it('recovers a noisy rank-1 GELU active direction without increasing oracle calls', () => {
+    const dimension = 128;
+    const direction = makeGaussianDirection(9911, dimension);
+    const trueOracle = (input: number[]): number => 0.5 + 1.2 * gelu(1.8 * dot(direction, input) - 0.3);
+    const noiseRandom = makeRandom(9912);
+    const noisyOracle = (input: number[]): number => {
+      const u1 = Math.max(1e-12, noiseRandom());
+      const u2 = noiseRandom();
+      const noise = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * 0.01;
+      return trueOracle(input) + noise;
+    };
+    const model = decompileActiveSubspaceFfn(noisyOracle, {
+      dimension,
+      ranges: Array.from({ length: dimension }, () => [-1.5, 1.5] as [number, number]),
+      activeRank: 1,
+      gradientProbeCount: 10,
+      trainingSampleCount: 1800,
+      finiteDifferenceStep: 1e-3,
+      neighborCount: 52,
+      randomSeed: 9913
+    });
+    const inputs = makeInputs(9914, dimension, 1000);
+    const actual = inputs.map(trueOracle);
+    const predicted = predictActiveSubspaceFfnBatch(model, inputs);
+    const metrics = regressionMetrics(actual, predicted);
+
+    expect(model.directionCandidateScores).toHaveLength(2);
+    expect(model.finiteDifferenceStep).toBeGreaterThan(0.5);
+    expect(Math.abs(dot(direction, model.activeDirections[0]))).toBeGreaterThan(0.998);
+    expect(model.queryBudget.rawOracleCalls).toBe(10 * 2 * dimension + 1800);
+    expect(metrics.mae).toBeLessThan(0.055);
+    expect(metrics.r2).toBeGreaterThan(0.99);
+  });
+
+  it('uses stable affine local fitting when high rank lacks quadratic support', () => {
+    const dimension = 20;
+    const activeRank = 16;
+    const coefficients = Array.from({ length: activeRank }, (_unused, index) => (
+      (index % 2 === 0 ? 1 : -1) * (0.15 + 0.02 * index)
+    ));
+    const oracle = (input: number[]): number => coefficients.reduce((sum, coefficient, index) => (
+      sum + coefficient * gelu((0.25 + 0.01 * index) * input[index] + (index - 8) * 0.01)
+    ), 0);
+    const model = decompileActiveSubspaceFfn(oracle, {
+      dimension,
+      ranges: Array.from({ length: dimension }, () => [-1, 1] as [number, number]),
+      activeRank,
+      gradientProbeCount: 40,
+      trainingSampleCount: 2600,
+      neighborCount: 80,
+      randomSeed: 1234
+    });
+    const random = makeRandom(5678);
+    const inputs = Array.from({ length: 1000 }, () => (
+      Array.from({ length: dimension }, () => randomBetween(random, -1, 1))
+    ));
+    const metrics = regressionMetrics(inputs.map(oracle), predictActiveSubspaceFfnBatch(model, inputs));
+
+    expect(model.localModel).toBe('local-affine-knn');
+    expect(model.directionEstimator).toBe('finite-difference');
+    expect(metrics.mae).toBeLessThan(0.02);
+    expect(metrics.r2).toBeGreaterThan(0.98);
   });
 });

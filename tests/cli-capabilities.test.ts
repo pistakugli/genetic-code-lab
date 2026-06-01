@@ -76,6 +76,30 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-active-subspace-ffn-4096d-stress',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-active-subspace-ffn-noisy',
+        status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-gelu-ffn-structure-finder',
+        status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-gelu-ffn-mixed-structure',
+        status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-gelu-ffn-near-parallel-family',
+        status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-gelu-ffn-cross-decomposition-invariance',
+        status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-gelu-ffn-negative-cases',
+        status: 'production'
       })
     ]));
   });

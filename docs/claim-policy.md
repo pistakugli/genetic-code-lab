@@ -35,6 +35,36 @@ To maintain a sober, engineering-focused tone, the following words and phrases a
 
 ---
 
+## 2.1 Neural Decompiler Claim Terms
+
+Output-only neural decompiler work must distinguish functional equivalence,
+canonical structure recovery, and semantic hidden-neuron identity.
+
+| Claim Phrase | Allowed Only When | Safer Wording |
+| :--- | :--- | :--- |
+| **"True neuron decompiler"** | Hidden activations/weights are observable, or a gated identifiability theorem/benchmark proves uniqueness under the stated assumptions. | "oracle-only canonical structure recovery" |
+| **"Canonical structure recovery"** | A release gate compares two or more functionally equivalent reparameterizations and verifies matching canonical signatures on held-out oracle samples. | "canonicalized GELU atom recovery under oracle equivalence" |
+| **"Semantic hidden-neuron identity"** | The benchmark has access to the original hidden basis or proves uniqueness beyond permutation/scaling/equivalent decompositions. | "effective atom identity" or "functional atom identity" |
+| **"Surrogate"** | The model is optimized for output fidelity without claiming recovered atoms or interpretable channel count. | "active-subspace surrogate" |
+| **"Structure finder"** | The gate reports explicit atoms, effective channel count, duplicate/near-parallel diagnostics, held-out output metrics, and query budget. | "GELU FFN structure finder" |
+
+The current GELU FFN structure gates may claim controlled oracle-only GELU atom
+recovery, rank-adaptive mixed-channel recovery, near-parallel clean stability,
+and clean cross-decomposition canonical invariance. They may not claim full
+GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D
+production LLM block decompilation, noisy mixed-block recovery, SwiGLU
+mixed-block recovery, or general "GCL understands every LLM neuron/block"
+status.
+
+Formal definitions for "atom", "functional equivalence", "canonical
+structure", "canonical signature", negative cases, and scaling stress live in
+`docs/neural-decompiler-formalization.md`. Any release report that uses those
+terms must follow that document or explicitly state a narrower local definition.
+The first executable negative-case enforcement gate is
+`npm run benchmark:nn-gelu-ffn-negative-cases`.
+
+---
+
 ## 3. Mandatory Benchmarking Rules
 
 Every benchmark run and report must adhere to the following rules:
@@ -44,3 +74,7 @@ Every benchmark run and report must adhere to the following rules:
 3.  **Physical Feasibility Checks**: Every evolved formula must be audited for "numerical mimickry" (such as high-order nested exponential terms $e^{e^x}$ that fit training data but explode OOD).
 4.  **Artifact Hygiene**: Release benchmark scripts write to `benchmarks/release/<lane>/<variant>/report.{json,md}`. A file under `benchmarks/` stays outside the current release lane until its generating command, run date, pass/fail status, and claim boundary are listed in `docs/evidence-map.md`.
 5.  **Scratch Isolation**: Scratch scripts may exist as research tools. Default scratch data/formula outputs belong under `benchmarks/scratch/<lane>/`, reports and plots belong under `artifacts/scratch/<lane>/`, and any scratch output left in the legacy `benchmarks/` root is legacy repair/rerun input until regenerated under the isolated layout with a manifest.
+6.  **Identifiability Claims Need Invariance Tests**: Any claim that GCL recovered a canonical neural structure must include at least two equivalent decompositions, held-out oracle agreement, canonical-signature comparison, and failure accounting for overcomplete bases.
+7.  **Output-Only FFN Claims Must Separate Meaning**: Documentation must explicitly separate output-equivalent recovery, canonical structure under an equivalence class, and semantic identity of original hidden neurons.
+8.  **Negative Cases Are Mandatory For Structure Claims**: A structure claim must include cases where recovery should downgrade to surrogate or non-identifiable. Inventing atoms in a non-identifiable case is a failure, not a partial success.
+9.  **Scaling Claims Need Joint Proof**: A dimension increase only counts when output fidelity, structure diagnostics, negative-case behavior, and query budget pass together.

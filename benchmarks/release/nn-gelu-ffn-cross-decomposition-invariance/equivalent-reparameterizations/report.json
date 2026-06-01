@@ -1,0 +1,269 @@
+{
+  "generatedAt": "2026-06-01T11:49:25.384Z",
+  "task": "GELU FFN cross-decomposition invariance benchmark",
+  "blackBox": {
+    "type": "16D GELU FFN pair with two mathematically equivalent hidden decompositions",
+    "visibilityToGcl": "oracle calls only: GCL sees f(vector), not hidden atom lists, duplicate splits, cancellation pairs, directions, biases, or readout weights"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL returns the same canonical recovered GELU structure for two distinct internal decompositions of the same clean function, under different solver seeds",
+    "doesNotClaim": "semantic identity of original hidden neurons, noisy invariance, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D LLM block decompilation, or broad SOTA status"
+  },
+  "teacherAudit": {
+    "dimension": 16,
+    "canonicalHiddenAtomCount": 3,
+    "minimalHiddenAtomCount": 3,
+    "overcompleteHiddenAtomCount": 6,
+    "overcompleteHiddenRedundantAtomCount": 3,
+    "oracleDeltaOnValidation": 4.440892098500626e-16,
+    "reparameterization": "Teacher B permutes atoms, splits one GELU atom into two identical-support readout pieces, and adds an equal/opposite GELU cancellation pair."
+  },
+  "runs": [
+    {
+      "teacher": {
+        "id": "minimal-three-channel-gelu",
+        "representation": "minimal",
+        "hiddenAtomCount": 3,
+        "hiddenRedundantAtomCount": 0
+      },
+      "summary": {
+        "effectiveChannelCount": 3,
+        "rawChannelCount": 5,
+        "selectedCandidateKind": "trained-3-strength-threshold",
+        "duplicatePairCount": 0,
+        "nearParallelPairCount": 0,
+        "canonicalAtomCount": 3,
+        "mergedDuplicateCount": 0,
+        "removedCancellationCount": 0,
+        "minDirectionProjection": 0.9998814649324326,
+        "mae": 0.0019376881321900733,
+        "r2": 0.9999767700614473,
+        "rawOracleCalls": 25710
+      },
+      "metrics": {
+        "mae": 0.0019376881321900733,
+        "rmse": 0.002822276463497899,
+        "r2": 0.9999767700614473
+      },
+      "projectionScores": [
+        0.9999928764320624,
+        0.9999461464886328,
+        0.9998814649324326
+      ],
+      "adaptiveSelection": {
+        "atomStrengthThreshold": 0.03026174415759037,
+        "maxAtomStrength": 1.0087248052530124,
+        "prunedWeakAtomCount": 0,
+        "duplicatePairCount": 0,
+        "nearParallelPairCount": 0,
+        "duplicateDirectionCosine": 0.999,
+        "duplicateBiasTolerance": 0.08,
+        "nearParallelDirectionCosine": 0.999,
+        "selectionRestarts": 10,
+        "candidateCount": 40,
+        "selectedCandidateKind": "trained-3-strength-threshold",
+        "selectedCandidateRank": 7,
+        "bestCandidateMetrics": {
+          "mae": 0.0011591696381114086,
+          "rmse": 0.0016284210316656852,
+          "r2": 0.9999933761319388
+        },
+        "unprunedValidationMetrics": {
+          "mae": 0.0019414813007460569,
+          "rmse": 0.002793405544345529,
+          "r2": 0.9999805084557027
+        }
+      },
+      "canonicalSignature": {
+        "canonicalAtomCount": 3,
+        "removedWeakAtomCount": 0,
+        "mergedDuplicateCount": 0,
+        "removedCancellationCount": 0,
+        "atoms": [
+          {
+            "inputWeightNorm": 1.201935139697628,
+            "inputBias": -0.3194448861413479,
+            "outputWeight": 0.8392506150596264,
+            "strength": 1.0087248052530124
+          },
+          {
+            "inputWeightNorm": 0.9945103303590128,
+            "inputBias": 0.1795110187627903,
+            "outputWeight": -0.617460823699587,
+            "strength": 0.6140711677612244
+          },
+          {
+            "inputWeightNorm": 0.8353599896873737,
+            "inputBias": 0.4626847213763245,
+            "outputWeight": 0.473603055996557,
+            "strength": 0.39562904397319254
+          }
+        ]
+      },
+      "queryBudget": {
+        "rawOracleCalls": 25710,
+        "gradientRawOracleCalls": 5760,
+        "trainingRawOracleCalls": 15000,
+        "validationRawOracleCalls": 4950,
+        "finiteDifferenceCallsPerProbe": 32,
+        "aggregatedProbePoints": 25710,
+        "querySamples": 1,
+        "selectionRestarts": 10,
+        "selectedRestart": 5
+      }
+    },
+    {
+      "teacher": {
+        "id": "overcomplete-equivalent-three-channel-gelu",
+        "representation": "overcomplete-equivalent",
+        "hiddenAtomCount": 6,
+        "hiddenRedundantAtomCount": 3
+      },
+      "summary": {
+        "effectiveChannelCount": 3,
+        "rawChannelCount": 5,
+        "selectedCandidateKind": "trained-3-strength-threshold",
+        "duplicatePairCount": 0,
+        "nearParallelPairCount": 0,
+        "canonicalAtomCount": 3,
+        "mergedDuplicateCount": 0,
+        "removedCancellationCount": 0,
+        "minDirectionProjection": 0.9999956316903414,
+        "mae": 0.0007323187445132345,
+        "r2": 0.9999975825241255,
+        "rawOracleCalls": 25710
+      },
+      "metrics": {
+        "mae": 0.0007323187445132345,
+        "rmse": 0.0009104510430485793,
+        "r2": 0.9999975825241255
+      },
+      "projectionScores": [
+        0.9999996197179088,
+        0.999999239522214,
+        0.9999956316903414
+      ],
+      "adaptiveSelection": {
+        "atomStrengthThreshold": 0.030482144055735592,
+        "maxAtomStrength": 1.0160714685245198,
+        "prunedWeakAtomCount": 0,
+        "duplicatePairCount": 0,
+        "nearParallelPairCount": 0,
+        "duplicateDirectionCosine": 0.999,
+        "duplicateBiasTolerance": 0.08,
+        "nearParallelDirectionCosine": 0.999,
+        "selectionRestarts": 10,
+        "candidateCount": 40,
+        "selectedCandidateKind": "trained-3-strength-threshold",
+        "selectedCandidateRank": 1,
+        "bestCandidateMetrics": {
+          "mae": 0.0007683460607534973,
+          "rmse": 0.0009630807482757256,
+          "r2": 0.9999975094039918
+        },
+        "unprunedValidationMetrics": {
+          "mae": 0.0007683460607534973,
+          "rmse": 0.0009630807482757256,
+          "r2": 0.9999975094039918
+        }
+      },
+      "canonicalSignature": {
+        "canonicalAtomCount": 3,
+        "removedWeakAtomCount": 0,
+        "mergedDuplicateCount": 0,
+        "removedCancellationCount": 0,
+        "atoms": [
+          {
+            "inputWeightNorm": 1.169680560132655,
+            "inputBias": -0.3178520003552134,
+            "outputWeight": 0.8686743228504078,
+            "strength": 1.0160714685245198
+          },
+          {
+            "inputWeightNorm": 0.9599342179081993,
+            "inputBias": 0.17605362950898126,
+            "outputWeight": -0.6473755609670441,
+            "strength": 0.6214379528097813
+          },
+          {
+            "inputWeightNorm": 0.7855133705377072,
+            "inputBias": 0.434520995385675,
+            "outputWeight": 0.5142305489158123,
+            "strength": 0.40393497171231507
+          }
+        ]
+      },
+      "queryBudget": {
+        "rawOracleCalls": 25710,
+        "gradientRawOracleCalls": 5760,
+        "trainingRawOracleCalls": 15000,
+        "validationRawOracleCalls": 4950,
+        "finiteDifferenceCallsPerProbe": 32,
+        "aggregatedProbePoints": 25710,
+        "querySamples": 1,
+        "selectionRestarts": 10,
+        "selectedRestart": 5
+      }
+    }
+  ],
+  "signatureComparison": {
+    "atomCountDelta": 0,
+    "signatureDistance": 0.052726404715341284,
+    "maxAtomDistance": 0.07144167430917188,
+    "meanAtomDistance": 0.052726404715341284,
+    "matchedPairs": [
+      {
+        "left": 0,
+        "right": 0,
+        "distance": 0.0399728550029229
+      },
+      {
+        "left": 1,
+        "right": 1,
+        "distance": 0.046764684833929065
+      },
+      {
+        "left": 2,
+        "right": 2,
+        "distance": 0.07144167430917188
+      }
+    ]
+  },
+  "modelAgreementMetrics": {
+    "mae": 0.0021717078319734404,
+    "rmse": 0.0029656691257956276,
+    "r2": 0.9999743452887057
+  },
+  "gates": {
+    "oracleFunctionsEquivalent": true,
+    "bothEffectiveCountsMatch": true,
+    "bothCanonicalCountsMatch": true,
+    "bothHeldoutR2Above09998": true,
+    "bothHeldoutMaeBelow0008": true,
+    "bothDirectionRecoveryStable": true,
+    "canonicalSignatureInvariant": true,
+    "modelPredictionsAgree": true,
+    "rawOracleCallsBelow50000Each": true,
+    "pass": true
+  },
+  "summary": {
+    "pass": true,
+    "oracleDelta": 4.440892098500626e-16,
+    "effectiveChannelCounts": [
+      3,
+      3
+    ],
+    "canonicalAtomCounts": [
+      3,
+      3
+    ],
+    "signatureDistance": 0.052726404715341284,
+    "maxAtomDistance": 0.07144167430917188,
+    "maxMae": 0.0019376881321900733,
+    "minR2": 0.9999767700614473,
+    "minDirectionProjection": 0.9998814649324326,
+    "modelAgreementMae": 0.0021717078319734404,
+    "maxRawOracleCalls": 25710
+  },
+  "runtimeMs": 129928
+}

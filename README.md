@@ -86,6 +86,10 @@ The full gate runs:
 
 - TypeScript build
 - Jest test suite
+- release-lane NN decompiler benchmarks listed in `docs/release-lane-status.md`,
+  including active-subspace FFN, GELU structure, near-parallel, and
+  cross-decomposition invariance gates
+- GCL hybrid wide symbolic-regression production gate
 - semantic archive composition benchmark
 - closed-loop archive emergence benchmark
 - multi-island NN archive wide benchmark
@@ -102,6 +106,55 @@ Use `capabilities` to inspect innovation lanes as product capabilities instead o
 `package:install-check` packs the project, installs the tarball into a temporary project, then verifies the installed `gclab` binary, API import, TypeScript declarations, CLI output JSON, and server health endpoint.
 
 Artifact hygiene: patched release benchmark scripts write to `benchmarks/release/<lane>/<variant>/report.{json,md}` plus `manifest.json`. Root-level `benchmarks/*` files are legacy mixed-use artifacts because older release scripts and scratch experiments both wrote there. A file under `benchmarks/` is not release evidence unless its generating command, date, status, and claim boundary are listed in `docs/evidence-map.md`.
+
+## Neural Decompiler / FFN Structure Scope
+
+The current release evidence covers controlled oracle-only neural decompiler
+lanes. It does not claim arbitrary production LLM extraction.
+
+Release-gated smooth FFN structure commands:
+
+```bash
+npm run benchmark:nn-active-subspace-ffn-decompiler
+npm run benchmark:nn-active-subspace-ffn-4096d-stress
+npm run benchmark:nn-active-subspace-ffn-noisy
+npm run benchmark:nn-gelu-ffn-structure-finder
+npm run benchmark:nn-gelu-ffn-mixed-structure
+npm run benchmark:nn-gelu-ffn-near-parallel-family
+npm run benchmark:nn-gelu-ffn-cross-decomposition-invariance
+npm run benchmark:nn-gelu-ffn-negative-cases
+```
+
+What these gates currently support:
+
+- Active-subspace discovery for controlled GELU/SwiGLU-style channels in
+  256D/1024D and controlled 4096D stress cases.
+- Noisy rank-1 active-subspace recovery for controlled stochastic GELU
+  teachers.
+- Explicit GELU atom recovery for controlled single/two-channel teachers.
+- Rank-adaptive mixed GELU recovery where GCL receives only `f(vector)` and a
+  maximum channel budget, not the true channel count.
+- Near-parallel mixed GELU stability down to epsilon `1e-4`.
+- Cross-decomposition canonical invariance where two mathematically equivalent
+  hidden decompositions recover the same effective canonical atom count and
+  close canonical signatures.
+- Formalization negative-case guardrails for duplicate/cancellation
+  canonicalization, weak-under-noise non-identifiability, activation-family
+  mismatch rejection, and minimum equivalent structure under overcomplete
+  budgets.
+
+What they do not support yet:
+
+- Full GPT-2 FFN extraction as a release claim.
+- Arbitrary 3072-channel or 4096D production LLM block decompilation.
+- Semantic identity of the original hidden neurons from output-only access.
+- Noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs.
+- Broad "SOTA" or "GCL understands every LLM neuron/block" language.
+
+Use `docs/nn-decompiler-roadmap.md` for the active development plan and
+`docs/neural-decompiler-formalization.md` for the atom/canonical-structure
+definitions. Use `docs/evidence-map.md` for the exact command/artifact/claim
+boundary table.
 
 `benchmark:opensource` compares pure Genetic Code Lab against open-source `gplearn` and DEAP symbolic-regression baselines, then writes `benchmarks/release/open-source-symbolic-regression/<variant>/report.{json,md}`. The engine now includes train-only grammar-derived regression basis seeding for arithmetic/trig symbolic regression; set `GCL_REGRESSION_BASIS_SEED=0` to disable it for ablation. Regression runs also include a train-only semantic refiner that recombines already-evolved subexpressions with sparse fitted coefficients behind an internal validation gate; set `GCL_SEMANTIC_REFINER=0` to disable that lane. A problem-local semantic archive/market keeps high-value subexpressions across generations and can synthesize candidates from multiple elites; it ranks behavior-space bases with Pareto pressure over accuracy, local/global novelty, stability, recombination gain, and complexity so semantic duplicates do not crowd out diverse building blocks. Set `GCL_SEMANTIC_ARCHIVE=0` to disable archive injection. The report also includes `gcl-hybrid`, a train-only sparse basis calibration lane with beam-search selection, a validation split, rational motif coverage, and claim audit. It is reported separately as a production hybrid capability rather than a pure GP result. The benchmark now bootstraps a managed `/tmp/gcl-open-source-bench-venv` from `scripts/open-source-python-requirements.txt` when `gplearn`/DEAP are missing; set `GCL_OPEN_SOURCE_PYTHON` only when you want to force a preconfigured Python environment, which will be verified before the benchmark starts.
 
@@ -127,7 +180,15 @@ Release-gate status:
 - default promotion recommendation is `promote-candidate`
 - promotion must not regress exact accuracy, boundary total, or fitness
 
-`npm run release:gate` is green as of 2026-05-28 after the 5D clean/noisy ND adjacency-geometry sweep addition. This is a release-lane proof, not a promotion of scratch experiments, not a pure-GCL superiority claim, and not a SOTA claim.
+`npm run release:gate` is green as of 2026-06-01 after the deep 3D/4D ND
+region-sampler, recovered-adjacency geometry, 5D clean/noisy sweep, 6D
+randomized/adversarial robustness and baseline court, active-subspace FFN
+decompiler, 4096D/noisy active-subspace gates, explicit GELU structure finder,
+rank-adaptive mixed GELU gate, near-parallel mixed GELU family, and
+cross-decomposition GELU invariance gate, and GELU formalization negative-case
+gate. This is release-lane proof, not a promotion of scratch experiments, not
+full GPT-2/LLM extraction, not a pure-GCL universal superiority claim, and not a
+broad SOTA claim.
 
 See `docs/release-lane-status.md` for the explicit stable/opt-in/research lane matrix.
 

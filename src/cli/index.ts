@@ -467,6 +467,96 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-active-subspace-ffn-noisy',
+    name: 'NN noisy active-subspace FFN',
+    status: 'production',
+    summary: 'Recovers rank-1 GELU active directions and output-faithful surrogates from stochastic noisy high-dimensional oracle calls, with held-out noiseless validation and baseline-court accounting.',
+    scope: 'Black-box smooth activation benchmark; proves benchmark-scoped noisy active-subspace recovery for controlled 128D/256D rank-1 GELU teachers. This does not claim real LLM decompilation, arbitrary stochastic API extraction, exact GELU parameter recovery, mixed multi-channel FFN block recovery, or broad SOTA status.',
+    run: { label: 'NN noisy active-subspace FFN benchmark', command: 'npm', args: ['run', 'benchmark:nn-active-subspace-ffn-noisy'] },
+    proofs: [
+      { label: 'NN noisy active-subspace FFN benchmark', command: 'npm', args: ['run', 'benchmark:nn-active-subspace-ffn-noisy'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-active-subspace-ffn-noisy/rank1-gelu-noisy-128d-256d/report.json',
+      'benchmarks/release/nn-active-subspace-ffn-noisy/rank1-gelu-noisy-128d-256d/report.md'
+    ]
+  },
+  {
+    id: 'nn-gelu-ffn-structure-finder',
+    name: 'NN GELU FFN structure finder',
+    status: 'production',
+    summary: 'Recovers explicit GELU FFN atom structure from oracle calls only: input directions, input biases, output weights, validation metrics, and query budget for controlled high-dimensional channels.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped explicit GELU atom recovery for controlled 96D single-channel and two-channel FFN teachers. This is not a local KNN or polynomial surrogate. It does not claim full GPT-2 FFN extraction, arbitrary channel-count recovery, SwiGLU structure recovery, exact identity under non-identifiability, tokenizer/model integration, or broad SOTA status.',
+    run: { label: 'NN GELU FFN structure finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-structure-finder'] },
+    proofs: [
+      { label: 'NN GELU FFN structure finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-structure-finder'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-gelu-ffn-structure-finder/controlled-single-and-two-channel/report.json',
+      'benchmarks/release/nn-gelu-ffn-structure-finder/controlled-single-and-two-channel/report.md'
+    ]
+  },
+  {
+    id: 'nn-gelu-ffn-mixed-structure',
+    name: 'NN rank-adaptive mixed GELU FFN structure',
+    status: 'production',
+    summary: 'Recovers explicit mixed GELU FFN atoms and effective channel count from oracle calls only when GCL is given a maximum channel budget but not the true channel count.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped rank-adaptive mixed GELU atom recovery for a controlled 32D three-channel FFN teacher with an overcomplete max-channel budget. This is not a local KNN or polynomial surrogate. It does not claim full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D production LLM block decompilation, SwiGLU mixed-block recovery, tokenizer/model integration, or broad SOTA status.',
+    run: { label: 'NN rank-adaptive mixed GELU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-mixed-structure'] },
+    proofs: [
+      { label: 'NN rank-adaptive mixed GELU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-mixed-structure'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-gelu-ffn-mixed-structure/rank-adaptive-three-channel/report.json',
+      'benchmarks/release/nn-gelu-ffn-mixed-structure/rank-adaptive-three-channel/report.md'
+    ]
+  },
+  {
+    id: 'nn-gelu-ffn-near-parallel-family',
+    name: 'NN near-parallel mixed GELU FFN family',
+    status: 'production',
+    summary: 'Stress-tests mixed GELU structure recovery as two channels become nearly parallel, measuring direction recovery, effective channel count, duplicate diagnostics, near-parallel diagnostics, output fit, and query budget.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped stability on a controlled clean 16D three-channel GELU family with epsilons 1e-1, 1e-2, 1e-3, and 1e-4. It does not claim noisy mixed-block recovery, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D production LLM block decompilation, SwiGLU mixed-block recovery, tokenizer/model integration, or broad SOTA status.',
+    run: { label: 'NN near-parallel mixed GELU FFN family benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-near-parallel-family'] },
+    proofs: [
+      { label: 'NN near-parallel mixed GELU FFN family benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-near-parallel-family'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-gelu-ffn-near-parallel-family/epsilon-sweep/report.json',
+      'benchmarks/release/nn-gelu-ffn-near-parallel-family/epsilon-sweep/report.md'
+    ]
+  },
+  {
+    id: 'nn-gelu-ffn-cross-decomposition-invariance',
+    name: 'NN GELU FFN cross-decomposition invariance',
+    status: 'production',
+    summary: 'Checks whether two mathematically equivalent hidden GELU decompositions recover to the same canonical structure from oracle calls only.',
+    scope: 'Black-box smooth activation identifiability benchmark; proves benchmark-scoped canonical structure invariance for a clean controlled 16D GELU FFN pair with a minimal representation and an overcomplete equivalent representation. It does not claim semantic identity of original hidden neurons, noisy invariance, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D production LLM block decompilation, SwiGLU mixed-block recovery, tokenizer/model integration, or broad SOTA status.',
+    run: { label: 'NN GELU FFN cross-decomposition invariance benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-cross-decomposition-invariance'] },
+    proofs: [
+      { label: 'NN GELU FFN cross-decomposition invariance benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-cross-decomposition-invariance'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-gelu-ffn-cross-decomposition-invariance/equivalent-reparameterizations/report.json',
+      'benchmarks/release/nn-gelu-ffn-cross-decomposition-invariance/equivalent-reparameterizations/report.md'
+    ]
+  },
+  {
+    id: 'nn-gelu-ffn-negative-cases',
+    name: 'NN GELU FFN formalization negative cases',
+    status: 'production',
+    summary: 'Executes negative-case guardrails for the neural decompiler formalization: duplicate/cancellation canonicalization, weak-under-noise non-identifiability, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped guardrails that prevent unsupported structure promotion in selected failure modes. It does not claim semantic identity of original hidden neurons, noisy full mixed-block recovery, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM decompilation, or broad SOTA status.',
+    run: { label: 'NN GELU FFN formalization negative-case benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-negative-cases'] },
+    proofs: [
+      { label: 'NN GELU FFN formalization negative-case benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-negative-cases'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-gelu-ffn-negative-cases/formalization-negative-cases/report.json',
+      'benchmarks/release/nn-gelu-ffn-negative-cases/formalization-negative-cases/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

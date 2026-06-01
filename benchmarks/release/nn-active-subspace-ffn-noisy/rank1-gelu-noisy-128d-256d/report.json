@@ -1,0 +1,278 @@
+{
+  "generatedAt": "2026-06-01T11:44:48.069Z",
+  "task": "noisy active-subspace FFN decompiler for rank-1 GELU teachers",
+  "blackBox": {
+    "type": "128D/256D single-channel GELU teachers with stochastic Gaussian output noise",
+    "visibilityToGcl": "oracle calls only: noisy f(vector), no active direction, no weights, no hidden activations; validation is against held-out noiseless truth"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL can recover a high-dimensional rank-1 smooth FFN active direction and faithful surrogate from noisy oracle calls under explicit query budgets",
+    "doesNotClaim": "real LLM decompilation, arbitrary stochastic API extraction, exact GELU parameter recovery, mixed multi-channel FFN block recovery, or broad SOTA status"
+  },
+  "gates": {
+    "pass": true,
+    "allTeachersPassed": true,
+    "dimensionsCovered": true,
+    "noisyOracleCovered": true,
+    "allR2ThresholdsPassed": true,
+    "allMaeThresholdsPassed": true,
+    "projectionScoreAtLeast0998": true,
+    "queryBudgetWithinCaseLimits": true,
+    "gclWinsEveryBaselineCourt": true,
+    "maxGclMaeRatioVsBestBaselineAtMost05": true
+  },
+  "summary": {
+    "pass": true,
+    "teacherCount": 2,
+    "passedTeachers": 2,
+    "dimensions": [
+      128,
+      256
+    ],
+    "noiseSigma": [
+      0.01
+    ],
+    "maxMae": 0.04567550692434054,
+    "minR2": 0.993172477248586,
+    "minProjectionScore": 0.9980221387236469,
+    "maxRawOracleCalls": 8720,
+    "maxGclMaeRatioVsBestBaseline": 0.06368152554857574,
+    "gclWinsByMae": 2
+  },
+  "results": [
+    {
+      "id": "gelu-rank1-noisy-128d",
+      "dimension": 128,
+      "activeRank": 1,
+      "noiseSigma": 0.01,
+      "thresholds": {
+        "minR2": 0.99,
+        "maxMae": 0.055,
+        "minProjectionScore": 0.998,
+        "maxRawOracleCalls": 4500
+      },
+      "gcl": {
+        "metrics": {
+          "mae": 0.03783156658426089,
+          "rmse": 0.06375989812866417,
+          "r2": 0.9955477269153223
+        },
+        "expression": "active_subspace_ffn( dimension=128 rank=1 gradient_probes=10 samples=1800 estimator=finite-difference energy=0.980514 queries=4360 )",
+        "queryBudget": {
+          "rawOracleCalls": 4360,
+          "gradientRawOracleCalls": 2560,
+          "trainingRawOracleCalls": 1800,
+          "finiteDifferenceCallsPerProbe": 256
+        },
+        "countedOracleCalls": 4360,
+        "directionEstimator": "finite-difference",
+        "directionCandidateScores": [
+          {
+            "estimator": "finite-difference",
+            "validationMae": 0.04897196436253167,
+            "validationCount": 24
+          },
+          {
+            "estimator": "moment-sir",
+            "validationMae": 0.4397510640653904,
+            "validationCount": 24
+          }
+        ],
+        "finiteDifferenceStep": 0.6000000000000001,
+        "activeSubspace": {
+          "selectedGradientEnergyRatio": 0.9805143786381636,
+          "meanGradientResidualRatio": 0.34689337635251893,
+          "projectionScore": 0.9987336234787271
+        }
+      },
+      "baselines": [
+        {
+          "id": "mean-noisy-output",
+          "family": "constant",
+          "queryBudget": 1800,
+          "metrics": {
+            "mae": 0.7204731363877511,
+            "rmse": 0.9555577551948029,
+            "r2": -0.0000010325277555178758
+          }
+        },
+        {
+          "id": "random-projection-local-quadratic-rank1",
+          "family": "random-subspace-local-quadratic",
+          "queryBudget": 1800,
+          "metrics": {
+            "mae": 0.8417978073241266,
+            "rmse": 1.231654080557129,
+            "r2": -0.6613612070971013
+          }
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank1",
+          "family": "coordinate-subspace-local-quadratic",
+          "queryBudget": 1800,
+          "metrics": {
+            "mae": 0.7940559510975882,
+            "rmse": 1.1747971269254622,
+            "r2": -0.5115144969552861
+          }
+        }
+      ],
+      "ranking": [
+        {
+          "id": "gcl-active-subspace-noisy",
+          "family": "active-subspace-ffn-surrogate",
+          "mae": 0.03783156658426089,
+          "r2": 0.9955477269153223,
+          "queryBudget": 4360
+        },
+        {
+          "id": "mean-noisy-output",
+          "family": "constant",
+          "mae": 0.7204731363877511,
+          "r2": -0.0000010325277555178758,
+          "queryBudget": 1800
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank1",
+          "family": "coordinate-subspace-local-quadratic",
+          "mae": 0.7940559510975882,
+          "r2": -0.5115144969552861,
+          "queryBudget": 1800
+        },
+        {
+          "id": "random-projection-local-quadratic-rank1",
+          "family": "random-subspace-local-quadratic",
+          "mae": 0.8417978073241266,
+          "r2": -0.6613612070971013,
+          "queryBudget": 1800
+        }
+      ],
+      "comparison": {
+        "bestBaselineId": "mean-noisy-output",
+        "bestBaselineMae": 0.7204731363877511,
+        "bestBaselineR2": -0.0000010325277555178758,
+        "gclBeatsBestBaselineByMae": true,
+        "gclMaeRatioVsBestBaseline": 0.05250933681432965
+      },
+      "pass": true
+    },
+    {
+      "id": "gelu-rank1-noisy-256d",
+      "dimension": 256,
+      "activeRank": 1,
+      "noiseSigma": 0.01,
+      "thresholds": {
+        "minR2": 0.99,
+        "maxMae": 0.055,
+        "minProjectionScore": 0.998,
+        "maxRawOracleCalls": 9100
+      },
+      "gcl": {
+        "metrics": {
+          "mae": 0.04567550692434054,
+          "rmse": 0.07755115817441567,
+          "r2": 0.993172477248586
+        },
+        "expression": "active_subspace_ffn( dimension=256 rank=1 gradient_probes=10 samples=3600 estimator=finite-difference energy=0.971892 queries=8720 )",
+        "queryBudget": {
+          "rawOracleCalls": 8720,
+          "gradientRawOracleCalls": 5120,
+          "trainingRawOracleCalls": 3600,
+          "finiteDifferenceCallsPerProbe": 512
+        },
+        "countedOracleCalls": 8720,
+        "directionEstimator": "finite-difference",
+        "directionCandidateScores": [
+          {
+            "estimator": "finite-difference",
+            "validationMae": 0.043193642355889635,
+            "validationCount": 24
+          },
+          {
+            "estimator": "moment-sir",
+            "validationMae": 0.41043630163158124,
+            "validationCount": 24
+          }
+        ],
+        "finiteDifferenceStep": 0.6000000000000001,
+        "activeSubspace": {
+          "selectedGradientEnergyRatio": 0.9718921764009161,
+          "meanGradientResidualRatio": 0.4637788775009186,
+          "projectionScore": 0.9980221387236469
+        }
+      },
+      "baselines": [
+        {
+          "id": "mean-noisy-output",
+          "family": "constant",
+          "queryBudget": 3600,
+          "metrics": {
+            "mae": 0.7172489435652674,
+            "rmse": 0.939197347973369,
+            "r2": -0.001383186018335314
+          }
+        },
+        {
+          "id": "random-projection-local-quadratic-rank1",
+          "family": "random-subspace-local-quadratic",
+          "queryBudget": 3600,
+          "metrics": {
+            "mae": 0.7709491664463993,
+            "rmse": 1.1574221881750795,
+            "r2": -0.5207932882773343
+          }
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank1",
+          "family": "coordinate-subspace-local-quadratic",
+          "queryBudget": 3600,
+          "metrics": {
+            "mae": 0.8097672080970248,
+            "rmse": 1.1780054508604685,
+            "r2": -0.5753649542317552
+          }
+        }
+      ],
+      "ranking": [
+        {
+          "id": "gcl-active-subspace-noisy",
+          "family": "active-subspace-ffn-surrogate",
+          "mae": 0.04567550692434054,
+          "r2": 0.993172477248586,
+          "queryBudget": 8720
+        },
+        {
+          "id": "mean-noisy-output",
+          "family": "constant",
+          "mae": 0.7172489435652674,
+          "r2": -0.001383186018335314,
+          "queryBudget": 3600
+        },
+        {
+          "id": "random-projection-local-quadratic-rank1",
+          "family": "random-subspace-local-quadratic",
+          "mae": 0.7709491664463993,
+          "r2": -0.5207932882773343,
+          "queryBudget": 3600
+        },
+        {
+          "id": "coordinate-head-local-quadratic-rank1",
+          "family": "coordinate-subspace-local-quadratic",
+          "mae": 0.8097672080970248,
+          "r2": -0.5753649542317552,
+          "queryBudget": 3600
+        }
+      ],
+      "comparison": {
+        "bestBaselineId": "mean-noisy-output",
+        "bestBaselineMae": 0.7172489435652674,
+        "bestBaselineR2": -0.001383186018335314,
+        "gclBeatsBestBaselineByMae": true,
+        "gclMaeRatioVsBestBaseline": 0.06368152554857574
+      },
+      "pass": true
+    }
+  ],
+  "conclusion": "Noisy active-subspace FFN gate passed for controlled 128D/256D rank-1 GELU teachers; next step is rank-adaptive mixed-channel noisy FFN recovery.",
+  "runtimeMs": 2562
+}

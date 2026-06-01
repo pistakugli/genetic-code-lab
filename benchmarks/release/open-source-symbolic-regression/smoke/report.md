@@ -1,6 +1,6 @@
 # Open-source symbolic-regression benchmark
 
-Generated: 2026-05-31T12:33:24.673Z
+Generated: 2026-05-31T15:40:00.094Z
 
 ## Scope
 
@@ -21,22 +21,22 @@ Generated: 2026-05-31T12:33:24.673Z
 
 | Task | Baseline | Runs | Failed | Success | Mean MAE | Mean RMSE | Mean R2 | Median ms |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| cubic_arithmetic | deap | 3 | 0 | 0% | 0.197379 | 0.302238 | 0.982625 | 1355.412535 |
-| cubic_arithmetic | gcl | 3 | 0 | 100% | 1.417e-12 | 1.702e-12 | 1 | 71.789658 |
-| cubic_arithmetic | gcl-hybrid | 3 | 0 | 100% | 1.011e-12 | 1.641e-12 | 1 | 813.635971 |
-| cubic_arithmetic | gplearn | 3 | 0 | 0% | 0.128287 | 0.195041 | 0.994713 | 8649.557181 |
-| quadratic_arithmetic | deap | 3 | 0 | 100% | 2.056e-18 | 1.379e-17 | 1 | 1319.221546 |
-| quadratic_arithmetic | gcl | 3 | 0 | 100% | 1.485e-16 | 4.094e-16 | 1 | 87.042715 |
-| quadratic_arithmetic | gcl-hybrid | 3 | 0 | 100% | 4.626e-13 | 5.962e-13 | 1 | 805.566419 |
-| quadratic_arithmetic | gplearn | 3 | 0 | 67% | 0.006002 | 0.006002 | 0.999996 | 832.47523 |
-| rational_shifted | deap | 3 | 0 | 67% | 0.00067 | 0.00083 | 0.999986 | 2172.15885 |
-| rational_shifted | gcl | 3 | 0 | 100% | 8.097e-6 | 9.010e-6 | 1 | 138.720453 |
-| rational_shifted | gcl-hybrid | 3 | 0 | 100% | 3.920e-12 | 4.067e-12 | 1 | 1170.809336 |
-| rational_shifted | gplearn | 3 | 0 | 33% | 0.035843 | 0.114124 | 0.772808 | 7283.400824 |
-| trig_poly_mixed | deap | 3 | 0 | 0% | 0.083677 | 0.148189 | 0.980331 | 1207.754966 |
-| trig_poly_mixed | gcl | 3 | 0 | 100% | 5.283e-8 | 2.864e-7 | 1 | 692.93615 |
-| trig_poly_mixed | gcl-hybrid | 3 | 0 | 100% | 1.963e-12 | 2.210e-12 | 1 | 1193.947769 |
-| trig_poly_mixed | gplearn | 3 | 0 | 33% | 0.091204 | 0.172337 | 0.962446 | 7696.453068 |
+| cubic_arithmetic | deap | 3 | 0 | 0% | 0.197379 | 0.302238 | 0.982625 | 1333.025202 |
+| cubic_arithmetic | gcl | 3 | 0 | 100% | 1.417e-12 | 1.702e-12 | 1 | 72.151618 |
+| cubic_arithmetic | gcl-hybrid | 3 | 0 | 100% | 1.011e-12 | 1.641e-12 | 1 | 867.192349 |
+| cubic_arithmetic | gplearn | 3 | 0 | 0% | 0.128287 | 0.195041 | 0.994713 | 8767.36084 |
+| quadratic_arithmetic | deap | 3 | 0 | 100% | 2.056e-18 | 1.379e-17 | 1 | 1294.414704 |
+| quadratic_arithmetic | gcl | 3 | 0 | 100% | 1.485e-16 | 4.094e-16 | 1 | 87.209543 |
+| quadratic_arithmetic | gcl-hybrid | 3 | 0 | 100% | 4.626e-13 | 5.962e-13 | 1 | 867.201016 |
+| quadratic_arithmetic | gplearn | 3 | 0 | 67% | 0.006002 | 0.006002 | 0.999996 | 826.764117 |
+| rational_shifted | deap | 3 | 0 | 67% | 0.00067 | 0.00083 | 0.999986 | 2192.492185 |
+| rational_shifted | gcl | 3 | 0 | 100% | 8.097e-6 | 9.010e-6 | 1 | 137.255822 |
+| rational_shifted | gcl-hybrid | 3 | 0 | 100% | 3.920e-12 | 4.067e-12 | 1 | 1190.134778 |
+| rational_shifted | gplearn | 3 | 0 | 33% | 0.035843 | 0.114124 | 0.772808 | 7411.459512 |
+| trig_poly_mixed | deap | 3 | 0 | 0% | 0.083677 | 0.148189 | 0.980331 | 1210.769274 |
+| trig_poly_mixed | gcl | 3 | 0 | 100% | 5.283e-8 | 2.864e-7 | 1 | 686.770986 |
+| trig_poly_mixed | gcl-hybrid | 3 | 0 | 100% | 1.963e-12 | 2.210e-12 | 1 | 1288.463543 |
+| trig_poly_mixed | gplearn | 3 | 0 | 33% | 0.091204 | 0.172337 | 0.962446 | 7626.333725 |
 
 ## Winners by Mean MAE
 

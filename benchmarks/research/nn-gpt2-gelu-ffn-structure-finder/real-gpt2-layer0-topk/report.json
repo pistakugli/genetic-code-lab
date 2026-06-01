@@ -1,0 +1,136 @@
+{
+  "generatedAt": "2026-05-31T17:54:35.246Z",
+  "task": "Research-only GPT-2 GELU FFN structure finder stress",
+  "blackBox": {
+    "type": "real GPT-2 layer-0 FFN weights serialized as local JSON fixtures",
+    "dataDir": "/home/kugli/Downloads/Genetic-Code-Lab/external-pytorch-test",
+    "visibilityToGcl": "oracle calls only: f(vector), no weights, no hidden activations"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL can recover explicit GELU atom directions and high-fidelity outputs for a real GPT-2 single neuron and top-1/top-3 truncated output-channel sums on this fixture",
+    "doesNotClaim": "full GPT-2 FFN extraction, tokenizer integration, arbitrary layer extraction, arbitrary channel-count recovery, SwiGLU recovery, or release-gated production status"
+  },
+  "gates": {
+    "pass": true,
+    "allCasesPassed": true,
+    "minR2": 0.9950578044301109,
+    "maxMae": 0.04830918330347916,
+    "minProjection": 0.999868525265573
+  },
+  "results": [
+    {
+      "id": "real-gpt2-single-gelu-768d",
+      "kind": "single-channel-gelu",
+      "pass": true,
+      "metrics": {
+        "mae": 0.00455760482340957,
+        "rmse": 0.0051093867569837635,
+        "r2": 0.9999539985740798
+      },
+      "rawOracleCalls": 18660,
+      "projection": 0.9999999822798988,
+      "trueNorm": 2.4300839266070686,
+      "recoveredNorm": 2.31030668597745,
+      "trueBias": 0.039619479328393936,
+      "recoveredBias": 0.035163107868092014,
+      "outputWeight": 1.0538984411370833
+    },
+    {
+      "id": "real-gpt2-top1-gelu-ffn-768d",
+      "kind": "topk-output-channel-gelu-sum",
+      "pass": true,
+      "metrics": {
+        "mae": 0.02532853953376606,
+        "rmse": 0.02890442878735193,
+        "r2": 0.9973186489709484
+      },
+      "rawOracleCalls": 22232,
+      "channels": [
+        1614
+      ],
+      "minProjection": 0.9999999767034381,
+      "projections": [
+        0.9999999767034381
+      ],
+      "atoms": [
+        {
+          "inputWeightNorm": 3.157194024411731,
+          "inputBias": -0.09125207809148046,
+          "outputWeight": 0.6094163414400546
+        }
+      ]
+    },
+    {
+      "id": "real-gpt2-top2-gelu-ffn-768d",
+      "kind": "topk-output-channel-gelu-sum",
+      "pass": true,
+      "metrics": {
+        "mae": 0.03459568839721633,
+        "rmse": 0.042403467104835404,
+        "r2": 0.9967983607537667
+      },
+      "rawOracleCalls": 26104,
+      "channels": [
+        1614,
+        2452
+      ],
+      "minProjection": 0.999915848324277,
+      "projections": [
+        0.9999176698159951,
+        0.999915848324277
+      ],
+      "atoms": [
+        {
+          "inputWeightNorm": 2.9754755472762007,
+          "inputBias": -0.0872658077705513,
+          "outputWeight": 0.6412082069903278
+        },
+        {
+          "inputWeightNorm": 2.7553897805579095,
+          "inputBias": -0.2184447134356552,
+          "outputWeight": -0.6623311613430226
+        }
+      ]
+    },
+    {
+      "id": "real-gpt2-top3-gelu-ffn-768d",
+      "kind": "topk-output-channel-gelu-sum",
+      "pass": true,
+      "metrics": {
+        "mae": 0.04830918330347916,
+        "rmse": 0.05913903807809903,
+        "r2": 0.9950578044301109
+      },
+      "rawOracleCalls": 38756,
+      "channels": [
+        1614,
+        2452,
+        2053
+      ],
+      "minProjection": 0.999868525265573,
+      "projections": [
+        0.9999518954494143,
+        0.999868525265573,
+        0.999889757097915
+      ],
+      "atoms": [
+        {
+          "inputWeightNorm": 2.7167828862762593,
+          "inputBias": -0.08515294589643171,
+          "outputWeight": 0.7031460471832877
+        },
+        {
+          "inputWeightNorm": 2.6279758552044985,
+          "inputBias": -0.21245381179482004,
+          "outputWeight": -0.6913656030528718
+        },
+        {
+          "inputWeightNorm": 2.4375414639145845,
+          "inputBias": -0.17267013786185,
+          "outputWeight": 0.6270221616373427
+        }
+      ]
+    }
+  ],
+  "runtimeMs": 135289
+}

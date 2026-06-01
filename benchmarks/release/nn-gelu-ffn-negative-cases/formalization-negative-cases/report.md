@@ -1,0 +1,76 @@
+# GELU FFN Formalization Negative-Case Benchmark
+
+Generated: 2026-06-01T11:49:36.576Z
+
+## Claim Scope
+
+- Proves if pass: GCL has executable guardrails for duplicate/cancellation canonicalization, weak-under-noise non-identifiability, activation-family mismatch rejection, and minimum equivalent structure under overcomplete budgets
+- Does not claim: semantic identity of original hidden neurons, noisy full mixed-block recovery, full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM decompilation, or broad SOTA status
+
+## Summary
+
+- Pass: true
+- Cases: 4
+- Passed cases: 4
+- Failed cases: none
+
+## Cases
+
+| Case | Family | Expected behavior | Pass |
+| --- | --- | --- | --- |
+| manual-duplicate-cancellation-weak-canonicalizer | exact duplicate split + equal/opposite cancellation + weak atom | collapse duplicate split, remove cancelling pair, prune weak atom, and keep only observable canonical support | true |
+| weak-channel-below-noise | weak hidden channel under stochastic output noise and quantization | keep output fidelity but refuse to claim all original hidden channels are identifiable | true |
+| mis-specified-activation-family | sinusoidal teacher passed to GELU structure finder | do not promote a GELU structure claim when held-out residuals show activation-family mismatch | true |
+| overcomplete-budget-minimum-equivalent | two-channel GELU teacher with five-channel solver budget | select the smallest held-out-valid structure instead of promoting the overcomplete budget | true |
+
+## Gate Details
+
+### manual-duplicate-cancellation-weak-canonicalizer
+
+- Family: exact duplicate split + equal/opposite cancellation + weak atom
+- Expected correct behavior: collapse duplicate split, remove cancelling pair, prune weak atom, and keep only observable canonical support
+- Pass: true
+- Summary: `{"canonicalAtomCount":1,"mergedDuplicateCount":2,"removedCancellationCount":2,"removedWeakAtomCount":1}`
+- duplicateSplitCollapsed: true
+- cancellationRemoved: true
+- weakAtomRemoved: true
+- onlyObservableAtomRemains: true
+
+### weak-channel-below-noise
+
+- Family: weak hidden channel under stochastic output noise and quantization
+- Expected correct behavior: keep output fidelity but refuse to claim all original hidden channels are identifiable
+- Pass: true
+- Summary: `{"effectiveChannelCount":2,"canonicalAtomCount":2,"selectedCandidateKind":"trained-4-strength-threshold","bestCandidateMetrics":{"mae":0.010372755537322597,"rmse":0.01337573005325225,"r2":0.9992167195156504},"selectedValidationMetrics":{"mae":0.024751667583372407,"rmse":0.02844370737365886,"r2":0.9964579497387951},"prunedWeakAtomCount":2,"signatureRemovedWeakAtomCount":0,"mae":0.023809979188975757,"r2":0.9968910245119376,"maxWeakContribution":0.005819782566052295,"rawOracleCalls":43064}`
+- outputStillFaithful: true
+- weakSignalBelowNoiseFloor: true
+- hiddenWeakAtomNotPromotedAsSemanticRecovery: true
+- weakOrPrunedEvidenceRecorded: true
+- rawOracleCallsBelow80000: true
+
+### mis-specified-activation-family
+
+- Family: sinusoidal teacher passed to GELU structure finder
+- Expected correct behavior: do not promote a GELU structure claim when held-out residuals show activation-family mismatch
+- Pass: true
+- Summary: `{"effectiveChannelCount":3,"canonicalAtomCount":3,"mae":0.11213943566373409,"r2":0.8777833727574628,"worstError":2.3545163455618057,"wouldPromoteStructure":false,"rawOracleCalls":3800}`
+- mismatchNotPromotedAsGeluStructure: true
+- residualFailureIsMeasurable: true
+- attemptedModelRecordedAtoms: true
+- rawOracleCallsBelow45000: true
+
+### overcomplete-budget-minimum-equivalent
+
+- Family: two-channel GELU teacher with five-channel solver budget
+- Expected correct behavior: select the smallest held-out-valid structure instead of promoting the overcomplete budget
+- Pass: true
+- Summary: `{"rawChannelCount":5,"effectiveChannelCount":2,"canonicalAtomCount":2,"selectedCandidateKind":"trained-3-strength-threshold","mae":0.00610512989140079,"r2":0.999703082360723,"rawOracleCalls":7130}`
+- selectedMinimumEquivalentCount: true
+- overcompleteBudgetNotUsedAsClaim: true
+- heldoutR2Above0999: true
+- heldoutMaeBelow002: true
+- rawOracleCallsBelow70000: true
+
+## Conclusion
+
+The negative-case gate passed. The formalization is now backed by executable checks that prevent unsupported structure promotion in these benchmarked failure modes.

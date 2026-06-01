@@ -1,0 +1,130 @@
+{
+  "generatedAt": "2026-06-01T11:45:42.766Z",
+  "task": "rank-adaptive mixed-channel GELU FFN structure recovery",
+  "blackBox": {
+    "type": "32D three-channel GELU FFN block with overcomplete max-channel budget",
+    "visibilityToGcl": "oracle calls only: f(vector); true channel count, directions, biases, and readout weights are hidden"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL can recover explicit mixed GELU atom structure when given a maximum channel budget but not the true channel count",
+    "doesNotClaim": "full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D production LLM block decompilation, SwiGLU mixed-block recovery, or broad SOTA status"
+  },
+  "teacher": {
+    "id": "mixed-gelu-three-channel-32d",
+    "dimension": 32,
+    "trueChannelCount": 3,
+    "maxChannelBudgetGivenToGcl": 4
+  },
+  "gates": {
+    "recoversRankAdaptiveStructure": true,
+    "doesNotUseTrueChannelCount": true,
+    "effectiveChannelCountMatches": true,
+    "usesInternalCandidateSelection": true,
+    "duplicatePairsAbsent": true,
+    "heldoutR2Above0999": true,
+    "heldoutMaeBelow002": true,
+    "minDirectionProjectionAbove0995": true,
+    "structuralParameterErrorsBounded": true,
+    "beatsMeanBy90Percent": true,
+    "pass": true
+  },
+  "summary": {
+    "pass": true,
+    "trueChannelCount": 3,
+    "rawChannelCount": 4,
+    "effectiveChannelCount": 3,
+    "prunedWeakAtomCount": 0,
+    "duplicatePairCount": 0,
+    "mae": 0.0014707898276633694,
+    "r2": 0.9999899685243602,
+    "minDirectionProjection": 0.9998572617229938,
+    "maxWeightNormError": 0.03168688372064543,
+    "maxBiasError": 0.009782376019626393,
+    "rawOracleCalls": 14458
+  },
+  "baselines": [
+    {
+      "id": "mean-output",
+      "family": "constant",
+      "metrics": {
+        "mae": 0.5264551668939556,
+        "rmse": 0.7122364153064484,
+        "r2": 0
+      }
+    }
+  ],
+  "gcl": {
+    "metrics": {
+      "mae": 0.0014707898276633694,
+      "rmse": 0.002255831132382068,
+      "r2": 0.9999899685243602
+    },
+    "expression": "0.0715453 + 0.90805618 * gelu(dot(w0, x) + -0.19910322) + -0.67253545 * gelu(dot(w1, x) + 0.15117326) + 0.47466179 * gelu(dot(w2, x) + 0.32978238)",
+    "atoms": [
+      {
+        "inputWeightNorm": 1.2396412577938671,
+        "inputBias": -0.1991032208785328,
+        "outputWeight": 0.9080561816302236,
+        "strength": 1.1256639071435868
+      },
+      {
+        "inputWeightNorm": 1.0809957252561777,
+        "inputBias": 0.15117326244313964,
+        "outputWeight": -0.6725354536833029,
+        "strength": 0.7270079505148745
+      },
+      {
+        "inputWeightNorm": 0.8816868837206454,
+        "inputBias": 0.3297823760196264,
+        "outputWeight": 0.47466178718148316,
+        "strength": 0.4185030719613141
+      }
+    ],
+    "adaptiveSelection": {
+      "atomStrengthThreshold": 0.0337699172143076,
+      "maxAtomStrength": 1.1256639071435868,
+      "prunedWeakAtomCount": 0,
+      "duplicatePairCount": 0,
+      "nearParallelPairCount": 0,
+      "duplicateDirectionCosine": 0.995,
+      "duplicateBiasTolerance": 0.08,
+      "nearParallelDirectionCosine": 0.995,
+      "selectionRestarts": 4,
+      "candidateCount": 14,
+      "selectedCandidateKind": "trained-3-strength-threshold",
+      "selectedCandidateRank": 3,
+      "bestCandidateMetrics": {
+        "mae": 0.001063070229706126,
+        "rmse": 0.0014649581155728017,
+        "r2": 0.9999950727782868
+      },
+      "unprunedValidationMetrics": {
+        "mae": 0.0013555618823280064,
+        "rmse": 0.0018979895728859686,
+        "r2": 0.9999917293558908
+      }
+    },
+    "structure": {
+      "projectionScores": [
+        0.9999981387650962,
+        0.9999667442970178,
+        0.9998572617229938
+      ],
+      "minProjection": 0.9998572617229938,
+      "maxWeightNormError": 0.03168688372064543,
+      "maxBiasError": 0.009782376019626393
+    },
+    "queryBudget": {
+      "rawOracleCalls": 14458,
+      "gradientRawOracleCalls": 4608,
+      "trainingRawOracleCalls": 7600,
+      "validationRawOracleCalls": 2250,
+      "finiteDifferenceCallsPerProbe": 64,
+      "aggregatedProbePoints": 14458,
+      "querySamples": 1,
+      "selectionRestarts": 4,
+      "selectedRestart": 2
+    }
+  },
+  "runtimeMs": 30827
+}

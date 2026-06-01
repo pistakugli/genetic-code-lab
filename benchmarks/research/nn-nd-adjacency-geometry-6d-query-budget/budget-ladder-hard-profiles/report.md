@@ -1,6 +1,6 @@
 # 6D ND Recovered-Adjacency Geometry Query-Budget Ladder
 
-Generated: 2026-05-31T05:55:11.605Z
+Generated: 2026-05-31T15:35:32.806Z
 
 ## Claim Scope
 

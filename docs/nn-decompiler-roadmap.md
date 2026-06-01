@@ -104,11 +104,23 @@ Phase 5: layer attribution only with extra observability.
 Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN recovery.
 
 - Status: first foundation release-gated with
-  `benchmark:nn-active-subspace-ffn-decompiler`.
+  `benchmark:nn-active-subspace-ffn-decompiler`, extended to 4096D stress with
+  `benchmark:nn-active-subspace-ffn-4096d-stress`, and now covered for the
+  previously observed noisy rank-1 failure mode with
+  `benchmark:nn-active-subspace-ffn-noisy`. The first explicit GELU atom
+  structure finder is now release-gated with
+  `benchmark:nn-gelu-ffn-structure-finder`, and the first rank-adaptive mixed
+  GELU structure gate is release-gated with
+  `benchmark:nn-gelu-ffn-mixed-structure`. Near-parallel mixed-channel
+  stability is now release-gated with
+  `benchmark:nn-gelu-ffn-near-parallel-family`, and canonical structure
+  invariance under equivalent hidden decompositions is release-gated with
+  `benchmark:nn-gelu-ffn-cross-decomposition-invariance`.
 - Direction: GCL should not brute-force 4096D. It should query a high-
   dimensional black-box channel, discover the low-dimensional active subspace
-  where the function actually changes, then reconstruct a faithful transparent
-  surrogate in that subspace.
+  where the function actually changes, then recover either a faithful
+  transparent surrogate or, when the activation family is identifiable, an
+  explicit structure such as `c + sum_j a_j * gelu(w_j dot x + b_j)`.
 - Scope: GELU, SiLU, and SwiGLU-style LLM feed-forward channels are not
   piecewise-linear kink geometry. The ReLU recovered-adjacency gates provide
   oracle discipline, query accounting, and benchmark hygiene, but they do not
@@ -123,25 +135,128 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `0.995` for single-channel GELU and above `0.99` for two-direction SwiGLU,
     explicit active-subspace projection evidence, query budget below `50000`,
     and a win against mean/random-subspace/coordinate-subspace baselines.
-  - Foundation result: 4/4 passed, max MAE `0.00022774732575327203`, min R2
-    `0.9999942261682238`, min selected gradient-energy ratio
-    `0.9999999999999994`, min true-direction projection score
-    `0.9999999999999991`, max raw oracle calls `45360`.
+  - Foundation result: 4/4 passed, max MAE `0.0005708747054871747`, min R2
+    `0.999979343109252`, min selected gradient-energy ratio
+    `0.9999995561224265`, min true-direction projection score
+    `0.9999999887415834`, max raw oracle calls `45360`.
   - Current 4096D stress gate: `npm run
     benchmark:nn-active-subspace-ffn-4096d-stress`, controlled 4096D GELU and
     SwiGLU-style teachers, held-out R2 above `0.999`, explicit true-direction
     projection evidence, query budget below `115000`, and a win against
     mean/random-subspace/coordinate-subspace baselines.
-  - 4096D result: 2/2 passed, max MAE `0.0003824201749357419`, min R2
-    `0.9999571961681036`, min selected gradient-energy ratio
-    `0.9999999999999987`, min true-direction projection score
-    `0.9999999999999992`, max raw oracle calls `103504`.
-- Stage B: synthetic FFN block recovery.
+  - 4096D result: 2/2 passed, max MAE `0.0008334928131969248`, min R2
+    `0.9998586505688375`, min selected gradient-energy ratio
+    `0.9999999998896398`, min true-direction projection score
+    `0.9999999998732209`, max raw oracle calls `103504`.
+  - Current noisy rank-1 robustness gate: `npm run
+    benchmark:nn-active-subspace-ffn-noisy`, controlled stochastic 128D/256D
+    GELU teachers with validation against held-out noiseless truth, held-out R2
+    above `0.99`, direction projection above `0.998`, explicit query budgets,
+    and a win against mean/random-subspace/coordinate-subspace baselines.
+  - Noisy result: 2/2 passed, max MAE `0.04567550692434054`, min R2
+    `0.993172477248586`, min true-direction projection score
+    `0.9980221387236469`, max raw oracle calls `8720`.
+- Stage B: explicit GELU structure finder.
+  - Current command: `npm run benchmark:nn-gelu-ffn-structure-finder`.
+  - Current gate: controlled 96D single/two-channel GELU teachers, oracle calls
+    only, recovered input directions, input biases, output weights, held-out
+    output metrics, structural parameter error thresholds, query budget, and a
+    mean-output baseline check.
+  - Current result: 2/2 passed, max MAE `0.002229589390805771`, min R2
+    `0.9999894428635375`, min direction projection `0.9999995030788708`, max
+    weight-norm error `0.044204547411414996`, max bias error
+    `0.006098221054376296`, max raw oracle calls `6088`.
+  - Research bridge: `npm run research:nn-gpt2-gelu-ffn-structure-finder`
+    runs the same structural solver on one local real GPT-2 layer-0 FFN JSON
+    fixture. Current research result: 4/4 cases passed for one single 768D
+    GELU neuron plus top-1/top-3 truncated output-channel sums, min R2
+    `0.9950578044301109`, max MAE `0.04830918330347917`, min direction
+    projection `0.9998685252655729`. This is not release-gated because the
+    fixture files live outside the npm package, and it must remain a fixture
+    check rather than the center of the roadmap.
+  - Important correction: this lane is a structure finder, not a local KNN or
+    polynomial surrogate. The earlier active-subspace FFN lane remains useful
+    for output fidelity and active-rank discovery, but it does not satisfy the
+    deeper "find the neuron structure" goal by itself.
+- Stage C: synthetic FFN block recovery.
   - Multiple GELU/SwiGLU channels are summed into a block output slice.
-  - Gate: output-equivalent transparent surrogate with per-channel or subspace
-    evidence, held-out accuracy, query budget, and failure accounting for
-    collinear/cancelling gates.
-- Stage C: local transformer MLP hook.
+  - This remains the primary bridge from controlled smooth channels toward real
+    FFN block recovery. It should strengthen the generic GCL mechanism, not
+    overfit a single GPT-2 fixture.
+  - Current command: `npm run benchmark:nn-gelu-ffn-mixed-structure`.
+  - Current clean mixed-GELU result: controlled 32D three-channel GELU block,
+    GCL sees only `f(vector)` plus a max channel budget `4`, not the true
+    channel count. The gate passed with effective channel count `3`, duplicate
+    pairs `0`, MAE `0.0014707898276633694`, R2 `0.9999899685243602`, min
+    direction projection `0.9998572617229938`, max weight-norm error
+    `0.03168688372064543`, max bias error `0.009782376019626393`, and raw
+    oracle calls `14458`.
+  - Current near-parallel family command: `npm run
+    benchmark:nn-gelu-ffn-near-parallel-family`.
+  - Near-parallel family result: epsilons `1e-1`, `1e-2`, `1e-3`, `1e-4`;
+    effective channel counts `3,3,3,3`; duplicate pair counts `0,0,0,0`;
+    near-parallel pair counts `0,1,1,1`; max MAE
+    `0.002510633422272873`; min R2 `0.999883779624714`; min direction
+    projection `0.9993621598125698`; max raw oracle calls `18248`.
+  - Current cross-decomposition invariance command: `npm run
+    benchmark:nn-gelu-ffn-cross-decomposition-invariance`.
+  - Cross-decomposition result: two equivalent 16D GELU hidden decompositions
+    with hidden atom counts `3` and `6`, oracle delta `4.441e-16`, recovered
+    effective counts `3,3`, canonical atom counts `3,3`, signature distance
+    `0.052726404715341284`, max atom distance `0.07144167430917188`, max MAE
+    `0.0019376881321900733`, min R2 `0.9999767700614473`, model-agreement MAE
+    `0.0021717078319734404`, and max raw oracle calls `25710`.
+  - Gate: explicit atom recovery where identifiable, plus output-equivalent
+    fallback only when non-identifiability is stated and gated; must include
+    per-channel/subspace evidence, held-out accuracy, query budget, and failure
+    accounting for collinear/cancelling gates.
+  - Important boundary: the cross-decomposition gate proves clean canonical
+    structure recovery under an equivalence class. It does not prove semantic
+    identity of the original hidden neurons, noisy invariance, or full LLM FFN
+    extraction.
+  - Formal contract: `docs/neural-decompiler-formalization.md` defines atom,
+    functional equivalence, canonical structure, canonical signature, allowed
+    claim levels, mandatory negative cases, and the scaling stress ladder.
+  - Required benchmark shape: controlled randomized mixed-channel teachers across
+    dimensions, channel counts, rank caps, noisy/quantized outputs, collinear
+    directions, weak channels, and cancellation profiles.
+  - Implementation subplan:
+    1. DONE: Add a rank-adaptive mixed-channel GELU structure finder that receives only
+       `f(vector)` and a maximum channel budget, then returns explicit recovered
+       atoms, an effective channel count, pruned weak atoms, duplicate/collision
+       diagnostics, held-out metrics, and raw oracle-call accounting.
+    2. DONE: Add a release gate for controlled mixed GELU blocks where GCL does not know
+       the true channel count. The gate must fail if output accuracy is achieved
+       without enough recovered atom structure.
+    3. DONE for clean near-parallel: Add a deterministic epsilon-family gate for
+       two near-parallel GELU channels and require stable direction recovery,
+       effective count recovery, duplicate diagnostics, near-parallel
+       diagnostics, output fit, and query-budget accounting.
+    4. DONE for clean canonical invariance: Add a cross-decomposition gate where
+       two mathematically equivalent hidden decompositions must recover the same
+       canonical structure signature, with failure preserved if the solver picks
+       a larger atom basis.
+    5. DONE for first negative-case enforcement: Add
+       `benchmark:nn-gelu-ffn-negative-cases`, where the correct result is
+       sometimes "surrogate" or "non-identifiable", not forced atom recovery.
+       The current gate covers duplicate split/cancellation canonicalization,
+       weak channels below noise, activation-family mismatch, and overcomplete
+       budgets.
+    6. NEXT: Add noisy/quantized repeated-query variants with median aggregation,
+       near-collinear ambiguity, weak channels, cancellation profiles, and
+       adversarial quantization beyond the first negative-case gate. Failed
+       candidates must be recorded instead of hidden.
+    7. NEXT: Add package-backed baseline court for the mixed-channel block: mean/ridge,
+       active-subspace surrogate, and at least one nonlinear baseline. The GCL
+       structure lane must report both output fit and structural evidence.
+    8. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
+       then multi-layer smooth composition, always with query budget and
+       negative-case behavior. A dimension jump is not a structure claim by
+       itself.
+    9. NEXT: Only after this passes should GPT-2 top-K expansion or full FFN slices be
+       used as research stress tests. They must not replace the generic mixed-
+       channel gate.
+- Stage D: local transformer MLP hook.
   - Use a small local transformer block with captured residual-stream inputs and
     one MLP output slice/channel target.
   - Gate: compare GCL against linear/ridge/MLP surrogate baselines on held-out
@@ -187,9 +302,17 @@ The following items are still required before any broad SOTA language:
   separate gates from the ReLU recovered-adjacency geometry lane. Status:
   started with `benchmark:nn-active-subspace-ffn-decompiler` and extended to a
   controlled 4096D stress gate with
-  `benchmark:nn-active-subspace-ffn-4096d-stress`; next evidence must cover
-  mixed multi-channel FFN blocks and package-backed external baselines before
-  broad claims.
+  `benchmark:nn-active-subspace-ffn-4096d-stress`; the noisy rank-1 failure
+  mode is now covered by `benchmark:nn-active-subspace-ffn-noisy`; the first
+  clean rank-adaptive mixed GELU structure gate is covered by
+  `benchmark:nn-gelu-ffn-mixed-structure`; near-parallel clean mixed-channel
+  stability is covered by `benchmark:nn-gelu-ffn-near-parallel-family`;
+  clean canonical structure invariance under equivalent hidden decompositions is
+  covered by `benchmark:nn-gelu-ffn-cross-decomposition-invariance`; and the
+  first formalization negative-case enforcement gate is covered by
+  `benchmark:nn-gelu-ffn-negative-cases`. Next evidence must cover broader
+  noisy/quantized mixed multi-channel FFN blocks and package-backed external
+  baselines before broad claims.
 
 ## Current Frontier Target
 
@@ -206,10 +329,14 @@ rejected-candidate ledger, topology-preserving recovered-adjacency boundary
 geometry, noisy/adaptive adversarial deep-ND folded recovery, deep-ND query-
 budget reduction, and recovered-adjacency geometry beyond 2D. The next
 capability jump is no longer simply 7D/8D ReLU scaling. The next move is active-
-subspace smooth FFN recovery: 256D/1024D controlled GELU/SwiGLU channels and
-4096D stress are now release-gated; next are mixed multi-channel FFN blocks,
-package-backed external baselines, and finally a local transformer MLP hook. The
-6D ReLU lane remains a foundation and is not a broad SOTA claim by itself.
+subspace smooth FFN recovery: 256D/1024D controlled GELU/SwiGLU channels, 4096D
+stress, noisy 128D/256D rank-1 GELU recovery, explicit GELU atom recovery, the
+first clean rank-adaptive mixed GELU block, the near-parallel epsilon family,
+cross-decomposition canonical invariance, and the first formalization
+negative-case gate are now release-gated. Next are broader noisy/quantized mixed
+multi-channel FFN blocks, package-backed external baselines, and finally a local
+transformer MLP hook. The 6D ReLU lane remains a foundation and is not a broad
+SOTA claim by itself.
 
 Target commands:
 
@@ -224,6 +351,13 @@ Target commands:
 - `npm run benchmark:nn-nd-adjacency-geometry-6d-query-budget`
 - `npm run benchmark:nn-active-subspace-ffn-decompiler`
 - `npm run benchmark:nn-active-subspace-ffn-4096d-stress`
+- `npm run benchmark:nn-active-subspace-ffn-noisy`
+- `npm run benchmark:nn-gelu-ffn-structure-finder`
+- `npm run benchmark:nn-gelu-ffn-mixed-structure`
+- `npm run benchmark:nn-gelu-ffn-near-parallel-family`
+- `npm run benchmark:nn-gelu-ffn-cross-decomposition-invariance`
+- `npm run benchmark:nn-gelu-ffn-negative-cases`
+- `npm run research:nn-gpt2-gelu-ffn-structure-finder`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`
 - `npm run benchmark:nn-deep-blackbox-relu2d-region-graph`
