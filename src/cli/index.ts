@@ -647,6 +647,22 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-gpt2-gelu-ffn-real-structure',
+    name: 'NN real GPT-2 GELU FFN source structure',
+    status: 'production',
+    summary: 'Recovers explicit GELU atoms from a compact real GPT-2 layer-0 FFN top-K output slice and maps recovered atoms to exact GPT-2 source channel ids through functional provenance.',
+    scope: 'Provenance-mode real GPT-2 benchmark; uses a compact fixture extracted from real GPT-2 layer-0 FFN weights for output channel 0 top-3 source channels. GCL recovers structure from oracle calls, then verifies source ids through a source manifest by direction, activation trace, contribution trace, why-reacts evidence, and query budget. This is not full GPT-2 FFN extraction, arbitrary 3072-channel recovery, exact parameter identity under GELU gauge drift, tokenizer/model execution, output-only source identity without provenance, or broad SOTA status.',
+    run: { label: 'NN real GPT-2 GELU FFN source-structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure'] },
+    proofs: [
+      { label: 'NN real GPT-2 GELU FFN source-structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure'] }
+    ],
+    artifacts: [
+      'benchmarks/fixtures/gpt2-layer0-output0-top3-gelu.json',
+      'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-topk-source-mapping/report.json',
+      'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-topk-source-mapping/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

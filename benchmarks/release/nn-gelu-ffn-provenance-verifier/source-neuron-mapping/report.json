@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T19:54:53.610Z",
+  "generatedAt": "2026-06-02T20:58:34.245Z",
   "task": "GELU FFN source-neuron provenance verifier",
   "blackBoxBoundary": {
     "solverInput": "oracle f(vector) plus source-neuron manifest for provenance verification",
@@ -92,7 +92,8 @@
       "provenance": {
         "verified": true,
         "mode": "instrumented-source-provenance",
-        "claim": "Recovered GELU atoms are matched to instrumented source neuron groups. Duplicate/split source neurons are reported as groups, not hallucinated as a unique single original neuron.",
+        "sourceIdentityMode": "strict-parameter",
+        "claim": "Recovered GELU atoms are matched to instrumented source neuron groups with strict parameter-error checks. Duplicate/split source neurons are reported as groups, not hallucinated as a unique single original neuron.",
         "sourceNeuronCount": 3,
         "sourceGroupCount": 3,
         "recoveredAtomCount": 3,
@@ -117,6 +118,8 @@
             "activationCorrelation": 0.9998001490608573,
             "contributionCorrelation": 0.999800149060857,
             "contributionMae": 0.0023374458526689806,
+            "parameterConfidence": 0.9741690737839342,
+            "functionalConfidence": 0.9741690737839342,
             "whyReacts": {
               "formula": "0.370000 * GELU(0.0375864*x0 + -0.291008*x1 + -0.132409*x2 + -0.0230113*x3 + -0.0266178*x4 + 0.193853*x5 + -0.194418*x6 + 0.0679737*x7 + -0.0556175*x8 + -0.157909*x9 + 0.168427*x10 + 0.210154*x11 + 0.0967100*x12 + -0.250109*x13 + -0.231166*x14 + -0.260524*x15 + 0.185186*x16 + -0.187472*x17 + -0.125398*x18 + -0.0147503*x19 + 0.0487101*x20 + 0.204147*x21 + -0.244345*x22 + -0.0679624*x23 + -0.0800000)",
               "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
@@ -179,6 +182,8 @@
             "activationCorrelation": 0.9997859553906733,
             "contributionCorrelation": 0.999785955390672,
             "contributionMae": 0.006072548635663222,
+            "parameterConfidence": 0.9393093516535741,
+            "functionalConfidence": 0.9782865011095233,
             "whyReacts": {
               "formula": "-0.610000 * GELU(0.291536*x0 + 0.0417953*x1 + 0.154285*x2 + -0.0408485*x3 + 0.134184*x4 + -0.540100*x5 + -0.0406162*x6 + -0.00794859*x7 + -0.0964815*x8 + -0.386751*x9 + -0.240952*x10 + 0.193679*x11 + -0.103227*x12 + -0.287139*x13 + -0.134867*x14 + -0.134131*x15 + -0.0255442*x16 + 0.0188200*x17 + 0.127824*x18 + 0.106024*x19 + -0.0718423*x20 + -0.0295009*x21 + 0.206931*x22 + -0.191788*x23 + 0.240000)",
               "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
@@ -241,6 +246,8 @@
             "activationCorrelation": 0.9998481935850536,
             "contributionCorrelation": 0.9998481935850544,
             "contributionMae": 0.012496861963984219,
+            "parameterConfidence": 0.9050399718933542,
+            "functionalConfidence": 0.9549113032435007,
             "whyReacts": {
               "formula": "0.820000 * GELU(-0.260353*x0 + 0.143909*x1 + 0.299591*x2 + 0.0609103*x3 + -0.0797647*x4 + 0.433482*x5 + -0.281471*x6 + 0.0431322*x7 + -0.480023*x8 + -0.124609*x9 + -0.108308*x10 + 0.0652683*x11 + -0.260419*x12 + -0.110930*x13 + 0.116088*x14 + -0.0800916*x15 + -0.294972*x16 + 0.180539*x17 + -0.369868*x18 + 0.375451*x19 + -0.0681693*x20 + -0.290413*x21 + -0.00287484*x22 + -0.294563*x23 + -0.200000)",
               "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
@@ -284,6 +291,134 @@
             }
           }
         ],
+        "topCandidateDiagnostics": [
+          {
+            "recoveredAtomIndex": 2,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[203]",
+            "confidence": 0.9741690737839342,
+            "directionCosine": 0.9998822686829256,
+            "inputWeightNormError": 0.01837694463769768,
+            "inputBiasError": 0.0016491879754588351,
+            "outputWeightError": 0.013517630176087314,
+            "activationCorrelation": 0.9998001490608573,
+            "contributionCorrelation": 0.999800149060857,
+            "contributionMae": 0.0023374458526689806,
+            "parameterConfidence": 0.9741690737839342,
+            "functionalConfidence": 0.9741690737839342
+          },
+          {
+            "recoveredAtomIndex": 1,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[42]",
+            "confidence": 0.9393093516535741,
+            "directionCosine": 0.9998627839608416,
+            "inputWeightNormError": 0.0606906483464259,
+            "inputBiasError": 0.01525209900831892,
+            "outputWeightError": 0.046115593446822256,
+            "activationCorrelation": 0.9997859553906733,
+            "contributionCorrelation": 0.999785955390672,
+            "contributionMae": 0.006072548635663222,
+            "parameterConfidence": 0.9393093516535741,
+            "functionalConfidence": 0.9782865011095233
+          },
+          {
+            "recoveredAtomIndex": 0,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[17]",
+            "confidence": 0.9050399718933542,
+            "directionCosine": 0.9999558958819256,
+            "inputWeightNormError": 0.11205283316584214,
+            "inputBiasError": 0.002846196127466921,
+            "outputWeightError": 0.0886476557198349,
+            "activationCorrelation": 0.9998481935850536,
+            "contributionCorrelation": 0.9998481935850544,
+            "contributionMae": 0.012496861963984219,
+            "parameterConfidence": 0.9050399718933542,
+            "functionalConfidence": 0.9549113032435007
+          },
+          {
+            "recoveredAtomIndex": 0,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[42]",
+            "confidence": 0,
+            "directionCosine": -0.008936903541319548,
+            "inputWeightNormError": 0.3320528331658422,
+            "inputBiasError": 0.4428461961274669,
+            "outputWeightError": 1.341352344280165,
+            "activationCorrelation": -0.06332883855022126,
+            "contributionCorrelation": 0.06332883855022123,
+            "contributionMae": 0.47910833982696666,
+            "parameterConfidence": 0,
+            "functionalConfidence": 0
+          },
+          {
+            "recoveredAtomIndex": 0,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[203]",
+            "confidence": 0,
+            "directionCosine": 0.0025554272857651193,
+            "inputWeightNormError": 0.47205283316584223,
+            "inputBiasError": 0.12284619612746693,
+            "outputWeightError": 0.36135234428016505,
+            "activationCorrelation": 0.1487822674950721,
+            "contributionCorrelation": 0.148782267495072,
+            "contributionMae": 0.28352118143030564,
+            "parameterConfidence": 0,
+            "functionalConfidence": 0
+          },
+          {
+            "recoveredAtomIndex": 1,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[17]",
+            "confidence": 0,
+            "directionCosine": -0.016302798620143808,
+            "inputWeightNormError": 0.15930935165357418,
+            "inputBiasError": 0.4552520990083189,
+            "outputWeightError": 1.3838844065531777,
+            "activationCorrelation": -0.0720124024282888,
+            "contributionCorrelation": 0.07201240242828882,
+            "contributionMae": 0.4733630540416506,
+            "parameterConfidence": 0,
+            "functionalConfidence": 0
+          },
+          {
+            "recoveredAtomIndex": 1,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[203]",
+            "confidence": 0,
+            "directionCosine": -0.0026653894791313034,
+            "inputWeightNormError": 0.20069064834642591,
+            "inputBiasError": 0.3352520990083189,
+            "outputWeightError": 0.9338844065531777,
+            "activationCorrelation": -0.021224823177235105,
+            "contributionCorrelation": 0.021224823177235102,
+            "contributionMae": 0.31665943723645607,
+            "parameterConfidence": 0,
+            "functionalConfidence": 0
+          },
+          {
+            "recoveredAtomIndex": 2,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[17]",
+            "confidence": 0,
+            "directionCosine": -0.012928707126338885,
+            "inputWeightNormError": 0.3416230553623024,
+            "inputBiasError": 0.12164918797545884,
+            "outputWeightError": 0.46351763017608727,
+            "activationCorrelation": 0.1368832043645295,
+            "contributionCorrelation": 0.13688320436452941,
+            "contributionMae": 0.2874879154681308,
+            "parameterConfidence": 0,
+            "functionalConfidence": 0
+          },
+          {
+            "recoveredAtomIndex": 2,
+            "sourceGroupId": "transformer.h0.mlp.c_fc[42]",
+            "confidence": 0,
+            "directionCosine": -0.008161028399802362,
+            "inputWeightNormError": 0.12162305536230233,
+            "inputBiasError": 0.3183508120245412,
+            "outputWeightError": 0.9664823698239127,
+            "activationCorrelation": -0.02342846931259134,
+            "contributionCorrelation": 0.02342846931259133,
+            "contributionMae": 0.31787792158276745,
+            "parameterConfidence": 0,
+            "functionalConfidence": 0
+          }
+        ],
         "unmatchedRecoveredAtomIndices": [],
         "unmatchedSourceGroupIds": [],
         "duplicateSourceGroups": [],
@@ -292,6 +427,7 @@
           "allRecoveredAtomsMatched": true,
           "allSourceGroupsMatched": true,
           "noUnresolvedAmbiguity": true,
+          "parameterErrorsRequired": true,
           "directionCosinePassed": true,
           "parameterErrorsPassed": true,
           "activationCorrelationPassed": true,
@@ -374,7 +510,8 @@
       "provenance": {
         "verified": true,
         "mode": "instrumented-source-provenance",
-        "claim": "Recovered GELU atoms are matched to instrumented source neuron groups. Duplicate/split source neurons are reported as groups, not hallucinated as a unique single original neuron.",
+        "sourceIdentityMode": "strict-parameter",
+        "claim": "Recovered GELU atoms are matched to instrumented source neuron groups with strict parameter-error checks. Duplicate/split source neurons are reported as groups, not hallucinated as a unique single original neuron.",
         "sourceNeuronCount": 3,
         "sourceGroupCount": 2,
         "recoveredAtomCount": 2,
@@ -399,6 +536,8 @@
             "activationCorrelation": 0.9999287643327714,
             "contributionCorrelation": 0.9999287643327719,
             "contributionMae": 0.0027428336009453127,
+            "parameterConfidence": 0.986851479827466,
+            "functionalConfidence": 0.986851479827466,
             "whyReacts": {
               "formula": "-0.520000 * GELU(-0.301012*x0 + 0.101682*x1 + -0.0112128*x2 + -0.128510*x3 + -0.106372*x4 + 0.185919*x5 + 0.000837430*x6 + -0.292781*x7 + 0.302300*x8 + -0.0260534*x9 + -0.118248*x10 + -0.239489*x11 + -0.137375*x12 + -0.319435*x13 + 0.0696695*x14 + 0.149986*x15 + -0.166130*x16 + -0.349455*x17 + -0.0299015*x18 + 0.247101*x19 + -0.0350210*x20 + 0.0945310*x21 + 0.0824913*x22 + -0.143212*x23 + 0.140000)",
               "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
@@ -463,6 +602,8 @@
             "activationCorrelation": 0.9999667708378313,
             "contributionCorrelation": 0.9999667708378319,
             "contributionMae": 0.004240946958794905,
+            "parameterConfidence": 0.9633454870448102,
+            "functionalConfidence": 0.9814192311279244,
             "whyReacts": {
               "formula": "0.740000 * GELU(0.103239*x0 + -0.287191*x1 + 0.312123*x2 + 0.0259996*x3 + 0.181312*x4 + -0.120578*x5 + -0.000873848*x6 + 0.103924*x7 + 0.196374*x8 + -0.0660505*x9 + 0.164969*x10 + -0.0969681*x11 + -0.109575*x12 + -0.101816*x13 + 0.197363*x14 + 0.160529*x15 + 0.0646075*x16 + -0.0652801*x17 + 0.319323*x18 + 0.123538*x19 + 0.681969*x20 + 0.137921*x21 + -0.265434*x22 + 0.0786851*x23 + -0.180000)",
               "responseRule": "This source group reacts when the input projection along its weight direction pushes preactivation into the GELU transition/positive region; its signed output weight controls whether the channel raises or lowers the FFN output.",
@@ -504,6 +645,64 @@
                 }
               ]
             }
+          }
+        ],
+        "topCandidateDiagnostics": [
+          {
+            "recoveredAtomIndex": 1,
+            "sourceGroupId": "transformer.h1.mlp.c_fc[77]",
+            "confidence": 0.986851479827466,
+            "directionCosine": 0.9999454019664195,
+            "inputWeightNormError": 0.0005359596361519392,
+            "inputBiasError": 0.0034780001605729804,
+            "outputWeightError": 0.001252295632610756,
+            "activationCorrelation": 0.9999287643327714,
+            "contributionCorrelation": 0.9999287643327719,
+            "contributionMae": 0.0027428336009453127,
+            "parameterConfidence": 0.986851479827466,
+            "functionalConfidence": 0.986851479827466
+          },
+          {
+            "recoveredAtomIndex": 0,
+            "sourceGroupId": "transformer.h1.mlp.c_fc[8+9]",
+            "confidence": 0.9633454870448102,
+            "directionCosine": 0.9999866273187501,
+            "inputWeightNormError": 0.038487238602949336,
+            "inputBiasError": 0.0007684688766084469,
+            "outputWeightError": 0.03539122060330524,
+            "activationCorrelation": 0.9999667708378313,
+            "contributionCorrelation": 0.9999667708378319,
+            "contributionMae": 0.004240946958794905,
+            "parameterConfidence": 0.9633454870448102,
+            "functionalConfidence": 0.9814192311279244
+          },
+          {
+            "recoveredAtomIndex": 0,
+            "sourceGroupId": "transformer.h1.mlp.c_fc[77]",
+            "confidence": 0,
+            "directionCosine": -0.005132299707012385,
+            "inputWeightNormError": 0.18848723860294925,
+            "inputBiasError": 0.3207684688766085,
+            "outputWeightError": 1.2246087793966947,
+            "activationCorrelation": -0.0019001924024445076,
+            "contributionCorrelation": 0.0019001924024444586,
+            "contributionMae": 0.3641016900369065,
+            "parameterConfidence": 0,
+            "functionalConfidence": 0
+          },
+          {
+            "recoveredAtomIndex": 1,
+            "sourceGroupId": "transformer.h1.mlp.c_fc[8+9]",
+            "confidence": 0,
+            "directionCosine": -0.010419187467695283,
+            "inputWeightNormError": 0.15053595963615185,
+            "inputBiasError": 0.316521999839427,
+            "outputWeightError": 1.2587477043673894,
+            "activationCorrelation": -0.005233827055000581,
+            "contributionCorrelation": 0.005233827055000596,
+            "contributionMae": 0.361947854985398,
+            "parameterConfidence": 0,
+            "functionalConfidence": 0
           }
         ],
         "unmatchedRecoveredAtomIndices": [],
@@ -630,6 +829,7 @@
           "allRecoveredAtomsMatched": true,
           "allSourceGroupsMatched": true,
           "noUnresolvedAmbiguity": true,
+          "parameterErrorsRequired": true,
           "directionCosinePassed": true,
           "parameterErrorsPassed": true,
           "activationCorrelationPassed": true,
@@ -650,5 +850,5 @@
       }
     }
   ],
-  "runtimeMs": 25317
+  "runtimeMs": 25374
 }

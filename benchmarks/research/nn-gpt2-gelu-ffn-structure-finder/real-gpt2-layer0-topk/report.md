@@ -1,6 +1,6 @@
 # GPT-2 GELU FFN Structure Finder Research Benchmark
 
-Generated: 2026-05-31T17:54:35.246Z
+Generated: 2026-06-02T20:17:38.199Z
 
 ## Scope
 

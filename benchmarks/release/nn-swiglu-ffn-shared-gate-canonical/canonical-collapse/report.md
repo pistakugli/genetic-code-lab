@@ -1,6 +1,6 @@
 # Shared-Gate Cancellation SwiGLU Canonical Benchmark
 
-Generated: 2026-06-02T19:54:27.075Z
+Generated: 2026-06-02T20:58:07.671Z
 
 ## Claim Scope
 

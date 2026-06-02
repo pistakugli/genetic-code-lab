@@ -124,6 +124,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-local-transformer-mlp-hook',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-gpt2-gelu-ffn-real-structure',
+        status: 'production'
       })
     ]));
   });

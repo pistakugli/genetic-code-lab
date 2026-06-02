@@ -407,6 +407,22 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   exact GELU/SwiGLU parameter recovery for arbitrary production blocks, or
   mechanistic understanding of production transformer blocks from this gate
   alone.
+- Stage E: compact real GPT-2 FFN source structure.
+  - Current command: `npm run benchmark:nn-gpt2-gelu-ffn-real-structure`.
+  - Current result: compact fixture generated from real GPT-2 layer-0 FFN
+    weights for output channel `0`, top-3 source channels `1614,2452,2053`,
+    dimension `768`; recovered effective channel count `3`, all source groups
+    mapped, MAE `0.04964509934587569`, R2 `0.9942876980025065`, worst error
+    `0.1585760339175079`, min provenance confidence `0.7918710775184039`,
+    min direction cosine `0.9998877789545968`, and raw oracle calls `116988`.
+  - Gate: recover explicit GELU atoms from oracle calls over the compact real
+    GPT-2 FFN slice, then verify exact source channel ids through functional
+    provenance: direction, activation trace, contribution trace, and why-reacts
+    evidence. Strict parameter identity is not claimed because the first strict
+    run exposed real GELU scale/output-weight gauge drift.
+  - Next hard cases: top-5 release-candidate sweep, top-8/top-10 research hard
+    cases, and a negative full-3072/rank-cap guard that must report insufficient
+    rank instead of promoting a weak output fit.
 
 The following items are still required before any broad SOTA language:
 

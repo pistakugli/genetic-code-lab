@@ -41,6 +41,8 @@ export type GeluFfnNeuronProvenanceMatch = {
   activationCorrelation: number;
   contributionCorrelation: number;
   contributionMae: number;
+  parameterConfidence: number;
+  functionalConfidence: number;
   whyReacts: {
     formula: string;
     responseRule: string;
@@ -56,6 +58,7 @@ export type GeluFfnNeuronProvenanceMatch = {
 
 export type GeluFfnNeuronProvenanceVerifierConfig = {
   probeInputs: number[][];
+  sourceIdentityMode?: 'strict-parameter' | 'functional-equivalence';
   duplicateDirectionCosine?: number;
   duplicateBiasTolerance?: number;
   duplicateNormTolerance?: number;
@@ -72,11 +75,26 @@ export type GeluFfnNeuronProvenanceVerifierConfig = {
 export type GeluFfnNeuronProvenanceReport = {
   verified: boolean;
   mode: 'instrumented-source-provenance';
+  sourceIdentityMode: 'strict-parameter' | 'functional-equivalence';
   claim: string;
   sourceNeuronCount: number;
   sourceGroupCount: number;
   recoveredAtomCount: number;
   matches: GeluFfnNeuronProvenanceMatch[];
+  topCandidateDiagnostics: Array<{
+    recoveredAtomIndex: number;
+    sourceGroupId: string;
+    confidence: number;
+    directionCosine: number;
+    inputWeightNormError: number;
+    inputBiasError: number;
+    outputWeightError: number;
+    activationCorrelation: number;
+    contributionCorrelation: number;
+    contributionMae: number;
+    parameterConfidence: number;
+    functionalConfidence: number;
+  }>;
   unmatchedRecoveredAtomIndices: number[];
   unmatchedSourceGroupIds: string[];
   duplicateSourceGroups: GeluFfnSourceNeuronGroup[];
@@ -85,6 +103,7 @@ export type GeluFfnNeuronProvenanceReport = {
     allRecoveredAtomsMatched: boolean;
     allSourceGroupsMatched: boolean;
     noUnresolvedAmbiguity: boolean;
+    parameterErrorsRequired: boolean;
     directionCosinePassed: boolean;
     parameterErrorsPassed: boolean;
     activationCorrelationPassed: boolean;
@@ -284,7 +303,7 @@ function pairScore(
   const normalizedBiasScore = 1 - Math.min(1, inputBiasError / Math.max(0.25, Math.abs(group.inputBias), 1));
   const normalizedOutputScore = 1 - Math.min(1, outputWeightError / Math.max(0.25, Math.abs(group.outputWeight), 1));
   const normalizedContributionScore = 1 - Math.min(1, contributionMae / Math.max(0.02, mean(sourceContributions.map(Math.abs))));
-  const confidence = Math.max(0, Math.min(
+  const parameterConfidence = Math.max(0, Math.min(
     directionCosine,
     activationCorrelation,
     contributionCorrelation,
@@ -293,15 +312,23 @@ function pairScore(
     normalizedOutputScore,
     normalizedContributionScore
   ));
+  const functionalConfidence = Math.max(0, Math.min(
+    directionCosine,
+    activationCorrelation,
+    contributionCorrelation,
+    normalizedContributionScore
+  ));
   return {
-    confidence,
+    confidence: parameterConfidence,
     directionCosine,
     inputWeightNormError,
     inputBiasError,
     outputWeightError,
     activationCorrelation,
     contributionCorrelation,
-    contributionMae
+    contributionMae,
+    parameterConfidence,
+    functionalConfidence
   };
 }
 
@@ -313,6 +340,8 @@ export function verifyGeluFfnNeuronProvenance(
   if (!config.probeInputs.length) throw new Error('GELU FFN provenance verifier requires probe inputs');
   assertProvenanceInputs(model, sources, config.probeInputs);
   const groups = groupGeluFfnSourceNeurons(sources, config);
+  const sourceIdentityMode = config.sourceIdentityMode ?? 'strict-parameter';
+  const requireParameterErrors = sourceIdentityMode === 'strict-parameter';
   const minDirectionCosine = config.minDirectionCosine ?? 0.99;
   const maxInputWeightNormError = config.maxInputWeightNormError ?? 0.18;
   const maxInputBiasError = config.maxInputBiasError ?? 0.16;
@@ -328,21 +357,44 @@ export function verifyGeluFfnNeuronProvenance(
       group,
       score: pairScore(atom, group, config.probeInputs)
     }))
-  )).sort((a, b) => b.score.confidence - a.score.confidence);
+  )).sort((a, b) => (
+    sourceIdentityMode === 'functional-equivalence'
+      ? b.score.functionalConfidence - a.score.functionalConfidence
+      : b.score.parameterConfidence - a.score.parameterConfidence
+  ));
+  const topCandidateDiagnostics = candidatePairs.slice(0, Math.min(24, candidatePairs.length)).map(candidate => ({
+    recoveredAtomIndex: candidate.recoveredAtomIndex,
+    sourceGroupId: candidate.group.id,
+    confidence: sourceIdentityMode === 'functional-equivalence'
+      ? candidate.score.functionalConfidence
+      : candidate.score.parameterConfidence,
+    directionCosine: candidate.score.directionCosine,
+    inputWeightNormError: candidate.score.inputWeightNormError,
+    inputBiasError: candidate.score.inputBiasError,
+    outputWeightError: candidate.score.outputWeightError,
+    activationCorrelation: candidate.score.activationCorrelation,
+    contributionCorrelation: candidate.score.contributionCorrelation,
+    contributionMae: candidate.score.contributionMae,
+    parameterConfidence: candidate.score.parameterConfidence,
+    functionalConfidence: candidate.score.functionalConfidence
+  }));
 
   const usedAtoms = new Set<number>();
   const usedGroups = new Set<string>();
   const matches: GeluFfnNeuronProvenanceMatch[] = [];
   for (const candidate of candidatePairs) {
     if (usedAtoms.has(candidate.recoveredAtomIndex) || usedGroups.has(candidate.group.id)) continue;
+    const confidence = sourceIdentityMode === 'functional-equivalence'
+      ? candidate.score.functionalConfidence
+      : candidate.score.parameterConfidence;
     const passesPair = candidate.score.directionCosine >= minDirectionCosine
-      && candidate.score.inputWeightNormError <= maxInputWeightNormError
-      && candidate.score.inputBiasError <= maxInputBiasError
-      && candidate.score.outputWeightError <= maxOutputWeightError
+      && (!requireParameterErrors || candidate.score.inputWeightNormError <= maxInputWeightNormError)
+      && (!requireParameterErrors || candidate.score.inputBiasError <= maxInputBiasError)
+      && (!requireParameterErrors || candidate.score.outputWeightError <= maxOutputWeightError)
       && candidate.score.activationCorrelation >= minActivationCorrelation
       && candidate.score.contributionCorrelation >= minContributionCorrelation
       && candidate.score.contributionMae <= maxContributionMae
-      && candidate.score.confidence >= minConfidence;
+      && confidence >= minConfidence;
     if (!passesPair) continue;
     usedAtoms.add(candidate.recoveredAtomIndex);
     usedGroups.add(candidate.group.id);
@@ -355,6 +407,7 @@ export function verifyGeluFfnNeuronProvenance(
       sourceOrigin: candidate.group.origin,
       duplicateSplit: candidate.group.duplicateSplit,
       ...candidate.score,
+      confidence,
       whyReacts: buildWhy(candidate.group, config.probeInputs)
     });
   }
@@ -370,8 +423,9 @@ export function verifyGeluFfnNeuronProvenance(
     allRecoveredAtomsMatched: unmatchedRecoveredAtomIndices.length === 0,
     allSourceGroupsMatched: unmatchedSourceGroupIds.length === 0,
     noUnresolvedAmbiguity: true,
+    parameterErrorsRequired: requireParameterErrors,
     directionCosinePassed: matches.every(match => match.directionCosine >= minDirectionCosine),
-    parameterErrorsPassed: matches.every(match => (
+    parameterErrorsPassed: !requireParameterErrors || matches.every(match => (
       match.inputWeightNormError <= maxInputWeightNormError
       && match.inputBiasError <= maxInputBiasError
       && match.outputWeightError <= maxOutputWeightError
@@ -381,14 +435,27 @@ export function verifyGeluFfnNeuronProvenance(
     contributionMaePassed: matches.every(match => match.contributionMae <= maxContributionMae),
     confidencePassed: matches.every(match => match.confidence >= minConfidence)
   };
+  const verified = gates.allRecoveredAtomsMatched
+    && gates.allSourceGroupsMatched
+    && gates.noUnresolvedAmbiguity
+    && gates.directionCosinePassed
+    && gates.parameterErrorsPassed
+    && gates.activationCorrelationPassed
+    && gates.contributionCorrelationPassed
+    && gates.contributionMaePassed
+    && gates.confidencePassed;
   return {
-    verified: Object.values(gates).every(Boolean),
+    verified,
     mode: 'instrumented-source-provenance',
-    claim: 'Recovered GELU atoms are matched to instrumented source neuron groups. Duplicate/split source neurons are reported as groups, not hallucinated as a unique single original neuron.',
+    sourceIdentityMode,
+    claim: sourceIdentityMode === 'strict-parameter'
+      ? 'Recovered GELU atoms are matched to instrumented source neuron groups with strict parameter-error checks. Duplicate/split source neurons are reported as groups, not hallucinated as a unique single original neuron.'
+      : 'Recovered GELU atoms are matched to instrumented source neuron groups by functional equivalence: direction, activation trace, and contribution trace must agree, while norm/output-weight gauge drift is reported instead of treated as exact parameter identity.',
     sourceNeuronCount: sources.length,
     sourceGroupCount: groups.length,
     recoveredAtomCount: model.atoms.length,
     matches,
+    topCandidateDiagnostics,
     unmatchedRecoveredAtomIndices,
     unmatchedSourceGroupIds,
     duplicateSourceGroups,
