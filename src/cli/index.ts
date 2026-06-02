@@ -632,6 +632,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-local-transformer-mlp-hook',
+    name: 'NN local transformer MLP hook',
+    status: 'production',
+    summary: 'Recovers explicit GELU source structure from a hooked local transformer MLP output slice and maps recovered atoms back to source expansion neurons with why-reacts evidence.',
+    scope: 'Provenance-mode local transformer benchmark; uses captured residual input, MLP input, fc preactivation, GELU activation, per-source contribution, and target output rows from a deterministic local transformer-style block. GCL must recover the explicit GELU source atoms from the hooked MLP-input oracle and verify source ids through the hook/source manifest. This is not full GPT-2/LLM extraction, arbitrary transformer block decompilation, output-only source identity without hooks, or broad SOTA status.',
+    run: { label: 'NN local transformer MLP hook benchmark', command: 'npm', args: ['run', 'benchmark:nn-local-transformer-mlp-hook'] },
+    proofs: [
+      { label: 'NN local transformer MLP hook benchmark', command: 'npm', args: ['run', 'benchmark:nn-local-transformer-mlp-hook'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-local-transformer-mlp-hook/hooked-gelu-slice/report.json',
+      'benchmarks/release/nn-local-transformer-mlp-hook/hooked-gelu-slice/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

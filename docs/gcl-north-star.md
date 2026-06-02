@@ -73,7 +73,10 @@ Current status: release-gated for:
   and noisy/quantized teachers, where multiple source value channels collapse
   into one minimal functionally equivalent value/gate pair;
 - source-neuron provenance verification when source manifests or equivalent
-  instrumentation are provided.
+  instrumentation are provided;
+- local transformer MLP hook recovery for a deterministic local
+  transformer-style block, with captured residual-stream, MLP-input,
+  preactivation, activation, per-source contribution, and target-output rows.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 decompilation, arbitrary 4096D production block decompilation, or a universal
@@ -86,7 +89,9 @@ react" when the source side is available.
 
 Current status: release-gated provenance-mode verification maps recovered GELU
 atoms to exact source ids, layers, indices, duplicate source groups, and
-why-reacts evidence.
+why-reacts evidence. The local transformer MLP hook gate extends this from a
+manifest-only controlled FFN source into captured activation rows from a local
+transformer-style block.
 
 Boundary: exact source identity requires source manifests, hooks, weights, or
 equivalent signed provenance. Output-only access can recover canonical
@@ -97,8 +102,10 @@ neuron identity without extra observability.
 
 The next development must stay on this order:
 
-1. real local transformer MLP hook with captured activations and provenance;
-2. scaling stress ladder: 768D -> 4096D -> 16384D;
+1. scaling stress ladder: 768D -> 4096D -> 16384D for hooked/synthetic smooth
+   FFN structure;
+2. stronger local transformer hook variants with noisy/quantized captured rows
+   and multi-output slices;
 3. GPT-2/full FFN research stress only after the generic mixed-block lane is
    strong enough.
 

@@ -38,7 +38,10 @@ no gradients unless estimated from oracle calls
 ```
 
 Any lane that uses hidden activations, weights, or teacher metadata must state
-that extra observability explicitly.
+that extra observability explicitly. A local transformer MLP hook lane is in this
+instrumented category when it captures residual input, MLP input,
+preactivation, activation, contribution, and target-output rows from the forward
+pass.
 
 ## Core Definitions
 
@@ -202,6 +205,11 @@ against a source-neuron manifest, weight hook, activation hook, or equivalent
 signed provenance record. The verifier may claim exact source ids, layers,
 indices, duplicate source groups, and why-reacts evidence only for the supplied
 instrumented source.
+
+The local transformer MLP hook gate belongs at this level: it maps recovered
+GELU atoms from a deterministic local transformer-style block back to source
+expansion neurons using captured hook rows plus a source manifest. It is not an
+output-only claim.
 
 Allowed wording:
 

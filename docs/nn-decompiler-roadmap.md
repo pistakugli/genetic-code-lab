@@ -143,7 +143,10 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   `benchmark:nn-swiglu-ffn-shared-gate-canonical`. The first
   source-neuron provenance verifier is release-gated with
   `benchmark:nn-gelu-ffn-provenance-verifier` for cases where source manifests
-  or equivalent instrumentation are available.
+  or equivalent instrumentation are available. The first local transformer MLP
+  hook gate is release-gated with `benchmark:nn-local-transformer-mlp-hook`,
+  using captured residual/MLP/preactivation/activation/contribution/output rows
+  from a deterministic local transformer-style block.
 - Direction: GCL should not brute-force 4096D. It should query a high-
   dimensional black-box channel, discover the low-dimensional active subspace
   where the function actually changes, then recover either a faithful
@@ -373,7 +376,8 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        non-identifiable source-pair identity from the recoverable minimal
        functionally equivalent value/gate pair instead of silently promoting an
        arbitrary factorization.
-    13. NEXT: Add the local transformer MLP hook. Capture real residual-stream
+    13. DONE for the first local transformer MLP hook: Add
+       `benchmark:nn-local-transformer-mlp-hook`. Capture real residual-stream
        inputs and MLP output channels/slices from a local transformer block,
        then run explicit structure recovery with source/hook provenance where
        available and hard-fail extraction/tokenization/data-shape failures.
@@ -385,16 +389,24 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        used as research stress tests. They must not replace the generic mixed-
        channel gate.
 - Stage D: local transformer MLP hook.
-  - Use a small local transformer block with captured residual-stream inputs and
-    one MLP output slice/channel target.
-  - Gate: recover explicit structure first, then compare the recovered
-    structure against linear/ridge/MLP prediction baselines on held-out
-    activation rows; all data extraction and tokenization failures are hard
-    failures.
-- Claim boundary: until these gates exist and pass, GCL may not claim LLM neuron
-  decompilation, exact GELU/SwiGLU parameter recovery, or mechanistic
-  understanding of production transformer blocks. The current Stage A gate is a
-  controlled active-subspace foundation, not a real LLM claim.
+  - Current command: `npm run benchmark:nn-local-transformer-mlp-hook`.
+  - Current result: deterministic local transformer-style block, `384` captured
+    residual/MLP/preactivation/activation/contribution/output hook rows, one
+    target MLP output slice, source expansion neurons `3`, recovered effective
+    channels `3`, hook MAE `0.005720353338158273`, hook R2
+    `0.9998897778278036`, worst hook error `0.014246698868125185`, min
+    provenance confidence `0.9106904584057108`, hook preactivation/activation/
+    output integrity errors `0`/`0`/`2.220446049250313e-16`, and raw oracle
+    calls `19540`.
+  - Gate: recover explicit structure first, verify hook-row integrity, then map
+    recovered atoms through source/hook provenance. All extraction,
+    tokenization, data-shape, preactivation, activation, and target-output
+    mismatches are hard failures.
+- Claim boundary: GCL may claim local instrumented transformer-style MLP source
+  mapping for this gate. It may not claim full GPT-2/LLM neuron decompilation,
+  exact GELU/SwiGLU parameter recovery for arbitrary production blocks, or
+  mechanistic understanding of production transformer blocks from this gate
+  alone.
 
 The following items are still required before any broad SOTA language:
 
@@ -449,8 +461,10 @@ The following items are still required before any broad SOTA language:
   SwiGLU value/gate recovery is covered by
   `benchmark:nn-swiglu-ffn-noisy-mixed-structure`; controlled shared-gate/
   cancellation-heavy SwiGLU canonicalization is covered by
-  `benchmark:nn-swiglu-ffn-shared-gate-canonical`. Next evidence must cover a
-  local transformer MLP hook before broad claims.
+  `benchmark:nn-swiglu-ffn-shared-gate-canonical`; and the first local
+  transformer MLP hook is covered by
+  `benchmark:nn-local-transformer-mlp-hook`. Next evidence must scale the
+  instrumented smooth-FFN structure lane before broad claims.
 
 ## Current Frontier Target
 
@@ -476,9 +490,10 @@ exact recovery, plus controlled noisy/quantized mixed GELU structure recovery,
 are now release-gated, including IID/OOD distribution checks plus scikit-learn,
 XGBoost, and sklearn-MLP package-backed prediction-sanity court for the
   controlled noisy mixed GELU lane. The first controlled clean/noisy mixed
-  SwiGLU value/gate structure gates and the shared-gate/cancellation-heavy
-  SwiGLU canonical gate are now release-gated. Next is a local transformer MLP
-  hook with captured activations and provenance.
+  SwiGLU value/gate structure gates, the shared-gate/cancellation-heavy SwiGLU
+  canonical gate, source-neuron provenance verifier, and local transformer MLP
+  hook gate are now release-gated. Next is scaling and hardening instrumented
+  smooth-FFN structure, not another isolated surrogate.
 The 6D ReLU lane remains a foundation and is not a broad SOTA claim by itself.
 
 Target commands:
@@ -505,6 +520,7 @@ Target commands:
 - `npm run benchmark:nn-swiglu-ffn-noisy-mixed-structure`
 - `npm run benchmark:nn-swiglu-ffn-shared-gate-canonical`
 - `npm run benchmark:nn-gelu-ffn-provenance-verifier`
+- `npm run benchmark:nn-local-transformer-mlp-hook`
 - `npm run research:nn-gpt2-gelu-ffn-structure-finder`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`

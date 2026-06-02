@@ -1,6 +1,6 @@
 # Semantic archive composition benchmark
 
-Generated: 2026-06-02T18:47:09.767Z
+Generated: 2026-06-02T19:35:40.170Z
 
 ## Scope
 
@@ -22,5 +22,5 @@ Generated: 2026-06-02T18:47:09.767Z
 - duplicate_pressure_market: best single elite `x0`, archive disabled injected=false, max error 8.812e-12.
 - rational_trig_composition: best single elite `div(sin(x0),add(1,mul(x1,x1)))`, archive disabled injected=false, max error 8.807e-5.
 
-Runtime: 14.107785 ms
+Runtime: 15.777521 ms
 

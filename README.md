@@ -145,6 +145,7 @@ npm run benchmark:nn-swiglu-ffn-mixed-structure
 npm run benchmark:nn-swiglu-ffn-noisy-mixed-structure
 npm run benchmark:nn-swiglu-ffn-shared-gate-canonical
 npm run benchmark:nn-gelu-ffn-provenance-verifier
+npm run benchmark:nn-local-transformer-mlp-hook
 ```
 
 What these gates currently support:
@@ -185,6 +186,12 @@ What these gates currently support:
   manifest or equivalent activation/weight instrumentation is available: exact
   source ids, layer names, indices, duplicate source groups, and why-reacts
   evidence are reported for the controlled GELU FFN gate.
+- Local transformer MLP hook recovery for a deterministic local
+  transformer-style block: 384 captured residual/MLP/preactivation/activation/
+  contribution/output rows, 3 recovered GELU expansion neurons for one target
+  MLP output slice, R2 `0.9998897778278036`, MAE
+  `0.005720353338158273`, minimum provenance confidence
+  `0.9106904584057108`, and `19540` raw oracle calls.
 
 What they do not support yet:
 
@@ -193,6 +200,8 @@ What they do not support yet:
 - Semantic identity of the original hidden neurons from output-only access
   without a source manifest, weight hook, activation hook, or equivalent
   provenance instrumentation.
+- Full GPT-2/LLM FFN extraction, arbitrary transformer block decompilation, or
+  production-model source identity from the local transformer hook gate alone.
 - Arbitrary noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs beyond the
   controlled release-gated noisy mixed GELU, noisy mixed SwiGLU, and shared-gate
   SwiGLU canonicalization families.
@@ -235,7 +244,8 @@ rank-adaptive mixed GELU gate, near-parallel mixed GELU family, and
 cross-decomposition GELU invariance gate, GELU formalization negative-case
 gate, noisy mixed GELU IID/OOD prediction-sanity court, mixed SwiGLU structure
 gate, noisy mixed SwiGLU structure gate, shared-gate cancellation SwiGLU
-canonical gate, and source-neuron provenance verifier gate. This is
+canonical gate, source-neuron provenance verifier gate, and local transformer
+MLP hook gate. This is
 release-lane proof, not a promotion of scratch experiments, not
 full GPT-2/LLM extraction, not a pure-GCL universal superiority claim, and not a
 broad SOTA claim.
