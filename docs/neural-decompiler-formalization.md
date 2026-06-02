@@ -65,6 +65,19 @@ with value direction `u`, value bias `bu`, gate direction `g`, gate bias `bg`,
 output scale `a`, and optional global offset handled outside the pair list.
 This pair is a structure object, not only a local output predictor.
 
+For the controlled shared-gate/cancellation-heavy SwiGLU lane, several source
+value channels may share the same gate. In output-only access, the identifiable
+object is the collapsed canonical pair:
+
+```text
+(sum_i a_i * (u_i dot x + bu_i)) * silu(g dot x + bg)
+```
+
+not the original list of source channels. A release report may claim recovery of
+the canonical value direction and shared gate when held-out oracle validation and
+structure projections pass. It must not claim unique original source-neuron
+identity unless source manifests, weights, or hooks are available.
+
 Two atoms can be equivalent up to transformations that preserve the same oracle
 function under the benchmark's activation family and tolerance. Permutation of
 atoms, duplicate splitting, and exact cancellation are representation changes,
@@ -229,7 +242,7 @@ The current release-gated GELU/SwiGLU structure work does not prove:
 - arbitrary 3072-channel FFN decompilation;
 - arbitrary 4096D production LLM block decompilation;
 - arbitrary noisy/cancellation-heavy mixed GELU or SwiGLU block recovery beyond
-  the controlled release-gated noisy mixed families;
+  the controlled release-gated noisy mixed and shared-gate canonical families;
 - broad SOTA status.
 
 The provenance verifier separately proves benchmark-scoped source-neuron
@@ -263,10 +276,11 @@ Required negative-case families:
 | Mis-specified activation family | Teacher is not in the assumed GELU/SwiGLU family. | Return surrogate or fail the structure claim. |
 | Adversarial quantization | Quantization erases small structural differences. | Report non-identifiability instead of hallucinating atoms. |
 
-Current executable gate:
+Current executable gates:
 
 ```bash
 npm run benchmark:nn-gelu-ffn-negative-cases
+npm run benchmark:nn-swiglu-ffn-shared-gate-canonical
 ```
 
 Current coverage: duplicate/cancellation/weak canonicalization,
@@ -276,7 +290,10 @@ overcomplete budgets. The weak-channel pair is intentional: below the noise
 floor the correct result is a smaller observable structure, while above the
 noise floor the gate fails unless the third channel is recovered. Near-collinear
 ambiguity under noisy mixed blocks and adversarial quantization still need
-broader follow-up gates.
+broader follow-up gates. The shared-gate SwiGLU gate adds a controlled clean/noisy
+hard-case where three source pairs collapse to one canonical pair under a shared
+gate; the correct result is canonical equivalence, not original source-pair
+identity.
 
 ## Scaling Stress Ladder
 

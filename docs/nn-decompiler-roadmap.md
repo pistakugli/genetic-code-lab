@@ -137,7 +137,10 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   mixed GELU structure recovery is release-gated with
   `benchmark:nn-gelu-ffn-noisy-mixed-structure`. The first
   mixed SwiGLU value/gate structure gate is release-gated with
-  `benchmark:nn-swiglu-ffn-mixed-structure`. The first
+  `benchmark:nn-swiglu-ffn-mixed-structure`, noisy mixed SwiGLU recovery is
+  release-gated with `benchmark:nn-swiglu-ffn-noisy-mixed-structure`, and
+  shared-gate/cancellation-heavy SwiGLU canonicalization is release-gated with
+  `benchmark:nn-swiglu-ffn-shared-gate-canonical`. The first
   source-neuron provenance verifier is release-gated with
   `benchmark:nn-gelu-ffn-provenance-verifier` for cases where source manifests
   or equivalent instrumentation are available.
@@ -273,6 +276,19 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `0.007389576137780751`, min distribution R2 `0.999874503247406`, max
     distribution worst error `0.09266107798318846`, and max raw oracle calls
     `345960`.
+  - Current shared-gate/cancellation-heavy SwiGLU command: `npm run
+    benchmark:nn-swiglu-ffn-shared-gate-canonical`.
+  - Shared-gate/cancellation-heavy result: controlled clean/noisy shared-gate
+    SwiGLU hard-case passed 2/2 teachers. The true source pair counts were
+    `3,3`, but the canonical effective pair counts were `1,1`; GCL collapsed
+    the observable shared-gate function into one minimal value/gate pair instead
+    of promoting duplicate non-identifiable source channels. Min canonical
+    value-direction projection `0.9992111582432534`, min shared-gate projection
+    `0.9999470719484649`, noisy cancellation-heavy case cancellation ratio
+    `0.9032502910798934`, max MAE `0.00241722715125567`, min R2
+    `0.9995956095908356`, max distribution MAE `0.0038654875223167406`, min
+    distribution R2 `0.9992352419312791`, max distribution worst error
+    `0.07707410825476324`, and max raw oracle calls `276672`.
   - Gate: explicit atom recovery where identifiable, plus output-equivalent
     fallback only when non-identifiability is stated and gated; must include
     per-channel/subspace evidence, held-out accuracy, query budget, and failure
@@ -351,15 +367,21 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        median queries recover explicit value/gate pairs and effective pair
        counts across balanced, near-parallel-value, and weak-resolvable
        stochastic/quantized teachers.
-    12. NEXT: Add degenerate shared-gate / cancellation-heavy SwiGLU negative
-       cases and hard cases. The gate must distinguish non-identifiable
-       functional equivalence from recoverable original-pair structure instead
-       of silently promoting an arbitrary factorization.
-    13. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
+    12. DONE for shared-gate/cancellation-heavy SwiGLU canonicalization: Add
+       `benchmark:nn-swiglu-ffn-shared-gate-canonical`, where source channels
+       share one gate and may cancel heavily. The gate distinguishes
+       non-identifiable source-pair identity from the recoverable minimal
+       functionally equivalent value/gate pair instead of silently promoting an
+       arbitrary factorization.
+    13. NEXT: Add the local transformer MLP hook. Capture real residual-stream
+       inputs and MLP output channels/slices from a local transformer block,
+       then run explicit structure recovery with source/hook provenance where
+       available and hard-fail extraction/tokenization/data-shape failures.
+    14. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
        itself.
-    14. NEXT: Only after this passes should GPT-2 top-K expansion or full FFN slices be
+    15. NEXT: Only after this passes should GPT-2 top-K expansion or full FFN slices be
        used as research stress tests. They must not replace the generic mixed-
        channel gate.
 - Stage D: local transformer MLP hook.
@@ -425,9 +447,10 @@ The following items are still required before any broad SOTA language:
   value/gate pair structure gate is covered by
   `benchmark:nn-swiglu-ffn-mixed-structure`; controlled noisy/quantized mixed
   SwiGLU value/gate recovery is covered by
-  `benchmark:nn-swiglu-ffn-noisy-mixed-structure`. Next evidence must cover
-  degenerate shared-gate/cancellation-heavy SwiGLU negative cases and a local
-  transformer MLP hook before broad claims.
+  `benchmark:nn-swiglu-ffn-noisy-mixed-structure`; controlled shared-gate/
+  cancellation-heavy SwiGLU canonicalization is covered by
+  `benchmark:nn-swiglu-ffn-shared-gate-canonical`. Next evidence must cover a
+  local transformer MLP hook before broad claims.
 
 ## Current Frontier Target
 
@@ -452,10 +475,10 @@ negative-case gate including both weak-under-noise pruning and weak-above-noise
 exact recovery, plus controlled noisy/quantized mixed GELU structure recovery,
 are now release-gated, including IID/OOD distribution checks plus scikit-learn,
 XGBoost, and sklearn-MLP package-backed prediction-sanity court for the
-controlled noisy mixed GELU lane. The first controlled clean and noisy mixed
-SwiGLU value/gate structure gates are now release-gated. Next are
-degenerate shared-gate/cancellation-heavy SwiGLU negative cases and a local
-transformer MLP hook.
+  controlled noisy mixed GELU lane. The first controlled clean/noisy mixed
+  SwiGLU value/gate structure gates and the shared-gate/cancellation-heavy
+  SwiGLU canonical gate are now release-gated. Next is a local transformer MLP
+  hook with captured activations and provenance.
 The 6D ReLU lane remains a foundation and is not a broad SOTA claim by itself.
 
 Target commands:
@@ -480,6 +503,7 @@ Target commands:
 - `npm run benchmark:nn-gelu-ffn-noisy-mixed-structure`
 - `npm run benchmark:nn-swiglu-ffn-mixed-structure`
 - `npm run benchmark:nn-swiglu-ffn-noisy-mixed-structure`
+- `npm run benchmark:nn-swiglu-ffn-shared-gate-canonical`
 - `npm run benchmark:nn-gelu-ffn-provenance-verifier`
 - `npm run research:nn-gpt2-gelu-ffn-structure-finder`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`

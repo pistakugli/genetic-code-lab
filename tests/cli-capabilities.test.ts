@@ -114,6 +114,10 @@ describe('CLI capabilities', () => {
         status: 'production'
       }),
       expect.objectContaining({
+        id: 'nn-swiglu-ffn-shared-gate-canonical',
+        status: 'production'
+      }),
+      expect.objectContaining({
         id: 'nn-gelu-ffn-provenance-verifier',
         status: 'production'
       })

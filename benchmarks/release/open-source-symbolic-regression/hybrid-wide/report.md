@@ -1,6 +1,6 @@
 # Open-source symbolic-regression benchmark
 
-Generated: 2026-06-02T10:16:15.247Z
+Generated: 2026-06-02T19:11:07.924Z
 
 ## Scope
 
@@ -21,38 +21,38 @@ Generated: 2026-06-02T10:16:15.247Z
 
 | Task | Baseline | Runs | Failed | Success | Mean MAE | Mean RMSE | Mean R2 | Median ms |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| cubic_arithmetic | deap | 3 | 0 | 0% | 0.197379 | 0.302238 | 0.982625 | 1349.637496 |
-| cubic_arithmetic | gcl | 3 | 0 | 100% | 1.417e-12 | 1.702e-12 | 1 | 70.850763 |
-| cubic_arithmetic | gcl-hybrid | 3 | 0 | 100% | 1.011e-12 | 1.641e-12 | 1 | 792.064619 |
-| cubic_arithmetic | gplearn | 3 | 0 | 0% | 0.128287 | 0.195041 | 0.994713 | 8713.315604 |
-| inverse_quadratic | deap | 3 | 0 | 67% | 0.004109 | 0.004368 | 0.999373 | 2000.48472 |
-| inverse_quadratic | gcl | 3 | 0 | 100% | 1.987e-6 | 2.260e-6 | 1 | 132.769908 |
-| inverse_quadratic | gcl-hybrid | 3 | 0 | 100% | 4.932e-12 | 5.662e-12 | 1 | 1140.901575 |
-| inverse_quadratic | gplearn | 3 | 0 | 0% | 0.007278 | 0.010775 | 0.997611 | 6987.136094 |
-| quadratic_arithmetic | deap | 3 | 0 | 100% | 2.056e-18 | 1.379e-17 | 1 | 1292.721153 |
-| quadratic_arithmetic | gcl | 3 | 0 | 100% | 1.485e-16 | 4.094e-16 | 1 | 86.37924 |
-| quadratic_arithmetic | gcl-hybrid | 3 | 0 | 100% | 4.626e-13 | 5.962e-13 | 1 | 811.309941 |
-| quadratic_arithmetic | gplearn | 3 | 0 | 67% | 0.006002 | 0.006002 | 0.999996 | 823.843075 |
-| quartic_even | deap | 3 | 0 | 0% | 0.209986 | 0.274469 | 0.998141 | 1301.2727 |
-| quartic_even | gcl | 3 | 0 | 100% | 8.441e-13 | 1.144e-12 | 1 | 74.403375 |
-| quartic_even | gcl-hybrid | 3 | 0 | 100% | 5.344e-12 | 7.495e-12 | 1 | 977.443334 |
-| quartic_even | gplearn | 3 | 0 | 0% | 0.143221 | 0.203406 | 0.998913 | 7191.11734 |
-| rational_shifted | deap | 3 | 0 | 67% | 0.00067 | 0.00083 | 0.999986 | 2195.556276 |
-| rational_shifted | gcl | 3 | 0 | 100% | 8.097e-6 | 9.010e-6 | 1 | 137.766164 |
-| rational_shifted | gcl-hybrid | 3 | 0 | 100% | 3.920e-12 | 4.067e-12 | 1 | 1128.81493 |
-| rational_shifted | gplearn | 3 | 0 | 33% | 0.035843 | 0.114124 | 0.772808 | 7384.857388 |
-| trig_linear_combo | deap | 3 | 0 | 33% | 0.117945 | 0.151695 | 0.965081 | 1034.70074 |
-| trig_linear_combo | gcl | 3 | 0 | 100% | 0 | 0 | 1 | 44.952422 |
-| trig_linear_combo | gcl-hybrid | 3 | 0 | 100% | 1.278e-12 | 1.407e-12 | 1 | 1387.755292 |
-| trig_linear_combo | gplearn | 3 | 0 | 100% | 1.101e-17 | 4.282e-17 | 1 | 4595.578137 |
-| trig_poly_mixed | deap | 3 | 0 | 0% | 0.083677 | 0.148189 | 0.980331 | 1208.341641 |
-| trig_poly_mixed | gcl | 3 | 0 | 100% | 5.283e-8 | 2.864e-7 | 1 | 686.807654 |
-| trig_poly_mixed | gcl-hybrid | 3 | 0 | 100% | 1.963e-12 | 2.210e-12 | 1 | 1175.389621 |
-| trig_poly_mixed | gplearn | 3 | 0 | 33% | 0.091204 | 0.172337 | 0.962446 | 7620.465958 |
-| trig_rational_combo | deap | 3 | 0 | 0% | 0.046841 | 0.093758 | 0.992299 | 1270.511736 |
-| trig_rational_combo | gcl | 3 | 0 | 100% | 8.319e-6 | 1.000e-5 | 1 | 216.789391 |
-| trig_rational_combo | gcl-hybrid | 3 | 0 | 100% | 6.754e-12 | 8.702e-12 | 1 | 1361.525943 |
-| trig_rational_combo | gplearn | 3 | 0 | 0% | 0.047552 | 0.103541 | 0.990612 | 5418.973434 |
+| cubic_arithmetic | deap | 3 | 0 | 0% | 0.197379 | 0.302238 | 0.982625 | 1350.017359 |
+| cubic_arithmetic | gcl | 3 | 0 | 100% | 1.417e-12 | 1.702e-12 | 1 | 72.171695 |
+| cubic_arithmetic | gcl-hybrid | 3 | 0 | 100% | 1.011e-12 | 1.641e-12 | 1 | 873.15628 |
+| cubic_arithmetic | gplearn | 3 | 0 | 0% | 0.128287 | 0.195041 | 0.994713 | 8716.582026 |
+| inverse_quadratic | deap | 3 | 0 | 67% | 0.004109 | 0.004368 | 0.999373 | 2000.617115 |
+| inverse_quadratic | gcl | 3 | 0 | 100% | 1.987e-6 | 2.260e-6 | 1 | 135.153926 |
+| inverse_quadratic | gcl-hybrid | 3 | 0 | 100% | 4.932e-12 | 5.662e-12 | 1 | 1184.010747 |
+| inverse_quadratic | gplearn | 3 | 0 | 0% | 0.007278 | 0.010775 | 0.997611 | 7090.481046 |
+| quadratic_arithmetic | deap | 3 | 0 | 100% | 2.056e-18 | 1.379e-17 | 1 | 1309.813949 |
+| quadratic_arithmetic | gcl | 3 | 0 | 100% | 1.485e-16 | 4.094e-16 | 1 | 94.106806 |
+| quadratic_arithmetic | gcl-hybrid | 3 | 0 | 100% | 4.626e-13 | 5.962e-13 | 1 | 883.900406 |
+| quadratic_arithmetic | gplearn | 3 | 0 | 67% | 0.006002 | 0.006002 | 0.999996 | 826.385283 |
+| quartic_even | deap | 3 | 0 | 0% | 0.209986 | 0.274469 | 0.998141 | 1318.19952 |
+| quartic_even | gcl | 3 | 0 | 100% | 8.441e-13 | 1.144e-12 | 1 | 75.139616 |
+| quartic_even | gcl-hybrid | 3 | 0 | 100% | 5.344e-12 | 7.495e-12 | 1 | 1033.668581 |
+| quartic_even | gplearn | 3 | 0 | 0% | 0.143221 | 0.203406 | 0.998913 | 7155.361052 |
+| rational_shifted | deap | 3 | 0 | 67% | 0.00067 | 0.00083 | 0.999986 | 2189.842105 |
+| rational_shifted | gcl | 3 | 0 | 100% | 8.097e-6 | 9.010e-6 | 1 | 138.16097 |
+| rational_shifted | gcl-hybrid | 3 | 0 | 100% | 3.920e-12 | 4.067e-12 | 1 | 1198.304278 |
+| rational_shifted | gplearn | 3 | 0 | 33% | 0.035843 | 0.114124 | 0.772808 | 7431.781526 |
+| trig_linear_combo | deap | 3 | 0 | 33% | 0.117945 | 0.151695 | 0.965081 | 1039.254891 |
+| trig_linear_combo | gcl | 3 | 0 | 100% | 0 | 0 | 1 | 45.267802 |
+| trig_linear_combo | gcl-hybrid | 3 | 0 | 100% | 1.278e-12 | 1.407e-12 | 1 | 1454.116496 |
+| trig_linear_combo | gplearn | 3 | 0 | 100% | 1.101e-17 | 4.282e-17 | 1 | 4521.569898 |
+| trig_poly_mixed | deap | 3 | 0 | 0% | 0.083677 | 0.148189 | 0.980331 | 1208.8583 |
+| trig_poly_mixed | gcl | 3 | 0 | 100% | 5.283e-8 | 2.864e-7 | 1 | 692.311914 |
+| trig_poly_mixed | gcl-hybrid | 3 | 0 | 100% | 1.963e-12 | 2.210e-12 | 1 | 1290.143227 |
+| trig_poly_mixed | gplearn | 3 | 0 | 33% | 0.091204 | 0.172337 | 0.962446 | 7689.406337 |
+| trig_rational_combo | deap | 3 | 0 | 0% | 0.046841 | 0.093758 | 0.992299 | 1286.153698 |
+| trig_rational_combo | gcl | 3 | 0 | 100% | 8.319e-6 | 1.000e-5 | 1 | 218.170733 |
+| trig_rational_combo | gcl-hybrid | 3 | 0 | 100% | 6.754e-12 | 8.702e-12 | 1 | 1428.943609 |
+| trig_rational_combo | gplearn | 3 | 0 | 0% | 0.047552 | 0.103541 | 0.990612 | 5417.491024 |
 
 ## Winners by Mean MAE
 

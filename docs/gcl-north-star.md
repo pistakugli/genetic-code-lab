@@ -69,6 +69,9 @@ Current status: release-gated for:
   two-block teacher where GCL is given only a maximum pair budget;
 - noisy/quantized mixed SwiGLU value/gate pair recovery for controlled
   balanced, near-parallel-value, and weak-but-resolvable teachers;
+- shared-gate/cancellation-heavy SwiGLU canonicalization for controlled clean
+  and noisy/quantized teachers, where multiple source value channels collapse
+  into one minimal functionally equivalent value/gate pair;
 - source-neuron provenance verification when source manifests or equivalent
   instrumentation are provided.
 
@@ -94,12 +97,9 @@ neuron identity without extra observability.
 
 The next development must stay on this order:
 
-1. degenerate shared-gate / cancellation-heavy SwiGLU negative-case and
-   hard-case split, so non-identifiable value/gate factorizations are handled
-   explicitly instead of being mislabeled as original-neuron recovery;
-2. real local transformer MLP hook with captured activations and provenance;
-3. scaling stress ladder: 768D -> 4096D -> 16384D;
-4. GPT-2/full FFN research stress only after the generic mixed-block lane is
+1. real local transformer MLP hook with captured activations and provenance;
+2. scaling stress ladder: 768D -> 4096D -> 16384D;
+3. GPT-2/full FFN research stress only after the generic mixed-block lane is
    strong enough.
 
 Do not make 7D/8D ReLU scaling the center of the project. ReLU ND work remains

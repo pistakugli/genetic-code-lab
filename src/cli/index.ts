@@ -591,7 +591,7 @@ const CAPABILITIES: Capability[] = [
     name: 'NN noisy mixed SwiGLU FFN structure',
     status: 'production',
     summary: 'Recovers explicit mixed SwiGLU value/gate pair structure and effective pair counts from repeated noisy/quantized oracle calls across balanced, near-parallel-value, and weak-resolvable profiles.',
-    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped noisy/quantized mixed SwiGLU value/gate pair recovery for controlled 16D/18D/24D FFN output slices with hidden true pair counts and overcomplete max-pair budgets. This is not a local KNN or polynomial surrogate. It does not claim full GPT-2/LLM FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production transformer block decompilation, exact hidden weights under non-identifiability, semantic output-only source identity, XGBoost/RF/MLP structure-decompiler superiority, or broad SOTA status.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped noisy/quantized mixed SwiGLU value/gate pair recovery for controlled 16D/18D/24D FFN output slices with hidden true pair counts and overcomplete max-pair budgets. This is not a local KNN or polynomial surrogate. Shared-gate/cancellation-heavy canonicalization is covered by the separate nn-swiglu-ffn-shared-gate-canonical gate. It does not claim full GPT-2/LLM FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production transformer block decompilation, exact hidden weights under non-identifiability, semantic output-only source identity, XGBoost/RF/MLP structure-decompiler superiority, or broad SOTA status.',
     run: { label: 'NN noisy mixed SwiGLU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-swiglu-ffn-noisy-mixed-structure'] },
     proofs: [
       { label: 'NN noisy mixed SwiGLU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-swiglu-ffn-noisy-mixed-structure'] }
@@ -599,6 +599,21 @@ const CAPABILITIES: Capability[] = [
     artifacts: [
       'benchmarks/release/nn-swiglu-ffn-noisy-mixed-structure/quantized-adversarial-family/report.json',
       'benchmarks/release/nn-swiglu-ffn-noisy-mixed-structure/quantized-adversarial-family/report.md'
+    ]
+  },
+  {
+    id: 'nn-swiglu-ffn-shared-gate-canonical',
+    name: 'NN shared-gate cancellation SwiGLU canonical',
+    status: 'production',
+    summary: 'Canonicalizes shared-gate/cancellation-heavy SwiGLU source channels into the minimal functionally equivalent value/gate pair instead of promoting duplicate non-identifiable channels.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped shared-gate/cancellation-heavy SwiGLU canonicalization for controlled clean and noisy/quantized FFN output slices. Multiple hidden source value channels share one gate; GCL must recover the canonical aggregate value direction, the shared gate direction, and effective pair count 1 from oracle calls only. This is not a local KNN or polynomial surrogate. It does not claim output-only original source-neuron identity, exact hidden weights under non-identifiability, full GPT-2/LLM FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production transformer block decompilation, or broad SOTA status.',
+    run: { label: 'NN shared-gate cancellation SwiGLU canonical benchmark', command: 'npm', args: ['run', 'benchmark:nn-swiglu-ffn-shared-gate-canonical'] },
+    proofs: [
+      { label: 'NN shared-gate cancellation SwiGLU canonical benchmark', command: 'npm', args: ['run', 'benchmark:nn-swiglu-ffn-shared-gate-canonical'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-swiglu-ffn-shared-gate-canonical/canonical-collapse/report.json',
+      'benchmarks/release/nn-swiglu-ffn-shared-gate-canonical/canonical-collapse/report.md'
     ]
   },
   {

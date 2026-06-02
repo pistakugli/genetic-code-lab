@@ -143,6 +143,7 @@ npm run benchmark:nn-gelu-ffn-negative-cases
 npm run benchmark:nn-gelu-ffn-noisy-mixed-structure
 npm run benchmark:nn-swiglu-ffn-mixed-structure
 npm run benchmark:nn-swiglu-ffn-noisy-mixed-structure
+npm run benchmark:nn-swiglu-ffn-shared-gate-canonical
 npm run benchmark:nn-gelu-ffn-provenance-verifier
 ```
 
@@ -176,6 +177,10 @@ What these gates currently support:
   near-parallel-value, and weak-but-resolvable value/gate-pair teachers, where
   GCL receives only repeated noisy `f(vector)` calls and max pair budgets, then
   recovers explicit value/gate pairs and effective pair counts.
+- Shared-gate/cancellation-heavy SwiGLU canonicalization for controlled clean
+  and noisy/quantized teachers, where multiple source value channels share one
+  gate and GCL must recover the single minimal functionally equivalent
+  value/gate pair instead of promoting duplicate non-identifiable channels.
 - Provenance-mode source-neuron verification when an explicit source-neuron
   manifest or equivalent activation/weight instrumentation is available: exact
   source ids, layer names, indices, duplicate source groups, and why-reacts
@@ -189,7 +194,8 @@ What they do not support yet:
   without a source manifest, weight hook, activation hook, or equivalent
   provenance instrumentation.
 - Arbitrary noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs beyond the
-  controlled release-gated noisy mixed GELU and noisy mixed SwiGLU families.
+  controlled release-gated noisy mixed GELU, noisy mixed SwiGLU, and shared-gate
+  SwiGLU canonicalization families.
 - Broad "SOTA" or "GCL understands every LLM neuron/block" language.
 
 Use `docs/nn-decompiler-roadmap.md` for the active development plan and
@@ -228,8 +234,9 @@ decompiler, 4096D/noisy active-subspace gates, explicit GELU structure finder,
 rank-adaptive mixed GELU gate, near-parallel mixed GELU family, and
 cross-decomposition GELU invariance gate, GELU formalization negative-case
 gate, noisy mixed GELU IID/OOD prediction-sanity court, mixed SwiGLU structure
-gate, noisy mixed SwiGLU structure gate, and source-neuron provenance verifier
-gate. This is release-lane proof, not a promotion of scratch experiments, not
+gate, noisy mixed SwiGLU structure gate, shared-gate cancellation SwiGLU
+canonical gate, and source-neuron provenance verifier gate. This is
+release-lane proof, not a promotion of scratch experiments, not
 full GPT-2/LLM extraction, not a pure-GCL universal superiority claim, and not a
 broad SOTA claim.
 

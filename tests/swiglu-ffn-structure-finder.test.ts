@@ -1,4 +1,5 @@
 import {
+  decompileRankAdaptiveSwigluFfnStructure,
   decompileSwigluFfnStructure,
   predictSwigluFfnStructureBatch
 } from '../src/solvers/swiglu-ffn-structure-finder';
@@ -136,5 +137,65 @@ describe('SwiGLU FFN structure finder', () => {
     expect(gateProjection).toBeGreaterThan(0.99);
     expect(metrics.mae).toBeLessThan(0.03);
     expect(metrics.r2).toBeGreaterThan(0.997);
+  });
+
+  it('canonicalizes shared-gate SwiGLU source channels into one effective pair', () => {
+    const dimension = 10;
+    const gateDirection = makeDirection(7501, dimension);
+    const valueDirection = makeDirection(7502, dimension, [gateDirection]);
+    const perturbation = makeDirection(7503, dimension, [gateDirection, valueDirection]);
+    const secondValueDirection = normalize(valueDirection.map((value, index) => (
+      -0.8 * value + 0.45 * perturbation[index]
+    )));
+    const sourceBlocks = [
+      { direction: valueDirection, scale: 1.06, bias: -0.14, output: 1.0 },
+      { direction: secondValueDirection, scale: 0.9, bias: 0.11, output: -0.72 }
+    ];
+    const aggregateValue = new Array(dimension).fill(0);
+    for (const block of sourceBlocks) {
+      for (let axis = 0; axis < dimension; axis++) {
+        aggregateValue[axis] += block.output * block.scale * block.direction[axis];
+      }
+    }
+    const aggregateDirection = normalize(aggregateValue);
+    const oracle = (input: number[]): number => {
+      const gate = 1.13 * dot(gateDirection, input) + 0.18;
+      return 0.02 + sourceBlocks.reduce((sum, block) => (
+        sum + block.output * (block.scale * dot(block.direction, input) + block.bias) * silu(gate)
+      ), 0);
+    };
+    const model = decompileRankAdaptiveSwigluFfnStructure(oracle, {
+      dimension,
+      ranges: Array.from({ length: dimension }, () => [-1.35, 1.35] as [number, number]),
+      maxPairCount: 3,
+      minEffectivePairCount: 1,
+      activeRank: 4,
+      gradientProbeCount: 18,
+      trainingSampleCount: 1800,
+      validationSampleCount: 320,
+      randomSeed: 7601,
+      restarts: 10,
+      iterations: 700,
+      learningRate: 0.025,
+      selectionRestarts: 1,
+      pruneValidationToleranceRatio: 0.35,
+      pruneValidationToleranceAbsolute: 0.012,
+      pairRelativeStrengthThreshold: 0.018,
+      pairAbsoluteStrengthThreshold: 0.0015
+    });
+    const inputs = makeInputs(7701, dimension, 600);
+    const metrics = regressionMetrics(inputs.map(oracle), predictSwigluFfnStructureBatch(model, inputs));
+    const pair = model.pairs[0];
+    const valueProjection = Math.abs(dot(aggregateDirection, normalize(pair.valueWeight)));
+    const gateProjection = Math.abs(dot(gateDirection, normalize(pair.gateWeight)));
+
+    expect(model.recoveryKind).toBe('rank-adaptive-swiglu-ffn-structure');
+    expect(model.rawPairCount).toBe(3);
+    expect(model.effectivePairCount).toBe(1);
+    expect(model.pairs).toHaveLength(1);
+    expect(valueProjection).toBeGreaterThan(0.999);
+    expect(gateProjection).toBeGreaterThan(0.999);
+    expect(metrics.mae).toBeLessThan(0.004);
+    expect(metrics.r2).toBeGreaterThan(0.9999);
   });
 });

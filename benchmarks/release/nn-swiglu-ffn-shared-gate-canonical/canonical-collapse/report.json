@@ -1,0 +1,325 @@
+{
+  "generatedAt": "2026-06-02T19:05:55.207Z",
+  "task": "shared-gate cancellation-heavy SwiGLU canonical structure recovery",
+  "blackBox": {
+    "visibilityToGcl": "oracle calls only: f(vector); source pair count, shared gate, source value directions, cancellation pattern, clean target, and noise seed are hidden from the solver",
+    "oracleNoise": "clean case plus stochastic Gaussian output noise and finite-precision quantization case"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL canonicalizes shared-gate/cancellation-heavy SwiGLU degeneracy into the minimal functionally equivalent value/gate pair instead of promoting duplicate source channels",
+    "doesNotClaim": "unique original source-neuron identity from output-only access, exact hidden weights under non-identifiability, full GPT-2/LLM FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D transformer block decompilation, or broad SOTA status"
+  },
+  "config": {
+    "caseCount": 2,
+    "evaluationDistributions": [
+      "iid-uniform",
+      "wide-ood",
+      "shifted-ood"
+    ]
+  },
+  "gates": {
+    "pass": true,
+    "allCasesPassed": true,
+    "allCanonicalCountsOne": true,
+    "allSourcePairCountsCollapsed": true,
+    "allValueDirectionsRecovered": true,
+    "allSharedGateDirectionsRecovered": true,
+    "cancellationPressureCovered": true,
+    "allOutputMetricsPass": true,
+    "noDuplicatePairsPromoted": true,
+    "allRawOracleCallsBelowBudget": true,
+    "coversCleanSharedGateCollapse": true,
+    "coversNoisyCancellationCollapse": true
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 2,
+    "passedCases": 2,
+    "failedCases": [],
+    "profiles": [
+      "shared-gate-clean-collapse",
+      "shared-gate-noisy-cancellation"
+    ],
+    "sourcePairCounts": [
+      3,
+      3
+    ],
+    "effectivePairCounts": [
+      1,
+      1
+    ],
+    "minCanonicalValueDirectionProjection": 0.9992111582432534,
+    "minSharedGateDirectionProjection": 0.9999470719484649,
+    "minCancellationRatio": 0.05876108139509095,
+    "maxMae": 0.00241722715125567,
+    "minR2": 0.9995956095908356,
+    "maxWorstError": 0.02882824355941427,
+    "maxDistributionMae": 0.0038654875223167406,
+    "minDistributionR2": 0.9992352419312791,
+    "maxDistributionWorstError": 0.07707410825476324,
+    "maxRawOracleCalls": 276672
+  },
+  "rows": [
+    {
+      "id": "shared-gate-three-source-clean-collapse-14d",
+      "profile": "shared-gate-clean-collapse",
+      "summary": {
+        "pass": true,
+        "trueSourcePairCount": 3,
+        "canonicalPairCount": 1,
+        "rawPairBudgetGivenToGcl": 4,
+        "effectivePairCount": 1,
+        "rawPairCount": 4,
+        "prunedWeakPairCount": 0,
+        "duplicatePairCount": 0,
+        "canonicalValueDirectionProjection": 0.9999999984429478,
+        "sharedGateDirectionProjection": 0.999999999965965,
+        "cancellationRatio": 0.05876108139509095,
+        "mae": 0.00030495801883697086,
+        "r2": 0.9999997349461373,
+        "worstError": 0.0033468825935651925,
+        "maxDistributionMae": 0.0006120496833982786,
+        "minDistributionR2": 0.999999010580124,
+        "maxDistributionWorstError": 0.007513954262032385,
+        "rawOracleCalls": 16788
+      },
+      "teacher": {
+        "dimension": 14,
+        "sourcePairCount": 3,
+        "canonicalPairCount": 1,
+        "noiseStd": 0,
+        "quantization": 0,
+        "querySamples": 1
+      },
+      "canonicalTarget": {
+        "aggregateValueWeightNorm": 1.86177058100051,
+        "aggregateValueBias": -0.32860000000000006,
+        "cancellationRatio": 0.05876108139509095,
+        "sharedGateScale": 1.17,
+        "sharedGateBias": 0.21
+      },
+      "gates": {
+        "recoversRankAdaptiveStructure": true,
+        "sourcePairCountExceedsCanonicalCount": true,
+        "canonicalEffectivePairCountIsOne": true,
+        "doesNotUseTrueSourcePairCount": true,
+        "canonicalValueDirectionRecovered": true,
+        "sharedGateDirectionRecovered": true,
+        "cancellationPressurePresent": true,
+        "iidR2AboveThreshold": true,
+        "iidMaeBelowThreshold": true,
+        "allDistributionR2AboveThreshold": true,
+        "allDistributionMaeBelowThreshold": true,
+        "allDistributionWorstErrorBelowThreshold": true,
+        "duplicateRawPairsNotPromoted": true,
+        "rawOracleCallsBelowBudget": true
+      },
+      "evaluations": [
+        {
+          "id": "iid-uniform",
+          "kind": "iid",
+          "metrics": {
+            "mae": 0.00030495801883697086,
+            "rmse": 0.0005389985283689154,
+            "r2": 0.9999997349461373
+          },
+          "worstError": 0.0033468825935651925
+        },
+        {
+          "id": "wide-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.0006120496833982786,
+            "rmse": 0.0010988153073162492,
+            "r2": 0.9999996546652662
+          },
+          "worstError": 0.007513954262032385
+        },
+        {
+          "id": "shifted-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.0004446939376086271,
+            "rmse": 0.0007085119422090813,
+            "r2": 0.999999010580124
+          },
+          "worstError": 0.0038621176469595397
+        }
+      ],
+      "structure": {
+        "adaptiveSelection": {
+          "pairStrengthThreshold": 0.043530134684120134,
+          "maxPairStrength": 2.1765067342060065,
+          "prunedWeakPairCount": 0,
+          "duplicatePairCount": 0,
+          "selectionRestarts": 4,
+          "candidateCount": 14,
+          "selectedCandidateKind": "trained-1-strength-threshold",
+          "selectedCandidateRank": 1,
+          "bestCandidateMetrics": {
+            "mae": 0.00030598172752233956,
+            "rmse": 0.0005292612980851021,
+            "r2": 0.9999997281333067
+          },
+          "unprunedValidationMetrics": {
+            "mae": 0.00030598172752233956,
+            "rmse": 0.0005292612980851021,
+            "r2": 0.9999997281333067
+          }
+        },
+        "queryBudget": {
+          "rawOracleCalls": 16788,
+          "gradientRawOracleCalls": 2688,
+          "trainingRawOracleCalls": 11500,
+          "validationRawOracleCalls": 2600,
+          "finiteDifferenceCallsPerProbe": 28,
+          "aggregatedProbePoints": 16788,
+          "querySamples": 1,
+          "selectionRestarts": 4,
+          "selectedRestart": 0
+        },
+        "expression": "0.035109618 + -1.0220083 * (dot(v0, x) + 0.32063511) * silu(dot(g0, x) + 0.21067137)",
+        "pairs": [
+          {
+            "valueWeightNorm": 1.8164487666722977,
+            "valueBias": 0.32063511052803195,
+            "gateWeightNorm": 1.1724179199495626,
+            "gateBias": 0.21067137198981845,
+            "outputWeight": -1.0220082801081358
+          }
+        ]
+      }
+    },
+    {
+      "id": "shared-gate-noisy-cancellation-heavy-collapse-16d",
+      "profile": "shared-gate-noisy-cancellation",
+      "summary": {
+        "pass": true,
+        "trueSourcePairCount": 3,
+        "canonicalPairCount": 1,
+        "rawPairBudgetGivenToGcl": 4,
+        "effectivePairCount": 1,
+        "rawPairCount": 4,
+        "prunedWeakPairCount": 0,
+        "duplicatePairCount": 0,
+        "canonicalValueDirectionProjection": 0.9992111582432534,
+        "sharedGateDirectionProjection": 0.9999470719484649,
+        "cancellationRatio": 0.9032502910798934,
+        "mae": 0.00241722715125567,
+        "r2": 0.9995956095908356,
+        "worstError": 0.02882824355941427,
+        "maxDistributionMae": 0.0038654875223167406,
+        "minDistributionR2": 0.9992352419312791,
+        "maxDistributionWorstError": 0.07707410825476324,
+        "rawOracleCalls": 276672
+      },
+      "teacher": {
+        "dimension": 16,
+        "sourcePairCount": 3,
+        "canonicalPairCount": 1,
+        "noiseStd": 0.0018,
+        "quantization": 0.00075,
+        "querySamples": 11
+      },
+      "canonicalTarget": {
+        "aggregateValueWeightNorm": 0.2055931314552266,
+        "aggregateValueBias": -0.3372,
+        "cancellationRatio": 0.9032502910798934,
+        "sharedGateScale": 1.08,
+        "sharedGateBias": -0.16
+      },
+      "gates": {
+        "recoversRankAdaptiveStructure": true,
+        "sourcePairCountExceedsCanonicalCount": true,
+        "canonicalEffectivePairCountIsOne": true,
+        "doesNotUseTrueSourcePairCount": true,
+        "canonicalValueDirectionRecovered": true,
+        "sharedGateDirectionRecovered": true,
+        "cancellationPressurePresent": true,
+        "iidR2AboveThreshold": true,
+        "iidMaeBelowThreshold": true,
+        "allDistributionR2AboveThreshold": true,
+        "allDistributionMaeBelowThreshold": true,
+        "allDistributionWorstErrorBelowThreshold": true,
+        "duplicateRawPairsNotPromoted": true,
+        "rawOracleCallsBelowBudget": true
+      },
+      "evaluations": [
+        {
+          "id": "iid-uniform",
+          "kind": "iid",
+          "metrics": {
+            "mae": 0.00241722715125567,
+            "rmse": 0.003551823796325288,
+            "r2": 0.9995956095908356
+          },
+          "worstError": 0.02882824355941427
+        },
+        {
+          "id": "wide-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.0038654875223167406,
+            "rmse": 0.006691074272747549,
+            "r2": 0.9992352419312791
+          },
+          "worstError": 0.07707410825476324
+        },
+        {
+          "id": "shifted-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.002449652754535476,
+            "rmse": 0.0035358261010799323,
+            "r2": 0.9996001575267439
+          },
+          "worstError": 0.021109563498013406
+        }
+      ],
+      "structure": {
+        "adaptiveSelection": {
+          "pairStrengthThreshold": 0.003459292424253721,
+          "maxPairStrength": 0.21620577651585754,
+          "prunedWeakPairCount": 0,
+          "duplicatePairCount": 0,
+          "selectionRestarts": 4,
+          "candidateCount": 14,
+          "selectedCandidateKind": "trained-1-strength-threshold",
+          "selectedCandidateRank": 4,
+          "bestCandidateMetrics": {
+            "mae": 0.0022753506160572696,
+            "rmse": 0.003320300108714322,
+            "r2": 0.9996211621677862
+          },
+          "unprunedValidationMetrics": {
+            "mae": 0.002378753523199372,
+            "rmse": 0.003599955438428408,
+            "r2": 0.9995546587605855
+          }
+        },
+        "queryBudget": {
+          "rawOracleCalls": 276672,
+          "gradientRawOracleCalls": 47872,
+          "trainingRawOracleCalls": 184800,
+          "validationRawOracleCalls": 44000,
+          "finiteDifferenceCallsPerProbe": 32,
+          "aggregatedProbePoints": 25152,
+          "querySamples": 11,
+          "selectionRestarts": 4,
+          "selectedRestart": 0
+        },
+        "expression": "-0.017267311 + -0.2997432 * (dot(v0, x) + 1.1265982) * silu(dot(g0, x) + -0.13361367)",
+        "pairs": [
+          {
+            "valueWeightNorm": 0.6886875247169297,
+            "valueBias": 1.1265981701870542,
+            "gateWeightNorm": 1.047359423994136,
+            "gateBias": -0.13361366894067506,
+            "outputWeight": -0.2997431950939183
+          }
+        ]
+      }
+    }
+  ],
+  "runtimeMs": 135364
+}
