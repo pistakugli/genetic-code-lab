@@ -106,6 +106,10 @@ describe('CLI capabilities', () => {
         status: 'production'
       }),
       expect.objectContaining({
+        id: 'nn-swiglu-ffn-mixed-structure',
+        status: 'production'
+      }),
+      expect.objectContaining({
         id: 'nn-gelu-ffn-provenance-verifier',
         status: 'production'
       })

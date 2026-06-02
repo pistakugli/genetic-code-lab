@@ -54,6 +54,16 @@ a * gelu(w dot x + b)
 with direction `w`, input bias `b`, output scale `a`, and optional global
 offset handled outside the atom list.
 
+For the current clean SwiGLU FFN lane, the recovered unit is a value/gate pair:
+
+```text
+a * (u dot x + bu) * silu(g dot x + bg)
+```
+
+with value direction `u`, value bias `bu`, gate direction `g`, gate bias `bg`,
+output scale `a`, and optional global offset handled outside the pair list.
+This pair is a structure object, not only a local output predictor.
+
 Two atoms can be equivalent up to transformations that preserve the same oracle
 function under the benchmark's activation family and tolerance. Permutation of
 atoms, duplicate splitting, and exact cancellation are representation changes,
@@ -209,7 +219,7 @@ structure.
 
 ## What Is Not Proven Yet
 
-The current release-gated GELU structure work does not prove:
+The current release-gated GELU/SwiGLU structure work does not prove:
 
 - original hidden-neuron semantic identity from output-only access;
 - uniqueness of the original teacher basis;

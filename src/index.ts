@@ -23,6 +23,7 @@ export * from './solvers/deep-blackbox-relu-nd-adjacency-geometry';
 export * from './solvers/active-subspace-ffn-decompiler';
 export * from './solvers/gelu-ffn-structure-finder';
 export * from './solvers/gelu-ffn-provenance-verifier';
+export * from './solvers/swiglu-ffn-structure-finder';
 export * from './solvers/noisy-blackbox-relu-decompiler';
 export * from './solvers/noisy-blackbox-relu2d-decompiler';
 export * from './solvers/noisy-blackbox-relu3d-decompiler';

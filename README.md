@@ -141,6 +141,7 @@ npm run benchmark:nn-gelu-ffn-near-parallel-family
 npm run benchmark:nn-gelu-ffn-cross-decomposition-invariance
 npm run benchmark:nn-gelu-ffn-negative-cases
 npm run benchmark:nn-gelu-ffn-noisy-mixed-structure
+npm run benchmark:nn-swiglu-ffn-mixed-structure
 npm run benchmark:nn-gelu-ffn-provenance-verifier
 ```
 
@@ -167,6 +168,9 @@ What these gates currently support:
   dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed fit
   baselines. These are prediction sanity checks for the recovered structure,
   not structure-decompiler competitors.
+- Rank-adaptive mixed SwiGLU recovery for a controlled two-block teacher where
+  GCL receives only `f(vector)` and a maximum pair budget, then recovers
+  explicit value/gate pairs and the effective pair count.
 - Provenance-mode source-neuron verification when an explicit source-neuron
   manifest or equivalent activation/weight instrumentation is available: exact
   source ids, layer names, indices, duplicate source groups, and why-reacts
@@ -218,7 +222,8 @@ randomized/adversarial robustness and baseline court, active-subspace FFN
 decompiler, 4096D/noisy active-subspace gates, explicit GELU structure finder,
 rank-adaptive mixed GELU gate, near-parallel mixed GELU family, and
 cross-decomposition GELU invariance gate, GELU formalization negative-case
-gate, noisy mixed GELU IID/OOD prediction-sanity court, and source-neuron provenance verifier gate. This is release-lane proof, not a promotion of scratch experiments, not
+gate, noisy mixed GELU IID/OOD prediction-sanity court, mixed SwiGLU structure
+gate, and source-neuron provenance verifier gate. This is release-lane proof, not a promotion of scratch experiments, not
 full GPT-2/LLM extraction, not a pure-GCL universal superiority claim, and not a
 broad SOTA claim.
 

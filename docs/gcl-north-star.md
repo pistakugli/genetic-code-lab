@@ -65,6 +65,8 @@ Current status: release-gated for:
   for the controlled noisy/quantized mixed GELU block. These fit baselines are
   used to check output value of the recovered structure; they are not treated as
   structure-decompiler competitors;
+- rank-adaptive mixed SwiGLU value/gate pair recovery for a controlled 24D
+  two-block teacher where GCL is given only a maximum pair budget;
 - source-neuron provenance verification when source manifests or equivalent
   instrumentation are provided.
 
@@ -90,7 +92,7 @@ neuron identity without extra observability.
 
 The next development must stay on this order:
 
-1. SwiGLU mixed-block structure recovery;
+1. noisy/adversarial SwiGLU mixed-block structure recovery;
 2. real local transformer MLP hook with captured activations and provenance;
 3. scaling stress ladder: 768D -> 4096D -> 16384D;
 4. GPT-2/full FFN research stress only after the generic mixed-block lane is

@@ -136,6 +136,8 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   `benchmark:nn-gelu-ffn-cross-decomposition-invariance`. Noisy/quantized
   mixed GELU structure recovery is release-gated with
   `benchmark:nn-gelu-ffn-noisy-mixed-structure`. The first
+  mixed SwiGLU value/gate structure gate is release-gated with
+  `benchmark:nn-swiglu-ffn-mixed-structure`. The first
   source-neuron provenance verifier is release-gated with
   `benchmark:nn-gelu-ffn-provenance-verifier` for cases where source manifests
   or equivalent instrumentation are available.
@@ -248,6 +250,17 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     HistGradientBoosting/PLS active-subspace polynomial Ridge, XGBoost, and
     sklearn MLPRegressor. These are fit baselines used to validate output value
     of the recovered structure; they are not structure-decompiler competitors.
+  - Current mixed SwiGLU command: `npm run
+    benchmark:nn-swiglu-ffn-mixed-structure`.
+  - Mixed SwiGLU result: controlled 24D two-block SwiGLU FFN output slice,
+    GCL sees only `f(vector)` plus a max pair budget `3`, not the true pair
+    count or value/gate directions. The gate passed with effective pair count
+    `2`, duplicate pair count `0`, MAE `0.0008717937894303614`, R2
+    `0.9999961336476628`, min value-direction projection
+    `0.9999996446143484`, min gate-direction projection
+    `0.9999996288279506`, mean pair projection `0.9999997837062355`,
+    max gate-norm error `0.008049915513471673`, max gate-bias error
+    `0.005227321558675863`, and raw oracle calls `15456`.
   - Gate: explicit atom recovery where identifiable, plus output-equivalent
     fallback only when non-identifiability is stated and gated; must include
     per-channel/subspace evidence, held-out accuracy, query budget, and failure
@@ -317,9 +330,14 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        truth sets and requires the recovered GCL structure to beat the best
        prediction baseline on every distribution while covering XGBoost and
        sklearn MLPRegressor. This is not a direct decompiler-vs-XGBoost claim.
-    10. NEXT: Add SwiGLU mixed-block structure recovery with the same structure
-       vs prediction-sanity separation.
-    11. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
+    10. DONE for controlled clean mixed SwiGLU: Add
+       `benchmark:nn-swiglu-ffn-mixed-structure`, where GCL receives a maximum
+       pair budget and must recover explicit value/gate pairs, effective pair
+       count, held-out metrics, structure projections, and query budget.
+    11. NEXT: Add noisy/adversarial mixed SwiGLU recovery with the same
+       structure vs prediction-sanity separation, including near-parallel value
+       and gate directions.
+    12. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
        itself.
@@ -385,8 +403,10 @@ The following items are still required before any broad SOTA language:
   GELU structure recovery is covered by
   `benchmark:nn-gelu-ffn-noisy-mixed-structure`, which now includes
   IID/OOD distribution checks plus scikit-learn, XGBoost, and sklearn-MLP
-  package-backed prediction-sanity baselines. Next evidence must cover SwiGLU mixed-block
-  structure before broad claims.
+  package-backed prediction-sanity baselines; the first clean mixed SwiGLU
+  value/gate pair structure gate is covered by
+  `benchmark:nn-swiglu-ffn-mixed-structure`. Next evidence must cover
+  noisy/adversarial SwiGLU before broad claims.
 
 ## Current Frontier Target
 
@@ -411,8 +431,9 @@ negative-case gate including both weak-under-noise pruning and weak-above-noise
 exact recovery, plus controlled noisy/quantized mixed GELU structure recovery,
 are now release-gated, including IID/OOD distribution checks plus scikit-learn,
 XGBoost, and sklearn-MLP package-backed prediction-sanity court for the
-controlled noisy mixed GELU lane. Next are SwiGLU mixed-block structure and finally a local
-transformer MLP hook.
+controlled noisy mixed GELU lane. The first controlled clean mixed SwiGLU
+value/gate structure gate is now release-gated. Next are noisy/adversarial
+SwiGLU mixed-block structure and finally a local transformer MLP hook.
 The 6D ReLU lane remains a foundation and is not a broad SOTA claim by itself.
 
 Target commands:
@@ -435,6 +456,7 @@ Target commands:
 - `npm run benchmark:nn-gelu-ffn-cross-decomposition-invariance`
 - `npm run benchmark:nn-gelu-ffn-negative-cases`
 - `npm run benchmark:nn-gelu-ffn-noisy-mixed-structure`
+- `npm run benchmark:nn-swiglu-ffn-mixed-structure`
 - `npm run benchmark:nn-gelu-ffn-provenance-verifier`
 - `npm run research:nn-gpt2-gelu-ffn-structure-finder`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`

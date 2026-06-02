@@ -572,6 +572,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-swiglu-ffn-mixed-structure',
+    name: 'NN mixed SwiGLU FFN structure',
+    status: 'production',
+    summary: 'Recovers explicit value/gate SwiGLU FFN pairs and effective pair count from oracle calls only when GCL is given a maximum pair budget but not the true pair count.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped rank-adaptive mixed SwiGLU value/gate pair recovery for a controlled 24D two-block FFN teacher with an overcomplete max-pair budget. This is not a local KNN or polynomial surrogate. It does not claim noisy SwiGLU recovery, full GPT-2/LLM FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D production transformer block decompilation, semantic output-only source identity, or broad SOTA status.',
+    run: { label: 'NN mixed SwiGLU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-swiglu-ffn-mixed-structure'] },
+    proofs: [
+      { label: 'NN mixed SwiGLU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-swiglu-ffn-mixed-structure'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-swiglu-ffn-mixed-structure/rank-adaptive-two-block/report.json',
+      'benchmarks/release/nn-swiglu-ffn-mixed-structure/rank-adaptive-two-block/report.md'
+    ]
+  },
+  {
     id: 'nn-gelu-ffn-provenance-verifier',
     name: 'NN GELU FFN source-neuron provenance verifier',
     status: 'production',

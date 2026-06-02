@@ -1,6 +1,6 @@
 # GELU FFN Structure Finder Benchmark
 
-Generated: 2026-06-02T07:16:59.007Z
+Generated: 2026-06-02T08:58:02.027Z
 
 ## Claim Scope
 
