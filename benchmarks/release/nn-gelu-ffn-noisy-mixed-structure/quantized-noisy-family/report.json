@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-06-01T17:03:44.959Z",
+  "generatedAt": "2026-06-02T05:52:40.539Z",
   "task": "noisy quantized mixed GELU FFN structure recovery",
   "blackBox": {
     "visibilityToGcl": "oracle calls only: f(vector); true channel count, directions, biases, readout weights, noise seed, and clean target are hidden from the solver",
     "oracleNoise": "stochastic Gaussian output noise plus finite-precision quantization; solver uses repeated median queries"
   },
   "claimScope": {
-    "provesIfPasses": "GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free and scikit-learn package-backed surrogate baselines on held-out noiseless truth",
-    "doesNotClaim": "full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, semantic original-neuron identity from output-only access, or broad SOTA status"
+    "provesIfPasses": "GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed surrogate baselines across IID and OOD held-out noiseless truth",
+    "doesNotClaim": "full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, PyTorch deep baseline superiority, semantic original-neuron identity from output-only access, or broad SOTA status"
   },
   "config": {
     "maxChannelBudgetGivenToGcl": 4,
@@ -22,13 +22,19 @@
     "allCanonicalCountsMatch": true,
     "allDirectionRecoveryAboveThreshold": true,
     "allBeatBestBaselineByMae": true,
+    "allBeatBestBaselineOnEveryDistribution": true,
     "allPackageBackedBaselinesCovered": true,
+    "allXgboostBaselinesCovered": true,
+    "allNnBaselinesCovered": true,
     "allActiveSubspaceBaselinesCovered": true,
     "allNonlinearPackageBaselinesCovered": true,
     "allRawOracleCallsBelowBudget": true,
     "coversBalancedNoise": true,
     "coversNearParallelNoise": true,
-    "coversWeakResolvableNoise": true
+    "coversWeakResolvableNoise": true,
+    "coversIidUniformDistribution": true,
+    "coversWideOodDistribution": true,
+    "coversShiftedOodDistribution": true
   },
   "summary": {
     "pass": true,
@@ -50,6 +56,15 @@
       3
     ],
     "maxGclVsBestBaselineMaeRatio": 0.08120754460430137,
+    "maxDistributionMae": 0.005876071181397475,
+    "minDistributionR2": 0.9995038453250289,
+    "maxDistributionWorstError": 0.09735167309682635,
+    "maxDistributionGclVsBestBaselineMaeRatio": 0.08567143575266337,
+    "distributionIds": [
+      "iid-uniform",
+      "wide-ood",
+      "shifted-ood"
+    ],
     "maxRawOracleCalls": 155012
   },
   "rows": [
@@ -78,6 +93,11 @@
         "bestBaselineId": "sklearn-poly2-ridge",
         "bestBaselineMae": 0.06013052581134432,
         "gclVsBestBaselineMaeRatio": 0.05434423511145036,
+        "maxDistributionMae": 0.0051884080522364056,
+        "minDistributionR2": 0.9999316450434367,
+        "maxDistributionWorstError": 0.036268970516537546,
+        "maxDistributionGclVsBestBaselineMaeRatio": 0.05434423511145036,
+        "worstDistributionId": "wide-ood",
         "strongOnlyMae": 0.22900940666322703,
         "rawOracleCalls": 137970
       },
@@ -85,13 +105,19 @@
         "outputR2AboveThreshold": true,
         "outputMaeBelowThreshold": true,
         "worstErrorBelowThreshold": true,
+        "oodR2AboveThreshold": true,
+        "oodMaeBelowThreshold": true,
+        "oodWorstErrorBelowThreshold": true,
         "effectiveChannelCountMatches": true,
         "canonicalAtomCountMatches": true,
         "directionRecoveryAboveThreshold": true,
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
         "beatsBestBaselineByMae": true,
+        "beatsBestBaselineOnEveryDistribution": true,
         "packageBackedBaselinesCovered": true,
+        "xgboostBaselineCovered": true,
+        "nnBaselineCovered": true,
         "activeSubspaceBaselineCovered": true,
         "nonlinearPackageBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
@@ -106,6 +132,38 @@
             "r2": -0.0003376943223234452
           },
           "worstError": 2.5003232397470874,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.433702189541776,
+                "rmse": 0.5780733905053913,
+                "r2": -0.0003376943223234452
+              },
+              "worstError": 2.5003232397470874
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.6415908756271699,
+                "rmse": 0.8816383785507477,
+                "r2": -0.016377761866808394
+              },
+              "worstError": 4.362587603078339
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.3551987706953941,
+                "rmse": 0.47553814918481657,
+                "r2": -0.030964945933196653
+              },
+              "worstError": 2.2744234379264303
+            }
+          ],
           "trainingRawOracleCalls": 0
         },
         {
@@ -117,6 +175,38 @@
             "r2": 0.7228133120550233
           },
           "worstError": 1.0688877315931005,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.2338375843301547,
+                "rmse": 0.304295721630049,
+                "r2": 0.7228133120550233
+              },
+              "worstError": 1.0688877315931005
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.3610335647143519,
+                "rmse": 0.4824198915962127,
+                "r2": 0.6956841355628547
+              },
+              "worstError": 1.9168012738284457
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.2268060562126428,
+                "rmse": 0.30105179487542016,
+                "r2": 0.5868044702877647
+              },
+              "worstError": 1.2184496491367023
+            }
+          ],
           "trainingRawOracleCalls": 18750
         },
         {
@@ -128,6 +218,38 @@
             "r2": 0.7212435493116449
           },
           "worstError": 1.1245933446012986,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.23589448948904254,
+                "rmse": 0.30515614842542527,
+                "r2": 0.7212435493116449
+              },
+              "worstError": 1.1245933446012986
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.35687844997443013,
+                "rmse": 0.4659359651467701,
+                "r2": 0.7161253257295681
+              },
+              "worstError": 1.689943780869552
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.22067422015919644,
+                "rmse": 0.2914358612006364,
+                "r2": 0.6127787754441363
+              },
+              "worstError": 1.1487167954199449
+            }
+          ],
           "trainingRawOracleCalls": 18750
         },
         {
@@ -139,6 +261,38 @@
             "r2": 0.7604731427981122
           },
           "worstError": 0.8760905163222443,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.22230867808919938,
+                "rmse": 0.28286992139232225,
+                "r2": 0.7604731427981122
+              },
+              "worstError": 0.8760905163222443
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.3513260997984657,
+                "rmse": 0.45729583339404706,
+                "r2": 0.7265558298564674
+              },
+              "worstError": 1.5465959731740107
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.21970752737198834,
+                "rmse": 0.2855304556746423,
+                "r2": 0.628312419834813
+              },
+              "worstError": 0.9771938028240273
+            }
+          ],
           "trainingRawOracleCalls": 18750
         },
         {
@@ -150,6 +304,38 @@
             "r2": 0.7228133095919116
           },
           "worstError": 1.0688877573104316,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.23383758696943768,
+                "rmse": 0.30429572298205176,
+                "r2": 0.7228133095919116
+              },
+              "worstError": 1.0688877573104316
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.3610335634225591,
+                "rmse": 0.48241988759009957,
+                "r2": 0.6956841406170566
+              },
+              "worstError": 1.916801234141532
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.2268060594361814,
+                "rmse": 0.3010517978687233,
+                "r2": 0.5868044620711087
+              },
+              "worstError": 1.2184496842689394
+            }
+          ],
           "trainingRawOracleCalls": 18750,
           "package": "scikit-learn"
         },
@@ -162,6 +348,38 @@
             "r2": 0.9736954833361307
           },
           "worstError": 0.9871689343689098,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.06013052581134432,
+                "rmse": 0.09373997314486278,
+                "r2": 0.9736954833361307
+              },
+              "worstError": 0.9871689343689098
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.12867872335664055,
+                "rmse": 0.22708281842596,
+                "r2": 0.9325716190950731
+              },
+              "worstError": 2.372219184705879
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.05654462772172779,
+                "rmse": 0.07738772482629867,
+                "r2": 0.9726965623725424
+              },
+              "worstError": 0.5323490683888855
+            }
+          ],
           "trainingRawOracleCalls": 18750,
           "package": "scikit-learn"
         },
@@ -174,6 +392,38 @@
             "r2": 0.5980633038481517
           },
           "worstError": 1.8737312705700249,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.273892242592728,
+                "rmse": 0.3664278638871162,
+                "r2": 0.5980633038481517
+              },
+              "worstError": 1.8737312705700249
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.43372002517513714,
+                "rmse": 0.5971119890456748,
+                "r2": 0.5337855154091302
+              },
+              "worstError": 3.2457327865076913
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.23586756822208738,
+                "rmse": 0.3164458869497412,
+                "r2": 0.5434670970831879
+              },
+              "worstError": 1.2063662115595426
+            }
+          ],
           "trainingRawOracleCalls": 18750,
           "package": "scikit-learn"
         },
@@ -186,6 +436,38 @@
             "r2": 0.6322395624270738
           },
           "worstError": 1.818987406246518,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.2628939839093808,
+                "rmse": 0.35050334373190506,
+                "r2": 0.6322395624270738
+              },
+              "worstError": 1.818987406246518
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.4338796745986834,
+                "rmse": 0.5955581933041119,
+                "r2": 0.5362087109906717
+              },
+              "worstError": 3.2595313808561164
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.22408804799943202,
+                "rmse": 0.3018049801417188,
+                "r2": 0.5847343807308576
+              },
+              "worstError": 1.2405985428647013
+            }
+          ],
           "trainingRawOracleCalls": 18750,
           "package": "scikit-learn"
         },
@@ -198,6 +480,126 @@
             "r2": 0.7447385337923029
           },
           "worstError": 1.4295380538165285,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.22182342475505012,
+                "rmse": 0.29201307083884576,
+                "r2": 0.7447385337923029
+              },
+              "worstError": 1.4295380538165285
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.3737198303584168,
+                "rmse": 0.5178250376211205,
+                "r2": 0.6493771054881121
+              },
+              "worstError": 3.2406439783871983
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.19960697350520906,
+                "rmse": 0.26351755808669647,
+                "r2": 0.6834135758703086
+              },
+              "worstError": 1.06627523733645
+            }
+          ],
+          "trainingRawOracleCalls": 18750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "xgboost-hist",
+          "family": "XGBoost histogram gradient trees",
+          "metrics": {
+            "mae": 0.22516681200476318,
+            "rmse": 0.29338806216241975,
+            "r2": 0.7423289934997086
+          },
+          "worstError": 1.1875766846247116,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.22516681200476318,
+                "rmse": 0.29338806216241975,
+                "r2": 0.7423289934997086
+              },
+              "worstError": 1.1875766846247116
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.37468820961510946,
+                "rmse": 0.509248763281011,
+                "r2": 0.660895037109895
+              },
+              "worstError": 3.0617827193274234
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.20410796748240856,
+                "rmse": 0.2667979522541559,
+                "r2": 0.6754824739116359
+              },
+              "worstError": 1.042609951512463
+            }
+          ],
+          "trainingRawOracleCalls": 18750,
+          "package": "XGBoost"
+        },
+        {
+          "id": "sklearn-mlp-regressor",
+          "family": "sklearn neural network MLP regressor",
+          "metrics": {
+            "mae": 0.11666834931823061,
+            "rmse": 0.144560639788471,
+            "r2": 0.937442296127015
+          },
+          "worstError": 0.44079787924180347,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.11666834931823061,
+                "rmse": 0.144560639788471,
+                "r2": 0.937442296127015
+              },
+              "worstError": 0.44079787924180347
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.17121144652181158,
+                "rmse": 0.21513407666788079,
+                "r2": 0.9394808814833557
+              },
+              "worstError": 0.6979357268058468
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.11479067500057202,
+                "rmse": 0.14237670255952636,
+                "r2": 0.907583177243426
+              },
+              "worstError": 0.45575863358912033
+            }
+          ],
           "trainingRawOracleCalls": 18750,
           "package": "scikit-learn"
         },
@@ -210,8 +612,123 @@
             "r2": 0.7552603795141261
           },
           "worstError": 1.2677529318735088,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.21315315676816593,
+                "rmse": 0.2859313684569575,
+                "r2": 0.7552603795141261
+              },
+              "worstError": 1.2677529318735088
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.3406948675301966,
+                "rmse": 0.46478297029042964,
+                "r2": 0.7175285274207083
+              },
+              "worstError": 2.3828688364662147
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.19081427624144195,
+                "rmse": 0.25374308707653587,
+                "r2": 0.7064638382193913
+              },
+              "worstError": 1.125189643394342
+            }
+          ],
           "trainingRawOracleCalls": 18750,
           "package": "scikit-learn"
+        }
+      ],
+      "distributionCourt": [
+        {
+          "id": "iid-uniform",
+          "kind": "iid",
+          "gcl": {
+            "id": "iid-uniform",
+            "kind": "iid",
+            "metrics": {
+              "mae": 0.0032677474320668303,
+              "rmse": 0.004301418014557782,
+              "r2": 0.999944613493118
+            },
+            "worstError": 0.018258777737773624
+          },
+          "bestBaseline": {
+            "id": "sklearn-poly2-ridge",
+            "family": "sklearn polynomial ridge",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.06013052581134432,
+              "rmse": 0.09373997314486278,
+              "r2": 0.9736954833361307
+            },
+            "worstError": 0.9871689343689098
+          },
+          "gclVsBestBaselineMaeRatio": 0.05434423511145036,
+          "beatsBestBaselineByMae": true
+        },
+        {
+          "id": "wide-ood",
+          "kind": "ood",
+          "gcl": {
+            "id": "wide-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.0051884080522364056,
+              "rmse": 0.007230160129240363,
+              "r2": 0.9999316450434367
+            },
+            "worstError": 0.036268970516537546
+          },
+          "bestBaseline": {
+            "id": "sklearn-poly2-ridge",
+            "family": "sklearn polynomial ridge",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.12867872335664055,
+              "rmse": 0.22708281842596,
+              "r2": 0.9325716190950731
+            },
+            "worstError": 2.372219184705879
+          },
+          "gclVsBestBaselineMaeRatio": 0.04032063667477048,
+          "beatsBestBaselineByMae": true
+        },
+        {
+          "id": "shifted-ood",
+          "kind": "ood",
+          "gcl": {
+            "id": "shifted-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.0029133992282563735,
+              "rmse": 0.003716276459094356,
+              "r2": 0.9999370364507343
+            },
+            "worstError": 0.01580646387493001
+          },
+          "bestBaseline": {
+            "id": "sklearn-poly2-ridge",
+            "family": "sklearn polynomial ridge",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.05654462772172779,
+              "rmse": 0.07738772482629867,
+              "r2": 0.9726965623725424
+            },
+            "worstError": 0.5323490683888855
+          },
+          "gclVsBestBaselineMaeRatio": 0.051523890874196586,
+          "beatsBestBaselineByMae": true
         }
       ],
       "gcl": {
@@ -221,6 +738,38 @@
           "r2": 0.999944613493118
         },
         "worstError": 0.018258777737773624,
+        "evaluations": [
+          {
+            "id": "iid-uniform",
+            "kind": "iid",
+            "metrics": {
+              "mae": 0.0032677474320668303,
+              "rmse": 0.004301418014557782,
+              "r2": 0.999944613493118
+            },
+            "worstError": 0.018258777737773624
+          },
+          {
+            "id": "wide-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.0051884080522364056,
+              "rmse": 0.007230160129240363,
+              "r2": 0.9999316450434367
+            },
+            "worstError": 0.036268970516537546
+          },
+          {
+            "id": "shifted-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.0029133992282563735,
+              "rmse": 0.003716276459094356,
+              "r2": 0.9999370364507343
+            },
+            "worstError": 0.01580646387493001
+          }
+        ],
         "projectionScores": [
           0.9999872326735992,
           0.9998897976963487,
@@ -413,6 +962,11 @@
         "bestBaselineId": "sklearn-poly2-ridge",
         "bestBaselineMae": 0.052894699949889996,
         "gclVsBestBaselineMaeRatio": 0.06806622054146819,
+        "maxDistributionMae": 0.005876071181397475,
+        "minDistributionR2": 0.9995038453250289,
+        "maxDistributionWorstError": 0.044916008556176834,
+        "maxDistributionGclVsBestBaselineMaeRatio": 0.0746094045039327,
+        "worstDistributionId": "wide-ood",
         "strongOnlyMae": 0.2478805455002617,
         "rawOracleCalls": 116468
       },
@@ -420,13 +974,19 @@
         "outputR2AboveThreshold": true,
         "outputMaeBelowThreshold": true,
         "worstErrorBelowThreshold": true,
+        "oodR2AboveThreshold": true,
+        "oodMaeBelowThreshold": true,
+        "oodWorstErrorBelowThreshold": true,
         "effectiveChannelCountMatches": true,
         "canonicalAtomCountMatches": true,
         "directionRecoveryAboveThreshold": true,
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
         "beatsBestBaselineByMae": true,
+        "beatsBestBaselineOnEveryDistribution": true,
         "packageBackedBaselinesCovered": true,
+        "xgboostBaselineCovered": true,
+        "nnBaselineCovered": true,
         "activeSubspaceBaselineCovered": true,
         "nonlinearPackageBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
@@ -441,6 +1001,38 @@
             "r2": -0.017104248247738374
           },
           "worstError": 1.1876060249696054,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.2327726473493254,
+                "rmse": 0.29808849504156787,
+                "r2": -0.017104248247738374
+              },
+              "worstError": 1.1876060249696054
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.26678204037448056,
+                "rmse": 0.3698945861583815,
+                "r2": -0.038413140238497734
+              },
+              "worstError": 1.5530719658663665
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.2345283295120209,
+                "rmse": 0.30566942002611236,
+                "r2": -0.07630615314413891
+              },
+              "worstError": 1.1614399187470017
+            }
+          ],
           "trainingRawOracleCalls": 0
         },
         {
@@ -452,6 +1044,38 @@
             "r2": 0.7893209866899734
           },
           "worstError": 0.6365542300232565,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.10290593079748848,
+                "rmse": 0.13566665530759803,
+                "r2": 0.7893209866899734
+              },
+              "worstError": 0.6365542300232565
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.15999226890112014,
+                "rmse": 0.23298874602452202,
+                "r2": 0.5880124300827474
+              },
+              "worstError": 1.1914792008956578
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.09841693885661064,
+                "rmse": 0.128816183691112,
+                "r2": 0.8088507077077132
+              },
+              "worstError": 0.6745792602550431
+            }
+          ],
           "trainingRawOracleCalls": 13750
         },
         {
@@ -463,6 +1087,38 @@
             "r2": 0.8051775421867893
           },
           "worstError": 0.5899551133891223,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.09953855252663446,
+                "rmse": 0.1304613863529966,
+                "r2": 0.8051775421867893
+              },
+              "worstError": 0.5899551133891223
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.1563072114641324,
+                "rmse": 0.21101133494028207,
+                "r2": 0.6620707416015281
+              },
+              "worstError": 1.0611262434064113
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.09902214267123302,
+                "rmse": 0.12671185611423988,
+                "r2": 0.8150448866472428
+              },
+              "worstError": 0.6761418634071201
+            }
+          ],
           "trainingRawOracleCalls": 13750
         },
         {
@@ -474,6 +1130,38 @@
             "r2": 0.8681625149571092
           },
           "worstError": 0.5266293901228569,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.08377423433896282,
+                "rmse": 0.10732031411990134,
+                "r2": 0.8681625149571092
+              },
+              "worstError": 0.5266293901228569
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.13426896817487383,
+                "rmse": 0.17933978492556996,
+                "r2": 0.7559001489553543
+              },
+              "worstError": 0.8774140832635849
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.08767436454798373,
+                "rmse": 0.10957510747098137,
+                "r2": 0.8616893418875438
+              },
+              "worstError": 0.46620796010704296
+            }
+          ],
           "trainingRawOracleCalls": 13750
         },
         {
@@ -485,6 +1173,38 @@
             "r2": 0.7893209889323108
           },
           "worstError": 0.6365542271198299,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.10290593011517626,
+                "rmse": 0.13566665458562194,
+                "r2": 0.7893209889323108
+              },
+              "worstError": 0.6365542271198299
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.15999226941607114,
+                "rmse": 0.2329887470137117,
+                "r2": 0.5880124265844334
+              },
+              "worstError": 1.1914792239386387
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.09841693757109504,
+                "rmse": 0.12881618111900434,
+                "r2": 0.8088507153411728
+              },
+              "worstError": 0.6745792485585272
+            }
+          ],
           "trainingRawOracleCalls": 13750,
           "package": "scikit-learn"
         },
@@ -497,6 +1217,38 @@
             "r2": 0.9458264257156784
           },
           "worstError": 0.3379258543621837,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.052894699949889996,
+                "rmse": 0.06879489712775538,
+                "r2": 0.9458264257156784
+              },
+              "worstError": 0.3379258543621837
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.0955727477413446,
+                "rmse": 0.15918910091596608,
+                "r2": 0.8076727220387765
+              },
+              "worstError": 1.4001853935222397
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.04845809868318247,
+                "rmse": 0.06259940152432827,
+                "r2": 0.9548588935705247
+              },
+              "worstError": 0.413547926652423
+            }
+          ],
           "trainingRawOracleCalls": 13750,
           "package": "scikit-learn"
         },
@@ -509,6 +1261,38 @@
             "r2": 0.6581358396585251
           },
           "worstError": 0.7541070830194918,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.13151247228676016,
+                "rmse": 0.17281811628939123,
+                "r2": 0.6581358396585251
+              },
+              "worstError": 0.7541070830194918
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.18037116742239798,
+                "rmse": 0.2532834355285118,
+                "r2": 0.5131134227532416
+              },
+              "worstError": 1.2038133195961556
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.14066038947209247,
+                "rmse": 0.1853621859329197,
+                "r2": 0.6042015201013989
+              },
+              "worstError": 0.7844248380805225
+            }
+          ],
           "trainingRawOracleCalls": 13750,
           "package": "scikit-learn"
         },
@@ -521,6 +1305,38 @@
             "r2": 0.6887677343159031
           },
           "worstError": 0.7410558471918277,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.12573428709433027,
+                "rmse": 0.16489397500627553,
+                "r2": 0.6887677343159031
+              },
+              "worstError": 0.7410558471918277
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.17778920266253753,
+                "rmse": 0.25445317595230466,
+                "r2": 0.5086058556157048
+              },
+              "worstError": 1.1695281406098559
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.14038230403950852,
+                "rmse": 0.18591936222497038,
+                "r2": 0.6018184993050877
+              },
+              "worstError": 0.7558898404425783
+            }
+          ],
           "trainingRawOracleCalls": 13750,
           "package": "scikit-learn"
         },
@@ -533,6 +1349,126 @@
             "r2": 0.791577193756668
           },
           "worstError": 0.6894837855633065,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.10199081379739103,
+                "rmse": 0.13493825815779167,
+                "r2": 0.791577193756668
+              },
+              "worstError": 0.6894837855633065
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.1535953843864087,
+                "rmse": 0.2159282740486114,
+                "r2": 0.6461385506385741
+              },
+              "worstError": 0.9446031310386623
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.10938730650620355,
+                "rmse": 0.14459821266356512,
+                "r2": 0.7591438794975238
+              },
+              "worstError": 0.5733083961181807
+            }
+          ],
+          "trainingRawOracleCalls": 13750,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "xgboost-hist",
+          "family": "XGBoost histogram gradient trees",
+          "metrics": {
+            "mae": 0.10500363720419026,
+            "rmse": 0.13893509307104385,
+            "r2": 0.7790474835697774
+          },
+          "worstError": 0.5752275297516076,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.10500363720419026,
+                "rmse": 0.13893509307104385,
+                "r2": 0.7790474835697774
+              },
+              "worstError": 0.5752275297516076
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.15371626958840312,
+                "rmse": 0.21471420469478023,
+                "r2": 0.650106577362245
+              },
+              "worstError": 1.017665472588336
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.11159988177049088,
+                "rmse": 0.14760645599743333,
+                "r2": 0.7490180187461979
+              },
+              "worstError": 0.6353696101458512
+            }
+          ],
+          "trainingRawOracleCalls": 13750,
+          "package": "XGBoost"
+        },
+        {
+          "id": "sklearn-mlp-regressor",
+          "family": "sklearn neural network MLP regressor",
+          "metrics": {
+            "mae": 0.06707000596011772,
+            "rmse": 0.08585658826585432,
+            "r2": 0.9156233472508848
+          },
+          "worstError": 0.3128818549311084,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.06707000596011772,
+                "rmse": 0.08585658826585432,
+                "r2": 0.9156233472508848
+              },
+              "worstError": 0.3128818549311084
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.10779388179210758,
+                "rmse": 0.13979111704858177,
+                "r2": 0.8516889957008906
+              },
+              "worstError": 0.5073302760220696
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.0763232484464072,
+                "rmse": 0.09895935729041222,
+                "r2": 0.8871905272850046
+              },
+              "worstError": 0.41712248630591553
+            }
+          ],
           "trainingRawOracleCalls": 13750,
           "package": "scikit-learn"
         },
@@ -545,8 +1481,123 @@
             "r2": 0.8949221792124629
           },
           "worstError": 0.6854821657957275,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.06807450395368782,
+                "rmse": 0.09581158152576999,
+                "r2": 0.8949221792124629
+              },
+              "worstError": 0.6854821657957275
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.11236379823664507,
+                "rmse": 0.16951511156980487,
+                "r2": 0.7819123539826283
+              },
+              "worstError": 1.131870908176286
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.06556055275612307,
+                "rmse": 0.08955565850922784,
+                "r2": 0.9076115033086816
+              },
+              "worstError": 0.5466856304630072
+            }
+          ],
           "trainingRawOracleCalls": 13750,
           "package": "scikit-learn"
+        }
+      ],
+      "distributionCourt": [
+        {
+          "id": "iid-uniform",
+          "kind": "iid",
+          "gcl": {
+            "id": "iid-uniform",
+            "kind": "iid",
+            "metrics": {
+              "mae": 0.003600342312263999,
+              "rmse": 0.004711240353647738,
+              "r2": 0.9997459345781228
+            },
+            "worstError": 0.019976668856817058
+          },
+          "bestBaseline": {
+            "id": "sklearn-poly2-ridge",
+            "family": "sklearn polynomial ridge",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.052894699949889996,
+              "rmse": 0.06879489712775538,
+              "r2": 0.9458264257156784
+            },
+            "worstError": 0.3379258543621837
+          },
+          "gclVsBestBaselineMaeRatio": 0.06806622054146819,
+          "beatsBestBaselineByMae": true
+        },
+        {
+          "id": "wide-ood",
+          "kind": "ood",
+          "gcl": {
+            "id": "wide-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.005876071181397475,
+              "rmse": 0.008085398532128718,
+              "r2": 0.9995038453250289
+            },
+            "worstError": 0.044916008556176834
+          },
+          "bestBaseline": {
+            "id": "sklearn-poly2-ridge",
+            "family": "sklearn polynomial ridge",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.0955727477413446,
+              "rmse": 0.15918910091596608,
+              "r2": 0.8076727220387765
+            },
+            "worstError": 1.4001853935222397
+          },
+          "gclVsBestBaselineMaeRatio": 0.061482706318126475,
+          "beatsBestBaselineByMae": true
+        },
+        {
+          "id": "shifted-ood",
+          "kind": "ood",
+          "gcl": {
+            "id": "shifted-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.0036154298861450496,
+              "rmse": 0.004575253712810698,
+              "r2": 0.9997588639172782
+            },
+            "worstError": 0.021708558443127413
+          },
+          "bestBaseline": {
+            "id": "sklearn-poly2-ridge",
+            "family": "sklearn polynomial ridge",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.04845809868318247,
+              "rmse": 0.06259940152432827,
+              "r2": 0.9548588935705247
+            },
+            "worstError": 0.413547926652423
+          },
+          "gclVsBestBaselineMaeRatio": 0.0746094045039327,
+          "beatsBestBaselineByMae": true
         }
       ],
       "gcl": {
@@ -556,6 +1607,38 @@
           "r2": 0.9997459345781228
         },
         "worstError": 0.019976668856817058,
+        "evaluations": [
+          {
+            "id": "iid-uniform",
+            "kind": "iid",
+            "metrics": {
+              "mae": 0.003600342312263999,
+              "rmse": 0.004711240353647738,
+              "r2": 0.9997459345781228
+            },
+            "worstError": 0.019976668856817058
+          },
+          {
+            "id": "wide-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.005876071181397475,
+              "rmse": 0.008085398532128718,
+              "r2": 0.9995038453250289
+            },
+            "worstError": 0.044916008556176834
+          },
+          {
+            "id": "shifted-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.0036154298861450496,
+              "rmse": 0.004575253712810698,
+              "r2": 0.9997588639172782
+            },
+            "worstError": 0.021708558443127413
+          }
+        ],
         "projectionScores": [
           0.9999097310524111,
           0.9996218586058737,
@@ -724,6 +1807,11 @@
         "bestBaselineId": "sklearn-poly2-ridge",
         "bestBaselineMae": 0.04591792756369693,
         "gclVsBestBaselineMaeRatio": 0.08120754460430137,
+        "maxDistributionMae": 0.005471693586587925,
+        "minDistributionR2": 0.999836382970466,
+        "maxDistributionWorstError": 0.09735167309682635,
+        "maxDistributionGclVsBestBaselineMaeRatio": 0.08567143575266337,
+        "worstDistributionId": "wide-ood",
         "strongOnlyMae": 0.03284863477358395,
         "rawOracleCalls": 155012
       },
@@ -731,13 +1819,19 @@
         "outputR2AboveThreshold": true,
         "outputMaeBelowThreshold": true,
         "worstErrorBelowThreshold": true,
+        "oodR2AboveThreshold": true,
+        "oodMaeBelowThreshold": true,
+        "oodWorstErrorBelowThreshold": true,
         "effectiveChannelCountMatches": true,
         "canonicalAtomCountMatches": true,
         "directionRecoveryAboveThreshold": true,
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
         "beatsBestBaselineByMae": true,
+        "beatsBestBaselineOnEveryDistribution": true,
         "packageBackedBaselinesCovered": true,
+        "xgboostBaselineCovered": true,
+        "nnBaselineCovered": true,
         "activeSubspaceBaselineCovered": true,
         "nonlinearPackageBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
@@ -752,6 +1846,38 @@
             "r2": -0.000007975547768213076
           },
           "worstError": 2.2160095209440045,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.39083136776476085,
+                "rmse": 0.5385758446405351,
+                "r2": -0.000007975547768213076
+              },
+              "worstError": 2.2160095209440045
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.4786875238481314,
+                "rmse": 0.6835998631040542,
+                "r2": -0.0012612007923771262
+              },
+              "worstError": 3.094764232995131
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.37795100896152334,
+                "rmse": 0.5327792654369656,
+                "r2": -0.07258699808942182
+              },
+              "worstError": 2.0756017718326256
+            }
+          ],
           "trainingRawOracleCalls": 0
         },
         {
@@ -763,6 +1889,38 @@
             "r2": 0.7401372167682545
           },
           "worstError": 1.1422026401158494,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.21050278298548675,
+                "rmse": 0.2745473032260912,
+                "r2": 0.7401372167682545
+              },
+              "worstError": 1.1422026401158494
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.28183349959352444,
+                "rmse": 0.37406992516641907,
+                "r2": 0.7001879811546072
+              },
+              "worstError": 1.7646752948495266
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.1947648849156885,
+                "rmse": 0.25898385413373654,
+                "r2": 0.7465552625283367
+              },
+              "worstError": 1.0014622011571617
+            }
+          ],
           "trainingRawOracleCalls": 16250
         },
         {
@@ -774,6 +1932,38 @@
             "r2": 0.7577529010688409
           },
           "worstError": 1.0535554195584038,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.205428326184698,
+                "rmse": 0.2650784556678382,
+                "r2": 0.7577529010688409
+              },
+              "worstError": 1.0535554195584038
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.2825675110001589,
+                "rmse": 0.362788330631455,
+                "r2": 0.7179993744710691
+              },
+              "worstError": 1.5970342164289038
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.21036441110964535,
+                "rmse": 0.2784880263459327,
+                "r2": 0.7069437734014403
+              },
+              "worstError": 1.0879635850108489
+            }
+          ],
           "trainingRawOracleCalls": 16250
         },
         {
@@ -785,6 +1975,38 @@
             "r2": 0.9158677704308447
           },
           "worstError": 0.5936696898246477,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.1213257518909473,
+                "rmse": 0.15621629682745197,
+                "r2": 0.9158677704308447
+              },
+              "worstError": 0.5936696898246477
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.18388807968208057,
+                "rmse": 0.23509428237270455,
+                "r2": 0.8815793100122828
+              },
+              "worstError": 0.8919180302879203
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.12225389898964321,
+                "rmse": 0.15555862819115698,
+                "r2": 0.9085621285072759
+              },
+              "worstError": 0.48752886628458847
+            }
+          ],
           "trainingRawOracleCalls": 16250
         },
         {
@@ -796,6 +2018,38 @@
             "r2": 0.7401372184212918
           },
           "worstError": 1.1422026144442077,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.21050278249135282,
+                "rmse": 0.274547302352867,
+                "r2": 0.7401372184212918
+              },
+              "worstError": 1.1422026144442077
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.2818334999980805,
+                "rmse": 0.3740699252950706,
+                "r2": 0.7001879809483824
+              },
+              "worstError": 1.7646752630359712
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.19476488303472556,
+                "rmse": 0.2589838517893951,
+                "r2": 0.7465552671167383
+              },
+              "worstError": 1.0014621857648995
+            }
+          ],
           "trainingRawOracleCalls": 16250,
           "package": "scikit-learn"
         },
@@ -808,6 +2062,38 @@
             "r2": 0.9888717181575581
           },
           "worstError": 0.31355674742912387,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.04591792756369693,
+                "rmse": 0.056814501117813415,
+                "r2": 0.9888717181575581
+              },
+              "worstError": 0.31355674742912387
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.08013526269824327,
+                "rmse": 0.13884519993042882,
+                "r2": 0.9586947558414708
+              },
+              "worstError": 1.224079274699076
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.04291126367078356,
+                "rmse": 0.05389158397773691,
+                "r2": 0.9890256250109305
+              },
+              "worstError": 0.4388234811618158
+            }
+          ],
           "trainingRawOracleCalls": 16250,
           "package": "scikit-learn"
         },
@@ -820,6 +2106,38 @@
             "r2": 0.7733642412115537
           },
           "worstError": 1.3347837031718486,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.17690953336883689,
+                "rmse": 0.2563948847721684,
+                "r2": 0.7733642412115537
+              },
+              "worstError": 1.3347837031718486
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.2629082324985409,
+                "rmse": 0.37634693133448766,
+                "r2": 0.6965268925362769
+              },
+              "worstError": 1.8587376675034795
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.20409354812390482,
+                "rmse": 0.29834063570577724,
+                "r2": 0.6636722357963833
+              },
+              "worstError": 1.2818328555548208
+            }
+          ],
           "trainingRawOracleCalls": 16250,
           "package": "scikit-learn"
         },
@@ -832,6 +2150,38 @@
             "r2": 0.8003250680181462
           },
           "worstError": 1.4404766585762325,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.16523576265606477,
+                "rmse": 0.24066166218935214,
+                "r2": 0.8003250680181462
+              },
+              "worstError": 1.4404766585762325
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.2547284142174413,
+                "rmse": 0.3728763155586387,
+                "r2": 0.7020982526930004
+              },
+              "worstError": 1.8302091070692053
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.1951904859368292,
+                "rmse": 0.28277757920455465,
+                "r2": 0.6978463511663395
+              },
+              "worstError": 1.1893755133269424
+            }
+          ],
           "trainingRawOracleCalls": 16250,
           "package": "scikit-learn"
         },
@@ -844,6 +2194,126 @@
             "r2": 0.8763863057907293
           },
           "worstError": 1.0429938296189962,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.134122795594484,
+                "rmse": 0.18935572150193408,
+                "r2": 0.8763863057907293
+              },
+              "worstError": 1.0429938296189962
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.21684068097570502,
+                "rmse": 0.3063317262273058,
+                "r2": 0.7989391983721901
+              },
+              "worstError": 1.563471562018412
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.1620254315606024,
+                "rmse": 0.22933242940065596,
+                "r2": 0.8012675246118606
+              },
+              "worstError": 1.0124857833282563
+            }
+          ],
+          "trainingRawOracleCalls": 16250,
+          "package": "scikit-learn"
+        },
+        {
+          "id": "xgboost-hist",
+          "family": "XGBoost histogram gradient trees",
+          "metrics": {
+            "mae": 0.14331245390083297,
+            "rmse": 0.19626027933075066,
+            "r2": 0.8672071944248824
+          },
+          "worstError": 0.8806641241691329,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.14331245390083297,
+                "rmse": 0.19626027933075066,
+                "r2": 0.8672071944248824
+              },
+              "worstError": 0.8806641241691329
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.22498037717806316,
+                "rmse": 0.30999582693142413,
+                "r2": 0.7941005681017874
+              },
+              "worstError": 1.3603884303645155
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.17204737631563322,
+                "rmse": 0.24181497394269555,
+                "r2": 0.7790447733617263
+              },
+              "worstError": 0.9921027532690956
+            }
+          ],
+          "trainingRawOracleCalls": 16250,
+          "package": "XGBoost"
+        },
+        {
+          "id": "sklearn-mlp-regressor",
+          "family": "sklearn neural network MLP regressor",
+          "metrics": {
+            "mae": 0.04806883727794449,
+            "rmse": 0.060347337262804716,
+            "r2": 0.9874447332037641
+          },
+          "worstError": 0.22156103734738408,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.04806883727794449,
+                "rmse": 0.060347337262804716,
+                "r2": 0.9874447332037641
+              },
+              "worstError": 0.22156103734738408
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.07593876567789458,
+                "rmse": 0.09793144196541581,
+                "r2": 0.9794511391295703
+              },
+              "worstError": 0.315139903218684
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.045239624513924624,
+                "rmse": 0.05771468853571173,
+                "r2": 0.9874133368018391
+              },
+              "worstError": 0.20301317181873707
+            }
+          ],
           "trainingRawOracleCalls": 16250,
           "package": "scikit-learn"
         },
@@ -856,8 +2326,123 @@
             "r2": 0.8009468044993469
           },
           "worstError": 1.135699904768135,
+          "evaluations": [
+            {
+              "id": "iid-uniform",
+              "kind": "iid",
+              "metrics": {
+                "mae": 0.18042973904527154,
+                "rmse": 0.2402866907517371,
+                "r2": 0.8009468044993469
+              },
+              "worstError": 1.135699904768135
+            },
+            {
+              "id": "wide-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.257838458152551,
+                "rmse": 0.3419016345712725,
+                "r2": 0.749535714346104
+              },
+              "worstError": 1.3449313504448173
+            },
+            {
+              "id": "shifted-ood",
+              "kind": "ood",
+              "metrics": {
+                "mae": 0.16449332573383962,
+                "rmse": 0.22261740352420253,
+                "r2": 0.8127352113122471
+              },
+              "worstError": 0.8375236395020635
+            }
+          ],
           "trainingRawOracleCalls": 16250,
           "package": "scikit-learn"
+        }
+      ],
+      "distributionCourt": [
+        {
+          "id": "iid-uniform",
+          "kind": "iid",
+          "gcl": {
+            "id": "iid-uniform",
+            "kind": "iid",
+            "metrics": {
+              "mae": 0.003728882150765997,
+              "rmse": 0.004872093510514659,
+              "r2": 0.9999181646486015
+            },
+            "worstError": 0.04908248358529477
+          },
+          "bestBaseline": {
+            "id": "sklearn-poly2-ridge",
+            "family": "sklearn polynomial ridge",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.04591792756369693,
+              "rmse": 0.056814501117813415,
+              "r2": 0.9888717181575581
+            },
+            "worstError": 0.31355674742912387
+          },
+          "gclVsBestBaselineMaeRatio": 0.08120754460430137,
+          "beatsBestBaselineByMae": true
+        },
+        {
+          "id": "wide-ood",
+          "kind": "ood",
+          "gcl": {
+            "id": "wide-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.005471693586587925,
+              "rmse": 0.008738613376944891,
+              "r2": 0.999836382970466
+            },
+            "worstError": 0.09735167309682635
+          },
+          "bestBaseline": {
+            "id": "sklearn-mlp-regressor",
+            "family": "sklearn neural network MLP regressor",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.07593876567789458,
+              "rmse": 0.09793144196541581,
+              "r2": 0.9794511391295703
+            },
+            "worstError": 0.315139903218684
+          },
+          "gclVsBestBaselineMaeRatio": 0.07205402323494321,
+          "beatsBestBaselineByMae": true
+        },
+        {
+          "id": "shifted-ood",
+          "kind": "ood",
+          "gcl": {
+            "id": "shifted-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.003676269568637131,
+              "rmse": 0.004533801161540994,
+              "r2": 0.9999223282952052
+            },
+            "worstError": 0.015094894326415309
+          },
+          "bestBaseline": {
+            "id": "sklearn-poly2-ridge",
+            "family": "sklearn polynomial ridge",
+            "package": "scikit-learn",
+            "metrics": {
+              "mae": 0.04291126367078356,
+              "rmse": 0.05389158397773691,
+              "r2": 0.9890256250109305
+            },
+            "worstError": 0.4388234811618158
+          },
+          "gclVsBestBaselineMaeRatio": 0.08567143575266337,
+          "beatsBestBaselineByMae": true
         }
       ],
       "gcl": {
@@ -867,6 +2452,38 @@
           "r2": 0.9999181646486015
         },
         "worstError": 0.04908248358529477,
+        "evaluations": [
+          {
+            "id": "iid-uniform",
+            "kind": "iid",
+            "metrics": {
+              "mae": 0.003728882150765997,
+              "rmse": 0.004872093510514659,
+              "r2": 0.9999181646486015
+            },
+            "worstError": 0.04908248358529477
+          },
+          {
+            "id": "wide-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.005471693586587925,
+              "rmse": 0.008738613376944891,
+              "r2": 0.999836382970466
+            },
+            "worstError": 0.09735167309682635
+          },
+          {
+            "id": "shifted-ood",
+            "kind": "ood",
+            "metrics": {
+              "mae": 0.003676269568637131,
+              "rmse": 0.004533801161540994,
+              "r2": 0.9999223282952052
+            },
+            "worstError": 0.015094894326415309
+          }
+        ],
         "projectionScores": [
           0.9999834624079205,
           0.9999308258242157,
@@ -999,5 +2616,5 @@
       }
     }
   ],
-  "runtimeMs": 118339
+  "runtimeMs": 121014
 }

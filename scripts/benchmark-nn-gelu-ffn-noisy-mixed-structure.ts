@@ -47,11 +47,24 @@ type TeacherCase = {
 };
 
 type Predictor = (input: number[]) => number;
+type EvaluationSet = {
+  id: 'iid-uniform' | 'wide-ood' | 'shifted-ood';
+  kind: 'iid' | 'ood';
+  inputs: number[][];
+  actual: number[];
+};
+type EvaluationMetrics = {
+  id: EvaluationSet['id'];
+  kind: EvaluationSet['kind'];
+  metrics: ReturnType<typeof regressionMetrics>;
+  worstError: number;
+};
 type BaselineRow = {
   id: string;
   family: string;
   metrics: ReturnType<typeof regressionMetrics>;
   worstError: number;
+  evaluations: EvaluationMetrics[];
   trainingRawOracleCalls: number;
   package?: string;
 };
@@ -62,6 +75,10 @@ const output = resolveBenchmarkOutput(
   'nn-gelu-ffn-noisy-mixed-structure',
   'quantized-noisy-family'
 );
+const strongBaselineVenvPath = process.env.GCL_NEURAL_BASELINE_PYTHON_VENV ?? '/tmp/gcl-neural-baseline-venv';
+const strongBaselineRequirementsPath = path.join(repoRoot, 'scripts', 'neural-baseline-python-requirements.txt');
+const requiredStrongBaselineModules = ['numpy', 'sklearn', 'xgboost'];
+let cachedStrongBaselinePythonBin: string | null = null;
 
 function makeRandom(seed: number): () => number {
   let state = Math.floor(seed) % 2147483647;
@@ -120,6 +137,16 @@ function makeInputs(seed: number, dimension: number, count: number, range: [numb
   const random = makeRandom(seed);
   return Array.from({ length: count }, () => (
     Array.from({ length: dimension }, () => range[0] + (range[1] - range[0]) * random())
+  ));
+}
+
+function makeShiftedOodInputs(seed: number, dimension: number, count: number): number[][] {
+  const random = makeRandom(seed);
+  return Array.from({ length: count }, () => (
+    Array.from({ length: dimension }, (_unused, axis) => {
+      const shift = axis % 3 === 0 ? 0.55 : axis % 3 === 1 ? -0.45 : 0.25;
+      return -1.35 + 2.7 * random() + shift;
+    })
   ));
 }
 
@@ -214,6 +241,108 @@ function makeRandomGeluFeature(seed: number, dimension: number, count: number): 
   ];
 }
 
+function probeStrongBaselinePythonEnv(pythonExecutable: string): { ok: boolean; message: string } {
+  const result = spawnSync(pythonExecutable, ['-c', [
+    'import importlib',
+    `required = ${JSON.stringify(requiredStrongBaselineModules)}`,
+    'missing = []',
+    'versions = {}',
+    'for name in required:',
+    '    try:',
+    '        module = importlib.import_module(name)',
+    "        versions[name] = getattr(module, '__version__', 'unknown')",
+    '    except Exception as exc:',
+    "        missing.append(f'{name}: {exc!r}')",
+    'if missing:',
+    "    raise SystemExit('\\n'.join(missing))",
+    "print('neural-baseline-python-ok ' + ' '.join(f'{k}={v}' for k, v in sorted(versions.items())))"
+  ].join('\n')], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    timeout: 30 * 1000,
+    maxBuffer: 2 * 1024 * 1024
+  });
+
+  if (result.status === 0) return { ok: true, message: (result.stdout || '').trim() };
+  return {
+    ok: false,
+    message: [
+      (result.stderr || '').trim(),
+      (result.stdout || '').trim(),
+      result.error ? String(result.error) : ''
+    ].filter(Boolean).join('\n')
+  };
+}
+
+function bootstrapStrongBaselinePythonEnv(venvPath: string, venvPython: string, reason: string): void {
+  if (!fs.existsSync(strongBaselineRequirementsPath)) {
+    throw new Error(`neural baseline Python requirements file is missing: ${strongBaselineRequirementsPath}`);
+  }
+  console.log(`[nn-gelu-baseline-court] preparing managed Python baseline env at ${venvPath}`);
+  if (reason) console.log(`[nn-gelu-baseline-court] reason: ${reason}`);
+
+  if (!fs.existsSync(venvPython)) {
+    const create = spawnSync('python3', ['-m', 'venv', '--system-site-packages', venvPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      timeout: 2 * 60 * 1000,
+      maxBuffer: 8 * 1024 * 1024
+    });
+    if (create.stdout) process.stdout.write(create.stdout);
+    if (create.stderr) process.stderr.write(create.stderr);
+    if (create.error) throw create.error;
+    if (create.status !== 0) throw new Error(`could not create neural baseline venv at ${venvPath}`);
+  }
+
+  const install = spawnSync(venvPython, [
+    '-m',
+    'pip',
+    'install',
+    '--disable-pip-version-check',
+    '--quiet',
+    '-r',
+    strongBaselineRequirementsPath
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    timeout: 8 * 60 * 1000,
+    maxBuffer: 128 * 1024 * 1024
+  });
+  if (install.stdout) process.stdout.write(install.stdout);
+  if (install.stderr) process.stderr.write(install.stderr);
+  if (install.error) throw install.error;
+  if (install.status !== 0) throw new Error(`could not install neural baseline requirements into ${venvPath}`);
+
+  const finalProbe = probeStrongBaselinePythonEnv(venvPython);
+  if (!finalProbe.ok) throw new Error(`managed neural baseline env is still invalid after install:\n${finalProbe.message}`);
+  console.log(`[nn-gelu-baseline-court] ${finalProbe.message}`);
+}
+
+function resolveStrongBaselinePythonBin(): string {
+  if (cachedStrongBaselinePythonBin) return cachedStrongBaselinePythonBin;
+  const configuredPython = process.env.GCL_NEURAL_BASELINE_PYTHON;
+  if (configuredPython) {
+    const probe = probeStrongBaselinePythonEnv(configuredPython);
+    if (!probe.ok) {
+      throw new Error([
+        `GCL_NEURAL_BASELINE_PYTHON is missing required neural baseline modules: ${configuredPython}`,
+        probe.message,
+        'Install the requirements in that environment or unset GCL_NEURAL_BASELINE_PYTHON so GCL can use its managed benchmark venv.'
+      ].filter(Boolean).join('\n'));
+    }
+    cachedStrongBaselinePythonBin = configuredPython;
+    return cachedStrongBaselinePythonBin;
+  }
+
+  const venvPython = path.join(strongBaselineVenvPath, 'bin', 'python');
+  const probe = fs.existsSync(venvPython)
+    ? probeStrongBaselinePythonEnv(venvPython)
+    : { ok: false, message: 'managed neural baseline venv does not exist' };
+  if (!probe.ok) bootstrapStrongBaselinePythonEnv(strongBaselineVenvPath, venvPython, probe.message);
+  cachedStrongBaselinePythonBin = venvPython;
+  return cachedStrongBaselinePythonBin;
+}
+
 const sklearnBaselineProgram = String.raw`
 import json
 import math
@@ -221,24 +350,26 @@ import sys
 
 try:
     import numpy as np
+    from xgboost import XGBRegressor
     from sklearn.cross_decomposition import PLSRegression
     from sklearn.ensemble import ExtraTreesRegressor, HistGradientBoostingRegressor, RandomForestRegressor
     from sklearn.linear_model import Ridge
+    from sklearn.neural_network import MLPRegressor
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 except Exception as exc:
-    print(json.dumps({"ok": False, "error": f"missing sklearn baseline package: {type(exc).__name__}: {exc}"}))
+    print(json.dumps({"ok": False, "error": f"missing strong baseline package: {type(exc).__name__}: {exc}"}))
     sys.exit(2)
 
 payload = json.loads(sys.stdin.read())
 X_train = np.asarray(payload["trainInputs"], dtype=float)
 y_train = np.asarray(payload["trainTargets"], dtype=float)
-X_test = np.asarray(payload["validationInputs"], dtype=float)
-y_true = np.asarray(payload["actual"], dtype=float)
+evaluation_sets = payload["evaluationSets"]
 seed = int(payload["seed"])
 raw_calls = int(payload["trainingRawOracleCalls"])
 
-def score(pred):
+def score(y_true, pred):
+    y_true = np.asarray(y_true, dtype=float).reshape(-1)
     pred = np.asarray(pred, dtype=float).reshape(-1)
     diff = y_true - pred
     mae = float(np.mean(np.abs(diff)))
@@ -247,6 +378,20 @@ def score(pred):
     r2 = 1.0 - float(np.sum(diff * diff)) / denom if denom > 0 else 1.0
     worst = float(np.max(np.abs(diff))) if len(diff) else 0.0
     return {"mae": mae, "rmse": rmse, "r2": r2}, worst
+
+def eval_model(model):
+    evaluations = []
+    for item in evaluation_sets:
+        X_eval = np.asarray(item["inputs"], dtype=float)
+        y_eval = np.asarray(item["actual"], dtype=float)
+        metrics, worst = score(y_eval, model.predict(X_eval))
+        evaluations.append({
+            "id": item["id"],
+            "kind": item["kind"],
+            "metrics": metrics,
+            "worstError": worst
+        })
+    return evaluations
 
 models = [
     (
@@ -273,34 +418,83 @@ models = [
         "sklearn-hist-gradient-boosting",
         "sklearn histogram gradient boosting",
         HistGradientBoostingRegressor(max_iter=180, max_leaf_nodes=31, learning_rate=0.055, l2_regularization=1e-4, random_state=seed + 23)
+    ),
+    (
+        "xgboost-hist",
+        "XGBoost histogram gradient trees",
+        XGBRegressor(
+            objective="reg:squarederror",
+            n_estimators=220,
+            max_depth=4,
+            learning_rate=0.04,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            reg_lambda=1.0,
+            random_state=seed + 29,
+            n_jobs=1,
+            tree_method="hist",
+            verbosity=0
+        )
+    ),
+    (
+        "sklearn-mlp-regressor",
+        "sklearn neural network MLP regressor",
+        make_pipeline(
+            StandardScaler(),
+            MLPRegressor(
+                hidden_layer_sizes=(96, 64),
+                activation="relu",
+                solver="adam",
+                alpha=1e-5,
+                learning_rate_init=0.002,
+                max_iter=350,
+                tol=1e-5,
+                random_state=seed + 31
+            )
+        )
     )
 ]
 
 rows = []
 for ident, family, model in models:
     model.fit(X_train, y_train)
-    metrics, worst = score(model.predict(X_test))
+    evaluations = eval_model(model)
+    primary = next(item for item in evaluations if item["id"] == "iid-uniform")
+    package = "XGBoost" if ident.startswith("xgboost") else "scikit-learn"
     rows.append({
         "id": ident,
         "family": family,
-        "metrics": metrics,
-        "worstError": worst,
+        "metrics": primary["metrics"],
+        "worstError": primary["worstError"],
+        "evaluations": evaluations,
         "trainingRawOracleCalls": raw_calls,
-        "package": "scikit-learn"
+        "package": package
     })
 
 component_count = max(1, min(4, X_train.shape[1], X_train.shape[0] - 1))
 pls = PLSRegression(n_components=component_count)
 Z_train = pls.fit_transform(X_train, y_train)[0]
-Z_test = pls.transform(X_test)
+pls_eval_sets = []
 active_model = make_pipeline(PolynomialFeatures(degree=3, include_bias=True), StandardScaler(with_mean=False), Ridge(alpha=1e-4))
 active_model.fit(Z_train, y_train)
-metrics, worst = score(active_model.predict(Z_test))
+for item in evaluation_sets:
+    X_eval = np.asarray(item["inputs"], dtype=float)
+    y_eval = np.asarray(item["actual"], dtype=float)
+    Z_eval = pls.transform(X_eval)
+    metrics, worst = score(y_eval, active_model.predict(Z_eval))
+    pls_eval_sets.append({
+        "id": item["id"],
+        "kind": item["kind"],
+        "metrics": metrics,
+        "worstError": worst
+    })
+primary = next(item for item in pls_eval_sets if item["id"] == "iid-uniform")
 rows.append({
     "id": "sklearn-pls-active-subspace-poly-ridge",
     "family": "sklearn active-subspace surrogate",
-    "metrics": metrics,
-    "worstError": worst,
+    "metrics": primary["metrics"],
+    "worstError": primary["worstError"],
+    "evaluations": pls_eval_sets,
     "trainingRawOracleCalls": raw_calls,
     "package": "scikit-learn"
 })
@@ -416,7 +610,43 @@ function makeTeacherCases(): TeacherCase[] {
   ];
 }
 
-function runBaselines(teacher: TeacherCase, validationInputs: number[][], actual: number[]) {
+function makeEvaluationSets(teacher: TeacherCase): EvaluationSet[] {
+  const specs: Array<{ id: EvaluationSet['id']; kind: EvaluationSet['kind']; inputs: number[][] }> = [
+    {
+      id: 'iid-uniform',
+      kind: 'iid',
+      inputs: makeInputs(teacher.randomSeed + 501, teacher.dimension, 850)
+    },
+    {
+      id: 'wide-ood',
+      kind: 'ood',
+      inputs: makeInputs(teacher.randomSeed + 502, teacher.dimension, 850, [-2.05, 2.05])
+    },
+    {
+      id: 'shifted-ood',
+      kind: 'ood',
+      inputs: makeShiftedOodInputs(teacher.randomSeed + 503, teacher.dimension, 850)
+    }
+  ];
+  return specs.map(spec => ({
+    ...spec,
+    actual: spec.inputs.map(input => predictTeacher(teacher, input))
+  }));
+}
+
+function scorePredictorOnEvaluations(predict: Predictor, evaluationSets: EvaluationSet[]): EvaluationMetrics[] {
+  return evaluationSets.map(evaluation => {
+    const predicted = evaluation.inputs.map(predict);
+    return {
+      id: evaluation.id,
+      kind: evaluation.kind,
+      metrics: regressionMetrics(evaluation.actual, predicted),
+      worstError: worstAbsoluteError(evaluation.actual, predicted)
+    };
+  });
+}
+
+function runBaselines(teacher: TeacherCase, evaluationSets: EvaluationSet[]) {
   const trainInputs = makeInputs(teacher.randomSeed + 401, teacher.dimension, 1250);
   const noisyOracle = makeNoisyOracle(teacher, 402);
   let rawOracleCalls = 0;
@@ -452,21 +682,28 @@ function runBaselines(teacher: TeacherCase, validationInputs: number[][], actual
     }
   ];
   const rows: BaselineRow[] = baselines.map(baseline => {
-    const predicted = validationInputs.map(baseline.predict);
+    const evaluations = scorePredictorOnEvaluations(baseline.predict, evaluationSets);
+    const primary = evaluations.find(evaluation => evaluation.id === 'iid-uniform') ?? evaluations[0];
     return {
       id: baseline.id,
       family: baseline.family,
-      metrics: regressionMetrics(actual, predicted),
-      worstError: worstAbsoluteError(actual, predicted),
+      metrics: primary.metrics,
+      worstError: primary.worstError,
+      evaluations,
       trainingRawOracleCalls: baseline.trainingRawOracleCalls
     };
   });
-  const sklearn = spawnSync('python3', ['-c', sklearnBaselineProgram], {
+  const pythonBin = resolveStrongBaselinePythonBin();
+  const sklearn = spawnSync(pythonBin, ['-c', sklearnBaselineProgram], {
     input: JSON.stringify({
       trainInputs,
       trainTargets,
-      validationInputs,
-      actual,
+      evaluationSets: evaluationSets.map(evaluation => ({
+        id: evaluation.id,
+        kind: evaluation.kind,
+        inputs: evaluation.inputs,
+        actual: evaluation.actual
+      })),
       seed: teacher.randomSeed + 404,
       trainingRawOracleCalls: rawOracleCalls
     }),
@@ -509,11 +746,21 @@ const rows = makeTeacherCases().map((teacher, index) => {
     duplicateDirectionCosine: teacher.solver.duplicateDirectionCosine,
     duplicateBiasTolerance: teacher.solver.duplicateBiasTolerance
   });
-  const validationInputs = makeInputs(teacher.randomSeed + 501, teacher.dimension, 850);
-  const actual = validationInputs.map(input => predictTeacher(teacher, input));
-  const predicted = predictGeluFfnStructureBatch(model, validationInputs);
+  const evaluationSets = makeEvaluationSets(teacher);
+  const iidEvaluation = evaluationSets.find(evaluation => evaluation.id === 'iid-uniform') ?? evaluationSets[0];
+  const actual = iidEvaluation.actual;
+  const predicted = predictGeluFfnStructureBatch(model, iidEvaluation.inputs);
   const metrics = regressionMetrics(actual, predicted);
   const worstError = worstAbsoluteError(actual, predicted);
+  const gclEvaluations = evaluationSets.map(evaluation => {
+    const evaluationPredicted = predictGeluFfnStructureBatch(model, evaluation.inputs);
+    return {
+      id: evaluation.id,
+      kind: evaluation.kind,
+      metrics: regressionMetrics(evaluation.actual, evaluationPredicted),
+      worstError: worstAbsoluteError(evaluation.actual, evaluationPredicted)
+    };
+  });
   const signature = canonicalizeGeluFfnStructure(model, {
     atomRelativeStrengthThreshold: teacher.profile === 'weak-resolvable-noisy' ? 0.012 : 0.018,
     atomAbsoluteStrengthThreshold: teacher.profile === 'weak-resolvable-noisy' ? 0.003 : 0.004,
@@ -523,31 +770,66 @@ const rows = makeTeacherCases().map((teacher, index) => {
   const recoveredWeights = model.atoms.map(atom => atom.inputWeight);
   const projectionScores = teacher.atoms.map(atom => bestDirectionProjection(atom.direction, recoveredWeights));
   const minDirectionProjection = Math.min(...projectionScores);
-  const baselines = runBaselines(teacher, validationInputs, actual);
+  const baselines = runBaselines(teacher, evaluationSets);
   const bestBaseline = baselines.reduce((best, baseline) => (
     baseline.metrics.mae < best.metrics.mae ? baseline : best
   ), baselines[0]);
+  const distributionCourt = gclEvaluations.map(evaluation => {
+    const baselineEvaluations = baselines.map(baseline => {
+      const baselineEvaluation = baseline.evaluations.find(item => item.id === evaluation.id);
+      if (!baselineEvaluation) throw new Error(`baseline ${baseline.id} missing evaluation ${evaluation.id}`);
+      return {
+        id: baseline.id,
+        family: baseline.family,
+        package: baseline.package,
+        metrics: baselineEvaluation.metrics,
+        worstError: baselineEvaluation.worstError
+      };
+    });
+    const best = baselineEvaluations.reduce((candidateBest, baseline) => (
+      baseline.metrics.mae < candidateBest.metrics.mae ? baseline : candidateBest
+    ), baselineEvaluations[0]);
+    return {
+      id: evaluation.id,
+      kind: evaluation.kind,
+      gcl: evaluation,
+      bestBaseline: best,
+      gclVsBestBaselineMaeRatio: evaluation.metrics.mae / Math.max(1e-12, best.metrics.mae),
+      beatsBestBaselineByMae: evaluation.metrics.mae < best.metrics.mae
+    };
+  });
   const strongOnlyPredict = (input: number[]): number => teacher.outputBias + teacher.atoms.slice(0, 2).reduce((sum, atom) => (
     sum + atom.outputWeight * gelu(atom.inputScale * dot(atom.direction, input) + atom.inputBias)
   ), 0);
-  const strongOnlyMetrics = regressionMetrics(actual, validationInputs.map(strongOnlyPredict));
+  const strongOnlyMetrics = regressionMetrics(actual, iidEvaluation.inputs.map(strongOnlyPredict));
   const weakSignalResolvable = teacher.profile !== 'weak-resolvable-noisy'
     || strongOnlyMetrics.mae > Math.max(0.015, metrics.mae * 2.25);
+  const maxOodMae = Math.max(...distributionCourt.filter(item => item.kind === 'ood').map(item => item.gcl.metrics.mae));
+  const minOodR2 = Math.min(...distributionCourt.filter(item => item.kind === 'ood').map(item => item.gcl.metrics.r2));
+  const maxOodWorstError = Math.max(...distributionCourt.filter(item => item.kind === 'ood').map(item => item.gcl.worstError));
   const gates = {
     outputR2AboveThreshold: metrics.r2 > (teacher.profile === 'weak-resolvable-noisy' ? 0.997 : 0.9985),
     outputMaeBelowThreshold: metrics.mae < (teacher.profile === 'weak-resolvable-noisy' ? 0.022 : 0.018),
     worstErrorBelowThreshold: worstError < (teacher.profile === 'weak-resolvable-noisy' ? 0.105 : 0.085),
+    oodR2AboveThreshold: minOodR2 > (teacher.profile === 'weak-resolvable-noisy' ? 0.994 : 0.996),
+    oodMaeBelowThreshold: maxOodMae < (teacher.profile === 'weak-resolvable-noisy' ? 0.035 : 0.028),
+    oodWorstErrorBelowThreshold: maxOodWorstError < (teacher.profile === 'weak-resolvable-noisy' ? 0.19 : 0.15),
     effectiveChannelCountMatches: model.effectiveChannelCount === teacher.atoms.length,
     canonicalAtomCountMatches: signature.canonicalAtomCount === teacher.atoms.length,
     directionRecoveryAboveThreshold: minDirectionProjection > (teacher.profile === 'near-parallel-noisy' ? 0.985 : 0.992),
     noDuplicateCollapse: (model.adaptiveSelection?.duplicatePairCount ?? 0) === 0,
     weakResolvableSignalNotPruned: weakSignalResolvable && (teacher.profile !== 'weak-resolvable-noisy' || (model.effectiveChannelCount ?? 0) === 3),
     beatsBestBaselineByMae: metrics.mae < bestBaseline.metrics.mae,
+    beatsBestBaselineOnEveryDistribution: distributionCourt.every(item => item.beatsBestBaselineByMae),
     packageBackedBaselinesCovered: baselines.some(baseline => baseline.package === 'scikit-learn'),
+    xgboostBaselineCovered: baselines.some(baseline => baseline.package === 'XGBoost'),
+    nnBaselineCovered: baselines.some(baseline => baseline.id === 'sklearn-mlp-regressor'),
     activeSubspaceBaselineCovered: baselines.some(baseline => baseline.id === 'sklearn-pls-active-subspace-poly-ridge'),
     nonlinearPackageBaselinesCovered: baselines.some(baseline => baseline.id === 'sklearn-extra-trees')
       && baselines.some(baseline => baseline.id === 'sklearn-random-forest')
-      && baselines.some(baseline => baseline.id === 'sklearn-hist-gradient-boosting'),
+      && baselines.some(baseline => baseline.id === 'sklearn-hist-gradient-boosting')
+      && baselines.some(baseline => baseline.id === 'xgboost-hist')
+      && baselines.some(baseline => baseline.id === 'sklearn-mlp-regressor'),
     rawOracleCallsBelowBudget: model.queryBudget.rawOracleCalls < 220000
   };
   return {
@@ -575,14 +857,23 @@ const rows = makeTeacherCases().map((teacher, index) => {
       bestBaselineId: bestBaseline.id,
       bestBaselineMae: bestBaseline.metrics.mae,
       gclVsBestBaselineMaeRatio: metrics.mae / Math.max(1e-12, bestBaseline.metrics.mae),
+      maxDistributionMae: Math.max(...distributionCourt.map(item => item.gcl.metrics.mae)),
+      minDistributionR2: Math.min(...distributionCourt.map(item => item.gcl.metrics.r2)),
+      maxDistributionWorstError: Math.max(...distributionCourt.map(item => item.gcl.worstError)),
+      maxDistributionGclVsBestBaselineMaeRatio: Math.max(...distributionCourt.map(item => item.gclVsBestBaselineMaeRatio)),
+      worstDistributionId: distributionCourt.reduce((worst, item) => (
+        item.gcl.metrics.mae > worst.gcl.metrics.mae ? item : worst
+      ), distributionCourt[0]).id,
       strongOnlyMae: strongOnlyMetrics.mae,
       rawOracleCalls: model.queryBudget.rawOracleCalls
     },
     gates,
     baselines,
+    distributionCourt,
     gcl: {
       metrics,
       worstError,
+      evaluations: gclEvaluations,
       projectionScores,
       canonicalSignature: signature,
       adaptiveSelection: model.adaptiveSelection,
@@ -607,8 +898,8 @@ const report = {
     oracleNoise: 'stochastic Gaussian output noise plus finite-precision quantization; solver uses repeated median queries'
   },
   claimScope: {
-    provesIfPasses: 'GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free and scikit-learn package-backed surrogate baselines on held-out noiseless truth',
-    doesNotClaim: 'full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, semantic original-neuron identity from output-only access, or broad SOTA status'
+    provesIfPasses: 'GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed surrogate baselines across IID and OOD held-out noiseless truth',
+    doesNotClaim: 'full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, PyTorch deep baseline superiority, semantic original-neuron identity from output-only access, or broad SOTA status'
   },
   config: {
     maxChannelBudgetGivenToGcl: 4,
@@ -627,8 +918,14 @@ const report = {
       row.gates.outputR2AboveThreshold
       && row.gates.outputMaeBelowThreshold
       && row.gates.worstErrorBelowThreshold
+      && row.gates.oodR2AboveThreshold
+      && row.gates.oodMaeBelowThreshold
+      && row.gates.oodWorstErrorBelowThreshold
       && row.gates.beatsBestBaselineByMae
+      && row.gates.beatsBestBaselineOnEveryDistribution
       && row.gates.packageBackedBaselinesCovered
+      && row.gates.xgboostBaselineCovered
+      && row.gates.nnBaselineCovered
       && row.gates.activeSubspaceBaselineCovered
       && row.gates.nonlinearPackageBaselinesCovered
     )),
@@ -637,13 +934,19 @@ const report = {
     allCanonicalCountsMatch: rows.every(row => row.gates.canonicalAtomCountMatches),
     allDirectionRecoveryAboveThreshold: rows.every(row => row.gates.directionRecoveryAboveThreshold),
     allBeatBestBaselineByMae: rows.every(row => row.gates.beatsBestBaselineByMae),
+    allBeatBestBaselineOnEveryDistribution: rows.every(row => row.gates.beatsBestBaselineOnEveryDistribution),
     allPackageBackedBaselinesCovered: rows.every(row => row.gates.packageBackedBaselinesCovered),
+    allXgboostBaselinesCovered: rows.every(row => row.gates.xgboostBaselineCovered),
+    allNnBaselinesCovered: rows.every(row => row.gates.nnBaselineCovered),
     allActiveSubspaceBaselinesCovered: rows.every(row => row.gates.activeSubspaceBaselineCovered),
     allNonlinearPackageBaselinesCovered: rows.every(row => row.gates.nonlinearPackageBaselinesCovered),
     allRawOracleCallsBelowBudget: rows.every(row => row.gates.rawOracleCallsBelowBudget),
     coversBalancedNoise: rows.some(row => row.profile === 'balanced-noisy' && row.summary.pass),
     coversNearParallelNoise: rows.some(row => row.profile === 'near-parallel-noisy' && row.summary.pass),
-    coversWeakResolvableNoise: rows.some(row => row.profile === 'weak-resolvable-noisy' && row.summary.pass)
+    coversWeakResolvableNoise: rows.some(row => row.profile === 'weak-resolvable-noisy' && row.summary.pass),
+    coversIidUniformDistribution: rows.every(row => row.distributionCourt.some(item => item.id === 'iid-uniform')),
+    coversWideOodDistribution: rows.every(row => row.distributionCourt.some(item => item.id === 'wide-ood')),
+    coversShiftedOodDistribution: rows.every(row => row.distributionCourt.some(item => item.id === 'shifted-ood'))
   },
   summary: {
     pass,
@@ -657,6 +960,11 @@ const report = {
     effectiveChannelCounts: rows.map(row => row.summary.effectiveChannelCount),
     canonicalAtomCounts: rows.map(row => row.summary.canonicalAtomCount),
     maxGclVsBestBaselineMaeRatio: Math.max(...rows.map(row => row.summary.gclVsBestBaselineMaeRatio)),
+    maxDistributionMae: Math.max(...rows.map(row => row.summary.maxDistributionMae)),
+    minDistributionR2: Math.min(...rows.map(row => row.summary.minDistributionR2)),
+    maxDistributionWorstError: Math.max(...rows.map(row => row.summary.maxDistributionWorstError)),
+    maxDistributionGclVsBestBaselineMaeRatio: Math.max(...rows.map(row => row.summary.maxDistributionGclVsBestBaselineMaeRatio)),
+    distributionIds: ['iid-uniform', 'wide-ood', 'shifted-ood'],
     maxRawOracleCalls: Math.max(...rows.map(row => row.summary.rawOracleCalls))
   },
   rows,
@@ -686,6 +994,11 @@ const markdown = [
   `- Effective channel counts: ${report.summary.effectiveChannelCounts.join(', ')}`,
   `- Canonical atom counts: ${report.summary.canonicalAtomCounts.join(', ')}`,
   `- Max GCL/best-baseline MAE ratio: ${report.summary.maxGclVsBestBaselineMaeRatio}`,
+  `- Distribution ids: ${report.summary.distributionIds.join(', ')}`,
+  `- Max distribution MAE: ${report.summary.maxDistributionMae}`,
+  `- Min distribution R2: ${report.summary.minDistributionR2}`,
+  `- Max distribution worst error: ${report.summary.maxDistributionWorstError}`,
+  `- Max distribution GCL/best-baseline MAE ratio: ${report.summary.maxDistributionGclVsBestBaselineMaeRatio}`,
   `- Max raw oracle calls: ${report.summary.maxRawOracleCalls}`,
   '',
   '## Cases',
@@ -695,6 +1008,20 @@ const markdown = [
   ...rows.map(row => (
     `| ${row.id} | ${row.profile} | ${row.summary.pass} | ${row.summary.mae} | ${row.summary.r2} | ${row.summary.canonicalAtomCount} | ${row.summary.bestBaselineId} | ${row.summary.gclVsBestBaselineMaeRatio} |`
   )),
+  '',
+  '## Distribution Court',
+  '',
+  '| Case | Distribution | Kind | GCL MAE | GCL R2 | Best baseline | Best baseline MAE | GCL/baseline MAE |',
+  '| --- | --- | --- | --- | --- | --- | --- | --- |',
+  ...rows.flatMap(row => row.distributionCourt.map(item => (
+    `| ${row.id} | ${item.id} | ${item.kind} | ${item.gcl.metrics.mae} | ${item.gcl.metrics.r2} | ${item.bestBaseline.id} | ${item.bestBaseline.metrics.mae} | ${item.gclVsBestBaselineMaeRatio} |`
+  ))),
+  '',
+  '## Baseline Families',
+  '',
+  ...rows.slice(0, 1).flatMap(row => row.baselines.map(baseline => (
+    `- ${baseline.id}: ${baseline.family}${baseline.package ? ` (${baseline.package})` : ' (local)'}`
+  ))),
   '',
   '## Gate Details',
   '',
@@ -712,7 +1039,7 @@ const markdown = [
   '## Conclusion',
   '',
   pass
-    ? 'The noisy mixed GELU structure gate passed. GCL recovered explicit atom structure under stochastic noise/quantization and beat the dependency-free plus scikit-learn package-backed baseline court on held-out noiseless truth.'
+    ? 'The noisy mixed GELU structure gate passed. GCL recovered explicit atom structure under stochastic noise/quantization and beat the dependency-free, scikit-learn, XGBoost, and sklearn-MLP baseline court across IID and OOD held-out noiseless truth.'
     : 'The noisy mixed GELU structure gate failed. Do not promote noisy mixed GELU recovery until the failing case is repaired.'
 ].join('\n');
 
@@ -725,7 +1052,8 @@ writeBenchmarkManifest(repoRoot, output, {
   notes: [
     'Release-gated noisy/quantized mixed GELU structure recovery family.',
     'Fails if output fidelity is good but effective/canonical atom structure is wrong.',
-    'Includes dependency-free and scikit-learn package-backed baseline court on held-out noiseless truth.',
+    'Includes IID, wide-OOD, and shifted-OOD evaluation distributions.',
+    'Includes dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed baseline court on held-out noiseless truth.',
     'Keeps full GPT-2 FFN extraction, arbitrary 3072-channel recovery, and broad SOTA out of scope.'
   ]
 });

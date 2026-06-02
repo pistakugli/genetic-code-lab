@@ -59,8 +59,10 @@ Current status: release-gated for:
 - formal negative cases;
 - noisy/quantized mixed GELU block recovery for controlled balanced,
   near-parallel, and weak-but-resolvable teachers;
-- scikit-learn package-backed baseline court for the controlled noisy/quantized
-  mixed GELU block;
+- IID, wide-OOD, and shifted-OOD distribution court for the controlled
+  noisy/quantized mixed GELU block;
+- scikit-learn, XGBoost, and sklearn-MLP package-backed baseline court for the
+  controlled noisy/quantized mixed GELU block;
 - source-neuron provenance verification when source manifests or equivalent
   instrumentation are provided.
 
