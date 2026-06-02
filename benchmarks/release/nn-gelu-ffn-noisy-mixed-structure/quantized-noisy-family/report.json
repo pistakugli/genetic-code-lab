@@ -1,13 +1,18 @@
 {
-  "generatedAt": "2026-06-02T05:52:40.539Z",
+  "generatedAt": "2026-06-02T07:23:35.752Z",
   "task": "noisy quantized mixed GELU FFN structure recovery",
   "blackBox": {
     "visibilityToGcl": "oracle calls only: f(vector); true channel count, directions, biases, readout weights, noise seed, and clean target are hidden from the solver",
     "oracleNoise": "stochastic Gaussian output noise plus finite-precision quantization; solver uses repeated median queries"
   },
   "claimScope": {
-    "provesIfPasses": "GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed surrogate baselines across IID and OOD held-out noiseless truth",
-    "doesNotClaim": "full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, PyTorch deep baseline superiority, semantic original-neuron identity from output-only access, or broad SOTA status"
+    "provesIfPasses": "GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles; the recovered structure is also prediction-sanity checked against dependency-free, scikit-learn, XGBoost, and sklearn-MLP fit baselines across IID and OOD held-out noiseless truth",
+    "doesNotClaim": "full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, PyTorch deep baseline superiority, XGBoost/MLP/RF as structure-decompiler competitors, semantic original-neuron identity from output-only access, or broad SOTA status"
+  },
+  "predictionBaselineScope": {
+    "role": "prediction-sanity only",
+    "purpose": "checks that the recovered explicit GELU structure is not merely worse than strong black-box output fitting on held-out truth",
+    "notAClaim": "XGBoost, random forests, and sklearn MLP are not structure decompilers and are not treated as direct rivals for recovered channel identity, directions, or canonical atoms"
   },
   "config": {
     "maxChannelBudgetGivenToGcl": 4,
@@ -16,18 +21,18 @@
   "gates": {
     "pass": true,
     "structureRecoveryPass": true,
-    "accuracyCourtPass": true,
+    "predictionSanityCourtPass": true,
     "allCasesPassed": true,
     "allEffectiveCountsMatch": true,
     "allCanonicalCountsMatch": true,
     "allDirectionRecoveryAboveThreshold": true,
-    "allBeatBestBaselineByMae": true,
-    "allBeatBestBaselineOnEveryDistribution": true,
-    "allPackageBackedBaselinesCovered": true,
-    "allXgboostBaselinesCovered": true,
-    "allNnBaselinesCovered": true,
-    "allActiveSubspaceBaselinesCovered": true,
-    "allNonlinearPackageBaselinesCovered": true,
+    "allBeatBestPredictionBaselineByMae": true,
+    "allBeatBestPredictionBaselineOnEveryDistribution": true,
+    "allPackageBackedPredictionBaselinesCovered": true,
+    "allXgboostPredictionBaselinesCovered": true,
+    "allNnPredictionBaselinesCovered": true,
+    "allActiveSubspacePredictionBaselinesCovered": true,
+    "allNonlinearPackagePredictionBaselinesCovered": true,
     "allRawOracleCallsBelowBudget": true,
     "coversBalancedNoise": true,
     "coversNearParallelNoise": true,
@@ -55,11 +60,11 @@
       3,
       3
     ],
-    "maxGclVsBestBaselineMaeRatio": 0.08120754460430137,
+    "maxGclVsBestPredictionBaselineMaeRatio": 0.08120754460430137,
     "maxDistributionMae": 0.005876071181397475,
     "minDistributionR2": 0.9995038453250289,
     "maxDistributionWorstError": 0.09735167309682635,
-    "maxDistributionGclVsBestBaselineMaeRatio": 0.08567143575266337,
+    "maxDistributionGclVsBestPredictionBaselineMaeRatio": 0.08567143575266337,
     "distributionIds": [
       "iid-uniform",
       "wide-ood",
@@ -90,13 +95,13 @@
         "duplicatePairCount": 0,
         "nearParallelPairCount": 0,
         "prunedWeakAtomCount": 0,
-        "bestBaselineId": "sklearn-poly2-ridge",
-        "bestBaselineMae": 0.06013052581134432,
-        "gclVsBestBaselineMaeRatio": 0.05434423511145036,
+        "bestPredictionBaselineId": "sklearn-poly2-ridge",
+        "bestPredictionBaselineMae": 0.06013052581134432,
+        "gclVsBestPredictionBaselineMaeRatio": 0.05434423511145036,
         "maxDistributionMae": 0.0051884080522364056,
         "minDistributionR2": 0.9999316450434367,
         "maxDistributionWorstError": 0.036268970516537546,
-        "maxDistributionGclVsBestBaselineMaeRatio": 0.05434423511145036,
+        "maxDistributionGclVsBestPredictionBaselineMaeRatio": 0.05434423511145036,
         "worstDistributionId": "wide-ood",
         "strongOnlyMae": 0.22900940666322703,
         "rawOracleCalls": 137970
@@ -113,16 +118,16 @@
         "directionRecoveryAboveThreshold": true,
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
-        "beatsBestBaselineByMae": true,
-        "beatsBestBaselineOnEveryDistribution": true,
-        "packageBackedBaselinesCovered": true,
-        "xgboostBaselineCovered": true,
-        "nnBaselineCovered": true,
-        "activeSubspaceBaselineCovered": true,
-        "nonlinearPackageBaselinesCovered": true,
+        "beatsBestPredictionBaselineByMae": true,
+        "beatsBestPredictionBaselineOnEveryDistribution": true,
+        "packageBackedPredictionBaselinesCovered": true,
+        "xgboostPredictionBaselineCovered": true,
+        "nnPredictionBaselineCovered": true,
+        "activeSubspacePredictionBaselineCovered": true,
+        "nonlinearPackagePredictionBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
       },
-      "baselines": [
+      "predictionBaselines": [
         {
           "id": "mean-output",
           "family": "constant",
@@ -662,7 +667,7 @@
             },
             "worstError": 0.018258777737773624
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-poly2-ridge",
             "family": "sklearn polynomial ridge",
             "package": "scikit-learn",
@@ -673,8 +678,8 @@
             },
             "worstError": 0.9871689343689098
           },
-          "gclVsBestBaselineMaeRatio": 0.05434423511145036,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.05434423511145036,
+          "beatsBestPredictionBaselineByMae": true
         },
         {
           "id": "wide-ood",
@@ -689,7 +694,7 @@
             },
             "worstError": 0.036268970516537546
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-poly2-ridge",
             "family": "sklearn polynomial ridge",
             "package": "scikit-learn",
@@ -700,8 +705,8 @@
             },
             "worstError": 2.372219184705879
           },
-          "gclVsBestBaselineMaeRatio": 0.04032063667477048,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.04032063667477048,
+          "beatsBestPredictionBaselineByMae": true
         },
         {
           "id": "shifted-ood",
@@ -716,7 +721,7 @@
             },
             "worstError": 0.01580646387493001
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-poly2-ridge",
             "family": "sklearn polynomial ridge",
             "package": "scikit-learn",
@@ -727,8 +732,8 @@
             },
             "worstError": 0.5323490683888855
           },
-          "gclVsBestBaselineMaeRatio": 0.051523890874196586,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.051523890874196586,
+          "beatsBestPredictionBaselineByMae": true
         }
       ],
       "gcl": {
@@ -959,13 +964,13 @@
         "duplicatePairCount": 0,
         "nearParallelPairCount": 1,
         "prunedWeakAtomCount": 0,
-        "bestBaselineId": "sklearn-poly2-ridge",
-        "bestBaselineMae": 0.052894699949889996,
-        "gclVsBestBaselineMaeRatio": 0.06806622054146819,
+        "bestPredictionBaselineId": "sklearn-poly2-ridge",
+        "bestPredictionBaselineMae": 0.052894699949889996,
+        "gclVsBestPredictionBaselineMaeRatio": 0.06806622054146819,
         "maxDistributionMae": 0.005876071181397475,
         "minDistributionR2": 0.9995038453250289,
         "maxDistributionWorstError": 0.044916008556176834,
-        "maxDistributionGclVsBestBaselineMaeRatio": 0.0746094045039327,
+        "maxDistributionGclVsBestPredictionBaselineMaeRatio": 0.0746094045039327,
         "worstDistributionId": "wide-ood",
         "strongOnlyMae": 0.2478805455002617,
         "rawOracleCalls": 116468
@@ -982,16 +987,16 @@
         "directionRecoveryAboveThreshold": true,
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
-        "beatsBestBaselineByMae": true,
-        "beatsBestBaselineOnEveryDistribution": true,
-        "packageBackedBaselinesCovered": true,
-        "xgboostBaselineCovered": true,
-        "nnBaselineCovered": true,
-        "activeSubspaceBaselineCovered": true,
-        "nonlinearPackageBaselinesCovered": true,
+        "beatsBestPredictionBaselineByMae": true,
+        "beatsBestPredictionBaselineOnEveryDistribution": true,
+        "packageBackedPredictionBaselinesCovered": true,
+        "xgboostPredictionBaselineCovered": true,
+        "nnPredictionBaselineCovered": true,
+        "activeSubspacePredictionBaselineCovered": true,
+        "nonlinearPackagePredictionBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
       },
-      "baselines": [
+      "predictionBaselines": [
         {
           "id": "mean-output",
           "family": "constant",
@@ -1531,7 +1536,7 @@
             },
             "worstError": 0.019976668856817058
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-poly2-ridge",
             "family": "sklearn polynomial ridge",
             "package": "scikit-learn",
@@ -1542,8 +1547,8 @@
             },
             "worstError": 0.3379258543621837
           },
-          "gclVsBestBaselineMaeRatio": 0.06806622054146819,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.06806622054146819,
+          "beatsBestPredictionBaselineByMae": true
         },
         {
           "id": "wide-ood",
@@ -1558,7 +1563,7 @@
             },
             "worstError": 0.044916008556176834
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-poly2-ridge",
             "family": "sklearn polynomial ridge",
             "package": "scikit-learn",
@@ -1569,8 +1574,8 @@
             },
             "worstError": 1.4001853935222397
           },
-          "gclVsBestBaselineMaeRatio": 0.061482706318126475,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.061482706318126475,
+          "beatsBestPredictionBaselineByMae": true
         },
         {
           "id": "shifted-ood",
@@ -1585,7 +1590,7 @@
             },
             "worstError": 0.021708558443127413
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-poly2-ridge",
             "family": "sklearn polynomial ridge",
             "package": "scikit-learn",
@@ -1596,8 +1601,8 @@
             },
             "worstError": 0.413547926652423
           },
-          "gclVsBestBaselineMaeRatio": 0.0746094045039327,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.0746094045039327,
+          "beatsBestPredictionBaselineByMae": true
         }
       ],
       "gcl": {
@@ -1804,13 +1809,13 @@
         "duplicatePairCount": 0,
         "nearParallelPairCount": 0,
         "prunedWeakAtomCount": 0,
-        "bestBaselineId": "sklearn-poly2-ridge",
-        "bestBaselineMae": 0.04591792756369693,
-        "gclVsBestBaselineMaeRatio": 0.08120754460430137,
+        "bestPredictionBaselineId": "sklearn-poly2-ridge",
+        "bestPredictionBaselineMae": 0.04591792756369693,
+        "gclVsBestPredictionBaselineMaeRatio": 0.08120754460430137,
         "maxDistributionMae": 0.005471693586587925,
         "minDistributionR2": 0.999836382970466,
         "maxDistributionWorstError": 0.09735167309682635,
-        "maxDistributionGclVsBestBaselineMaeRatio": 0.08567143575266337,
+        "maxDistributionGclVsBestPredictionBaselineMaeRatio": 0.08567143575266337,
         "worstDistributionId": "wide-ood",
         "strongOnlyMae": 0.03284863477358395,
         "rawOracleCalls": 155012
@@ -1827,16 +1832,16 @@
         "directionRecoveryAboveThreshold": true,
         "noDuplicateCollapse": true,
         "weakResolvableSignalNotPruned": true,
-        "beatsBestBaselineByMae": true,
-        "beatsBestBaselineOnEveryDistribution": true,
-        "packageBackedBaselinesCovered": true,
-        "xgboostBaselineCovered": true,
-        "nnBaselineCovered": true,
-        "activeSubspaceBaselineCovered": true,
-        "nonlinearPackageBaselinesCovered": true,
+        "beatsBestPredictionBaselineByMae": true,
+        "beatsBestPredictionBaselineOnEveryDistribution": true,
+        "packageBackedPredictionBaselinesCovered": true,
+        "xgboostPredictionBaselineCovered": true,
+        "nnPredictionBaselineCovered": true,
+        "activeSubspacePredictionBaselineCovered": true,
+        "nonlinearPackagePredictionBaselinesCovered": true,
         "rawOracleCallsBelowBudget": true
       },
-      "baselines": [
+      "predictionBaselines": [
         {
           "id": "mean-output",
           "family": "constant",
@@ -2376,7 +2381,7 @@
             },
             "worstError": 0.04908248358529477
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-poly2-ridge",
             "family": "sklearn polynomial ridge",
             "package": "scikit-learn",
@@ -2387,8 +2392,8 @@
             },
             "worstError": 0.31355674742912387
           },
-          "gclVsBestBaselineMaeRatio": 0.08120754460430137,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.08120754460430137,
+          "beatsBestPredictionBaselineByMae": true
         },
         {
           "id": "wide-ood",
@@ -2403,7 +2408,7 @@
             },
             "worstError": 0.09735167309682635
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-mlp-regressor",
             "family": "sklearn neural network MLP regressor",
             "package": "scikit-learn",
@@ -2414,8 +2419,8 @@
             },
             "worstError": 0.315139903218684
           },
-          "gclVsBestBaselineMaeRatio": 0.07205402323494321,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.07205402323494321,
+          "beatsBestPredictionBaselineByMae": true
         },
         {
           "id": "shifted-ood",
@@ -2430,7 +2435,7 @@
             },
             "worstError": 0.015094894326415309
           },
-          "bestBaseline": {
+          "bestPredictionBaseline": {
             "id": "sklearn-poly2-ridge",
             "family": "sklearn polynomial ridge",
             "package": "scikit-learn",
@@ -2441,8 +2446,8 @@
             },
             "worstError": 0.4388234811618158
           },
-          "gclVsBestBaselineMaeRatio": 0.08567143575266337,
-          "beatsBestBaselineByMae": true
+          "gclVsBestPredictionBaselineMaeRatio": 0.08567143575266337,
+          "beatsBestPredictionBaselineByMae": true
         }
       ],
       "gcl": {
@@ -2616,5 +2621,5 @@
       }
     }
   ],
-  "runtimeMs": 121014
+  "runtimeMs": 120301
 }

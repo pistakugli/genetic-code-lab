@@ -61,8 +61,10 @@ Current status: release-gated for:
   near-parallel, and weak-but-resolvable teachers;
 - IID, wide-OOD, and shifted-OOD distribution court for the controlled
   noisy/quantized mixed GELU block;
-- scikit-learn, XGBoost, and sklearn-MLP package-backed baseline court for the
-  controlled noisy/quantized mixed GELU block;
+- scikit-learn, XGBoost, and sklearn-MLP package-backed prediction-sanity court
+  for the controlled noisy/quantized mixed GELU block. These fit baselines are
+  used to check output value of the recovered structure; they are not treated as
+  structure-decompiler competitors;
 - source-neuron provenance verification when source manifests or equivalent
   instrumentation are provided.
 

@@ -59,7 +59,7 @@ type EvaluationMetrics = {
   metrics: ReturnType<typeof regressionMetrics>;
   worstError: number;
 };
-type BaselineRow = {
+type PredictionBaselineRow = {
   id: string;
   family: string;
   metrics: ReturnType<typeof regressionMetrics>;
@@ -646,7 +646,7 @@ function scorePredictorOnEvaluations(predict: Predictor, evaluationSets: Evaluat
   });
 }
 
-function runBaselines(teacher: TeacherCase, evaluationSets: EvaluationSet[]) {
+function runPredictionBaselines(teacher: TeacherCase, evaluationSets: EvaluationSet[]) {
   const trainInputs = makeInputs(teacher.randomSeed + 401, teacher.dimension, 1250);
   const noisyOracle = makeNoisyOracle(teacher, 402);
   let rawOracleCalls = 0;
@@ -681,7 +681,7 @@ function runBaselines(teacher: TeacherCase, evaluationSets: EvaluationSet[]) {
       trainingRawOracleCalls: rawOracleCalls
     }
   ];
-  const rows: BaselineRow[] = baselines.map(baseline => {
+  const rows: PredictionBaselineRow[] = baselines.map(baseline => {
     const evaluations = scorePredictorOnEvaluations(baseline.predict, evaluationSets);
     const primary = evaluations.find(evaluation => evaluation.id === 'iid-uniform') ?? evaluations[0];
     return {
@@ -711,10 +711,10 @@ function runBaselines(teacher: TeacherCase, evaluationSets: EvaluationSet[]) {
     maxBuffer: 64 * 1024 * 1024
   });
   if (sklearn.status !== 0) {
-    throw new Error(`sklearn baseline court failed for ${teacher.id}: ${sklearn.stderr || sklearn.stdout}`);
+    throw new Error(`sklearn prediction baseline court failed for ${teacher.id}: ${sklearn.stderr || sklearn.stdout}`);
   }
   const parsed = JSON.parse(sklearn.stdout);
-  if (!parsed.ok) throw new Error(`sklearn baseline court failed for ${teacher.id}: ${parsed.error}`);
+  if (!parsed.ok) throw new Error(`sklearn prediction baseline court failed for ${teacher.id}: ${parsed.error}`);
   rows.push(...parsed.rows);
   return rows;
 }
@@ -770,14 +770,14 @@ const rows = makeTeacherCases().map((teacher, index) => {
   const recoveredWeights = model.atoms.map(atom => atom.inputWeight);
   const projectionScores = teacher.atoms.map(atom => bestDirectionProjection(atom.direction, recoveredWeights));
   const minDirectionProjection = Math.min(...projectionScores);
-  const baselines = runBaselines(teacher, evaluationSets);
-  const bestBaseline = baselines.reduce((best, baseline) => (
+  const predictionBaselines = runPredictionBaselines(teacher, evaluationSets);
+  const bestPredictionBaseline = predictionBaselines.reduce((best, baseline) => (
     baseline.metrics.mae < best.metrics.mae ? baseline : best
-  ), baselines[0]);
+  ), predictionBaselines[0]);
   const distributionCourt = gclEvaluations.map(evaluation => {
-    const baselineEvaluations = baselines.map(baseline => {
+    const predictionBaselineEvaluations = predictionBaselines.map(baseline => {
       const baselineEvaluation = baseline.evaluations.find(item => item.id === evaluation.id);
-      if (!baselineEvaluation) throw new Error(`baseline ${baseline.id} missing evaluation ${evaluation.id}`);
+      if (!baselineEvaluation) throw new Error(`prediction baseline ${baseline.id} missing evaluation ${evaluation.id}`);
       return {
         id: baseline.id,
         family: baseline.family,
@@ -786,16 +786,16 @@ const rows = makeTeacherCases().map((teacher, index) => {
         worstError: baselineEvaluation.worstError
       };
     });
-    const best = baselineEvaluations.reduce((candidateBest, baseline) => (
+    const best = predictionBaselineEvaluations.reduce((candidateBest, baseline) => (
       baseline.metrics.mae < candidateBest.metrics.mae ? baseline : candidateBest
-    ), baselineEvaluations[0]);
+    ), predictionBaselineEvaluations[0]);
     return {
       id: evaluation.id,
       kind: evaluation.kind,
       gcl: evaluation,
-      bestBaseline: best,
-      gclVsBestBaselineMaeRatio: evaluation.metrics.mae / Math.max(1e-12, best.metrics.mae),
-      beatsBestBaselineByMae: evaluation.metrics.mae < best.metrics.mae
+      bestPredictionBaseline: best,
+      gclVsBestPredictionBaselineMaeRatio: evaluation.metrics.mae / Math.max(1e-12, best.metrics.mae),
+      beatsBestPredictionBaselineByMae: evaluation.metrics.mae < best.metrics.mae
     };
   });
   const strongOnlyPredict = (input: number[]): number => teacher.outputBias + teacher.atoms.slice(0, 2).reduce((sum, atom) => (
@@ -819,17 +819,17 @@ const rows = makeTeacherCases().map((teacher, index) => {
     directionRecoveryAboveThreshold: minDirectionProjection > (teacher.profile === 'near-parallel-noisy' ? 0.985 : 0.992),
     noDuplicateCollapse: (model.adaptiveSelection?.duplicatePairCount ?? 0) === 0,
     weakResolvableSignalNotPruned: weakSignalResolvable && (teacher.profile !== 'weak-resolvable-noisy' || (model.effectiveChannelCount ?? 0) === 3),
-    beatsBestBaselineByMae: metrics.mae < bestBaseline.metrics.mae,
-    beatsBestBaselineOnEveryDistribution: distributionCourt.every(item => item.beatsBestBaselineByMae),
-    packageBackedBaselinesCovered: baselines.some(baseline => baseline.package === 'scikit-learn'),
-    xgboostBaselineCovered: baselines.some(baseline => baseline.package === 'XGBoost'),
-    nnBaselineCovered: baselines.some(baseline => baseline.id === 'sklearn-mlp-regressor'),
-    activeSubspaceBaselineCovered: baselines.some(baseline => baseline.id === 'sklearn-pls-active-subspace-poly-ridge'),
-    nonlinearPackageBaselinesCovered: baselines.some(baseline => baseline.id === 'sklearn-extra-trees')
-      && baselines.some(baseline => baseline.id === 'sklearn-random-forest')
-      && baselines.some(baseline => baseline.id === 'sklearn-hist-gradient-boosting')
-      && baselines.some(baseline => baseline.id === 'xgboost-hist')
-      && baselines.some(baseline => baseline.id === 'sklearn-mlp-regressor'),
+    beatsBestPredictionBaselineByMae: metrics.mae < bestPredictionBaseline.metrics.mae,
+    beatsBestPredictionBaselineOnEveryDistribution: distributionCourt.every(item => item.beatsBestPredictionBaselineByMae),
+    packageBackedPredictionBaselinesCovered: predictionBaselines.some(baseline => baseline.package === 'scikit-learn'),
+    xgboostPredictionBaselineCovered: predictionBaselines.some(baseline => baseline.package === 'XGBoost'),
+    nnPredictionBaselineCovered: predictionBaselines.some(baseline => baseline.id === 'sklearn-mlp-regressor'),
+    activeSubspacePredictionBaselineCovered: predictionBaselines.some(baseline => baseline.id === 'sklearn-pls-active-subspace-poly-ridge'),
+    nonlinearPackagePredictionBaselinesCovered: predictionBaselines.some(baseline => baseline.id === 'sklearn-extra-trees')
+      && predictionBaselines.some(baseline => baseline.id === 'sklearn-random-forest')
+      && predictionBaselines.some(baseline => baseline.id === 'sklearn-hist-gradient-boosting')
+      && predictionBaselines.some(baseline => baseline.id === 'xgboost-hist')
+      && predictionBaselines.some(baseline => baseline.id === 'sklearn-mlp-regressor'),
     rawOracleCallsBelowBudget: model.queryBudget.rawOracleCalls < 220000
   };
   return {
@@ -854,13 +854,13 @@ const rows = makeTeacherCases().map((teacher, index) => {
       duplicatePairCount: model.adaptiveSelection?.duplicatePairCount ?? 0,
       nearParallelPairCount: model.adaptiveSelection?.nearParallelPairCount ?? 0,
       prunedWeakAtomCount: model.adaptiveSelection?.prunedWeakAtomCount ?? 0,
-      bestBaselineId: bestBaseline.id,
-      bestBaselineMae: bestBaseline.metrics.mae,
-      gclVsBestBaselineMaeRatio: metrics.mae / Math.max(1e-12, bestBaseline.metrics.mae),
+      bestPredictionBaselineId: bestPredictionBaseline.id,
+      bestPredictionBaselineMae: bestPredictionBaseline.metrics.mae,
+      gclVsBestPredictionBaselineMaeRatio: metrics.mae / Math.max(1e-12, bestPredictionBaseline.metrics.mae),
       maxDistributionMae: Math.max(...distributionCourt.map(item => item.gcl.metrics.mae)),
       minDistributionR2: Math.min(...distributionCourt.map(item => item.gcl.metrics.r2)),
       maxDistributionWorstError: Math.max(...distributionCourt.map(item => item.gcl.worstError)),
-      maxDistributionGclVsBestBaselineMaeRatio: Math.max(...distributionCourt.map(item => item.gclVsBestBaselineMaeRatio)),
+      maxDistributionGclVsBestPredictionBaselineMaeRatio: Math.max(...distributionCourt.map(item => item.gclVsBestPredictionBaselineMaeRatio)),
       worstDistributionId: distributionCourt.reduce((worst, item) => (
         item.gcl.metrics.mae > worst.gcl.metrics.mae ? item : worst
       ), distributionCourt[0]).id,
@@ -868,7 +868,7 @@ const rows = makeTeacherCases().map((teacher, index) => {
       rawOracleCalls: model.queryBudget.rawOracleCalls
     },
     gates,
-    baselines,
+    predictionBaselines,
     distributionCourt,
     gcl: {
       metrics,
@@ -898,8 +898,13 @@ const report = {
     oracleNoise: 'stochastic Gaussian output noise plus finite-precision quantization; solver uses repeated median queries'
   },
   claimScope: {
-    provesIfPasses: 'GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles, while beating dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed surrogate baselines across IID and OOD held-out noiseless truth',
-    doesNotClaim: 'full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, PyTorch deep baseline superiority, semantic original-neuron identity from output-only access, or broad SOTA status'
+    provesIfPasses: 'GCL can recover explicit mixed GELU atom structure under controlled stochastic noise and quantization, including balanced, near-parallel, and weak-but-resolvable channel profiles; the recovered structure is also prediction-sanity checked against dependency-free, scikit-learn, XGBoost, and sklearn-MLP fit baselines across IID and OOD held-out noiseless truth',
+    doesNotClaim: 'full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production LLM block decompilation, noisy SwiGLU mixed-block recovery, PyTorch deep baseline superiority, XGBoost/MLP/RF as structure-decompiler competitors, semantic original-neuron identity from output-only access, or broad SOTA status'
+  },
+  predictionBaselineScope: {
+    role: 'prediction-sanity only',
+    purpose: 'checks that the recovered explicit GELU structure is not merely worse than strong black-box output fitting on held-out truth',
+    notAClaim: 'XGBoost, random forests, and sklearn MLP are not structure decompilers and are not treated as direct rivals for recovered channel identity, directions, or canonical atoms'
   },
   config: {
     maxChannelBudgetGivenToGcl: 4,
@@ -914,32 +919,32 @@ const report = {
       && row.gates.noDuplicateCollapse
       && row.gates.weakResolvableSignalNotPruned
     )),
-    accuracyCourtPass: rows.every(row => (
+    predictionSanityCourtPass: rows.every(row => (
       row.gates.outputR2AboveThreshold
       && row.gates.outputMaeBelowThreshold
       && row.gates.worstErrorBelowThreshold
       && row.gates.oodR2AboveThreshold
       && row.gates.oodMaeBelowThreshold
       && row.gates.oodWorstErrorBelowThreshold
-      && row.gates.beatsBestBaselineByMae
-      && row.gates.beatsBestBaselineOnEveryDistribution
-      && row.gates.packageBackedBaselinesCovered
-      && row.gates.xgboostBaselineCovered
-      && row.gates.nnBaselineCovered
-      && row.gates.activeSubspaceBaselineCovered
-      && row.gates.nonlinearPackageBaselinesCovered
+      && row.gates.beatsBestPredictionBaselineByMae
+      && row.gates.beatsBestPredictionBaselineOnEveryDistribution
+      && row.gates.packageBackedPredictionBaselinesCovered
+      && row.gates.xgboostPredictionBaselineCovered
+      && row.gates.nnPredictionBaselineCovered
+      && row.gates.activeSubspacePredictionBaselineCovered
+      && row.gates.nonlinearPackagePredictionBaselinesCovered
     )),
     allCasesPassed: rows.every(row => row.summary.pass),
     allEffectiveCountsMatch: rows.every(row => row.gates.effectiveChannelCountMatches),
     allCanonicalCountsMatch: rows.every(row => row.gates.canonicalAtomCountMatches),
     allDirectionRecoveryAboveThreshold: rows.every(row => row.gates.directionRecoveryAboveThreshold),
-    allBeatBestBaselineByMae: rows.every(row => row.gates.beatsBestBaselineByMae),
-    allBeatBestBaselineOnEveryDistribution: rows.every(row => row.gates.beatsBestBaselineOnEveryDistribution),
-    allPackageBackedBaselinesCovered: rows.every(row => row.gates.packageBackedBaselinesCovered),
-    allXgboostBaselinesCovered: rows.every(row => row.gates.xgboostBaselineCovered),
-    allNnBaselinesCovered: rows.every(row => row.gates.nnBaselineCovered),
-    allActiveSubspaceBaselinesCovered: rows.every(row => row.gates.activeSubspaceBaselineCovered),
-    allNonlinearPackageBaselinesCovered: rows.every(row => row.gates.nonlinearPackageBaselinesCovered),
+    allBeatBestPredictionBaselineByMae: rows.every(row => row.gates.beatsBestPredictionBaselineByMae),
+    allBeatBestPredictionBaselineOnEveryDistribution: rows.every(row => row.gates.beatsBestPredictionBaselineOnEveryDistribution),
+    allPackageBackedPredictionBaselinesCovered: rows.every(row => row.gates.packageBackedPredictionBaselinesCovered),
+    allXgboostPredictionBaselinesCovered: rows.every(row => row.gates.xgboostPredictionBaselineCovered),
+    allNnPredictionBaselinesCovered: rows.every(row => row.gates.nnPredictionBaselineCovered),
+    allActiveSubspacePredictionBaselinesCovered: rows.every(row => row.gates.activeSubspacePredictionBaselineCovered),
+    allNonlinearPackagePredictionBaselinesCovered: rows.every(row => row.gates.nonlinearPackagePredictionBaselinesCovered),
     allRawOracleCallsBelowBudget: rows.every(row => row.gates.rawOracleCallsBelowBudget),
     coversBalancedNoise: rows.some(row => row.profile === 'balanced-noisy' && row.summary.pass),
     coversNearParallelNoise: rows.some(row => row.profile === 'near-parallel-noisy' && row.summary.pass),
@@ -959,11 +964,11 @@ const report = {
     minDirectionProjection: Math.min(...rows.map(row => row.summary.minDirectionProjection)),
     effectiveChannelCounts: rows.map(row => row.summary.effectiveChannelCount),
     canonicalAtomCounts: rows.map(row => row.summary.canonicalAtomCount),
-    maxGclVsBestBaselineMaeRatio: Math.max(...rows.map(row => row.summary.gclVsBestBaselineMaeRatio)),
+    maxGclVsBestPredictionBaselineMaeRatio: Math.max(...rows.map(row => row.summary.gclVsBestPredictionBaselineMaeRatio)),
     maxDistributionMae: Math.max(...rows.map(row => row.summary.maxDistributionMae)),
     minDistributionR2: Math.min(...rows.map(row => row.summary.minDistributionR2)),
     maxDistributionWorstError: Math.max(...rows.map(row => row.summary.maxDistributionWorstError)),
-    maxDistributionGclVsBestBaselineMaeRatio: Math.max(...rows.map(row => row.summary.maxDistributionGclVsBestBaselineMaeRatio)),
+    maxDistributionGclVsBestPredictionBaselineMaeRatio: Math.max(...rows.map(row => row.summary.maxDistributionGclVsBestPredictionBaselineMaeRatio)),
     distributionIds: ['iid-uniform', 'wide-ood', 'shifted-ood'],
     maxRawOracleCalls: Math.max(...rows.map(row => row.summary.rawOracleCalls))
   },
@@ -981,6 +986,12 @@ const markdown = [
   `- Proves if pass: ${report.claimScope.provesIfPasses}`,
   `- Does not claim: ${report.claimScope.doesNotClaim}`,
   '',
+  '## Prediction Baseline Scope',
+  '',
+  `- Role: ${report.predictionBaselineScope.role}`,
+  `- Purpose: ${report.predictionBaselineScope.purpose}`,
+  `- Not a claim: ${report.predictionBaselineScope.notAClaim}`,
+  '',
   '## Summary',
   '',
   `- Pass: ${pass}`,
@@ -993,33 +1004,33 @@ const markdown = [
   `- Min direction projection: ${report.summary.minDirectionProjection}`,
   `- Effective channel counts: ${report.summary.effectiveChannelCounts.join(', ')}`,
   `- Canonical atom counts: ${report.summary.canonicalAtomCounts.join(', ')}`,
-  `- Max GCL/best-baseline MAE ratio: ${report.summary.maxGclVsBestBaselineMaeRatio}`,
+  `- Max GCL/best-prediction-baseline MAE ratio: ${report.summary.maxGclVsBestPredictionBaselineMaeRatio}`,
   `- Distribution ids: ${report.summary.distributionIds.join(', ')}`,
   `- Max distribution MAE: ${report.summary.maxDistributionMae}`,
   `- Min distribution R2: ${report.summary.minDistributionR2}`,
   `- Max distribution worst error: ${report.summary.maxDistributionWorstError}`,
-  `- Max distribution GCL/best-baseline MAE ratio: ${report.summary.maxDistributionGclVsBestBaselineMaeRatio}`,
+  `- Max distribution GCL/best-prediction-baseline MAE ratio: ${report.summary.maxDistributionGclVsBestPredictionBaselineMaeRatio}`,
   `- Max raw oracle calls: ${report.summary.maxRawOracleCalls}`,
   '',
   '## Cases',
   '',
-  '| Case | Profile | Pass | MAE | R2 | Canonical atoms | Best baseline | GCL/baseline MAE |',
+  '| Case | Profile | Pass | MAE | R2 | Canonical atoms | Best prediction baseline | GCL/prediction-baseline MAE |',
   '| --- | --- | --- | --- | --- | --- | --- | --- |',
   ...rows.map(row => (
-    `| ${row.id} | ${row.profile} | ${row.summary.pass} | ${row.summary.mae} | ${row.summary.r2} | ${row.summary.canonicalAtomCount} | ${row.summary.bestBaselineId} | ${row.summary.gclVsBestBaselineMaeRatio} |`
+    `| ${row.id} | ${row.profile} | ${row.summary.pass} | ${row.summary.mae} | ${row.summary.r2} | ${row.summary.canonicalAtomCount} | ${row.summary.bestPredictionBaselineId} | ${row.summary.gclVsBestPredictionBaselineMaeRatio} |`
   )),
   '',
-  '## Distribution Court',
+  '## Distribution Prediction-Sanity Court',
   '',
-  '| Case | Distribution | Kind | GCL MAE | GCL R2 | Best baseline | Best baseline MAE | GCL/baseline MAE |',
+  '| Case | Distribution | Kind | GCL MAE | GCL R2 | Best prediction baseline | Best prediction baseline MAE | GCL/prediction-baseline MAE |',
   '| --- | --- | --- | --- | --- | --- | --- | --- |',
   ...rows.flatMap(row => row.distributionCourt.map(item => (
-    `| ${row.id} | ${item.id} | ${item.kind} | ${item.gcl.metrics.mae} | ${item.gcl.metrics.r2} | ${item.bestBaseline.id} | ${item.bestBaseline.metrics.mae} | ${item.gclVsBestBaselineMaeRatio} |`
+    `| ${row.id} | ${item.id} | ${item.kind} | ${item.gcl.metrics.mae} | ${item.gcl.metrics.r2} | ${item.bestPredictionBaseline.id} | ${item.bestPredictionBaseline.metrics.mae} | ${item.gclVsBestPredictionBaselineMaeRatio} |`
   ))),
   '',
-  '## Baseline Families',
+  '## Prediction Baseline Families',
   '',
-  ...rows.slice(0, 1).flatMap(row => row.baselines.map(baseline => (
+  ...rows.slice(0, 1).flatMap(row => row.predictionBaselines.map(baseline => (
     `- ${baseline.id}: ${baseline.family}${baseline.package ? ` (${baseline.package})` : ' (local)'}`
   ))),
   '',
@@ -1039,7 +1050,7 @@ const markdown = [
   '## Conclusion',
   '',
   pass
-    ? 'The noisy mixed GELU structure gate passed. GCL recovered explicit atom structure under stochastic noise/quantization and beat the dependency-free, scikit-learn, XGBoost, and sklearn-MLP baseline court across IID and OOD held-out noiseless truth.'
+    ? 'The noisy mixed GELU structure gate passed. GCL recovered explicit atom structure under stochastic noise/quantization, and that recovered structure also beat the dependency-free, scikit-learn, XGBoost, and sklearn-MLP prediction-sanity baselines across IID and OOD held-out noiseless truth. These prediction baselines are not structure-decompiler competitors.'
     : 'The noisy mixed GELU structure gate failed. Do not promote noisy mixed GELU recovery until the failing case is repaired.'
 ].join('\n');
 
@@ -1053,7 +1064,8 @@ writeBenchmarkManifest(repoRoot, output, {
     'Release-gated noisy/quantized mixed GELU structure recovery family.',
     'Fails if output fidelity is good but effective/canonical atom structure is wrong.',
     'Includes IID, wide-OOD, and shifted-OOD evaluation distributions.',
-    'Includes dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed baseline court on held-out noiseless truth.',
+    'Includes dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed prediction-sanity baselines on held-out noiseless truth.',
+    'Prediction baselines are not treated as structure-decompiler competitors.',
     'Keeps full GPT-2 FFN extraction, arbitrary 3072-channel recovery, and broad SOTA out of scope.'
   ]
 });

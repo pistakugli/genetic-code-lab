@@ -236,16 +236,18 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     teachers. Max MAE `0.003728882150765997`, min R2
     `0.9997459345781228`, max worst error `0.04908248358529477`, min
     direction projection `0.9987338205891503`, effective channel counts
-    `3,3,3`, canonical atom counts `3,3,3`, max GCL/best-baseline MAE ratio
+    `3,3,3`, canonical atom counts `3,3,3`, max GCL/best-prediction-baseline MAE ratio
     `0.08120754460430137`, max distribution MAE `0.005876071181397475`,
     min distribution R2 `0.9995038453250289`, max distribution worst error
-    `0.09735167309682635`, max distribution GCL/best-baseline MAE ratio
+    `0.09735167309682635`, max distribution GCL/best-prediction-baseline MAE ratio
     `0.08567143575266337`, max raw oracle calls `155012`, with separate
-    `structureRecoveryPass` and `accuracyCourtPass` gates. The court now covers
+    `structureRecoveryPass` and `predictionSanityCourtPass` gates. The
+    prediction-sanity court now covers
     IID uniform, wide-OOD, and shifted-OOD distributions, dependency-free
     baselines, scikit-learn Ridge/polynomial Ridge/RandomForest/ExtraTrees/
     HistGradientBoosting/PLS active-subspace polynomial Ridge, XGBoost, and
-    sklearn MLPRegressor.
+    sklearn MLPRegressor. These are fit baselines used to validate output value
+    of the recovered structure; they are not structure-decompiler competitors.
   - Gate: explicit atom recovery where identifiable, plus output-equivalent
     fallback only when non-identifiability is stated and gated; must include
     per-channel/subspace evidence, held-out accuracy, query budget, and failure
@@ -303,19 +305,20 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        `benchmark:nn-gelu-ffn-noisy-mixed-structure`, where repeated median
        queries recover balanced, near-parallel, and weak-but-resolvable
        three-channel structures under stochastic output noise and finite
-       precision. The gate separates structure recovery from accuracy-court
-       output fit and records baseline winners.
-    8. DONE for scikit-learn package-backed baseline court: the noisy mixed GELU gate
+       precision. The gate separates structure recovery from prediction-sanity
+       output fit and records prediction-baseline winners.
+    8. DONE for scikit-learn package-backed prediction-sanity court: the noisy mixed GELU gate
        now compares against mean/ridge/random-GELU dependency-free baselines
        plus scikit-learn Ridge, polynomial Ridge, RandomForest, ExtraTrees,
        HistGradientBoosting, and PLS active-subspace polynomial Ridge. The gate
        still reports structure evidence separately from output fit.
-    9. DONE for distribution and stronger package-backed victory court: the same
+    9. DONE for distribution and stronger package-backed prediction-sanity court: the same
        noisy mixed GELU gate now evaluates IID uniform, wide-OOD, and shifted-OOD
-       truth sets and requires GCL to beat the best baseline on every
-       distribution while covering XGBoost and sklearn MLPRegressor.
+       truth sets and requires the recovered GCL structure to beat the best
+       prediction baseline on every distribution while covering XGBoost and
+       sklearn MLPRegressor. This is not a direct decompiler-vs-XGBoost claim.
     10. NEXT: Add SwiGLU mixed-block structure recovery with the same structure
-       vs accuracy-court separation.
+       vs prediction-sanity separation.
     11. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
@@ -326,9 +329,10 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
 - Stage D: local transformer MLP hook.
   - Use a small local transformer block with captured residual-stream inputs and
     one MLP output slice/channel target.
-  - Gate: compare GCL against linear/ridge/MLP surrogate baselines on held-out
-    activation rows, with all data extraction and tokenization failures treated
-    as hard failures.
+  - Gate: recover explicit structure first, then compare the recovered
+    structure against linear/ridge/MLP prediction baselines on held-out
+    activation rows; all data extraction and tokenization failures are hard
+    failures.
 - Claim boundary: until these gates exist and pass, GCL may not claim LLM neuron
   decompilation, exact GELU/SwiGLU parameter recovery, or mechanistic
   understanding of production transformer blocks. The current Stage A gate is a
@@ -381,7 +385,7 @@ The following items are still required before any broad SOTA language:
   GELU structure recovery is covered by
   `benchmark:nn-gelu-ffn-noisy-mixed-structure`, which now includes
   IID/OOD distribution checks plus scikit-learn, XGBoost, and sklearn-MLP
-  package-backed baselines. Next evidence must cover SwiGLU mixed-block
+  package-backed prediction-sanity baselines. Next evidence must cover SwiGLU mixed-block
   structure before broad claims.
 
 ## Current Frontier Target
@@ -406,8 +410,8 @@ cross-decomposition canonical invariance, and the first formalization
 negative-case gate including both weak-under-noise pruning and weak-above-noise
 exact recovery, plus controlled noisy/quantized mixed GELU structure recovery,
 are now release-gated, including IID/OOD distribution checks plus scikit-learn,
-XGBoost, and sklearn-MLP package-backed court for the controlled noisy mixed
-GELU lane. Next are SwiGLU mixed-block structure and finally a local
+XGBoost, and sklearn-MLP package-backed prediction-sanity court for the
+controlled noisy mixed GELU lane. Next are SwiGLU mixed-block structure and finally a local
 transformer MLP hook.
 The 6D ReLU lane remains a foundation and is not a broad SOTA claim by itself.
 

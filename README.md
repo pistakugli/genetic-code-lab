@@ -163,9 +163,10 @@ What these gates currently support:
   equivalent structure under overcomplete budgets.
 - Noisy/quantized mixed GELU recovery for controlled balanced, near-parallel,
   and weak-but-resolvable three-channel FFN teachers, with separate structure
-  and accuracy-court gates, IID/wide-OOD/shifted-OOD validation, and
-  dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed
-  baselines.
+  and prediction-sanity gates, IID/wide-OOD/shifted-OOD validation, and
+  dependency-free, scikit-learn, XGBoost, and sklearn-MLP package-backed fit
+  baselines. These are prediction sanity checks for the recovered structure,
+  not structure-decompiler competitors.
 - Provenance-mode source-neuron verification when an explicit source-neuron
   manifest or equivalent activation/weight instrumentation is available: exact
   source ids, layer names, indices, duplicate source groups, and why-reacts
@@ -217,7 +218,7 @@ randomized/adversarial robustness and baseline court, active-subspace FFN
 decompiler, 4096D/noisy active-subspace gates, explicit GELU structure finder,
 rank-adaptive mixed GELU gate, near-parallel mixed GELU family, and
 cross-decomposition GELU invariance gate, GELU formalization negative-case
-gate, noisy mixed GELU IID/OOD XGBoost/NN court, and source-neuron provenance verifier gate. This is release-lane proof, not a promotion of scratch experiments, not
+gate, noisy mixed GELU IID/OOD prediction-sanity court, and source-neuron provenance verifier gate. This is release-lane proof, not a promotion of scratch experiments, not
 full GPT-2/LLM extraction, not a pure-GCL universal superiority claim, and not a
 broad SOTA claim.
 
