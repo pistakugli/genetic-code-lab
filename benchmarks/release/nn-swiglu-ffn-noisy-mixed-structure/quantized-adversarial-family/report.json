@@ -1,0 +1,532 @@
+{
+  "generatedAt": "2026-06-02T10:11:03.627Z",
+  "task": "noisy adversarial mixed-block SwiGLU FFN structure recovery",
+  "blackBox": {
+    "visibilityToGcl": "oracle calls only: f(vector); true pair count, value/gate directions, biases, readout weights, noise seed, quantization, and clean target are hidden from the solver",
+    "oracleNoise": "stochastic Gaussian output noise plus finite-precision quantization; solver uses repeated median queries"
+  },
+  "claimScope": {
+    "provesIfPasses": "GCL can recover explicit mixed SwiGLU value/gate pair structure under controlled stochastic noise and quantization, including balanced, near-parallel value, and weak-but-resolvable pair profiles",
+    "doesNotClaim": "full GPT-2/LLM FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production transformer block decompilation, semantic original-neuron identity from output-only access, exact hidden weights under non-identifiability, XGBoost/RF/MLP structure-decompiler superiority, or broad SOTA status"
+  },
+  "config": {
+    "caseCount": 3,
+    "evaluationDistributions": [
+      "iid-uniform",
+      "wide-ood",
+      "shifted-ood"
+    ]
+  },
+  "gates": {
+    "pass": true,
+    "allCasesPassed": true,
+    "allEffectivePairCountsMatch": true,
+    "allValueDirectionsRecovered": true,
+    "allGateDirectionsRecovered": true,
+    "allOutputMetricsPass": true,
+    "allDuplicatePairsAbsent": true,
+    "nearParallelValueCaseCovered": true,
+    "weakResolvableCaseCovered": true,
+    "allRawOracleCallsBelowBudget": true,
+    "coversIidUniformDistribution": true,
+    "coversWideOodDistribution": true,
+    "coversShiftedOodDistribution": true
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 3,
+    "passedCases": 3,
+    "failedCases": [],
+    "profiles": [
+      "balanced-noisy",
+      "near-parallel-values-noisy",
+      "weak-resolvable-noisy"
+    ],
+    "effectivePairCounts": [
+      2,
+      2,
+      3
+    ],
+    "maxMae": 0.003938356995627657,
+    "minR2": 0.999874503247406,
+    "maxWorstError": 0.03733335221578926,
+    "minValueDirectionProjection": 0.999310139471901,
+    "minGateDirectionProjection": 0.9998244527769446,
+    "minMeanPairProjection": 0.9998467737576421,
+    "maxDistributionMae": 0.007389576137780751,
+    "minDistributionR2": 0.999874503247406,
+    "maxDistributionWorstError": 0.09266107798318846,
+    "maxRawOracleCalls": 345960
+  },
+  "rows": [
+    {
+      "id": "balanced-two-pair-noisy-24d",
+      "profile": "balanced-noisy",
+      "teacher": {
+        "dimension": 24,
+        "truePairCount": 2,
+        "maxPairBudgetGivenToGcl": 3,
+        "noiseStd": 0.002,
+        "quantization": 0.00075,
+        "querySamples": 11
+      },
+      "summary": {
+        "pass": true,
+        "mae": 0.0037579706586037564,
+        "rmse": 0.005696901877487932,
+        "r2": 0.9999406274141684,
+        "worstError": 0.03733335221578926,
+        "effectivePairCount": 2,
+        "rawPairCount": 3,
+        "prunedWeakPairCount": 0,
+        "duplicatePairCount": 0,
+        "minValueDirectionProjection": 0.9999378067025928,
+        "minGateDirectionProjection": 0.9999768341611212,
+        "meanPairProjection": 0.9999734797748244,
+        "recoveredNearParallelGatePairs": 0,
+        "recoveredNearParallelValuePairs": 0,
+        "strongOnlyMae": 0.154815450854355,
+        "maxDistributionMae": 0.006460436110556813,
+        "minDistributionR2": 0.9998938079476508,
+        "maxDistributionWorstError": 0.07685782123507856,
+        "rawOracleCalls": 164824
+      },
+      "gates": {
+        "recoversRankAdaptiveStructure": true,
+        "doesNotUseTruePairCount": true,
+        "effectivePairCountMatches": true,
+        "duplicatePairsAbsent": true,
+        "valueDirectionRecoveryAboveThreshold": true,
+        "gateDirectionRecoveryAboveThreshold": true,
+        "meanPairProjectionAboveThreshold": true,
+        "iidR2AboveThreshold": true,
+        "iidMaeBelowThreshold": true,
+        "iidWorstErrorBelowThreshold": true,
+        "allDistributionsR2AboveThreshold": true,
+        "allDistributionsMaeBelowThreshold": true,
+        "allDistributionsWorstErrorBelowThreshold": true,
+        "nearParallelValueDiagnosticPresent": true,
+        "weakResolvableSignalNotPruned": true,
+        "rawOracleCallsBelowBudget": true
+      },
+      "evaluations": [
+        {
+          "id": "iid-uniform",
+          "kind": "iid",
+          "metrics": {
+            "mae": 0.0037579706586037564,
+            "rmse": 0.005696901877487932,
+            "r2": 0.9999406274141684
+          },
+          "worstError": 0.03733335221578926
+        },
+        {
+          "id": "wide-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.006460436110556813,
+            "rmse": 0.009737825924181,
+            "r2": 0.9999414750648691
+          },
+          "worstError": 0.07685782123507856
+        },
+        {
+          "id": "shifted-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.0029023186114491544,
+            "rmse": 0.004046356674209993,
+            "r2": 0.9998938079476508
+          },
+          "worstError": 0.030454253694227162
+        }
+      ],
+      "structure": {
+        "assignment": [
+          {
+            "trueIndex": 0,
+            "recoveredIndex": 0,
+            "valueProjection": 0.9999942588823834,
+            "gateProjection": 0.9999850193532003,
+            "score": 0.9999896391177918
+          },
+          {
+            "trueIndex": 1,
+            "recoveredIndex": 1,
+            "valueProjection": 0.9999378067025928,
+            "gateProjection": 0.9999768341611212,
+            "score": 0.999957320431857
+          }
+        ],
+        "adaptiveSelection": {
+          "pairStrengthThreshold": 0.03834376445960036,
+          "maxPairStrength": 1.3694201592714415,
+          "prunedWeakPairCount": 0,
+          "duplicatePairCount": 0,
+          "selectionRestarts": 3,
+          "candidateCount": 9,
+          "selectedCandidateKind": "trained-2-strength-threshold",
+          "selectedCandidateRank": 1,
+          "bestCandidateMetrics": {
+            "mae": 0.0037397674771173315,
+            "rmse": 0.005121535063421717,
+            "r2": 0.9999468150171213
+          },
+          "unprunedValidationMetrics": {
+            "mae": 0.0037397674771173315,
+            "rmse": 0.005121535063421717,
+            "r2": 0.9999468150171213
+          }
+        },
+        "queryBudget": {
+          "rawOracleCalls": 164824,
+          "gradientRawOracleCalls": 41184,
+          "trainingRawOracleCalls": 99000,
+          "validationRawOracleCalls": 24640,
+          "finiteDifferenceCallsPerProbe": 48,
+          "aggregatedProbePoints": 14984,
+          "querySamples": 11,
+          "selectionRestarts": 3,
+          "selectedRestart": 1
+        },
+        "expression": "0.035052998 + -0.86499827 * (dot(v0, x) + 0.20118636) * silu(dot(g0, x) + 0.19990931) + 0.50590394 * (dot(v1, x) + -0.29315842) * silu(dot(g1, x) + -0.17409217)",
+        "pairs": [
+          {
+            "valueWeightNorm": 1.3030955592822198,
+            "valueBias": 0.2011863638260223,
+            "gateWeightNorm": 1.2149130958866148,
+            "gateBias": 0.19990930516503422,
+            "outputWeight": -0.8649982694161458,
+            "strength": 1.3694201592714415
+          },
+          {
+            "valueWeightNorm": 1.412117423136296,
+            "valueBias": -0.2931584224138618,
+            "gateWeightNorm": 1.034516278585642,
+            "gateBias": -0.17409217043528885,
+            "outputWeight": 0.5059039424820506,
+            "strength": 0.7390540550856193
+          }
+        ]
+      }
+    },
+    {
+      "id": "near-parallel-values-two-pair-noisy-18d",
+      "profile": "near-parallel-values-noisy",
+      "teacher": {
+        "dimension": 18,
+        "truePairCount": 2,
+        "maxPairBudgetGivenToGcl": 3,
+        "noiseStd": 0.0025,
+        "quantization": 0.001,
+        "querySamples": 13
+      },
+      "summary": {
+        "pass": true,
+        "mae": 0.003938356995627657,
+        "rmse": 0.005909827167030297,
+        "r2": 0.999874503247406,
+        "worstError": 0.03516047415928325,
+        "effectivePairCount": 2,
+        "rawPairCount": 3,
+        "prunedWeakPairCount": 0,
+        "duplicatePairCount": 0,
+        "minValueDirectionProjection": 0.9999782353877339,
+        "minGateDirectionProjection": 0.9999452377790431,
+        "meanPairProjection": 0.9999672977292233,
+        "recoveredNearParallelGatePairs": 0,
+        "recoveredNearParallelValuePairs": 1,
+        "strongOnlyMae": 0.13619641586957124,
+        "maxDistributionMae": 0.007389576137780751,
+        "minDistributionR2": 0.999874503247406,
+        "maxDistributionWorstError": 0.09266107798318846,
+        "rawOracleCalls": 247936
+      },
+      "gates": {
+        "recoversRankAdaptiveStructure": true,
+        "doesNotUseTruePairCount": true,
+        "effectivePairCountMatches": true,
+        "duplicatePairsAbsent": true,
+        "valueDirectionRecoveryAboveThreshold": true,
+        "gateDirectionRecoveryAboveThreshold": true,
+        "meanPairProjectionAboveThreshold": true,
+        "iidR2AboveThreshold": true,
+        "iidMaeBelowThreshold": true,
+        "iidWorstErrorBelowThreshold": true,
+        "allDistributionsR2AboveThreshold": true,
+        "allDistributionsMaeBelowThreshold": true,
+        "allDistributionsWorstErrorBelowThreshold": true,
+        "nearParallelValueDiagnosticPresent": true,
+        "weakResolvableSignalNotPruned": true,
+        "rawOracleCallsBelowBudget": true
+      },
+      "evaluations": [
+        {
+          "id": "iid-uniform",
+          "kind": "iid",
+          "metrics": {
+            "mae": 0.003938356995627657,
+            "rmse": 0.005909827167030297,
+            "r2": 0.999874503247406
+          },
+          "worstError": 0.03516047415928325
+        },
+        {
+          "id": "wide-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.007389576137780751,
+            "rmse": 0.011954287378524756,
+            "r2": 0.9998770436374168
+          },
+          "worstError": 0.09266107798318846
+        },
+        {
+          "id": "shifted-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.003942890839124986,
+            "rmse": 0.005999424299455972,
+            "r2": 0.9999132752153321
+          },
+          "worstError": 0.05641600724185558
+        }
+      ],
+      "structure": {
+        "assignment": [
+          {
+            "trueIndex": 0,
+            "recoveredIndex": 0,
+            "valueProjection": 0.9999782353877339,
+            "gateProjection": 0.999967324182097,
+            "score": 0.9999727797849154
+          },
+          {
+            "trueIndex": 1,
+            "recoveredIndex": 1,
+            "valueProjection": 0.9999783935680192,
+            "gateProjection": 0.9999452377790431,
+            "score": 0.9999618156735312
+          }
+        ],
+        "adaptiveSelection": {
+          "pairStrengthThreshold": 0.024219711152987444,
+          "maxPairStrength": 1.1008959614994294,
+          "prunedWeakPairCount": 0,
+          "duplicatePairCount": 0,
+          "selectionRestarts": 3,
+          "candidateCount": 9,
+          "selectedCandidateKind": "trained-2-strength-threshold",
+          "selectedCandidateRank": 2,
+          "bestCandidateMetrics": {
+            "mae": 0.0036665518035789405,
+            "rmse": 0.005551495014693947,
+            "r2": 0.9998716837635518
+          },
+          "unprunedValidationMetrics": {
+            "mae": 0.0038897561627424105,
+            "rmse": 0.005629819798087788,
+            "r2": 0.9998680374519215
+          }
+        },
+        "queryBudget": {
+          "rawOracleCalls": 247936,
+          "gradientRawOracleCalls": 47736,
+          "trainingRawOracleCalls": 163800,
+          "validationRawOracleCalls": 36400,
+          "finiteDifferenceCallsPerProbe": 36,
+          "aggregatedProbePoints": 19072,
+          "querySamples": 13,
+          "selectionRestarts": 3,
+          "selectedRestart": 1
+        },
+        "expression": "-0.021803813 + 0.95837001 * (dot(v0, x) + -0.26365782) * silu(dot(g0, x) + 0.25453217) + -0.6878659 * (dot(v1, x) + 0.2121901) * silu(dot(g1, x) + -0.18026886)",
+        "pairs": [
+          {
+            "valueWeightNorm": 1.0135654779104462,
+            "valueBias": -0.26365781534977484,
+            "gateWeightNorm": 1.133342708051167,
+            "gateBias": 0.25453217344507006,
+            "outputWeight": 0.9583700073987395,
+            "strength": 1.1008959614994294
+          },
+          {
+            "valueWeightNorm": 0.9016783158627264,
+            "valueBias": 0.21219010027015833,
+            "gateWeightNorm": 1.0474835254141537,
+            "gateBias": -0.18026885751970195,
+            "outputWeight": -0.6878658987651602,
+            "strength": 0.6496846508876154
+          }
+        ]
+      }
+    },
+    {
+      "id": "weak-resolvable-three-pair-noisy-16d",
+      "profile": "weak-resolvable-noisy",
+      "teacher": {
+        "dimension": 16,
+        "truePairCount": 3,
+        "maxPairBudgetGivenToGcl": 4,
+        "noiseStd": 0.0025,
+        "quantization": 0.001,
+        "querySamples": 15
+      },
+      "summary": {
+        "pass": true,
+        "mae": 0.003426551755394013,
+        "rmse": 0.004650614759550887,
+        "r2": 0.9999282551187072,
+        "worstError": 0.024054658545496155,
+        "effectivePairCount": 3,
+        "rawPairCount": 4,
+        "prunedWeakPairCount": 0,
+        "duplicatePairCount": 0,
+        "minValueDirectionProjection": 0.999310139471901,
+        "minGateDirectionProjection": 0.9998244527769446,
+        "meanPairProjection": 0.9998467737576421,
+        "recoveredNearParallelGatePairs": 0,
+        "recoveredNearParallelValuePairs": 0,
+        "strongOnlyMae": 0.042708523960866676,
+        "maxDistributionMae": 0.0069086193985408795,
+        "minDistributionR2": 0.999893918836575,
+        "maxDistributionWorstError": 0.07212389769463412,
+        "rawOracleCalls": 345960
+      },
+      "gates": {
+        "recoversRankAdaptiveStructure": true,
+        "doesNotUseTruePairCount": true,
+        "effectivePairCountMatches": true,
+        "duplicatePairsAbsent": true,
+        "valueDirectionRecoveryAboveThreshold": true,
+        "gateDirectionRecoveryAboveThreshold": true,
+        "meanPairProjectionAboveThreshold": true,
+        "iidR2AboveThreshold": true,
+        "iidMaeBelowThreshold": true,
+        "iidWorstErrorBelowThreshold": true,
+        "allDistributionsR2AboveThreshold": true,
+        "allDistributionsMaeBelowThreshold": true,
+        "allDistributionsWorstErrorBelowThreshold": true,
+        "nearParallelValueDiagnosticPresent": true,
+        "weakResolvableSignalNotPruned": true,
+        "rawOracleCallsBelowBudget": true
+      },
+      "evaluations": [
+        {
+          "id": "iid-uniform",
+          "kind": "iid",
+          "metrics": {
+            "mae": 0.003426551755394013,
+            "rmse": 0.004650614759550887,
+            "r2": 0.9999282551187072
+          },
+          "worstError": 0.024054658545496155
+        },
+        {
+          "id": "wide-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.0069086193985408795,
+            "rmse": 0.010276058883587355,
+            "r2": 0.999893918836575
+          },
+          "worstError": 0.07212389769463412
+        },
+        {
+          "id": "shifted-ood",
+          "kind": "ood",
+          "metrics": {
+            "mae": 0.003910524928887284,
+            "rmse": 0.005387125150329636,
+            "r2": 0.9999444986026761
+          },
+          "worstError": 0.03559930484365581
+        }
+      ],
+      "structure": {
+        "assignment": [
+          {
+            "trueIndex": 0,
+            "recoveredIndex": 0,
+            "valueProjection": 0.9999958117019546,
+            "gateProjection": 0.9999971388147454,
+            "score": 0.99999647525835
+          },
+          {
+            "trueIndex": 1,
+            "recoveredIndex": 1,
+            "valueProjection": 0.9999731362691671,
+            "gateProjection": 0.9999799635111393,
+            "score": 0.9999765498901532
+          },
+          {
+            "trueIndex": 2,
+            "recoveredIndex": 2,
+            "valueProjection": 0.999310139471901,
+            "gateProjection": 0.9998244527769446,
+            "score": 0.9995672961244229
+          }
+        ],
+        "adaptiveSelection": {
+          "pairStrengthThreshold": 0.014773754519635699,
+          "maxPairStrength": 1.0552681799739785,
+          "prunedWeakPairCount": 0,
+          "duplicatePairCount": 0,
+          "selectionRestarts": 4,
+          "candidateCount": 14,
+          "selectedCandidateKind": "trained-3-strength-threshold",
+          "selectedCandidateRank": 1,
+          "bestCandidateMetrics": {
+            "mae": 0.0035703576779918833,
+            "rmse": 0.005037689092960793,
+            "r2": 0.9998876982700281
+          },
+          "unprunedValidationMetrics": {
+            "mae": 0.0035703576779918833,
+            "rmse": 0.005037689092960793,
+            "r2": 0.9998876982700281
+          }
+        },
+        "queryBudget": {
+          "rawOracleCalls": 345960,
+          "gradientRawOracleCalls": 72960,
+          "trainingRawOracleCalls": 216000,
+          "validationRawOracleCalls": 57000,
+          "finiteDifferenceCallsPerProbe": 32,
+          "aggregatedProbePoints": 23064,
+          "querySamples": 15,
+          "selectionRestarts": 4,
+          "selectedRestart": 2
+        },
+        "expression": "0.020454333 + -0.79027762 * (dot(v0, x) + 0.22753831) * silu(dot(g0, x) + 0.18267983) + -0.70964011 * (dot(v1, x) + 0.18781446) * silu(dot(g1, x) + -0.15315098) + -0.33694423 * (dot(v2, x) + 0.058176002) * silu(dot(g2, x) + 0.11484913)",
+        "pairs": [
+          {
+            "valueWeightNorm": 1.194838896898699,
+            "valueBias": 0.22753831495963092,
+            "gateWeightNorm": 1.1175676109470967,
+            "gateBias": 0.1826798312386361,
+            "outputWeight": -0.7902776212318062,
+            "strength": 1.0552681799739785
+          },
+          {
+            "valueWeightNorm": 0.858102195885089,
+            "valueBias": 0.18781445701060315,
+            "gateWeightNorm": 0.9700638863815413,
+            "gateBias": -0.1531509846515847,
+            "outputWeight": -0.7096401085269213,
+            "strength": 0.5907143265644493
+          },
+          {
+            "valueWeightNorm": 0.6653101141078271,
+            "valueBias": 0.05817600169113127,
+            "gateWeightNorm": 0.7742682209437258,
+            "gateBias": 0.11484912586131313,
+            "outputWeight": -0.33694423029664544,
+            "strength": 0.17356956866717602
+          }
+        ]
+      }
+    }
+  ],
+  "runtimeMs": 166036
+}

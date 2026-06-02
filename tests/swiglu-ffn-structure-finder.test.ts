@@ -94,4 +94,47 @@ describe('SwiGLU FFN structure finder', () => {
     expect(metrics.mae).toBeLessThan(0.018);
     expect(metrics.r2).toBeGreaterThan(0.999);
   });
+
+  it('recovers a noisy quantized high-dimensional SwiGLU value/gate pair with repeated median queries', () => {
+    const dimension = 10;
+    const valueDirection = makeDirection(2101, dimension);
+    const gateDirection = makeDirection(2202, dimension, [valueDirection]);
+    const cleanOracle = (input: number[]): number => {
+      const value = 1.04 * dot(valueDirection, input) - 0.16;
+      const gate = 1.22 * dot(gateDirection, input) + 0.2;
+      return 0.035 + 1.08 * value * silu(gate);
+    };
+    const noiseRandom = makeRandom(2303);
+    const noisyOracle = (input: number[]): number => {
+      const noisy = cleanOracle(input) + gaussian(noiseRandom) * 0.002;
+      return Math.round(noisy / 0.001) * 0.001;
+    };
+    const model = decompileSwigluFfnStructure(noisyOracle, {
+      dimension,
+      ranges: Array.from({ length: dimension }, () => [-1.35, 1.35] as [number, number]),
+      pairCount: 1,
+      activeRank: 2,
+      gradientProbeCount: 18,
+      trainingSampleCount: 1800,
+      validationSampleCount: 360,
+      randomSeed: 2404,
+      restarts: 10,
+      iterations: 720,
+      learningRate: 0.024,
+      querySamples: 9,
+      aggregation: 'median'
+    });
+    const inputs = makeInputs(2505, dimension, 700);
+    const metrics = regressionMetrics(inputs.map(cleanOracle), predictSwigluFfnStructureBatch(model, inputs));
+    const pair = model.pairs[0];
+    const valueProjection = Math.abs(dot(valueDirection, normalize(pair.valueWeight)));
+    const gateProjection = Math.abs(dot(gateDirection, normalize(pair.gateWeight)));
+
+    expect(model.querySamples).toBe(9);
+    expect(model.aggregation).toBe('median');
+    expect(valueProjection).toBeGreaterThan(0.99);
+    expect(gateProjection).toBeGreaterThan(0.99);
+    expect(metrics.mae).toBeLessThan(0.03);
+    expect(metrics.r2).toBeGreaterThan(0.997);
+  });
 });

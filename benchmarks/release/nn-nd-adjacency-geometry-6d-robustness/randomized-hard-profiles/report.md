@@ -1,6 +1,6 @@
 # 6D ND Recovered-Adjacency Geometry Robustness Gate
 
-Generated: 2026-06-02T08:56:17.142Z
+Generated: 2026-06-02T09:59:22.797Z
 
 ## Claim Scope
 

@@ -54,7 +54,8 @@ a * gelu(w dot x + b)
 with direction `w`, input bias `b`, output scale `a`, and optional global
 offset handled outside the atom list.
 
-For the current clean SwiGLU FFN lane, the recovered unit is a value/gate pair:
+For the current clean and controlled noisy SwiGLU FFN lanes, the recovered unit
+is a value/gate pair:
 
 ```text
 a * (u dot x + bu) * silu(g dot x + bg)
@@ -227,7 +228,8 @@ The current release-gated GELU/SwiGLU structure work does not prove:
 - full GPT-2 FFN extraction;
 - arbitrary 3072-channel FFN decompilation;
 - arbitrary 4096D production LLM block decompilation;
-- noisy/cancellation-heavy mixed GELU or SwiGLU block recovery;
+- arbitrary noisy/cancellation-heavy mixed GELU or SwiGLU block recovery beyond
+  the controlled release-gated noisy mixed families;
 - broad SOTA status.
 
 The provenance verifier separately proves benchmark-scoped source-neuron

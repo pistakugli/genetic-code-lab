@@ -1,6 +1,6 @@
 # Rank-Adaptive Mixed GELU FFN Structure Benchmark
 
-Generated: 2026-06-02T08:58:33.747Z
+Generated: 2026-06-02T10:01:39.377Z
 
 ## Claim Scope
 

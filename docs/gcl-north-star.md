@@ -67,6 +67,8 @@ Current status: release-gated for:
   structure-decompiler competitors;
 - rank-adaptive mixed SwiGLU value/gate pair recovery for a controlled 24D
   two-block teacher where GCL is given only a maximum pair budget;
+- noisy/quantized mixed SwiGLU value/gate pair recovery for controlled
+  balanced, near-parallel-value, and weak-but-resolvable teachers;
 - source-neuron provenance verification when source manifests or equivalent
   instrumentation are provided.
 
@@ -92,7 +94,9 @@ neuron identity without extra observability.
 
 The next development must stay on this order:
 
-1. noisy/adversarial SwiGLU mixed-block structure recovery;
+1. degenerate shared-gate / cancellation-heavy SwiGLU negative-case and
+   hard-case split, so non-identifiable value/gate factorizations are handled
+   explicitly instead of being mislabeled as original-neuron recovery;
 2. real local transformer MLP hook with captured activations and provenance;
 3. scaling stress ladder: 768D -> 4096D -> 16384D;
 4. GPT-2/full FFN research stress only after the generic mixed-block lane is

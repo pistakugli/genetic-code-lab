@@ -759,7 +759,7 @@ export function decompileRankAdaptiveSwigluFfnStructure(
       rawModels.push(decompileSwigluFfnStructure(oracle, {
         ...config,
         pairCount,
-        activeRank: Math.max(maxPairCount * 2, Math.floor(config.activeRank ?? maxPairCount * 2)),
+        activeRank: config.activeRank,
         randomSeed: (config.randomSeed ?? 260701) + restart * 7919 + pairCount * 104729
       }));
     }

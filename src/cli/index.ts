@@ -587,6 +587,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-swiglu-ffn-noisy-mixed-structure',
+    name: 'NN noisy mixed SwiGLU FFN structure',
+    status: 'production',
+    summary: 'Recovers explicit mixed SwiGLU value/gate pair structure and effective pair counts from repeated noisy/quantized oracle calls across balanced, near-parallel-value, and weak-resolvable profiles.',
+    scope: 'Black-box smooth activation structure benchmark; proves benchmark-scoped noisy/quantized mixed SwiGLU value/gate pair recovery for controlled 16D/18D/24D FFN output slices with hidden true pair counts and overcomplete max-pair budgets. This is not a local KNN or polynomial surrogate. It does not claim full GPT-2/LLM FFN extraction, arbitrary 3072-channel recovery, arbitrary 4096D/16384D production transformer block decompilation, exact hidden weights under non-identifiability, semantic output-only source identity, XGBoost/RF/MLP structure-decompiler superiority, or broad SOTA status.',
+    run: { label: 'NN noisy mixed SwiGLU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-swiglu-ffn-noisy-mixed-structure'] },
+    proofs: [
+      { label: 'NN noisy mixed SwiGLU FFN structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-swiglu-ffn-noisy-mixed-structure'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-swiglu-ffn-noisy-mixed-structure/quantized-adversarial-family/report.json',
+      'benchmarks/release/nn-swiglu-ffn-noisy-mixed-structure/quantized-adversarial-family/report.md'
+    ]
+  },
+  {
     id: 'nn-gelu-ffn-provenance-verifier',
     name: 'NN GELU FFN source-neuron provenance verifier',
     status: 'production',
