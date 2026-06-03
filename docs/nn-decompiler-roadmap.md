@@ -28,6 +28,49 @@ the failure becomes an explicit test or benchmark variant, and the implementatio
 must be fixed or the limitation must remain visible as a failing/non-promoted
 gate. Do not make the task easier just to preserve a pass.
 
+## Immediate Pivot: Live GPT-2 Oracle Circuit Finder
+
+The live GPT-2 reader is not the destination. It is the measurement layer.
+Hooking activations, ablating neurons, measuring logit deltas, and comparing
+negative controls are known mechanistic-interpretability techniques. GCL must
+use them as sensors, then add the missing mechanism: automatic oracle-driven
+circuit discovery.
+
+The next production path is:
+
+1. `GPT2Oracle`
+   - Load the real model through the managed GCL Python runtime.
+   - Expose deterministic calls for prompt, token position, layer, component,
+     neuron/head intervention, logits, activations, and candidate-token deltas.
+   - Record query/intervention budgets, cache keys, runtime warnings, model
+     hash/identity, tokenizer identity, and failure details.
+   - Hard-fail model/runtime/import/hook-shape errors. Do not silence them.
+2. `AutomaticCircuitFinder`
+   - Start from a target relation such as `France -> Paris`.
+   - Search candidate token positions, layers, MLP neurons, and then attention
+     heads without a human-provided neuron list.
+   - Score candidates by causal target-logit effect, collateral damage,
+     random-active controls, random-inactive controls, off-prompt controls,
+     same-neuron other-position controls, prompt-template stability, and graph
+     minimality.
+   - Emit a graph, not just a ranked neuron table.
+3. `FactCircuitTask`
+   - Run multiple factual prompts and paraphrases.
+   - Include negative facts and unrelated prompt controls.
+   - Require a compact recovered circuit to explain the target-token effect
+     better than controls while preserving unrelated logits.
+   - Write artifacts under
+     `benchmarks/release/nn-live-gpt2-circuit-finder/<variant>/report.json`.
+4. Expansion after the first gate
+   - Add attention-head path search and path-patching style interventions.
+   - Run the same circuit search over a fact set, not one hand-picked prompt.
+   - Compare graph stability across prompt templates and token positions.
+   - Only then revisit larger GPT-2/LLM blocks.
+
+This pivot forbids promoting another hook-and-ablate report as an innovation.
+The innovation target is automatic circuit selection and graph evidence from a
+real model oracle.
+
 ## SOTA Seriousness Checklist
 
 The NN decompiler roadmap is now ordered by dependency, not by excitement. A
@@ -159,9 +202,11 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   `benchmark:nn-gpt2-gelu-ffn-source-extractor`.
 - Direction: GCL should not brute-force 4096D. It should query a high-
   dimensional black-box channel, discover the low-dimensional active subspace
-  where the function actually changes, then recover either a faithful
-  transparent surrogate or, when the activation family is identifiable, an
-  explicit structure such as `c + sum_j a_j * gelu(w_j dot x + b_j)`.
+  where the function actually changes, then recover explicit structure when the
+  activation family is identifiable, such as
+  `c + sum_j a_j * gelu(w_j dot x + b_j)`. Fit-only approximators are allowed
+  only as diagnostics or baselines; they are not promoted as neural structure
+  finders.
 - Scope: GELU, SiLU, and SwiGLU-style LLM feed-forward channels are not
   piecewise-linear kink geometry. The ReLU recovered-adjacency gates provide
   oracle discipline, query accounting, and benchmark hygiene, but they do not
@@ -523,6 +568,52 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   - Claim boundary: this is exact instrumented source extraction, not output-
     only source identity, not blind full-FFN decompilation, and not arbitrary
     3072-channel GPT-2 extraction.
+- Stage G: live GPT-2 reader as oracle instrumentation.
+  - Current command:
+    `npx ts-node src/cli/index.ts explain-llm --model gpt2 --prompt "The capital of France is" --layer 0 --top-neurons 5 --top-logits 5 --output artifacts/llm-reader/gpt2-layer0-france.json`.
+  - Current local proof: the tool loads real GPT-2 through the project-managed
+    Python runtime, hooks real MLP activations, reports causal ablation effects
+    on next-token logits, and records negative controls. The hardened
+    50-control artifact is
+    `artifacts/llm-reader/gpt2-layer0-france-negative-controls-50.json`.
+  - Current hardening: random-active same-amplitude, random-inactive,
+    off-prompt, and same-neuron other-position controls are explicit; random
+    and off-prompt control families are disjoint and audited through
+    `crossFamilyNeuronOverlap`.
+  - Claim boundary: this is real model instrumentation and causal measurement,
+    not the GCL invention by itself. It may not be called automatic circuit
+    discovery until Stage H/I pass.
+- Stage H: `GPT2Oracle` control plane.
+  - NEXT implementation target.
+  - Convert the current live-reader script into a reusable oracle interface
+    with typed request/response records for logits, activations, interventions,
+    ablations, control families, cache ids, and budget accounting.
+  - Runtime failures, import warnings, hook mismatches, tokenizer mismatches,
+    non-disjoint controls, and empty-control families must be hard failures or
+    visible artifact errors.
+  - The oracle must support both MLP activation ablation and later attention
+    head/value-path intervention without changing the circuit-finder API.
+- Stage I: automatic live GPT-2 circuit finder.
+  - NEXT implementation target after Stage H.
+  - Input: prompt templates, target token(s), negative target token(s), and a
+    search budget.
+  - Output: a recovered circuit graph with token-position nodes, layer nodes,
+    MLP neuron nodes, later attention-head nodes, edge/effect scores, negative
+    controls, stability metrics, and a minimality/MDL diagnostic.
+  - The solver must choose candidates itself. A human-provided top-neuron list
+    is allowed only as a debugging override and cannot satisfy the gate.
+- Stage J: live GPT-2 fact-circuit gate.
+  - NEXT release-candidate gate.
+  - Required cases: at least several factual relations, paraphrased prompts,
+    unrelated-prompt controls, wrong-answer controls, random-active controls,
+    random-inactive controls, off-prompt controls, and same-neuron
+    other-position controls.
+  - Required metrics: target-logit causal support, preserved unrelated logits,
+    control-normalized effect, graph size, prompt-template stability, query and
+    intervention budget, and failure artifacts for facts that do not stabilize.
+  - Required boundary: this proves benchmark-scoped automatic circuit discovery
+    for the chosen GPT-2/fact set. It is not full LLM understanding and not
+    arbitrary 3072-channel FFN decompilation.
 
 The following items are still required before any broad SOTA language:
 
