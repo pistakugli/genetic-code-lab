@@ -1238,6 +1238,56 @@ program
   });
 
 program
+  .command('explain-llm')
+  .description('Read a live GPT-2/LLM forward pass and explain hooked MLP neuron reactions')
+  .requiredOption('--prompt <text>', 'Prompt to run through the live model')
+  .option('--model <id-or-path>', 'HuggingFace causal LM id or local model path', 'gpt2')
+  .option('--layer <number>', 'Transformer block index to inspect', '0')
+  .option('--token-index <number>', 'Prompt token index to explain; negative indexes are supported', '-1')
+  .option('--top-neurons <number>', 'Number of top MLP source neurons to report', '12')
+  .option('--top-logits <number>', 'Number of next-token logits to report', '8')
+  .option('--device <cpu|cuda|auto>', 'Runtime device', 'cpu')
+  .option('--output <file>', 'Write JSON report to file')
+  .option('--json', 'Print machine-readable JSON')
+  .option('--allow-download', 'Allow HuggingFace downloads if the model is not already cached')
+  .action((options) => {
+    const repoRoot = path.resolve(__dirname, '..', '..');
+    const scriptPath = path.join(repoRoot, 'tools', 'llm-reader-gpt2-live.py');
+    const args = [
+      scriptPath,
+      '--model', options.model,
+      '--prompt', options.prompt,
+      '--layer', String(nonNegativeInt(options.layer, 0, 'layer')),
+      '--token-index', String(integerOption(options.tokenIndex, -1, 'token-index')),
+      '--top-neurons', String(positiveInt(options.topNeurons, 12, 'top-neurons')),
+      '--top-logits', String(positiveInt(options.topLogits, 8, 'top-logits')),
+      '--device', options.device,
+      '--format', options.json ? 'json' : 'text'
+    ];
+    if (!options.allowDownload) args.push('--local-files-only');
+    if (options.output) args.push('--output', options.output);
+
+    if (!fs.pathExistsSync(scriptPath)) {
+      console.error(chalk.red(`Missing LLM reader tool: ${scriptPath}`));
+      process.exitCode = 1;
+      return;
+    }
+
+    const pythonCommand = resolveGclPython(repoRoot);
+    const result = spawnSync(pythonCommand, args, {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: process.env
+    });
+    if (result.error) {
+      console.error(chalk.red(`Failed to start live LLM reader: ${result.error.message}`));
+      process.exitCode = 1;
+      return;
+    }
+    process.exitCode = result.status ?? 1;
+  });
+
+program
   .command('doctor')
   .description('Verify local installation and optionally run the full release gate')
   .option('--release', 'Run the full release gate: build, tests, routing gate, and promotion safety gate')
@@ -1425,6 +1475,32 @@ function positiveInt(value: unknown, fallback: number, name: string): number {
     throw new Error(`${name} must be a positive integer`);
   }
   return parsed;
+}
+
+function nonNegativeInt(value: unknown, fallback: number, name: string): number {
+  if (value === undefined || value === null) return fallback;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return parsed;
+}
+
+function integerOption(value: unknown, fallback: number, name: string): number {
+  if (value === undefined || value === null) return fallback;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`${name} must be an integer`);
+  }
+  return parsed;
+}
+
+function resolveGclPython(repoRoot: string): string {
+  if (process.env.GCL_PYTHON) return process.env.GCL_PYTHON;
+  if (process.env.GCL_LLM_READER_PYTHON) return process.env.GCL_LLM_READER_PYTHON;
+  const projectPython = path.join(repoRoot, '.gcl-python', 'bin', 'python');
+  if (fs.pathExistsSync(projectPython)) return projectPython;
+  return 'python3';
 }
 
 function finiteNumber(value: unknown, fallback: number, name: string): number {
