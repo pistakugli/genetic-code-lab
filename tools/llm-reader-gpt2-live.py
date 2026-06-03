@@ -416,10 +416,13 @@ def build_negative_control_report(
     baseline_activation = activation[token_index]
     primary_neurons = [int(item["neuron"]) for item in neurons]
     primary_set = set(primary_neurons)
+    used_control_neurons = set(primary_neurons)
     groups: List[Dict[str, Any]] = []
 
     matched_items = []
-    for choice in pick_amplitude_matched_controls(baseline_activation, primary_neurons, primary_set, control_count, rng):
+    matched_choices = pick_amplitude_matched_controls(baseline_activation, primary_neurons, used_control_neurons, control_count, rng)
+    used_control_neurons.update(int(choice["neuron"]) for choice in matched_choices)
+    for choice in matched_choices:
         matched_items.append(make_control_item(
             model=model,
             mlp=mlp,
@@ -446,7 +449,8 @@ def build_negative_control_report(
         "items": matched_items
     })
 
-    inactive_choices, inactive_threshold = pick_inactive_controls(baseline_activation, primary_set, control_count, rng)
+    inactive_choices, inactive_threshold = pick_inactive_controls(baseline_activation, used_control_neurons, control_count, rng)
+    used_control_neurons.update(int(choice["neuron"]) for choice in inactive_choices)
     inactive_items = []
     for choice in inactive_choices:
         inactive_items.append(make_control_item(
@@ -487,10 +491,14 @@ def build_negative_control_report(
     control_scores = control_activation.abs() * projection_norms
     off_prompt_items = []
     skipped_primary_overlap = 0
+    skipped_prior_control_overlap = 0
     for neuron_tensor in torch.argsort(control_scores.detach().cpu(), descending=True):
         neuron = int(neuron_tensor)
         if neuron in primary_set:
             skipped_primary_overlap += 1
+            continue
+        if neuron in used_control_neurons:
+            skipped_prior_control_overlap += 1
             continue
         if len(off_prompt_items) >= control_count:
             break
@@ -514,14 +522,17 @@ def build_negative_control_report(
                 "controlPromptContributionScore": score,
                 "controlPromptActivation": float(control_activation[neuron]),
                 "selectedPromptActivation": float(baseline_activation[neuron]),
-                "overlapsPrimaryTopNeurons": False
+                "overlapsPrimaryTopNeurons": False,
+                "overlapsPriorControlNeurons": False
             }
         ))
+    used_control_neurons.update(int(item["neuron"]) for item in off_prompt_items)
     groups.append({
         "kind": "top-neuron-from-other-prompt",
-        "requestedControl": "top neurons from a different prompt, excluding primary-neuron overlap",
+        "requestedControl": "top neurons from a different prompt, excluding primary and prior control-family overlap",
         "summary": summarize_control_items(off_prompt_items),
         "skippedPrimaryOverlap": skipped_primary_overlap,
+        "skippedPriorControlOverlap": skipped_prior_control_overlap,
         "items": off_prompt_items
     })
 
@@ -572,7 +583,8 @@ def build_negative_control_report(
             "present": len(off_prompt_items) > 0,
             "kind": "top-neuron-from-other-prompt",
             "itemCount": len(off_prompt_items),
-            "skippedPrimaryOverlap": skipped_primary_overlap
+            "skippedPrimaryOverlap": skipped_primary_overlap,
+            "skippedPriorControlOverlap": skipped_prior_control_overlap
         },
         "sameNeuronsOnOtherTokenPositions": {
             "present": len(other_position_items) > 0,
@@ -582,6 +594,18 @@ def build_negative_control_report(
             "otherTokenPositionCount": len(other_positions)
         }
     }
+    cross_family_overlap = []
+    for left_index, left_group in enumerate(groups):
+        left_neurons = set(int(item["neuron"]) for item in left_group["items"])
+        for right_group in groups[left_index + 1:]:
+            right_neurons = set(int(item["neuron"]) for item in right_group["items"])
+            overlap = sorted(left_neurons & right_neurons)
+            cross_family_overlap.append({
+                "left": left_group["kind"],
+                "right": right_group["kind"],
+                "count": len(overlap),
+                "neurons": overlap[:25]
+            })
 
     return {
         "enabled": True,
@@ -589,6 +613,7 @@ def build_negative_control_report(
         "controlCount": control_count,
         "controlPrompt": args.control_prompt,
         "requestedControlCoverage": requested_control_coverage,
+        "crossFamilyNeuronOverlap": cross_family_overlap,
         "candidateTokens": [
             {"tokenId": int(token_id), "token": clean_token(tokenizer, int(token_id))}
             for token_id in candidate_token_ids
