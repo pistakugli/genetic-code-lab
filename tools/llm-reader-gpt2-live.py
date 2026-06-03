@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-logits", type=int, default=8, help="Number of next-token logits to report.")
     parser.add_argument("--ablation-mode", choices=["selected-token", "all-tokens", "none"], default="selected-token", help="Run real causal neuron ablations for reported neurons.")
     parser.add_argument("--negative-controls", action=argparse.BooleanOptionalAction, default=True, help="Run negative-control ablations against the reported neurons.")
-    parser.add_argument("--control-count", type=int, default=3, help="Number of random/control neurons per negative-control family.")
+    parser.add_argument("--control-count", type=int, default=50, help="Number of random/control neurons per negative-control family.")
     parser.add_argument("--control-prompt", default="The weather in Berlin is", help="Different real prompt used to select off-prompt top neurons.")
     parser.add_argument("--control-seed", type=int, default=1337, help="Deterministic seed for random negative-control neuron selection.")
     parser.add_argument("--device", default="cpu", choices=["cpu", "cuda", "auto"], help="Runtime device.")
@@ -259,11 +259,19 @@ def max_abs_effect(effects: List[Dict[str, Any]]) -> float:
 
 
 def summarize_control_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
-    values = [float(item.get("maxAbsLogitDrop", 0.0)) for item in items]
+    values = sorted(float(item.get("maxAbsLogitDrop", 0.0)) for item in items)
+    def percentile(q: float) -> float:
+        if not values:
+            return 0.0
+        index = min(len(values) - 1, max(0, int(round((len(values) - 1) * q))))
+        return values[index]
     return {
         "count": len(items),
         "maxAbsLogitDrop": max(values) if values else 0.0,
-        "meanAbsLogitDrop": sum(values) / len(values) if values else 0.0
+        "meanAbsLogitDrop": sum(values) / len(values) if values else 0.0,
+        "p50AbsLogitDrop": percentile(0.50),
+        "p90AbsLogitDrop": percentile(0.90),
+        "p95AbsLogitDrop": percentile(0.95)
     }
 
 
@@ -337,7 +345,12 @@ def pick_amplitude_matched_controls(
     choices: List[Dict[str, Any]] = []
     used = set(excluded)
     neuron_count = int(abs_activation.numel())
-    for target in target_neurons[:count]:
+    if not target_neurons:
+        return choices
+    target_index = 0
+    while len(choices) < count:
+        target = target_neurons[target_index % len(target_neurons)]
+        target_index += 1
         target_abs = float(abs_activation[target])
         candidates = [
             index for index in range(neuron_count)
@@ -638,7 +651,8 @@ def make_text_report(report: Dict[str, Any]) -> str:
             lines.append(
                 f"  {group['kind']}: count={summary['count']} "
                 f"max_abs_drop={summary['maxAbsLogitDrop']:.6f} "
-                f"mean_abs_drop={summary['meanAbsLogitDrop']:.6f}"
+                f"mean_abs_drop={summary['meanAbsLogitDrop']:.6f} "
+                f"p95_abs_drop={summary['p95AbsLogitDrop']:.6f}"
             )
     return "\n".join(lines)
 
