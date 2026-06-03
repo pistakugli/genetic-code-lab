@@ -1247,6 +1247,11 @@ program
   .option('--top-neurons <number>', 'Number of top MLP source neurons to report', '12')
   .option('--top-logits <number>', 'Number of next-token logits to report', '8')
   .option('--ablation-mode <selected-token|all-tokens|none>', 'Run real causal neuron ablations for reported neurons', 'selected-token')
+  .option('--negative-controls', 'Run negative-control ablations against reported neurons', true)
+  .option('--no-negative-controls', 'Disable negative-control ablations')
+  .option('--control-count <number>', 'Number of random/control neurons per negative-control family', '3')
+  .option('--control-prompt <text>', 'Different real prompt used to select off-prompt top neurons', 'The weather in Berlin is')
+  .option('--control-seed <number>', 'Deterministic seed for random negative-control neuron selection', '1337')
   .option('--device <cpu|cuda|auto>', 'Runtime device', 'cpu')
   .option('--output <file>', 'Write JSON report to file')
   .option('--json', 'Print machine-readable JSON')
@@ -1263,6 +1268,10 @@ program
       '--top-neurons', String(positiveInt(options.topNeurons, 12, 'top-neurons')),
       '--top-logits', String(positiveInt(options.topLogits, 8, 'top-logits')),
       '--ablation-mode', String(options.ablationMode),
+      options.negativeControls ? '--negative-controls' : '--no-negative-controls',
+      '--control-count', String(positiveInt(options.controlCount, 3, 'control-count')),
+      '--control-prompt', String(options.controlPrompt),
+      '--control-seed', String(integerOption(options.controlSeed, 1337, 'control-seed')),
       '--device', options.device,
       '--format', options.json ? 'json' : 'text'
     ];
