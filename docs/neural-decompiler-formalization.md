@@ -281,6 +281,7 @@ Required negative-case families:
 | Near-collinear directions | Multiple bases fit the same oracle similarly. | Prefer minimum equivalent structure or report ambiguity. |
 | Weak channel below noise floor | Real atom has output below measurable noise. | Downgrade or mark weak/non-identifiable. |
 | Overcomplete high-rank budget | Solver is allowed more atoms than needed. | Select the simplest held-out-valid structure. |
+| Full-slice insufficient rank | Full FFN slice has more observable source groups than the allowed rank cap. | Report `insufficient-rank` or weaker output-only status instead of promoting a structure claim. |
 | Mis-specified activation family | Teacher is not in the assumed GELU/SwiGLU family. | Return surrogate or fail the structure claim. |
 | Adversarial quantization | Quantization erases small structural differences. | Report non-identifiability instead of hallucinating atoms. |
 
@@ -288,6 +289,7 @@ Current executable gates:
 
 ```bash
 npm run benchmark:nn-gelu-ffn-negative-cases
+npm run benchmark:nn-gelu-ffn-rank-cap-negative
 npm run benchmark:nn-swiglu-ffn-shared-gate-canonical
 ```
 
@@ -302,6 +304,11 @@ broader follow-up gates. The shared-gate SwiGLU gate adds a controlled clean/noi
 hard-case where three source pairs collapse to one canonical pair under a shared
 gate; the correct result is canonical equivalence, not original source-pair
 identity.
+
+The rank-cap negative guard adds a self-contained 768D/3072-channel GELU
+full-slice case where the correct result is `insufficient-rank`, not a promoted
+full-slice structure claim. A separate local GPT-2 audit uses the uncommitted
+full fixture and must also report insufficient rank when the cap is too small.
 
 ## Scaling Stress Ladder
 

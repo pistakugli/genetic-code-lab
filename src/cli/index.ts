@@ -557,6 +557,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-gelu-ffn-rank-cap-negative',
+    name: 'NN GELU FFN rank-cap negative guard',
+    status: 'production',
+    summary: 'Prevents unsupported full-slice structure promotion when a GELU FFN rank cap is below the observable source-group count.',
+    scope: 'Black-box smooth activation negative guard; proves benchmark-scoped refusal of a synthetic 768D/3072-channel full-slice structure claim under an insufficient rank cap. It strengthens the neural decompiler by recording insufficient-rank evidence instead of promoting a weak structure claim. It does not claim full GPT-2 FFN extraction, arbitrary 3072-channel blind decompilation, semantic output-only source identity, or broad SOTA status.',
+    run: { label: 'NN GELU FFN rank-cap negative guard benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-rank-cap-negative'] },
+    proofs: [
+      { label: 'NN GELU FFN rank-cap negative guard benchmark', command: 'npm', args: ['run', 'benchmark:nn-gelu-ffn-rank-cap-negative'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-gelu-ffn-rank-cap-negative/synthetic-3072-rank-cap/report.json',
+      'benchmarks/release/nn-gelu-ffn-rank-cap-negative/synthetic-3072-rank-cap/report.md'
+    ]
+  },
+  {
     id: 'nn-gelu-ffn-noisy-mixed-structure',
     name: 'NN noisy mixed GELU FFN structure',
     status: 'production',

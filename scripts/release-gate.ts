@@ -139,6 +139,7 @@ function main(): void {
     runStep('NN near-parallel mixed GELU FFN family benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-near-parallel-family'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN GELU FFN cross-decomposition invariance benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-cross-decomposition-invariance'], { timeoutMs: 4 * 60 * 1000 });
     runStep('NN GELU FFN formalization negative-case benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-negative-cases'], { timeoutMs: 4 * 60 * 1000 });
+    runStep('NN GELU FFN rank-cap negative guard benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-rank-cap-negative'], { timeoutMs: 5 * 60 * 1000 });
     runStep('NN noisy mixed GELU FFN structure benchmark', 'npm', ['run', 'benchmark:nn-gelu-ffn-noisy-mixed-structure'], { timeoutMs: 4 * 60 * 1000 });
     runStep('NN mixed SwiGLU FFN structure benchmark', 'npm', ['run', 'benchmark:nn-swiglu-ffn-mixed-structure'], { timeoutMs: 4 * 60 * 1000 });
     runStep('NN noisy mixed SwiGLU FFN structure benchmark', 'npm', ['run', 'benchmark:nn-swiglu-ffn-noisy-mixed-structure'], { timeoutMs: 5 * 60 * 1000 });

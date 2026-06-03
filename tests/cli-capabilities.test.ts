@@ -102,6 +102,10 @@ describe('CLI capabilities', () => {
         status: 'production'
       }),
       expect.objectContaining({
+        id: 'nn-gelu-ffn-rank-cap-negative',
+        status: 'production'
+      }),
+      expect.objectContaining({
         id: 'nn-gelu-ffn-noisy-mixed-structure',
         status: 'production'
       }),

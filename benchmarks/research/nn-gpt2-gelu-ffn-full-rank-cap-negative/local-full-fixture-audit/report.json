@@ -1,0 +1,144 @@
+{
+  "generatedAt": "2026-06-03T10:48:04.761Z",
+  "task": "Local real GPT-2 full FFN rank-cap negative audit",
+  "fixture": {
+    "path": "/home/kugli/Downloads/Genetic-Code-Lab/external-pytorch-test/gpt2_full_ffn_v2.json",
+    "type": "gpt2-layer0-ffn-full-output-channel-0",
+    "dimension": 768,
+    "numChannels": 3072
+  },
+  "claimScope": {
+    "provesIfPasses": "A small rank cap is correctly rejected as insufficient for a full GPT-2 layer-0 FFN output slice on this local fixture.",
+    "doesNotClaim": "output-only full GPT-2 FFN decompilation, original-neuron identity, package-backed release proof, or broad SOTA status."
+  },
+  "summary": {
+    "pass": true,
+    "claimDecision": "insufficient-rank",
+    "claimReasons": [
+      "rank cap 20 is below full GPT-2 source channel count 3072",
+      "top-rank contribution coverage is 0.034908",
+      "held-out capped-vs-full R2 is -0.001444"
+    ],
+    "rankCap": 20,
+    "selectedSourceIndices": [
+      1614,
+      2452,
+      2053,
+      486,
+      2172,
+      1981,
+      137,
+      257,
+      1554,
+      2211,
+      638,
+      1984,
+      2733,
+      1784,
+      2547,
+      1311,
+      1476,
+      2836,
+      763,
+      1169
+    ],
+    "topRankCoverage": 0.034907769543268366,
+    "metrics": {
+      "mae": 4.982383447755312,
+      "rmse": 6.228805054394486,
+      "r2": -0.0014440317377399925
+    },
+    "worstError": 16.26971003902171,
+    "sampleCount": 96
+  },
+  "gates": {
+    "fullFixtureLoaded": true,
+    "expectedNegativeDecision": true,
+    "rankCapBelowFullChannelCount": true,
+    "notReleaseClaim": true,
+    "finiteMetrics": true
+  },
+  "topSources": [
+    {
+      "index": 1614,
+      "contributionScore": 1.9667559883181163
+    },
+    {
+      "index": 2452,
+      "contributionScore": 1.8550791828315918
+    },
+    {
+      "index": 2053,
+      "contributionScore": 1.5678818578068296
+    },
+    {
+      "index": 486,
+      "contributionScore": 1.566719154191326
+    },
+    {
+      "index": 2172,
+      "contributionScore": 1.4935796427275783
+    },
+    {
+      "index": 1981,
+      "contributionScore": 1.4921095318540596
+    },
+    {
+      "index": 137,
+      "contributionScore": 1.4749994822958514
+    },
+    {
+      "index": 257,
+      "contributionScore": 1.4393421969131637
+    },
+    {
+      "index": 1554,
+      "contributionScore": 1.409122718448163
+    },
+    {
+      "index": 2211,
+      "contributionScore": 1.3863963320527388
+    },
+    {
+      "index": 638,
+      "contributionScore": 1.3854519404973895
+    },
+    {
+      "index": 1984,
+      "contributionScore": 1.3142720220366184
+    },
+    {
+      "index": 2733,
+      "contributionScore": 1.3069316142097722
+    },
+    {
+      "index": 1784,
+      "contributionScore": 1.2941502886007583
+    },
+    {
+      "index": 2547,
+      "contributionScore": 1.2921039018108722
+    },
+    {
+      "index": 1311,
+      "contributionScore": 1.2865762462481378
+    },
+    {
+      "index": 1476,
+      "contributionScore": 1.2498062220749562
+    },
+    {
+      "index": 2836,
+      "contributionScore": 1.235650008968644
+    },
+    {
+      "index": 763,
+      "contributionScore": 1.1846955687848584
+    },
+    {
+      "index": 1169,
+      "contributionScore": 1.181135985878602
+    }
+  ],
+  "runtimeMs": 460
+}

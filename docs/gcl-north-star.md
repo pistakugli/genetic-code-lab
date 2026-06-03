@@ -80,6 +80,10 @@ Current status: release-gated for:
 - compact real GPT-2 layer-0 top-3, top-5, and top-10 output-only
   source-structure recovery, with top-8 retained as the intermediate targeted
   scaling check that exposed and then verified gradient-consistency recovery;
+- a full-slice/rank-cap negative guard that refuses unsupported 768D/3072-
+  channel structure promotion when rank evidence is insufficient;
+- a local real GPT-2 full-FFN rank-cap audit that uses the uncommitted 49MB
+  fixture to verify that top-20 coverage is not a full-3072 extraction claim;
 - compact real GPT-2 layer-0 top-20 instrumented source-graph extraction with
   strict provenance and exact IID/OOD held-out agreement.
 
@@ -113,8 +117,8 @@ The next development must stay on this order:
    FFN structure;
 2. stronger local transformer hook variants with noisy/quantized captured rows
    and multi-output slices;
-3. blind real GPT-2 top-K recovery beyond the current top-10 gate, with a
-   negative full-slice/rank-cap guard before any wider GPT-2 claim;
+3. blind real GPT-2 top-K recovery beyond the current top-10 gate, now guarded
+   by a full-slice/rank-cap negative test before any wider GPT-2 claim;
 4. GPT-2/full FFN research stress only after the generic mixed-block lane is
    strong enough and blind top-K does not collapse into a weak output fit.
 

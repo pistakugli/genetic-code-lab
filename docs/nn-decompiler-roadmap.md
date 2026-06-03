@@ -140,7 +140,11 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   `benchmark:nn-swiglu-ffn-mixed-structure`, noisy mixed SwiGLU recovery is
   release-gated with `benchmark:nn-swiglu-ffn-noisy-mixed-structure`, and
   shared-gate/cancellation-heavy SwiGLU canonicalization is release-gated with
-  `benchmark:nn-swiglu-ffn-shared-gate-canonical`. The first
+  `benchmark:nn-swiglu-ffn-shared-gate-canonical`. The first full-slice
+  rank-cap negative guard is release-gated with
+  `benchmark:nn-gelu-ffn-rank-cap-negative`, and the local real GPT-2 full-FFN
+  rank-cap audit is available through
+  `research:nn-gpt2-gelu-ffn-full-rank-cap-negative`. The first
   source-neuron provenance verifier is release-gated with
   `benchmark:nn-gelu-ffn-provenance-verifier` for cases where source manifests
   or equivalent instrumentation are available. The first local transformer MLP
@@ -414,8 +418,13 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
        itself.
-    19. NEXT: Add a negative full-3072/rank-cap guard that must report
-       insufficient rank/provenance instead of promoting a weak output fit.
+    19. DONE for full-slice/rank-cap negative guarding: Add
+       `benchmark:nn-gelu-ffn-rank-cap-negative`, where a self-contained
+       synthetic 768D/3072-channel full-slice teacher must report
+       `insufficient-rank` under a too-small rank cap instead of promoting a
+       weak structure claim. Add
+       `research:nn-gpt2-gelu-ffn-full-rank-cap-negative` as a local audit over
+       the uncommitted full GPT-2 fixture.
     20. NEXT: Only after blind top-K is efficient should full FFN slices be used
        as research stress tests. They must not replace the generic mixed-
        channel gate.
@@ -474,13 +483,30 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `0.01549465009745577`, R2 `0.9996487749720989`, worst error
     `0.10184722252510248`, min provenance confidence `0.8397038910070366`,
     min direction cosine `0.998244983491102`, and raw oracle calls `219268`.
+  - Current full-slice/rank-cap negative command: `npm run
+    benchmark:nn-gelu-ffn-rank-cap-negative`.
+  - Current full-slice/rank-cap negative result: self-contained synthetic
+    768D/3072-channel GELU full-slice teacher with 48 observable source groups
+    and rank cap 12 correctly returned `insufficient-rank`; effective channels
+    `11`, source coverage `0.3290814157449527`, MAE
+    `1.4944170756394612`, R2 `0.8744173553254918`, worst error
+    `7.696315351510922`, and raw oracle calls `79172`.
+  - Current local real GPT-2 full-rank audit command: `npm run
+    research:nn-gpt2-gelu-ffn-full-rank-cap-negative`.
+  - Current local real GPT-2 full-rank audit result: uncommitted full GPT-2
+    layer-0 FFN fixture with 3072 channels and rank cap 20 correctly returned
+    `insufficient-rank`; top-rank contribution coverage
+    `0.034907769543268366`, capped-vs-full MAE `4.982383447755312`,
+    R2 `-0.0014440317377399925`, worst error `16.26971003902171`, sample count
+    `96`.
   - Gate: recover explicit GELU atoms from oracle calls over the compact real
     GPT-2 FFN slice, then verify exact source channel ids through functional
     provenance: direction, activation trace, contribution trace, and why-reacts
     evidence. Strict parameter identity is not claimed because the first strict
     run exposed real GELU scale/output-weight gauge drift.
-  - Next hard case: a negative full-3072/rank-cap guard that must report insufficient
-    rank instead of promoting a weak output fit.
+  - Next hard case: adaptive blind top-K expansion that can turn the current
+    insufficient-rank diagnostic into progressively larger recovered source
+    structure without crossing into unsupported full-3072 claims.
 - Stage F: compact real GPT-2 FFN source extractor.
   - Current command: `npm run benchmark:nn-gpt2-gelu-ffn-source-extractor`.
   - Current result: compact fixture generated from real GPT-2 layer-0 FFN
@@ -617,6 +643,7 @@ Target commands:
 - `npm run benchmark:nn-swiglu-ffn-mixed-structure`
 - `npm run benchmark:nn-swiglu-ffn-noisy-mixed-structure`
 - `npm run benchmark:nn-swiglu-ffn-shared-gate-canonical`
+- `npm run benchmark:nn-gelu-ffn-rank-cap-negative`
 - `npm run benchmark:nn-gelu-ffn-provenance-verifier`
 - `npm run benchmark:nn-local-transformer-mlp-hook`
 - `npm run benchmark:nn-gpt2-gelu-ffn-real-structure`

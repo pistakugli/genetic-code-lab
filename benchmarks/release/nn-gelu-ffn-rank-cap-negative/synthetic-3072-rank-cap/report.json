@@ -1,0 +1,181 @@
+{
+  "generatedAt": "2026-06-03T11:08:04.933Z",
+  "task": "Synthetic 3072-channel GELU FFN rank-cap negative guard",
+  "claimScope": {
+    "provesIfPasses": "GCL can refuse an unsupported full-slice structure claim when the rank cap is below the observable source-group count.",
+    "doesNotClaim": "full GPT-2 FFN extraction, arbitrary 3072-channel blind decompilation, semantic source identity, or broad SOTA status."
+  },
+  "summary": {
+    "pass": true,
+    "claimDecision": "insufficient-rank",
+    "claimReasons": [
+      "rank cap 12 is below required observable group count 48",
+      "top-rank source coverage 0.329081 is below 0.70"
+    ],
+    "dimension": 768,
+    "sourceChannelCount": 3072,
+    "observableGroupCount": 48,
+    "rankCap": 12,
+    "effectiveChannelCount": 11,
+    "rawChannelCount": 12,
+    "metrics": {
+      "mae": 1.4944170756394612,
+      "rmse": 1.9088970023947822,
+      "r2": 0.8744173553254918
+    },
+    "worstError": 7.696315351510922,
+    "outputStd": 5.386636674257928,
+    "topRankCoverage": 0.3290814157449527,
+    "rawOracleCalls": 79172
+  },
+  "gates": {
+    "syntheticFullSliceShape": true,
+    "expectedNegativeDecision": true,
+    "doesNotPromoteStructure": true,
+    "recordsRankReason": true,
+    "reportHasQueryBudget": true,
+    "finiteMetrics": true
+  },
+  "syntheticTeacher": {
+    "type": "deterministic sparse synthetic GELU full-slice",
+    "dimension": 768,
+    "sourceChannelCount": 3072,
+    "observableGroupCount": 48,
+    "rankCap": 12,
+    "channelGeneration": "3072 logical source channels grouped into 48 observable sparse GELU directions"
+  },
+  "sourceCoverage": {
+    "totalGroupScore": 148.98999520318625,
+    "topRankCoverage": 0.3290814157449527,
+    "topGroups": [
+      {
+        "groupId": 2,
+        "score": 4.392765131115702,
+        "channels": 64
+      },
+      {
+        "groupId": 3,
+        "score": 4.34015296478703,
+        "channels": 64
+      },
+      {
+        "groupId": 0,
+        "score": 4.276031396361268,
+        "channels": 64
+      },
+      {
+        "groupId": 4,
+        "score": 4.270463797383113,
+        "channels": 64
+      },
+      {
+        "groupId": 1,
+        "score": 4.244041129148971,
+        "channels": 64
+      },
+      {
+        "groupId": 5,
+        "score": 4.063025475171797,
+        "channels": 64
+      },
+      {
+        "groupId": 6,
+        "score": 4.055573476474723,
+        "channels": 64
+      },
+      {
+        "groupId": 9,
+        "score": 3.9716803024872607,
+        "channels": 64
+      },
+      {
+        "groupId": 10,
+        "score": 3.8938389747233515,
+        "channels": 64
+      },
+      {
+        "groupId": 7,
+        "score": 3.886009811920137,
+        "channels": 64
+      },
+      {
+        "groupId": 8,
+        "score": 3.830213055477092,
+        "channels": 64
+      },
+      {
+        "groupId": 12,
+        "score": 3.806043038247796,
+        "channels": 64
+      },
+      {
+        "groupId": 11,
+        "score": 3.710139993123217,
+        "channels": 64
+      },
+      {
+        "groupId": 14,
+        "score": 3.5736710253326915,
+        "channels": 64
+      },
+      {
+        "groupId": 13,
+        "score": 3.566950375845937,
+        "channels": 64
+      },
+      {
+        "groupId": 16,
+        "score": 3.533790889119441,
+        "channels": 64
+      }
+    ]
+  },
+  "model": {
+    "recoveryKind": "rank-adaptive-gelu-ffn-structure",
+    "effectiveChannelCount": 11,
+    "rawChannelCount": 12,
+    "selectedCandidateKind": "trained-12-top-11",
+    "adaptiveSelection": {
+      "atomStrengthThreshold": 2.2377578324481813,
+      "maxAtomStrength": 4.339595934062629,
+      "prunedWeakAtomCount": 1,
+      "duplicatePairCount": 0,
+      "nearParallelPairCount": 0,
+      "duplicateDirectionCosine": 0.995,
+      "duplicateBiasTolerance": 0.08,
+      "nearParallelDirectionCosine": 0.995,
+      "selectionRestarts": 1,
+      "candidateCount": 13,
+      "selectedCandidateKind": "trained-12-top-11",
+      "selectedCandidateRank": 3,
+      "bestCandidateMetrics": {
+        "mae": 1.8075733540794798,
+        "rmse": 2.2600626027381456,
+        "r2": 0.8703077147223828
+      },
+      "unprunedValidationMetrics": {
+        "mae": 1.8075733540794798,
+        "rmse": 2.2600626027381456,
+        "r2": 0.8703077147223828
+      }
+    },
+    "validationMetrics": {
+      "mae": 1.9326104980255314,
+      "rmse": 2.40448662142822,
+      "r2": 0.8532027449683002
+    },
+    "queryBudget": {
+      "rawOracleCalls": 79172,
+      "gradientRawOracleCalls": 73728,
+      "trainingRawOracleCalls": 2300,
+      "gradientTrainingRawOracleCalls": 2304,
+      "validationRawOracleCalls": 840,
+      "finiteDifferenceCallsPerProbe": 1536,
+      "aggregatedProbePoints": 79172,
+      "querySamples": 1,
+      "selectionRestarts": 1,
+      "selectedRestart": 0
+    }
+  },
+  "runtimeMs": 32766
+}
