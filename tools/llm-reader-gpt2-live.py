@@ -26,6 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--token-index", type=int, default=-1, help="Prompt token index to explain; negative indexes are supported.")
     parser.add_argument("--top-neurons", type=int, default=12, help="Number of top MLP source neurons to report.")
     parser.add_argument("--top-logits", type=int, default=8, help="Number of next-token logits to report.")
+    parser.add_argument("--ablation-mode", choices=["selected-token", "all-tokens", "none"], default="selected-token", help="Run real causal neuron ablations for reported neurons.")
     parser.add_argument("--device", default="cpu", choices=["cpu", "cuda", "auto"], help="Runtime device.")
     parser.add_argument("--local-files-only", action="store_true", help="Do not download model files; use local cache/path only.")
     parser.add_argument("--output", help="Optional JSON report output path.")
@@ -153,6 +154,75 @@ def build_neuron_report(
     return reports
 
 
+def top_logit_items(tokenizer: Any, logits: torch.Tensor, count: int) -> List[Dict[str, Any]]:
+    top = torch.topk(logits.detach().cpu(), k=min(count, logits.numel()))
+    return [
+        {
+            "rank": rank + 1,
+            "tokenId": int(index),
+            "token": clean_token(tokenizer, int(index)),
+            "logit": float(value)
+        }
+        for rank, (value, index) in enumerate(zip(top.values, top.indices))
+    ]
+
+
+def attach_causal_ablation_reports(
+    model: Any,
+    mlp: Any,
+    encoded: Dict[str, torch.Tensor],
+    tokenizer: Any,
+    baseline_logits: torch.Tensor,
+    layer: int,
+    token_index: int,
+    neurons: List[Dict[str, Any]],
+    candidate_token_ids: List[int],
+    mode: str
+) -> None:
+    if mode == "none":
+        return
+
+    baseline_cpu = baseline_logits.detach().cpu()
+
+    for item in neurons:
+        neuron = int(item["neuron"])
+
+        def zero_neuron_activation(module: Any, inputs: Any, output: torch.Tensor) -> torch.Tensor:
+            patched = output.clone()
+            if mode == "selected-token":
+                patched[:, token_index, neuron] = 0
+            else:
+                patched[:, :, neuron] = 0
+            return patched
+
+        handle = mlp.act.register_forward_hook(zero_neuron_activation)
+        try:
+            with torch.no_grad():
+                ablated_logits = model(**encoded).logits.detach().cpu()[0, token_index]
+        finally:
+            handle.remove()
+
+        effects = []
+        for token_id in candidate_token_ids:
+            baseline = float(baseline_cpu[token_id])
+            ablated = float(ablated_logits[token_id])
+            effects.append({
+                "tokenId": int(token_id),
+                "token": clean_token(tokenizer, int(token_id)),
+                "baselineLogit": baseline,
+                "ablatedLogit": ablated,
+                "logitDropWhenRemoved": baseline - ablated
+            })
+
+        item["causalAblation"] = {
+            "mode": mode,
+            "intervention": f"zero transformer.h.{layer}.mlp.act[..., {neuron}]",
+            "tokenIndex": token_index,
+            "topLogitsAfterRemoval": top_logit_items(tokenizer, ablated_logits, min(8, len(candidate_token_ids))),
+            "candidateLogitEffects": sorted(effects, key=lambda effect: abs(effect["logitDropWhenRemoved"]), reverse=True)
+        }
+
+
 def make_text_report(report: Dict[str, Any]) -> str:
     lines: List[str] = []
     lines.append("GCL live LLM reader")
@@ -185,6 +255,13 @@ def make_text_report(report: Dict[str, Any]) -> str:
             for drv in item["topResidualDrivers"][:4]
         )
         lines.append(f"      strongest residual drivers: {driver_bits}")
+        ablation = item.get("causalAblation")
+        if ablation:
+            effect_bits = ", ".join(
+                f"{json.dumps(effect['token'])}:drop={effect['logitDropWhenRemoved']:.4f}"
+                for effect in ablation["candidateLogitEffects"][:4]
+            )
+            lines.append(f"      causal ablation: {effect_bits}")
     return "\n".join(lines)
 
 
@@ -255,6 +332,19 @@ def main() -> None:
         token_index,
         args.top_neurons
     )
+    candidate_token_ids = [int(index) for index in top_logits.indices]
+    attach_causal_ablation_reports(
+        model,
+        mlp,
+        encoded,
+        tokenizer,
+        logits,
+        args.layer,
+        token_index,
+        neurons,
+        candidate_token_ids,
+        args.ablation_mode
+    )
 
     report = {
         "schemaVersion": 1,
@@ -288,19 +378,11 @@ def main() -> None:
         },
         "hookShapes": {key: list(value.shape) for key, value in captures.items()},
         "nextToken": {
-            "topLogits": [
-                {
-                    "rank": rank + 1,
-                    "tokenId": int(index),
-                    "token": clean_token(tokenizer, int(index)),
-                    "logit": float(value)
-                }
-                for rank, (value, index) in enumerate(zip(top_logits.values, top_logits.indices))
-            ]
+            "topLogits": top_logit_items(tokenizer, logits, args.top_logits)
         },
         "neurons": neurons,
         "claim": {
-            "does": "Loads the real model, runs a real forward pass, hooks real MLP activations, and reports source neuron activations/contributions for the selected prompt token.",
+            "does": "Loads the real model, runs a real forward pass, hooks real MLP activations, and performs real activation ablations to measure selected-neuron effects on next-token logits.",
             "doesNot": "Does not use synthetic teachers, does not fit a surrogate, and does not claim full black-box extraction of every hidden mechanism."
         }
     }

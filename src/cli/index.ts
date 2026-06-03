@@ -1246,6 +1246,7 @@ program
   .option('--token-index <number>', 'Prompt token index to explain; negative indexes are supported', '-1')
   .option('--top-neurons <number>', 'Number of top MLP source neurons to report', '12')
   .option('--top-logits <number>', 'Number of next-token logits to report', '8')
+  .option('--ablation-mode <selected-token|all-tokens|none>', 'Run real causal neuron ablations for reported neurons', 'selected-token')
   .option('--device <cpu|cuda|auto>', 'Runtime device', 'cpu')
   .option('--output <file>', 'Write JSON report to file')
   .option('--json', 'Print machine-readable JSON')
@@ -1261,6 +1262,7 @@ program
       '--token-index', String(integerOption(options.tokenIndex, -1, 'token-index')),
       '--top-neurons', String(positiveInt(options.topNeurons, 12, 'top-neurons')),
       '--top-logits', String(positiveInt(options.topLogits, 8, 'top-logits')),
+      '--ablation-mode', String(options.ablationMode),
       '--device', options.device,
       '--format', options.json ? 'json' : 'text'
     ];
