@@ -428,6 +428,7 @@ def build_negative_control_report(
         ))
     groups.append({
         "kind": "random-active-same-amplitude",
+        "requestedControl": "random active neurons with same activation amplitude",
         "summary": summarize_control_items(matched_items),
         "items": matched_items
     })
@@ -455,6 +456,7 @@ def build_negative_control_report(
         ))
     groups.append({
         "kind": "random-inactive",
+        "requestedControl": "random inactive neurons",
         "summary": summarize_control_items(inactive_items),
         "inactiveThresholdAbs": inactive_threshold,
         "items": inactive_items
@@ -504,6 +506,7 @@ def build_negative_control_report(
         ))
     groups.append({
         "kind": "top-neuron-from-other-prompt",
+        "requestedControl": "top neurons from a different prompt, excluding primary-neuron overlap",
         "summary": summarize_control_items(off_prompt_items),
         "skippedPrimaryOverlap": skipped_primary_overlap,
         "items": off_prompt_items
@@ -511,7 +514,7 @@ def build_negative_control_report(
 
     other_position_items = []
     other_positions = [position for position in range(int(token_ids.numel())) if position != token_index]
-    for neuron in primary_neurons[:control_count]:
+    for neuron in primary_neurons:
         for position in other_positions:
             other_position_items.append(make_control_item(
                 model=model,
@@ -534,15 +537,45 @@ def build_negative_control_report(
             ))
     groups.append({
         "kind": "same-neuron-other-token-position",
+        "requestedControl": "same top neurons ablated at other token positions",
         "summary": summarize_control_items(other_position_items),
+        "sourceNeuronCount": len(primary_neurons),
+        "otherTokenPositionCount": len(other_positions),
         "items": other_position_items
     })
+
+    requested_control_coverage = {
+        "randomActiveNeuronsSameAmplitude": {
+            "present": len(matched_items) > 0,
+            "kind": "random-active-same-amplitude",
+            "itemCount": len(matched_items)
+        },
+        "randomInactiveNeurons": {
+            "present": len(inactive_items) > 0,
+            "kind": "random-inactive",
+            "itemCount": len(inactive_items)
+        },
+        "topNeuronsFromDifferentPrompt": {
+            "present": len(off_prompt_items) > 0,
+            "kind": "top-neuron-from-other-prompt",
+            "itemCount": len(off_prompt_items),
+            "skippedPrimaryOverlap": skipped_primary_overlap
+        },
+        "sameNeuronsOnOtherTokenPositions": {
+            "present": len(other_position_items) > 0,
+            "kind": "same-neuron-other-token-position",
+            "itemCount": len(other_position_items),
+            "sourceNeuronCount": len(primary_neurons),
+            "otherTokenPositionCount": len(other_positions)
+        }
+    }
 
     return {
         "enabled": True,
         "seed": int(args.control_seed),
         "controlCount": control_count,
         "controlPrompt": args.control_prompt,
+        "requestedControlCoverage": requested_control_coverage,
         "candidateTokens": [
             {"tokenId": int(token_id), "token": clean_token(tokenizer, int(token_id))}
             for token_id in candidate_token_ids
@@ -594,6 +627,12 @@ def make_text_report(report: Dict[str, Any]) -> str:
     if controls and controls.get("enabled"):
         lines.append("")
         lines.append("negative-control ablations:")
+        coverage = controls.get("requestedControlCoverage", {})
+        for name, item in coverage.items():
+            lines.append(
+                f"  requested {name}: present={str(item.get('present')).lower()} "
+                f"items={item.get('itemCount', 0)}"
+            )
         for group in controls["groups"]:
             summary = group["summary"]
             lines.append(
