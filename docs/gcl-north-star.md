@@ -76,11 +76,14 @@ Current status: release-gated for:
   instrumentation are provided;
 - local transformer MLP hook recovery for a deterministic local
   transformer-style block, with captured residual-stream, MLP-input,
-  preactivation, activation, per-source contribution, and target-output rows.
+  preactivation, activation, per-source contribution, and target-output rows;
+- compact real GPT-2 layer-0 top-3 output-only source-structure recovery;
+- compact real GPT-2 layer-0 top-20 instrumented source-graph extraction with
+  strict provenance and exact IID/OOD held-out agreement.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
-decompilation, arbitrary 4096D production block decompilation, or a universal
-SOTA claim.
+blind decompilation, arbitrary 4096D production block decompilation, or a
+universal SOTA claim.
 
 ### 3. Provenance Rail
 
@@ -91,7 +94,9 @@ Current status: release-gated provenance-mode verification maps recovered GELU
 atoms to exact source ids, layers, indices, duplicate source groups, and
 why-reacts evidence. The local transformer MLP hook gate extends this from a
 manifest-only controlled FFN source into captured activation rows from a local
-transformer-style block.
+transformer-style block. The real GPT-2 source-extractor gate extends the same
+provenance rail to a compact top-20 source graph from actual GPT-2 layer-0 FFN
+weights when the source manifest is available.
 
 Boundary: exact source identity requires source manifests, hooks, weights, or
 equivalent signed provenance. Output-only access can recover canonical
@@ -106,8 +111,10 @@ The next development must stay on this order:
    FFN structure;
 2. stronger local transformer hook variants with noisy/quantized captured rows
    and multi-output slices;
-3. GPT-2/full FFN research stress only after the generic mixed-block lane is
-   strong enough.
+3. blind real GPT-2 top-K recovery that is fast enough to promote beyond the
+   current top-3 gate;
+4. GPT-2/full FFN research stress only after the generic mixed-block lane is
+   strong enough and blind top-K does not collapse into a weak output fit.
 
 Do not make 7D/8D ReLU scaling the center of the project. ReLU ND work remains
 important only when it improves the probing, adjacency, query-budget, or
@@ -137,6 +144,7 @@ Do not claim:
 - full LLM block decompilation from controlled synthetic gates;
 - scratch output as release evidence;
 - a surrogate as a structure finder.
+- instrumented source extraction as proof of output-only decompilation.
 
 If a benchmark exposes a weakness, the weakness becomes a gate, a negative
 case, or a visible non-promoted limitation. It must not be hidden by easier

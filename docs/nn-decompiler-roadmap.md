@@ -146,7 +146,11 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   or equivalent instrumentation are available. The first local transformer MLP
   hook gate is release-gated with `benchmark:nn-local-transformer-mlp-hook`,
   using captured residual/MLP/preactivation/activation/contribution/output rows
-  from a deterministic local transformer-style block.
+  from a deterministic local transformer-style block. The first compact real
+  GPT-2 top-3 output-only source-structure gate is release-gated with
+  `benchmark:nn-gpt2-gelu-ffn-real-structure`, and the first compact real
+  GPT-2 top-20 instrumented source-graph extractor is release-gated with
+  `benchmark:nn-gpt2-gelu-ffn-source-extractor`.
 - Direction: GCL should not brute-force 4096D. It should query a high-
   dimensional black-box channel, discover the low-dimensional active subspace
   where the function actually changes, then recover either a faithful
@@ -381,12 +385,28 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        inputs and MLP output channels/slices from a local transformer block,
        then run explicit structure recovery with source/hook provenance where
        available and hard-fail extraction/tokenization/data-shape failures.
-    14. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
+    14. DONE for compact real GPT-2 top-3 output-only source-structure:
+       Add `benchmark:nn-gpt2-gelu-ffn-real-structure`, where GCL receives
+       oracle calls over a real GPT-2 layer-0 top-3 output-channel slice,
+       recovers explicit GELU atoms, and maps them through functional
+       provenance.
+    15. DONE for compact real GPT-2 top-20 instrumented source extraction:
+       Add `benchmark:nn-gpt2-gelu-ffn-source-extractor`, where GCL builds an
+       exact source graph from real GPT-2 source weights or equivalent hook
+       manifests, validates IID/OOD held-out outputs, and verifies every atom
+       against exact GPT-2 source ids with strict parameter provenance. This is
+       deliberately separate from output-only recovery.
+    16. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
        itself.
-    15. NEXT: Only after this passes should GPT-2 top-K expansion or full FFN slices be
-       used as research stress tests. They must not replace the generic mixed-
+    17. NEXT: Repair blind top-K real GPT-2 expansion. A first unrestricted
+       top-5 blind attempt was stopped after becoming runtime-impractical, so
+       it remains a hard-case rather than a promoted result. The next solver
+       step is a faster rank-adaptive blind top-K recovery path that does not
+       need source weights during recovery.
+    18. NEXT: Only after blind top-K is efficient should full FFN slices be used
+       as research stress tests. They must not replace the generic mixed-
        channel gate.
 - Stage D: local transformer MLP hook.
   - Current command: `npm run benchmark:nn-local-transformer-mlp-hook`.
@@ -423,6 +443,22 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   - Next hard cases: top-5 release-candidate sweep, top-8/top-10 research hard
     cases, and a negative full-3072/rank-cap guard that must report insufficient
     rank instead of promoting a weak output fit.
+- Stage F: compact real GPT-2 FFN source extractor.
+  - Current command: `npm run benchmark:nn-gpt2-gelu-ffn-source-extractor`.
+  - Current result: compact fixture generated from real GPT-2 layer-0 FFN
+    weights for output channel `0`, top-20 source channels
+    `1614,2452,2053,486,2172,1981,137,257,1554,2211,638,1984,2733,1784,2547,1311,1476,2836,763,1169`,
+    dimension `768`; exact source graph built, strict provenance verified, all
+    source groups mapped, all recovered atoms mapped, max MAE
+    `4.561527660225847e-17`, min R2 `1`, max worst error
+    `1.7763568394002505e-15`, min provenance confidence
+    `0.9999999999999998`, and raw validation oracle calls `3600`.
+  - Gate: use real GPT-2 source weights or equivalent hook/source manifests to
+    build an explicit GELU source graph, then validate exact held-out outputs
+    across IID GPT-2 activation scale, wide-OOD, and shifted-OOD distributions.
+  - Claim boundary: this is exact instrumented source extraction, not output-
+    only source identity, not blind full-FFN decompilation, and not arbitrary
+    3072-channel GPT-2 extraction.
 
 The following items are still required before any broad SOTA language:
 
@@ -480,7 +516,9 @@ The following items are still required before any broad SOTA language:
   `benchmark:nn-swiglu-ffn-shared-gate-canonical`; and the first local
   transformer MLP hook is covered by
   `benchmark:nn-local-transformer-mlp-hook`. Next evidence must scale the
-  instrumented smooth-FFN structure lane before broad claims.
+  instrumented smooth-FFN structure lane before broad claims. The compact real
+  GPT-2 top-20 source extractor is now the first scaled instrumented source-
+  graph gate; the unresolved hard case is efficient blind top-K recovery.
 
 ## Current Frontier Target
 
@@ -537,6 +575,8 @@ Target commands:
 - `npm run benchmark:nn-swiglu-ffn-shared-gate-canonical`
 - `npm run benchmark:nn-gelu-ffn-provenance-verifier`
 - `npm run benchmark:nn-local-transformer-mlp-hook`
+- `npm run benchmark:nn-gpt2-gelu-ffn-real-structure`
+- `npm run benchmark:nn-gpt2-gelu-ffn-source-extractor`
 - `npm run research:nn-gpt2-gelu-ffn-structure-finder`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`

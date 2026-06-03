@@ -128,6 +128,10 @@ describe('CLI capabilities', () => {
       expect.objectContaining({
         id: 'nn-gpt2-gelu-ffn-real-structure',
         status: 'production'
+      }),
+      expect.objectContaining({
+        id: 'nn-gpt2-gelu-ffn-source-extractor',
+        status: 'production'
       })
     ]));
   });

@@ -663,6 +663,22 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-gpt2-gelu-ffn-source-extractor',
+    name: 'NN real GPT-2 GELU FFN source extractor',
+    status: 'production',
+    summary: 'Builds an exact explicit GELU source graph for a real GPT-2 layer-0 FFN top-20 output slice when source weights or equivalent hook manifests are available.',
+    scope: 'Instrumented real GPT-2 benchmark; uses a compact fixture extracted from real GPT-2 layer-0 FFN weights for output channel 0 top-20 source channels. GCL builds the explicit GELU source graph directly from source provenance, validates exact held-out outputs across IID and OOD activation distributions, and verifies every atom against exact GPT-2 channel ids with strict parameter provenance. This is not output-only black-box recovery, full 3072-channel GPT-2 FFN extraction, tokenizer/model execution, or broad SOTA status.',
+    run: { label: 'NN real GPT-2 GELU FFN source-extractor benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-source-extractor'] },
+    proofs: [
+      { label: 'NN real GPT-2 GELU FFN source-extractor benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-source-extractor'] }
+    ],
+    artifacts: [
+      'benchmarks/fixtures/gpt2-layer0-output0-top20-gelu.json',
+      'benchmarks/release/nn-gpt2-gelu-ffn-source-extractor/layer0-output0-top20-exact-source-graph/report.json',
+      'benchmarks/release/nn-gpt2-gelu-ffn-source-extractor/layer0-output0-top20-exact-source-graph/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',
