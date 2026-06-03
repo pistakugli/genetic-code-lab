@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-03T18:18:12.329Z",
+  "lane": "nn-live-gpt2-fact-circuit-finder",
+  "variant": "gpt2-50-facts-graph-layer-scan",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-gpt2-fact-circuit-finder.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-gpt2-fact-circuit-finder",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {},
+  "git": {
+    "commit": "7ed549ce1686f010c94662914784d1db24db144b",
+    "statusShort": "M package.json\n M src/cli/index.ts\n?? benchmarks/release/nn-live-gpt2-fact-circuit-finder/\n?? scripts/benchmark-nn-live-gpt2-fact-circuit-finder.ts\n?? tools/__pycache__/\n?? tools/llm-reader-gpt2-factual-sweep.py"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.md",
+    "manifest": "benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "validCases": 50,
+    "passedCases": 50,
+    "failedCases": 0,
+    "skippedCases": 30,
+    "passRate": 1,
+    "medianBestTargetLogitDrop": 2.84942626953125,
+    "p10BestTargetLogitDrop": 2.4633255004882812,
+    "medianControlP95PositiveTargetLogitDrop": 1.418670654296875,
+    "medianLiftOverControlP95": 2.0793055350085594,
+    "minLiftOverControlP95": 1.471600323926992,
+    "medianGraphJointTargetLogitDrop": 9.597953796386719,
+    "p10GraphJointTargetLogitDrop": 7.7571563720703125,
+    "medianGraphControlP95PositiveTargetLogitDrop": 1.7921218872070312,
+    "medianGraphLiftOverControlP95": 4.993501607767975,
+    "minGraphLiftOverControlP95": 3.053458716515491,
+    "meanGraphSelectedNodeCount": 3.74,
+    "uniqueSelectedGraphNeurons": 15,
+    "selectedGraphLayerHistogram": {
+      "0": 92,
+      "6": 15,
+      "9": 40,
+      "11": 40
+    },
+    "failedSubjects": [],
+    "skippedSubjects": [
+      "Brazil",
+      "Jordan",
+      "Bangladesh",
+      "Vietnam",
+      "Belarus",
+      "Estonia",
+      "Latvia",
+      "Lithuania",
+      "Romania",
+      "Bulgaria",
+      "Serbia",
+      "Croatia",
+      "Slovakia",
+      "Morocco",
+      "Algeria",
+      "Kenya",
+      "Nigeria",
+      "Ghana",
+      "Senegal",
+      "Mali",
+      "Niger",
+      "Sudan",
+      "Uganda",
+      "Tanzania",
+      "Rwanda",
+      "Colombia",
+      "Venezuela",
+      "Uruguay",
+      "Paraguay",
+      "Ecuador"
+    ]
+  },
+  "notes": [
+    "Real GPT-2 live factual-prompt graph-level circuit finder.",
+    "This uses automatic layer/neuron scanning, token/neuron/target graph construction, joint graph ablation, and graph-level controls."
+  ]
+}
