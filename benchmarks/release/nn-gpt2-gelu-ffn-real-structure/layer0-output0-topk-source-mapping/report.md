@@ -1,11 +1,17 @@
 # Real GPT-2 GELU FFN Structure Benchmark
 
-Generated: 2026-06-03T06:32:46.895Z
+Generated: 2026-06-03T08:02:47.010Z
 
 ## Claim Scope
 
 - Proves if pass: GCL can recover explicit GELU atoms from a real GPT-2 layer-0 FFN top-K output-channel slice and map them to exact GPT-2 source channels through provenance verification.
 - Does not claim: full GPT-2 FFN extraction, arbitrary 3072-channel recovery, arbitrary tokenizer/model execution, output-only original-neuron identity without source manifest/hooks, or broad SOTA status.
+
+## Black-Box Boundary
+
+- Recovery oracle: GCL receives f(vector) for the compact real GPT-2 FFN output slice during recovery
+- Post-recovery provenance: Source manifest is used only after recovery to verify exact GPT-2 channel ids, weights, and why-reacts evidence.
+- Structure gate: Pass requires recovered atom count and per-source provenance matches, not only output R2.
 
 ## Fixture
 

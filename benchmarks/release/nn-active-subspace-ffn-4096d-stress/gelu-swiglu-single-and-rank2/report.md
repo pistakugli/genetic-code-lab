@@ -1,6 +1,6 @@
 # 4096D Active-Subspace FFN Stress Benchmark
 
-Generated: 2026-06-03T06:16:12.721Z
+Generated: 2026-06-03T07:23:38.436Z
 
 ## Claim Scope
 

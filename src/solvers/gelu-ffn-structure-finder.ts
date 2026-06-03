@@ -34,6 +34,9 @@ export type GeluFfnStructureModel = {
     restarts: number;
     iterations: number;
     learningRate: number;
+    scalarRefinementRestarts?: number;
+    scalarRefinementIterations?: number;
+    scalarRefinementLearningRate?: number;
   };
 	  queryBudget: {
 	    rawOracleCalls: number;
@@ -123,6 +126,9 @@ export type GeluFfnStructureFinderConfig = {
   restarts?: number;
   iterations?: number;
   learningRate?: number;
+  scalarRefinementRestarts?: number;
+  scalarRefinementIterations?: number;
+  scalarRefinementLearningRate?: number;
   ridge?: number;
   querySamples?: number;
   aggregation?: 'mean' | 'median';
@@ -131,6 +137,7 @@ export type GeluFfnStructureFinderConfig = {
 export type RankAdaptiveGeluFfnStructureFinderConfig = Omit<GeluFfnStructureFinderConfig, 'channelCount'> & {
   maxChannelCount: number;
   minEffectiveChannelCount?: number;
+  candidateChannelCounts?: number[];
   atomRelativeStrengthThreshold?: number;
 	  atomAbsoluteStrengthThreshold?: number;
 	  duplicateDirectionCosine?: number;
@@ -152,6 +159,14 @@ type StructureParams = {
   outputWeights: number[];
   biases: number[];
   vectors: number[][];
+};
+
+type FixedDirectionScalarParams = {
+  offset: number;
+  outputWeights: number[];
+  biases: number[];
+  logScales: number[];
+  directions: number[][];
 };
 
 function makeRandom(seed: number): () => number {
@@ -408,6 +423,142 @@ function trainStructure(
   return { params: bestParams, mse: bestMse };
 }
 
+function makeFixedDirectionScalarParams(
+  base: StructureParams,
+  activeRank: number,
+  random: () => number,
+  restart: number
+): FixedDirectionScalarParams {
+  const directions: number[][] = [];
+  const logScales: number[] = [];
+  for (const vector of base.vectors) {
+    const length = norm(vector);
+    const direction = length > 1e-10
+      ? vector.map(value => value / length)
+      : normalize(Array.from({ length: activeRank }, () => gaussian(random)));
+    directions.push(direction);
+    logScales.push(Math.log(Math.max(0.03, length)) + (restart === 0 ? 0 : gaussian(random) * 0.25));
+  }
+  return {
+    offset: base.offset + (restart === 0 ? 0 : gaussian(random) * 0.01),
+    outputWeights: base.outputWeights.map(value => value * (restart === 0 ? 1 : 1 + gaussian(random) * 0.12)),
+    biases: base.biases.map(value => value + (restart === 0 ? 0 : gaussian(random) * 0.08)),
+    logScales,
+    directions
+  };
+}
+
+function cloneFixedDirectionScalarParams(params: FixedDirectionScalarParams): FixedDirectionScalarParams {
+  return {
+    offset: params.offset,
+    outputWeights: [...params.outputWeights],
+    biases: [...params.biases],
+    logScales: [...params.logScales],
+    directions: params.directions.map(direction => [...direction])
+  };
+}
+
+function evaluateFixedDirectionScalarParams(params: FixedDirectionScalarParams, coords: number[]): number {
+  let value = params.offset;
+  for (let atom = 0; atom < params.outputWeights.length; atom++) {
+    const scale = Math.exp(params.logScales[atom]);
+    value += params.outputWeights[atom] * gelu(scale * dot(params.directions[atom], coords) + params.biases[atom]);
+  }
+  return Number.isFinite(value) ? value : 0;
+}
+
+function scalarParamsToStructureParams(params: FixedDirectionScalarParams): StructureParams {
+  return {
+    offset: params.offset,
+    outputWeights: [...params.outputWeights],
+    biases: [...params.biases],
+    vectors: params.directions.map((direction, atom) => {
+      const scale = Math.exp(params.logScales[atom]);
+      return direction.map(value => value * scale);
+    })
+  };
+}
+
+function trainFixedDirectionScalars(
+  samples: TrainingSample[],
+  base: StructureParams,
+  activeRank: number,
+  random: () => number,
+  restarts: number,
+  iterations: number,
+  learningRate: number,
+  ridge: number
+): { params: StructureParams; mse: number } {
+  const channelCount = base.outputWeights.length;
+  let bestParams = makeFixedDirectionScalarParams(base, activeRank, random, 0);
+  let bestMse = Infinity;
+
+  for (let restart = 0; restart < restarts; restart++) {
+    const params = makeFixedDirectionScalarParams(base, activeRank, random, restart);
+    const m = {
+      offset: 0,
+      outputWeights: new Array(channelCount).fill(0),
+      biases: new Array(channelCount).fill(0),
+      logScales: new Array(channelCount).fill(0)
+    };
+    const v = {
+      offset: 0,
+      outputWeights: new Array(channelCount).fill(0),
+      biases: new Array(channelCount).fill(0),
+      logScales: new Array(channelCount).fill(0)
+    };
+    const beta1 = 0.9;
+    const beta2 = 0.999;
+    const epsilon = 1e-8;
+
+    for (let iteration = 1; iteration <= iterations; iteration++) {
+      const grad = {
+        offset: 0,
+        outputWeights: new Array(channelCount).fill(0),
+        biases: new Array(channelCount).fill(0),
+        logScales: new Array(channelCount).fill(0)
+      };
+      let mse = 0;
+      for (const sample of samples) {
+        const projections = params.directions.map(direction => dot(direction, sample.coords));
+        const scales = params.logScales.map(Math.exp);
+        const pre = projections.map((projection, atom) => scales[atom] * projection + params.biases[atom]);
+        const activations = pre.map(gelu);
+        const derivatives = pre.map(geluDerivative);
+        let predicted = params.offset;
+        for (let atom = 0; atom < channelCount; atom++) predicted += params.outputWeights[atom] * activations[atom];
+        const error = predicted - sample.target;
+        mse += error ** 2;
+        const sampleScale = 2 * error / Math.max(1, samples.length);
+        grad.offset += sampleScale;
+        for (let atom = 0; atom < channelCount; atom++) {
+          grad.outputWeights[atom] += sampleScale * activations[atom] + ridge * params.outputWeights[atom];
+          const common = sampleScale * params.outputWeights[atom] * derivatives[atom];
+          grad.biases[atom] += common;
+          grad.logScales[atom] += common * scales[atom] * projections[atom] + ridge * params.logScales[atom] * 0.1;
+        }
+      }
+      mse /= Math.max(1, samples.length);
+      if (mse < bestMse) {
+        bestMse = mse;
+        bestParams = cloneFixedDirectionScalarParams(params);
+      }
+
+      const stepScale = learningRate * (0.25 + 0.75 * (1 - iteration / Math.max(1, iterations)));
+      updateAdamScalar(params, m, v, 'offset', grad.offset, iteration, stepScale, beta1, beta2, epsilon);
+      for (let atom = 0; atom < channelCount; atom++) {
+        updateAdamArray(params.outputWeights, m.outputWeights, v.outputWeights, atom, grad.outputWeights[atom], iteration, stepScale, beta1, beta2, epsilon);
+        updateAdamArray(params.biases, m.biases, v.biases, atom, grad.biases[atom], iteration, stepScale, beta1, beta2, epsilon);
+        updateAdamArray(params.logScales, m.logScales, v.logScales, atom, grad.logScales[atom], iteration, stepScale, beta1, beta2, epsilon);
+        params.logScales[atom] = Math.max(Math.log(0.03), Math.min(Math.log(20), params.logScales[atom]));
+        params.biases[atom] = Math.max(-8, Math.min(8, params.biases[atom]));
+        params.outputWeights[atom] = Math.max(-8, Math.min(8, params.outputWeights[atom]));
+      }
+    }
+  }
+  return { params: scalarParamsToStructureParams(bestParams), mse: bestMse };
+}
+
 function updateAdamScalar(
   params: { offset: number },
   m: { offset: number },
@@ -508,6 +659,9 @@ export function decompileGeluFfnStructure(
   const restarts = Math.max(1, Math.floor(config.restarts ?? Math.max(6, channelCount * 3)));
   const iterations = Math.max(50, Math.floor(config.iterations ?? 1200));
   const learningRate = config.learningRate ?? 0.03;
+  const scalarRefinementIterations = Math.max(0, Math.floor(config.scalarRefinementIterations ?? 0));
+  const scalarRefinementRestarts = Math.max(1, Math.floor(config.scalarRefinementRestarts ?? 1));
+  const scalarRefinementLearningRate = config.scalarRefinementLearningRate ?? learningRate * 0.5;
   const ridge = config.ridge ?? 1e-7;
   const querySamples = Math.max(1, Math.floor(config.querySamples ?? 1));
   const aggregation = config.aggregation ?? 'median';
@@ -548,7 +702,7 @@ export function decompileGeluFfnStructure(
   }
   const trainingRawOracleCalls = rawOracleCalls - trainingStart;
 
-  const { params, mse } = trainStructure(
+  let { params, mse } = trainStructure(
     trainingSamples,
     channelCount,
     activeRank,
@@ -558,6 +712,20 @@ export function decompileGeluFfnStructure(
     learningRate,
     ridge
   );
+  if (scalarRefinementIterations > 0) {
+    const refined = trainFixedDirectionScalars(
+      trainingSamples,
+      params,
+      activeRank,
+      random,
+      scalarRefinementRestarts,
+      scalarRefinementIterations,
+      scalarRefinementLearningRate,
+      ridge
+    );
+    params = refined.params;
+    mse = refined.mse;
+  }
 
   const validationStart = rawOracleCalls;
   const validationSamples: TrainingSample[] = [];
@@ -602,7 +770,14 @@ export function decompileGeluFfnStructure(
     outputBias: params.offset,
     trainingMse: mse,
     validationMetrics,
-    optimizer: { restarts, iterations, learningRate },
+    optimizer: {
+      restarts,
+      iterations,
+      learningRate,
+      scalarRefinementRestarts: scalarRefinementIterations > 0 ? scalarRefinementRestarts : undefined,
+      scalarRefinementIterations,
+      scalarRefinementLearningRate: scalarRefinementIterations > 0 ? scalarRefinementLearningRate : undefined
+    },
     queryBudget: {
       rawOracleCalls,
       gradientRawOracleCalls,
@@ -976,8 +1151,19 @@ export function decompileRankAdaptiveGeluFfnStructure(
   const selectionRestarts = Math.max(1, Math.floor(config.selectionRestarts ?? 1));
   const pruneValidationToleranceRatio = config.pruneValidationToleranceRatio ?? 0.2;
   const pruneValidationToleranceAbsolute = config.pruneValidationToleranceAbsolute ?? 0.002;
+  const candidateChannelCounts = (config.candidateChannelCounts?.length
+    ? [...new Set(config.candidateChannelCounts.map(value => Math.floor(value)))]
+    : Array.from(
+      { length: maxChannelCount - minEffectiveChannelCount + 1 },
+      (_unused, index) => minEffectiveChannelCount + index
+    ))
+    .filter(value => value >= minEffectiveChannelCount && value <= maxChannelCount)
+    .sort((a, b) => a - b);
+  if (!candidateChannelCounts.length) {
+    throw new Error('rank-adaptive GELU structure finder requires at least one candidate channel count');
+  }
   const rawModels: GeluFfnStructureModel[] = [];
-  for (let channelCount = minEffectiveChannelCount; channelCount <= maxChannelCount; channelCount++) {
+  for (const channelCount of candidateChannelCounts) {
     for (let restart = 0; restart < selectionRestarts; restart++) {
       rawModels.push(decompileGeluFfnStructure(oracle, {
         ...config,

@@ -1,6 +1,6 @@
 # Local Transformer MLP Hook Benchmark
 
-Generated: 2026-06-03T06:29:47.511Z
+Generated: 2026-06-03T07:37:17.460Z
 
 ## Claim Scope
 
