@@ -77,8 +77,9 @@ Current status: release-gated for:
 - local transformer MLP hook recovery for a deterministic local
   transformer-style block, with captured residual-stream, MLP-input,
   preactivation, activation, per-source contribution, and target-output rows;
-- compact real GPT-2 layer-0 top-3 and top-5 output-only source-structure
-  recovery;
+- compact real GPT-2 layer-0 top-3, top-5, and top-10 output-only
+  source-structure recovery, with top-8 retained as the intermediate targeted
+  scaling check that exposed and then verified gradient-consistency recovery;
 - compact real GPT-2 layer-0 top-20 instrumented source-graph extraction with
   strict provenance and exact IID/OOD held-out agreement.
 
@@ -112,8 +113,8 @@ The next development must stay on this order:
    FFN structure;
 2. stronger local transformer hook variants with noisy/quantized captured rows
    and multi-output slices;
-3. blind real GPT-2 top-K recovery beyond the current top-5 gate, with top-8
-   and top-10 as the next hard scaling checks;
+3. blind real GPT-2 top-K recovery beyond the current top-10 gate, with a
+   negative full-slice/rank-cap guard before any wider GPT-2 claim;
 4. GPT-2/full FFN research stress only after the generic mixed-block lane is
    strong enough and blind top-K does not collapse into a weak output fit.
 

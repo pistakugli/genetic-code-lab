@@ -15,6 +15,7 @@ export type GeluFfnStructureModel = {
   activeRank: number;
   gradientProbeCount: number;
   trainingSampleCount: number;
+  gradientTrainingSampleCount?: number;
   validationSampleCount: number;
   finiteDifferenceStep: number;
   querySamples: number;
@@ -37,11 +38,13 @@ export type GeluFfnStructureModel = {
     scalarRefinementRestarts?: number;
     scalarRefinementIterations?: number;
     scalarRefinementLearningRate?: number;
+    gradientTrainingWeight?: number;
   };
 	  queryBudget: {
 	    rawOracleCalls: number;
 	    gradientRawOracleCalls: number;
 	    trainingRawOracleCalls: number;
+	    gradientTrainingRawOracleCalls?: number;
 	    validationRawOracleCalls: number;
 	    finiteDifferenceCallsPerProbe: number;
 	    aggregatedProbePoints: number;
@@ -120,6 +123,9 @@ export type GeluFfnStructureFinderConfig = {
   activeRank?: number;
   gradientProbeCount?: number;
   trainingSampleCount?: number;
+  gradientTrainingSampleCount?: number;
+  gradientTrainingWeight?: number;
+  activeGradientFiniteDifferenceStep?: number;
   validationSampleCount?: number;
   finiteDifferenceStep?: number;
   randomSeed?: number;
@@ -152,6 +158,11 @@ type TrainingSample = {
   input: number[];
   coords: number[];
   target: number;
+};
+
+type GradientTrainingSample = {
+  coords: number[];
+  targetGradient: number[];
 };
 
 type StructureParams = {
@@ -292,6 +303,17 @@ function geluDerivative(value: number): number {
   return 0.5 * (1 + tanh) + 0.5 * value * sech2 * c * (1 + 3 * 0.044715 * value ** 2);
 }
 
+function geluSecondDerivative(value: number): number {
+  const c = Math.sqrt(2 / Math.PI);
+  const cubic = 0.044715;
+  const inner = c * (value + cubic * value ** 3);
+  const tanh = Math.tanh(inner);
+  const sech2 = 1 - tanh ** 2;
+  const first = c * (1 + 3 * cubic * value ** 2);
+  const second = c * 6 * cubic * value;
+  return sech2 * (first + 0.5 * value * (second - 2 * tanh * first ** 2));
+}
+
 function aggregate(values: number[], method: 'mean' | 'median'): number {
   if (!values.length) return 0;
   if (method === 'mean') return values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -306,6 +328,19 @@ function evaluateParams(params: StructureParams, coords: number[]): number {
     value += params.outputWeights[atom] * gelu(dot(params.vectors[atom], coords) + params.biases[atom]);
   }
   return Number.isFinite(value) ? value : 0;
+}
+
+function estimateActiveBasisGradient(
+  oracle: (input: number[]) => number,
+  input: number[],
+  activeBasis: number[][],
+  step: number
+): number[] {
+  return activeBasis.map(direction => {
+    const left = input.map((value, index) => value - step * direction[index]);
+    const right = input.map((value, index) => value + step * direction[index]);
+    return (oracle(right) - oracle(left)) / (2 * step);
+  });
 }
 
 function makeInitialParams(
@@ -350,12 +385,14 @@ function cloneParams(params: StructureParams): StructureParams {
 
 function trainStructure(
   samples: TrainingSample[],
+  gradientSamples: GradientTrainingSample[],
   channelCount: number,
   activeRank: number,
   random: () => number,
   restarts: number,
   iterations: number,
   learningRate: number,
+  gradientTrainingWeight: number,
   ridge: number
 ): { params: StructureParams; mse: number } {
   const targetMean = samples.reduce((sum, sample) => sum + sample.target, 0) / Math.max(1, samples.length);
@@ -400,6 +437,38 @@ function trainStructure(
           grad.biases[atom] += common;
           for (let axis = 0; axis < activeRank; axis++) {
             grad.vectors[atom][axis] += common * sample.coords[axis] + ridge * params.vectors[atom][axis];
+          }
+        }
+      }
+      if (gradientTrainingWeight > 0 && gradientSamples.length) {
+        const gradientScale = 2 * gradientTrainingWeight / Math.max(1, gradientSamples.length * activeRank);
+        for (const sample of gradientSamples) {
+          const pre = params.vectors.map((vector, atom) => dot(vector, sample.coords) + params.biases[atom]);
+          const derivatives = pre.map(geluDerivative);
+          const secondDerivatives = pre.map(geluSecondDerivative);
+          const predictedGradient = new Array(activeRank).fill(0);
+          for (let atom = 0; atom < channelCount; atom++) {
+            const outputWeight = params.outputWeights[atom];
+            const derivative = derivatives[atom];
+            for (let axis = 0; axis < activeRank; axis++) {
+              predictedGradient[axis] += outputWeight * derivative * params.vectors[atom][axis];
+            }
+          }
+          const gradientErrors = predictedGradient.map((value, axis) => value - sample.targetGradient[axis]);
+          for (let atom = 0; atom < channelCount; atom++) {
+            const vector = params.vectors[atom];
+            const outputWeight = params.outputWeights[atom];
+            const derivative = derivatives[atom];
+            const secondDerivative = secondDerivatives[atom];
+            const errorDotVector = dot(gradientErrors, vector);
+            grad.outputWeights[atom] += gradientScale * derivative * errorDotVector;
+            grad.biases[atom] += gradientScale * outputWeight * secondDerivative * errorDotVector;
+            for (let axis = 0; axis < activeRank; axis++) {
+              grad.vectors[atom][axis] += gradientScale * outputWeight * (
+                secondDerivative * sample.coords[axis] * errorDotVector
+                + derivative * gradientErrors[axis]
+              );
+            }
           }
         }
       }
@@ -481,12 +550,14 @@ function scalarParamsToStructureParams(params: FixedDirectionScalarParams): Stru
 
 function trainFixedDirectionScalars(
   samples: TrainingSample[],
+  gradientSamples: GradientTrainingSample[],
   base: StructureParams,
   activeRank: number,
   random: () => number,
   restarts: number,
   iterations: number,
   learningRate: number,
+  gradientTrainingWeight: number,
   ridge: number
 ): { params: StructureParams; mse: number } {
   const channelCount = base.outputWeights.length;
@@ -536,6 +607,39 @@ function trainFixedDirectionScalars(
           const common = sampleScale * params.outputWeights[atom] * derivatives[atom];
           grad.biases[atom] += common;
           grad.logScales[atom] += common * scales[atom] * projections[atom] + ridge * params.logScales[atom] * 0.1;
+        }
+      }
+      if (gradientTrainingWeight > 0 && gradientSamples.length) {
+        const gradientScale = 2 * gradientTrainingWeight / Math.max(1, gradientSamples.length * activeRank);
+        for (const sample of gradientSamples) {
+          const projections = params.directions.map(direction => dot(direction, sample.coords));
+          const scales = params.logScales.map(Math.exp);
+          const pre = projections.map((projection, atom) => scales[atom] * projection + params.biases[atom]);
+          const derivatives = pre.map(geluDerivative);
+          const secondDerivatives = pre.map(geluSecondDerivative);
+          const predictedGradient = new Array(activeRank).fill(0);
+          for (let atom = 0; atom < channelCount; atom++) {
+            const outputWeight = params.outputWeights[atom];
+            const derivative = derivatives[atom];
+            const scale = scales[atom];
+            for (let axis = 0; axis < activeRank; axis++) {
+              predictedGradient[axis] += outputWeight * derivative * scale * params.directions[atom][axis];
+            }
+          }
+          const gradientErrors = predictedGradient.map((value, axis) => value - sample.targetGradient[axis]);
+          for (let atom = 0; atom < channelCount; atom++) {
+            const scale = scales[atom];
+            const vector = params.directions[atom].map(value => value * scale);
+            const errorDotVector = dot(gradientErrors, vector);
+            const derivative = derivatives[atom];
+            const secondDerivative = secondDerivatives[atom];
+            grad.outputWeights[atom] += gradientScale * derivative * errorDotVector;
+            grad.biases[atom] += gradientScale * params.outputWeights[atom] * secondDerivative * errorDotVector;
+            grad.logScales[atom] += gradientScale * params.outputWeights[atom] * (
+              derivative * errorDotVector
+              + secondDerivative * scale * projections[atom] * errorDotVector
+            );
+          }
         }
       }
       mse /= Math.max(1, samples.length);
@@ -652,10 +756,18 @@ export function decompileGeluFfnStructure(
   const activeRank = Math.max(channelCount, Math.min(dimension, Math.floor(config.activeRank ?? channelCount)));
   const gradientProbeCount = Math.max(activeRank + 2, Math.floor(config.gradientProbeCount ?? Math.max(12, channelCount * 5)));
   const trainingSampleCount = Math.max(channelCount * 80, Math.floor(config.trainingSampleCount ?? Math.max(1400, channelCount * 700)));
+  const gradientTrainingSampleCount = Math.max(0, Math.floor(config.gradientTrainingSampleCount ?? 0));
+  const gradientTrainingWeight = Math.max(0, config.gradientTrainingWeight ?? 0);
   const validationSampleCount = Math.max(256, Math.floor(config.validationSampleCount ?? 1000));
   const minRange = Math.min(...config.ranges.map(([min, max]) => max - min));
   const requestedFiniteDifferenceStep = Math.max(1e-6, Math.min(config.finiteDifferenceStep ?? minRange * 1e-4, minRange * 0.02));
-  const finiteDifferenceStep = Math.max(requestedFiniteDifferenceStep, minRange * 0.1);
+  const finiteDifferenceStep = config.finiteDifferenceStep === undefined
+    ? Math.max(requestedFiniteDifferenceStep, minRange * 0.1)
+    : requestedFiniteDifferenceStep;
+  const activeGradientFiniteDifferenceStep = Math.max(
+    1e-6,
+    Math.min(config.activeGradientFiniteDifferenceStep ?? finiteDifferenceStep, minRange * 0.02)
+  );
   const restarts = Math.max(1, Math.floor(config.restarts ?? Math.max(6, channelCount * 3)));
   const iterations = Math.max(50, Math.floor(config.iterations ?? 1200));
   const learningRate = config.learningRate ?? 0.03;
@@ -702,25 +814,42 @@ export function decompileGeluFfnStructure(
   }
   const trainingRawOracleCalls = rawOracleCalls - trainingStart;
 
+  const gradientTrainingStart = rawOracleCalls;
+  const gradientTrainingSamples: GradientTrainingSample[] = [];
+  if (gradientTrainingWeight > 0 && gradientTrainingSampleCount > 0) {
+    for (let index = 0; index < gradientTrainingSampleCount; index++) {
+      const input = randomPoint(random, config.ranges, activeGradientFiniteDifferenceStep * 2);
+      gradientTrainingSamples.push({
+        coords: projectInput(activeBasis, input),
+        targetGradient: estimateActiveBasisGradient(countedOracle, input, activeBasis, activeGradientFiniteDifferenceStep)
+      });
+    }
+  }
+  const gradientTrainingRawOracleCalls = rawOracleCalls - gradientTrainingStart;
+
   let { params, mse } = trainStructure(
     trainingSamples,
+    gradientTrainingSamples,
     channelCount,
     activeRank,
     random,
     restarts,
     iterations,
     learningRate,
+    gradientTrainingWeight,
     ridge
   );
   if (scalarRefinementIterations > 0) {
     const refined = trainFixedDirectionScalars(
       trainingSamples,
+      gradientTrainingSamples,
       params,
       activeRank,
       random,
       scalarRefinementRestarts,
       scalarRefinementIterations,
       scalarRefinementLearningRate,
+      gradientTrainingWeight,
       ridge
     );
     params = refined.params;
@@ -760,6 +889,7 @@ export function decompileGeluFfnStructure(
     activeRank,
     gradientProbeCount,
     trainingSampleCount,
+    gradientTrainingSampleCount,
     validationSampleCount,
     finiteDifferenceStep,
     querySamples,
@@ -776,12 +906,14 @@ export function decompileGeluFfnStructure(
       learningRate,
       scalarRefinementRestarts: scalarRefinementIterations > 0 ? scalarRefinementRestarts : undefined,
       scalarRefinementIterations,
-      scalarRefinementLearningRate: scalarRefinementIterations > 0 ? scalarRefinementLearningRate : undefined
+      scalarRefinementLearningRate: scalarRefinementIterations > 0 ? scalarRefinementLearningRate : undefined,
+      gradientTrainingWeight: gradientTrainingWeight > 0 ? gradientTrainingWeight : undefined
     },
     queryBudget: {
       rawOracleCalls,
       gradientRawOracleCalls,
       trainingRawOracleCalls,
+      gradientTrainingRawOracleCalls,
       validationRawOracleCalls,
       finiteDifferenceCallsPerProbe: 2 * dimension,
       aggregatedProbePoints,

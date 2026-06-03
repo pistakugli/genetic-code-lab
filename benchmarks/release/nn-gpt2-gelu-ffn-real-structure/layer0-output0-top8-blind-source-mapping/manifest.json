@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-03T08:39:42.627Z",
+  "lane": "nn-gpt2-gelu-ffn-real-structure",
+  "variant": "layer0-output0-top8-blind-source-mapping",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-gpt2-gelu-ffn-real-structure.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-gpt2-gelu-ffn-real-structure",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "layer0-output0-top8-blind-source-mapping",
+    "GCL_GPT2_COMPACT_FIXTURE": "benchmarks/fixtures/gpt2-layer0-output0-top8-gelu.json"
+  },
+  "git": {
+    "commit": "7735f3031f19939c26024c24e07564d32b2f9bac",
+    "statusShort": "M scripts/benchmark-nn-gpt2-gelu-ffn-real-structure.ts\n M src/solvers/gelu-ffn-structure-finder.ts\n?? benchmarks/fixtures/gpt2-layer0-output0-top8-gelu.json\n?? benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top8-blind-source-mapping/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top8-blind-source-mapping/report.json",
+    "reportMarkdown": "benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top8-blind-source-mapping/report.md",
+    "manifest": "benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top8-blind-source-mapping/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "topK": 8,
+    "dimension": 768,
+    "effectiveChannelCount": 8,
+    "rawChannelCount": 8,
+    "sourceGroupCount": 8,
+    "metrics": {
+      "mae": 0.010762522489570131,
+      "rmse": 0.014217377874288945,
+      "r2": 0.9998280690875673
+    },
+    "worstError": 0.07145730981694887,
+    "agreementMae": 0.010762522489570131,
+    "minProvenanceConfidence": 0.9651104040584654,
+    "minDirectionCosine": 0.9998577803120876,
+    "rawOracleCalls": 213512
+  },
+  "notes": [
+    "Release-gated compact real GPT-2 layer-0 FFN source-structure benchmark.",
+    "Uses real GPT-2 weights extracted into a compact top-K fixture.",
+    "Pass requires explicit GELU atom recovery plus source-channel provenance; output-only surrogate fit is insufficient."
+  ]
+}

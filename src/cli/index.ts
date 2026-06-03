@@ -650,20 +650,27 @@ const CAPABILITIES: Capability[] = [
     id: 'nn-gpt2-gelu-ffn-real-structure',
     name: 'NN real GPT-2 GELU FFN source structure',
     status: 'production',
-    summary: 'Recovers explicit GELU atoms from compact real GPT-2 layer-0 FFN top-3 and top-5 output slices using oracle-only recovery, then maps recovered atoms to exact GPT-2 source channel ids through functional provenance.',
-    scope: 'Provenance-mode real GPT-2 benchmark; uses compact fixtures extracted from real GPT-2 layer-0 FFN weights for output channel 0 top-3 and top-5 source channels. During recovery GCL receives only f(vector) oracle calls; the source manifest is used after recovery to verify source ids through direction, activation trace, contribution trace, why-reacts evidence, and query budget. This is not full GPT-2 FFN extraction, arbitrary 3072-channel recovery, exact parameter identity under GELU gauge drift, tokenizer/model execution, output-only source identity without post-hoc provenance, or broad SOTA status.',
+    summary: 'Recovers explicit GELU atoms from compact real GPT-2 layer-0 FFN top-3/top-5/top-10 output slices using oracle-only recovery, then maps recovered atoms to exact GPT-2 source channel ids through functional provenance.',
+    scope: 'Provenance-mode real GPT-2 benchmark; uses compact fixtures extracted from real GPT-2 layer-0 FFN weights for output channel 0 top-3, top-5, and top-10 source channels. During recovery GCL receives only f(vector) oracle calls; the source manifest is used after recovery to verify source ids through direction, activation trace, contribution trace, why-reacts evidence, and query budget. This is not full GPT-2 FFN extraction, arbitrary 3072-channel recovery, exact parameter identity under GELU gauge drift, tokenizer/model execution, output-only source identity without post-hoc provenance, or broad SOTA status.',
     run: { label: 'NN real GPT-2 GELU FFN source-structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure'] },
     proofs: [
       { label: 'NN real GPT-2 GELU FFN source-structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure'] },
-      { label: 'NN real GPT-2 GELU FFN top-5 blind source-structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure:top5'] }
+      { label: 'NN real GPT-2 GELU FFN top-5 blind source-structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure:top5'] },
+      { label: 'NN real GPT-2 GELU FFN top-10 blind source-structure benchmark', command: 'npm', args: ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure:top10'] }
     ],
     artifacts: [
       'benchmarks/fixtures/gpt2-layer0-output0-top3-gelu.json',
       'benchmarks/fixtures/gpt2-layer0-output0-top5-gelu.json',
+      'benchmarks/fixtures/gpt2-layer0-output0-top8-gelu.json',
+      'benchmarks/fixtures/gpt2-layer0-output0-top10-gelu.json',
       'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-topk-source-mapping/report.json',
       'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-topk-source-mapping/report.md',
       'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top5-blind-source-mapping/report.json',
-      'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top5-blind-source-mapping/report.md'
+      'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top5-blind-source-mapping/report.md',
+      'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top8-blind-source-mapping/report.json',
+      'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top8-blind-source-mapping/report.md',
+      'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top10-blind-source-mapping/report.json',
+      'benchmarks/release/nn-gpt2-gelu-ffn-real-structure/layer0-output0-top10-blind-source-mapping/report.md'
     ]
   },
   {

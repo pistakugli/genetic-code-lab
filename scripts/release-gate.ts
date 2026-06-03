@@ -147,6 +147,7 @@ function main(): void {
     runStep('NN local transformer MLP hook benchmark', 'npm', ['run', 'benchmark:nn-local-transformer-mlp-hook'], { timeoutMs: 4 * 60 * 1000 });
     runStep('NN real GPT-2 GELU FFN source-structure benchmark', 'npm', ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure'], { timeoutMs: 5 * 60 * 1000 });
     runStep('NN real GPT-2 GELU FFN top-5 blind source-structure benchmark', 'npm', ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure:top5'], { timeoutMs: 7 * 60 * 1000 });
+    runStep('NN real GPT-2 GELU FFN top-10 blind source-structure benchmark', 'npm', ['run', 'benchmark:nn-gpt2-gelu-ffn-real-structure:top10'], { timeoutMs: 12 * 60 * 1000 });
     runStep('NN real GPT-2 GELU FFN source-extractor benchmark', 'npm', ['run', 'benchmark:nn-gpt2-gelu-ffn-source-extractor'], { timeoutMs: 2 * 60 * 1000 });
     runStep('NN 2D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu2d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-decompile'], { timeoutMs: 3 * 60 * 1000 });

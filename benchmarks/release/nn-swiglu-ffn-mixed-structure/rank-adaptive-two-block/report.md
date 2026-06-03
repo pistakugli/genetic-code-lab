@@ -1,6 +1,6 @@
 # Rank-Adaptive Mixed SwiGLU FFN Structure Benchmark
 
-Generated: 2026-06-03T07:31:17.519Z
+Generated: 2026-06-03T09:08:50.870Z
 
 ## Claim Scope
 
