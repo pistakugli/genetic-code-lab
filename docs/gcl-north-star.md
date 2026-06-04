@@ -111,9 +111,10 @@ neuron identity without extra observability.
 
 ### 4. Live LLM Oracle Circuit Rail
 
-Purpose: move from controlled FFN/source-structure gates into a real model
-reader that treats GPT-2 as a live oracle and automatically discovers causal
-circuits for prompts and facts.
+Purpose: move from controlled FFN/source-structure gates into a
+model-agnostic live LLM oracle layer that can run the same graph-discovery
+protocol across transformer families. GPT-2 is the first fast proof gate, not
+the endpoint.
 
 Current status: the CLI can load real GPT-2 through the project-managed Python
 runtime, run a real forward pass, hook MLP activations, ablate selected neurons,
@@ -145,24 +146,32 @@ Boundary: hook reading, activation ablation, logit-delta scoring, and negative
 controls are known mechanistic-interpretability measurement techniques. They
 are not the GCL invention by themselves. In this rail they are the measurement
 layer for GCL-native circuit discovery. The current graph finder is a
-benchmark-scoped MLP circuit finder for the configured GPT-2 factual prompt set;
-it is not attention-head/path recovery, full GPT-2 FFN extraction, arbitrary
-LLM understanding, or output-only original-neuron identity.
+benchmark-scoped MLP circuit finder for the configured GPT-2 factual prompt set
+and proves the first adapter gate only. The roadmap must not treat GPT-2
+layer names, tokenizer behavior, GELU FFN shape, or prompt quirks as the
+framework contract. It is not attention-head/path recovery, full GPT-2 FFN
+extraction, arbitrary LLM understanding, or output-only original-neuron
+identity.
 
 ## Current Mainline
 
 The next development must stay on this order:
 
-1. Add attention-head and path edges:
+1. Extract a model-agnostic `LLMOracleAdapter` layer:
+   keep GPT-2 as the fast real-model proof gate, but move GPT-2-specific
+   tokenizer, block, layer, hook, activation-family, and intervention logic
+   behind a typed adapter. The circuit finder must not hard-code GPT-2. The
+   next adapter targets are GPT-Neo/Pythia-style HuggingFace models and then
+   LLaMA/Mistral-style SwiGLU models.
+2. Add attention-head and path edges:
    extend the graph beyond MLP neurons into attention heads/value paths and
    path-patching-style interventions while keeping token/neuron/target evidence
    comparable to the current gate.
-2. Refactor the current live-reader/fact-finder runtime into a reusable
-   `GPT2Oracle` control plane:
+3. Keep the current live-reader/fact-finder runtime behind that adapter:
    prompt/token/layer/component/intervention -> logits, activations, logit
-   deltas, controls, cache keys, runtime warnings, and query-budget records.
-   This must keep using the real model runtime, not synthetic teachers and not a
-   fitted surrogate.
+   deltas, controls, cache keys, runtime warnings, model/tokenizer identities,
+   and query-budget records. This must keep using real model runtimes, not
+   synthetic teachers and not fitted surrogates.
 4. Continue blind real GPT-2 top-K FFN recovery and source-structure scaling
    only when it feeds the circuit finder or verifies source/provenance for
    circuits the live oracle selected.
@@ -207,6 +216,8 @@ Do not claim:
 - the current MLP-only fact-circuit graph gate as proof of attention-head/path
   recovery, full GPT-2 FFN extraction, arbitrary LLM understanding, or
   output-only original-neuron identity.
+- GPT-2-specific implementation as proof that the circuit finder already scales
+  to GPT-Neo, Pythia, LLaMA, Mistral, or arbitrary LLM architectures.
 
 If a benchmark exposes a weakness, the weakness becomes a gate, a negative
 case, or a visible non-promoted limitation. It must not be hidden by easier

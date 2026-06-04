@@ -215,14 +215,16 @@ What these gates currently support:
   hooks, causal ablations, and disjoint negative-control families for the
   current GPT-2 prompt test.
 - Live GPT-2 graph-level fact circuit finding for the configured factual prompt
-  set with Stage-I hardening: `50` valid facts, `45` graph-passed cases, pass
-  rate `0.9`, median joint graph target-logit drop `0.7129135131835938`, p10
-  graph drop `0.45391082763671875`, median graph-control p95 positive
-  target-logit drop `0.3569793701171875`, median graph lift over control p95
-  `1.845643203157706`, mean selected graph node count `4.96`, and `103` unique
-  selected graph neurons. Aggregate hardening passed with paraphrase pass rate
-  `0.75`, wrong-answer specificity `0.9666666666666667`, negative-fact
-  specificity `1`, and unrelated-logit preservation `0.8725`. The artifact is
+  set with Stage-I hardening: `50` valid facts, strict case definition
+  `graphGate.pass && hardeningGate.pass`, `50` strict-passed cases, `50`
+  graph-passed cases, `50` hardening-passed cases, pass rate `1.0`, median
+  joint graph target-logit drop `0.2544403076171875`, p10 graph drop
+  `0.10530853271484375`, median graph-control p95 positive target-logit drop
+  `0.06884765625`, median graph lift over control p95
+  `3.8083037124802526`, mean selected graph node count `1.6`, and `46` unique
+  selected graph neurons. Hardening passed with paraphrase pass rate `1.0`,
+  wrong-answer specificity `1.0`, negative-fact specificity `1.0`, and
+  unrelated-logit preservation `0.955`. The artifact is
   `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`.
 
 What they do not support yet:
@@ -239,6 +241,10 @@ What they do not support yet:
   real GPT-2 factual prompt set; it is not attention-head/path recovery, full
   GPT-2 FFN extraction, arbitrary LLM understanding, or output-only original
   neuron identity.
+- Treating the current GPT-2-specific implementation as proof that the circuit
+  finder already scales to GPT-Neo, Pythia, LLaMA, Mistral, or arbitrary LLM
+  architectures. The next engineering step is a model-agnostic
+  `LLMOracleAdapter` layer where GPT-2 remains the fast proof gate.
 - Arbitrary noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs beyond the
   controlled release-gated noisy mixed GELU, noisy mixed SwiGLU, and shared-gate
   SwiGLU canonicalization families.

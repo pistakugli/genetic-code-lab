@@ -258,6 +258,21 @@ mapping only when the source manifest or equivalent instrumentation is supplied.
 That is a stronger engineering mode than a surrogate, but it is not evidence
 that output-only access can recover original neurons in arbitrary networks.
 
+## Live LLM Graph-Circuit Claim Level
+
+The live GPT-2 fact-circuit gate is a separate real-model graph-discovery lane.
+It is not synthetic and does not fit a surrogate. Its current claim level is:
+
+- real model oracle instrumentation;
+- benchmark-scoped MLP graph discovery for configured factual prompts;
+- joint graph ablation above graph-level controls;
+- Stage-I hardening against paraphrases, wrong-answer targets, negative facts,
+  and unrelated-logit collateral damage.
+
+It does not prove attention-head/path recovery, full GPT-2 FFN extraction,
+arbitrary model-family portability, arbitrary LLM understanding, or
+output-only original-neuron identity.
+
 ## Required Negative Cases
 
 Negative cases are not optional. A serious structure finder must know when it

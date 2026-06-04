@@ -249,6 +249,7 @@ Allowed:
 - GCL has a local transformer MLP hook gate that captures actual forward-pass hook rows from a deterministic local transformer-style block, recovers explicit GELU source atoms for one target MLP output slice, and maps them back to source expansion neurons through the hook/source manifest. This is instrumented source mapping, not output-only identity.
 - GCL has a local live GPT-2 reader that loads the real model, hooks MLP activations, runs causal ablations, and records disjoint negative-control families. This is a real oracle-instrumentation layer, not a standalone claim that GCL automatically understands GPT-2.
 - GCL has a first live GPT-2 fact-circuit graph finder that scans configured factual prompts, selects MLP graph nodes, emits token/neuron/target graph artifacts, and validates joint graph ablation above graph-level controls plus paraphrase, wrong-answer, negative-fact, and unrelated-logit hardening for the current 50-valid-fact gate. This is benchmark-scoped MLP graph discovery and Stage-I hardening, not attention-head/path recovery, full GPT-2 FFN extraction, arbitrary LLM understanding, output-only original-neuron identity, or broad SOTA.
+- The intended live-model architecture is now a model-agnostic `LLMOracleAdapter` framework. GPT-2 is the first fast proof gate; GPT-Neo/Pythia and then LLaMA/Mistral require separate adapter commands, artifacts, negative controls, and gates before any cross-model claim is allowed.
 - The earlier clean 5D ND adjacency-geometry single probe remains useful as a research artifact, but the current 5D claim boundary is the release-gated multi-profile sweep.
 - Scratch contains useful research lanes, especially Concrete DESBS, and those lanes become release material only after isolation plus a gate.
 
@@ -274,14 +275,16 @@ Forbidden:
 - Treating the local transformer MLP hook gate as proof of full GPT-2/LLM FFN extraction, arbitrary transformer block decompilation, tokenizer/model integration, output-only original-neuron identity, arbitrary 3072/4096/16384D recovery, or broad SOTA status.
 - Treating the single-prompt live GPT-2 reader's hook/ablation/negative-control output as proof of graph-level circuit discovery by itself.
 - Treating the current live GPT-2 fact-circuit graph finder as proof of attention-head/path recovery, full GPT-2 FFN extraction, arbitrary LLM understanding, output-only original-neuron identity, or broad SOTA status.
+- Treating GPT-2 adapter success as proof that the live LLM oracle framework already works on Pythia, GPT-Neo, LLaMA, Mistral, SwiGLU-family FFNs, or arbitrary tokenizer/runtime stacks.
 
 ## Next Cleanup Moves
 
-1. Extend the live GPT-2 graph finder beyond MLP neurons into attention-head/value-path edges and path-patching-style interventions.
-2. Refactor the current live reader/fact finder into a reusable `GPT2Oracle` typed interface for prompts, tokens, layers, interventions, logits, activations, controls, warnings, identities, and budgets.
-3. Extend the 50/50 live GPT-2 MLP graph gate with attention-head/value-path edge candidates and path-patching-style controls.
-4. Add scratch/promoted-experiment manifests if any scratch lane is elevated toward release evidence.
-5. Harden scratch evaluators so missing artifacts, bad postfix tokens, stack underflow, and non-finite predictions cannot look like valid results.
-6. Re-evaluate LLM activation extraction after the tokenizer fix and record whether it is now a valid scratch lane.
-7. Decide whether Concrete DESBS deserves a real release gate with stronger seed sweeps, strict split accounting, and strong baselines.
-8. Keep extending pure-GCL hard-task coverage beyond the now-fixed inverse quadratic and trig-rational combo diagnostics.
+1. Refactor the current GPT-2 reader/fact finder into a typed `LLMOracleAdapter` framework while preserving the GPT-2 50-fact graph gate as the fast proof gate.
+2. Add GPT-Neo/Pythia adapters and rerun the graph-search/hardening protocol with model/tokenizer identity, layer/component mapping, controls, warnings, and budgets recorded.
+3. Add LLaMA/Mistral SwiGLU adapters with explicit value/gate component handling, tokenizer/runtime differences, and separate graph/control gates.
+4. Extend the live graph finder beyond MLP neurons into attention-head/value-path edges and path-patching-style interventions.
+5. Add scratch/promoted-experiment manifests if any scratch lane is elevated toward release evidence.
+6. Harden scratch evaluators so missing artifacts, bad postfix tokens, stack underflow, and non-finite predictions cannot look like valid results.
+7. Re-evaluate LLM activation extraction after the tokenizer fix and record whether it is now a valid scratch lane.
+8. Decide whether Concrete DESBS deserves a real release gate with stronger seed sweeps, strict split accounting, and strong baselines.
+9. Keep extending pure-GCL hard-task coverage beyond the now-fixed inverse quadratic and trig-rational combo diagnostics.

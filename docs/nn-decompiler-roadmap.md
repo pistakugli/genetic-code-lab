@@ -28,12 +28,14 @@ the failure becomes an explicit test or benchmark variant, and the implementatio
 must be fixed or the limitation must remain visible as a failing/non-promoted
 gate. Do not make the task easier just to preserve a pass.
 
-## Immediate Pivot: Live GPT-2 Graph Circuit Finder
+## Immediate Pivot: Model-Agnostic LLM Adapter Circuit Framework
 
-The live GPT-2 reader is not the destination. It is the measurement layer.
+The live GPT-2 reader is the first fast proof gate, not the destination.
 Hooking activations, ablating neurons, measuring logit deltas, and comparing
 negative controls are known mechanistic-interpretability techniques. GCL must
-use them as sensors for automatic graph discovery, not as the final claim.
+use them as sensors for automatic graph discovery, not as the final claim. The
+destination is a typed model-agnostic LLM adapter framework that can run the
+same circuit-search protocol across compatible transformer families.
 
 The first graph-level gate now exists:
 `npm run benchmark:nn-live-gpt2-fact-circuit-finder`. It loads the real GPT-2
@@ -66,20 +68,32 @@ Current result:
 
 The next production path is:
 
-1. Add attention-head and path graph recovery
+1. Extract a model-agnostic `LLMOracleAdapter` layer
+   - Keep GPT-2 as the fast real-model proof gate, but move GPT-2-specific
+     model/tokenizer/layer/hook knowledge behind an adapter.
+   - The circuit finder must ask the adapter for blocks, attention heads, MLP
+     components, activation family, token positions, logits, hooks,
+     interventions, warnings, model identity, tokenizer identity, and budget
+     accounting.
+   - First target adapters: `gpt2` parity with the current 50/50 gate, then a
+     small HuggingFace GPT-Neo/Pythia-style model, then LLaMA/Mistral-style
+     SwiGLU MLPs.
+   - No adapter may replace the real model with a synthetic teacher or a fitted
+     surrogate.
+2. Add attention-head and path graph recovery
    - Extend candidate search from MLP neurons to attention heads/value paths and
      path-patching-style interventions.
    - Emit comparable token/head/neuron/target graph edges with causal effect,
      collateral damage, and control-normalized effect.
-3. Formalize `GPT2Oracle`
-   - Refactor the current live reader/fact finder into a reusable typed oracle
-     for prompt, token position, layer, component, intervention, logits,
-     activations, deltas, controls, cache ids, runtime warnings, model identity,
-     tokenizer identity, and query/intervention budgets.
-4. Scale the fact set and model coverage
+3. Scale model coverage through adapter gates
+   - GPT-2 remains the fast GELU proof gate.
+   - Pythia/GPT-Neo adapters must prove the framework is not GPT-2-specific.
+   - LLaMA/Mistral adapters must prove SwiGLU MLP/value-gate handling without
+     weakening graph controls, query budgets, or claim boundaries.
+4. Scale the fact set
    - Run the same graph search over larger factual sets and then larger local
-     transformer models only after the GPT-2 graph hardening and path recovery
-     gates hold.
+     transformer models only after adapter parity, GPT-2 graph hardening, and
+     path recovery gates hold.
 
 This pivot forbids promoting another single-prompt hook-and-ablate report as an
 innovation. The innovation target is stable automatic graph evidence from a
@@ -625,18 +639,34 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     paraphrase pass rate `1.0`, wrong-answer specificity `1.0`, negative-fact
     specificity `1.0`, unrelated-logit preservation `0.955`, over `80`, `150`,
     `100`, and `400` validation items respectively.
-- Stage J: attention-head and path graph recovery.
+- Stage J: model-agnostic LLM adapter framework.
+  - NEXT architecture step before treating GPT-2 work as portable.
+  - Gate 1: the GPT-2 adapter remains the fast proof gate and must preserve the
+    current 50-fact graph benchmark.
+  - Gate 2: Pythia/GPT-Neo GELU adapters must run the same graph-search and
+    hardening protocol with model/tokenizer identity, layer/component mapping,
+    controls, warnings, and budgets recorded.
+  - Gate 3: LLaMA/Mistral SwiGLU adapters must extend component addressing and
+    FFN value/gate handling without weakening graph controls, query budgets, or
+    claim boundaries.
+  - Claim boundary: cross-model adapter support proves protocol portability only
+    when each adapter has a command, artifact, gate, and negative controls. It
+    does not prove arbitrary LLM understanding.
+- Stage K: attention-head and path graph recovery.
   - NEXT mechanism expansion after Stage I hardening.
   - Extend candidate search from MLP neurons to attention heads/value paths and
     path-patching-style interventions.
   - Output: recovered token/head/neuron/target graph edges with edge/effect
     scores, collateral-damage metrics, control-normalized effect, and stability
     metrics.
-- Stage K: `GPT2Oracle` control plane.
+- Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
-    oracle interface with typed request/response records for logits,
-    activations, interventions, ablations, control families, cache ids, runtime
-    warnings, model/tokenizer identity, and budget accounting.
+    oracle interface with typed request/response records for model identity,
+    tokenizer identity, prompts, token positions, layers, components,
+    activation families, logits, activations, interventions, ablations, control
+    families, cache ids, runtime warnings, and budget accounting.
+  - `GPT2Oracle` remains adapter implementation #1 and fast proof gate, not the
+    framework contract.
   - Runtime failures, import warnings, hook mismatches, tokenizer mismatches,
     non-disjoint controls, and empty-control families must be hard failures or
     visible artifact errors.
@@ -712,11 +742,13 @@ The following items are still required before any broad SOTA language:
 
 ## Current Frontier Target
 
-The current frontier target is Active-Subspace Neural Decompilation, using the
-release-gated ReLU recovered-geometry lanes as the oracle/probing discipline
-floor, the GELU/SwiGLU active-subspace lanes as the bridge toward LLM-style FFN
-channels, and the live GPT-2 fact-circuit graph finder as the first real-model
-graph-discovery rail.
+The current frontier target is Active-Subspace Neural Decompilation plus a
+model-agnostic LLM oracle adapter framework. The release-gated ReLU
+recovered-geometry lanes remain the oracle/probing discipline floor, the
+GELU/SwiGLU active-subspace lanes are the bridge toward LLM-style FFN channels,
+and the live GPT-2 fact-circuit graph finder is the first fast real-model
+adapter gate. Pythia/GPT-Neo are the next GELU-family portability gates;
+LLaMA/Mistral are the SwiGLU-family portability gates.
 
 The adaptive adversarial noisy 4D/5D ND shallow-ReLU lane and the adaptive
 adversarial noisy folded-2D deep-ReLU lane are now release-gated robustness

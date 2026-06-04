@@ -9,6 +9,13 @@ strategy document.
 
 `npm run release:gate` is green as of 2026-06-03 after the deep folded 3D/4D ND region-sampler, recovered-adjacency geometry, the 5D clean/noisy adjacency-geometry sweep, the 6D randomized/adversarial robustness gate, the 6D baseline court, the active-subspace FFN decompiler, the 4096D/noisy active-subspace FFN gates, the GELU FFN structure-finder gate, the rank-adaptive mixed GELU FFN structure gate, the near-parallel mixed GELU family gate, the cross-decomposition GELU invariance gate, the GELU formalization negative-case gate, the GELU full-slice rank-cap negative guard, the noisy mixed GELU FFN IID/OOD prediction-sanity court, the mixed SwiGLU FFN structure gate, the noisy mixed SwiGLU FFN structure gate, the shared-gate cancellation SwiGLU canonical gate, the GELU source-neuron provenance verifier gate, the local transformer MLP hook gate, the compact real GPT-2 top-3 source-structure gate, the compact real GPT-2 top-5 blind source-structure gate, the compact real GPT-2 top-10 blind source-structure gate, and the real GPT-2 top-20 source-extractor gate.
 
+The live GPT-2 fact-circuit graph finder is a separate heavy real-model
+benchmark command, not a hidden synthetic fixture and not a fitted surrogate.
+Its current artifact reports 50 valid factual prompts, 50 strict-passed cases
+under `graphGate.pass && hardeningGate.pass`, and Stage-I hardening over
+paraphrase, wrong-answer, negative-fact, and unrelated-logit controls. This
+does not promote attention-head/path recovery or arbitrary LLM understanding.
+
 Release benchmark scripts now write to `benchmarks/release/<lane>/<variant>/report.{json,md}` and `manifest.json` by default. Root-level `benchmarks/*.json` and `benchmarks/*.md` are legacy mixed-use artifacts and should be treated as command-scoped evidence, not timeless truth.
 
 ## Release-Gated Lanes

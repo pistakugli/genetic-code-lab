@@ -4,7 +4,10 @@ This benchmark uses a real GPT-2 model, real forward-pass hooks, automatic layer
 
 - Pass: `True`
 - Valid cases: `50`
+- Strict case definition: `graphGate.pass && hardeningGate.pass`
 - Passed cases: `50`
+- Graph-passed cases: `50`
+- Hardening-passed cases: `50`
 - Pass rate: `1.0`
 - Median graph joint target-logit drop: `0.2544403076171875`
 - Median graph control p95 target-logit drop: `0.06884765625`
