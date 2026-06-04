@@ -158,11 +158,12 @@ identity.
 The next development must stay on this order:
 
 1. Extract a model-agnostic `LLMOracleAdapter` layer:
-   keep GPT-2 as the fast real-model proof gate, but move GPT-2-specific
-   tokenizer, block, layer, hook, activation-family, and intervention logic
-   behind a typed adapter. The circuit finder must not hard-code GPT-2. The
-   next adapter targets are GPT-Neo/Pythia-style HuggingFace models and then
-   LLaMA/Mistral-style SwiGLU models.
+   DONE for GPT-2 adapter parity. GPT-2 remains the fast real-model proof gate,
+   but model loading, tokenizer/model identity, block/MLP lookup,
+   activation-family metadata, activation ablation, and negative-control
+   selection now go through a typed adapter boundary. The circuit finder must
+   not hard-code GPT-2. The next adapter targets are GPT-Neo/Pythia-style
+   HuggingFace models and then LLaMA/Mistral-style SwiGLU models.
 2. Add attention-head and path edges:
    extend the graph beyond MLP neurons into attention heads/value paths and
    path-patching-style interventions while keeping token/neuron/target evidence

@@ -243,8 +243,9 @@ What they do not support yet:
   neuron identity.
 - Treating the current GPT-2-specific implementation as proof that the circuit
   finder already scales to GPT-Neo, Pythia, LLaMA, Mistral, or arbitrary LLM
-  architectures. The next engineering step is a model-agnostic
-  `LLMOracleAdapter` layer where GPT-2 remains the fast proof gate.
+  architectures. The live reader now has a model-agnostic `LLMOracleAdapter`
+  boundary with GPT-2 as adapter #1 and fast proof gate; GPT-Neo/Pythia and
+  LLaMA/Mistral still require separate gates.
 - Arbitrary noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs beyond the
   controlled release-gated noisy mixed GELU, noisy mixed SwiGLU, and shared-gate
   SwiGLU canonicalization families.

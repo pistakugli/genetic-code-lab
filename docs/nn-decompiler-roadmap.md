@@ -69,6 +69,10 @@ Current result:
 The next production path is:
 
 1. Extract a model-agnostic `LLMOracleAdapter` layer
+   - Current status: DONE for GPT-2 adapter parity. The live fact-circuit tool
+     now uses `tools/llm_reader/adapters/base.py` and
+     `tools/llm_reader/adapters/gpt2.py`; the full 50-fact GPT-2 graph gate
+     still passes with `graphGate.pass && hardeningGate.pass`.
    - Keep GPT-2 as the fast real-model proof gate, but move GPT-2-specific
      model/tokenizer/layer/hook knowledge behind an adapter.
    - The circuit finder must ask the adapter for blocks, attention heads, MLP
@@ -640,9 +644,13 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     specificity `1.0`, unrelated-logit preservation `0.955`, over `80`, `150`,
     `100`, and `400` validation items respectively.
 - Stage J: model-agnostic LLM adapter framework.
-  - NEXT architecture step before treating GPT-2 work as portable.
-  - Gate 1: the GPT-2 adapter remains the fast proof gate and must preserve the
-    current 50-fact graph benchmark.
+  - Current status: Gate 1 is implemented for GPT-2 adapter parity. The
+    monolithic fact-circuit reader now goes through `LLMOracleAdapter` /
+    `GPT2OracleAdapter` for real model loading, tokenizer/model identity, MLP
+    component lookup, activation-family metadata, activation ablation, negative
+    control selection, and runtime dependency metadata.
+  - Verified gate: the full 50-fact GPT-2 graph benchmark still passes with
+    strict case definition `graphGate.pass && hardeningGate.pass`.
   - Gate 2: Pythia/GPT-Neo GELU adapters must run the same graph-search and
     hardening protocol with model/tokenizer identity, layer/component mapping,
     controls, warnings, and budgets recorded.

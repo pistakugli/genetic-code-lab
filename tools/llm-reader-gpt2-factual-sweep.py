@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import importlib.util
 import json
 import math
 import os
@@ -13,10 +12,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from transformers.utils import logging as transformers_logging
 
-transformers_logging.disable_progress_bar()
+from llm_reader.adapters.gpt2 import GPT2OracleAdapter
 
 
 FACTS: List[Dict[str, str]] = [
@@ -155,17 +152,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_live_helper() -> Any:
-    helper_path = Path(__file__).resolve().with_name("llm-reader-gpt2-live.py")
-    spec = importlib.util.spec_from_file_location("gcl_live_reader", helper_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Cannot load helper module from {helper_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-live = load_live_helper()
+live = GPT2OracleAdapter()
 
 
 def parse_layers(value: str) -> List[int]:
@@ -1830,11 +1817,8 @@ def main() -> None:
     if device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but torch.cuda.is_available() is false.")
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=args.local_files_only)
-    model = AutoModelForCausalLM.from_pretrained(args.model, local_files_only=args.local_files_only)
-    model.eval()
-    model.to(device)
-    all_mlps = {layer: live.ensure_gpt2_mlp_shape(model, layer) for layer in all_required_layers}
+    tokenizer, model = live.load_model_and_tokenizer(args.model, local_files_only=args.local_files_only, device=device)
+    all_mlps = live.mlp_modules(model, all_required_layers)
     primary_mlps = {layer: all_mlps[layer] for layer in layers}
     fallback_mlps = {layer: all_mlps[layer] for layer in fallback_layers} if use_fallback_layers else {}
     rng = random.Random(args.control_seed)
@@ -1972,11 +1956,11 @@ def main() -> None:
         "synthetic": False,
         "surrogate": False,
         "generatedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "model": {
-            "id": args.model,
-            "class": model.__class__.__name__,
-            "device": device,
-            "localFilesOnly": bool(args.local_files_only),
+        "model": live.model_identity(model, args.model, device, bool(args.local_files_only)),
+        "oracleAdapter": {
+            "id": live.adapter_id,
+            "activationFamily": live.activation_family,
+            "contract": "LLMOracleAdapter",
         },
         "runtimeDependencies": {
             "python": sys.executable,

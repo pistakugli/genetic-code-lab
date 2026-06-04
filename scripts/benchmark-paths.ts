@@ -97,8 +97,16 @@ function collectBenchmarkEnv(): Record<string, string> {
 function collectGitInfo(repoRoot: string): { commit: string | null; statusShort: string | null } {
   return {
     commit: runGit(repoRoot, ['rev-parse', 'HEAD']),
-    statusShort: runGit(repoRoot, ['status', '--short', '--', '.'])
+    statusShort: normalizeGitStatusShort(runGit(repoRoot, ['status', '--short', '--', '.']))
   };
+}
+
+function normalizeGitStatusShort(status: string | null): string | null {
+  if (status === null) return null;
+  return status
+    .split('\n')
+    .filter(line => line.trim() && !line.includes('__pycache__/'))
+    .join('\n');
 }
 
 function runGit(repoRoot: string, args: string[]): string | null {

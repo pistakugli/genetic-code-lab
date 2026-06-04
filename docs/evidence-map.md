@@ -249,7 +249,7 @@ Allowed:
 - GCL has a local transformer MLP hook gate that captures actual forward-pass hook rows from a deterministic local transformer-style block, recovers explicit GELU source atoms for one target MLP output slice, and maps them back to source expansion neurons through the hook/source manifest. This is instrumented source mapping, not output-only identity.
 - GCL has a local live GPT-2 reader that loads the real model, hooks MLP activations, runs causal ablations, and records disjoint negative-control families. This is a real oracle-instrumentation layer, not a standalone claim that GCL automatically understands GPT-2.
 - GCL has a first live GPT-2 fact-circuit graph finder that scans configured factual prompts, selects MLP graph nodes, emits token/neuron/target graph artifacts, and validates joint graph ablation above graph-level controls plus paraphrase, wrong-answer, negative-fact, and unrelated-logit hardening for the current 50-valid-fact gate. This is benchmark-scoped MLP graph discovery and Stage-I hardening, not attention-head/path recovery, full GPT-2 FFN extraction, arbitrary LLM understanding, output-only original-neuron identity, or broad SOTA.
-- The intended live-model architecture is now a model-agnostic `LLMOracleAdapter` framework. GPT-2 is the first fast proof gate; GPT-Neo/Pythia and then LLaMA/Mistral require separate adapter commands, artifacts, negative controls, and gates before any cross-model claim is allowed.
+- The live-model architecture now has a model-agnostic `LLMOracleAdapter` boundary with GPT-2 implemented as the first adapter. GPT-2 remains the first fast proof gate; GPT-Neo/Pythia and then LLaMA/Mistral require separate adapter commands, artifacts, negative controls, and gates before any cross-model claim is allowed.
 - The earlier clean 5D ND adjacency-geometry single probe remains useful as a research artifact, but the current 5D claim boundary is the release-gated multi-profile sweep.
 - Scratch contains useful research lanes, especially Concrete DESBS, and those lanes become release material only after isolation plus a gate.
 
@@ -279,9 +279,9 @@ Forbidden:
 
 ## Next Cleanup Moves
 
-1. Refactor the current GPT-2 reader/fact finder into a typed `LLMOracleAdapter` framework while preserving the GPT-2 50-fact graph gate as the fast proof gate.
-2. Add GPT-Neo/Pythia adapters and rerun the graph-search/hardening protocol with model/tokenizer identity, layer/component mapping, controls, warnings, and budgets recorded.
-3. Add LLaMA/Mistral SwiGLU adapters with explicit value/gate component handling, tokenizer/runtime differences, and separate graph/control gates.
+1. Add GPT-Neo/Pythia adapters and rerun the graph-search/hardening protocol with model/tokenizer identity, layer/component mapping, controls, warnings, and budgets recorded.
+2. Add LLaMA/Mistral SwiGLU adapters with explicit value/gate component handling, tokenizer/runtime differences, and separate graph/control gates.
+3. Split more circuit-finder logic out of the GPT-2 factual sweep once GPT-2 adapter parity remains stable under additional gates.
 4. Extend the live graph finder beyond MLP neurons into attention-head/value-path edges and path-patching-style interventions.
 5. Add scratch/promoted-experiment manifests if any scratch lane is elevated toward release evidence.
 6. Harden scratch evaluators so missing artifacts, bad postfix tokens, stack underflow, and non-finite predictions cannot look like valid results.
