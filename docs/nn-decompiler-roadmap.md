@@ -50,16 +50,19 @@ benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-sc
 Current result:
 
 - pass `true`;
-- 50 valid facts, 45 graph-passed cases, pass rate `0.9`;
-- median joint graph target-logit drop `0.7129135131835938`;
-- p10 joint graph target-logit drop `0.45391082763671875`;
-- median graph-control p95 positive target-logit drop `0.3569793701171875`;
-- median graph lift over control p95 `1.845643203157706`;
-- mean selected graph node count `4.96`;
-- 103 unique selected graph neurons;
-- aggregate Stage-I hardening pass `true`: paraphrase pass rate `0.75`,
-  wrong-answer specificity `0.9666666666666667`, negative-fact specificity `1`,
-  unrelated-logit preservation `0.8725`.
+- strict case definition `graphGate.pass && hardeningGate.pass`;
+- 50 valid facts, 50 strict-passed cases, 50 graph-passed cases, 50
+  hardening-passed cases, pass rate `1.0`;
+- median joint graph target-logit drop `0.2544403076171875`;
+- p10 joint graph target-logit drop `0.10530853271484375`;
+- median graph-control p95 positive target-logit drop `0.06884765625`;
+- median graph lift over control p95 `3.8083037124802526`;
+- mean selected graph node count `1.6`;
+- hardening pass rates: paraphrase `1.0`, wrong-answer specificity `1.0`,
+  negative-fact specificity `1.0`, unrelated-logit preservation `0.955`;
+- primary layers `[6,9,11]`, adaptive fallback layers `[0..11]` on strict
+  primary failures; the current report used fallback on Russia only.
+- 46 unique selected graph neurons.
 
 The next production path is:
 
@@ -598,11 +601,13 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   - Current command: `npm run benchmark:nn-live-gpt2-fact-circuit-finder`.
   - Current artifact:
     `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`.
-  - Current result: pass `true`, 50 valid facts, 45 graph-passed cases, pass
-    rate `0.9`, median joint graph target-logit drop `0.7129135131835938`, p10
-    graph drop `0.45391082763671875`, median graph-control p95 positive
-    target-logit drop `0.3569793701171875`, median graph lift over control p95
-    `1.845643203157706`, mean selected graph node count `4.96`, and 103 unique
+  - Current result: pass `true`, strict case definition
+    `graphGate.pass && hardeningGate.pass`, 50 valid facts, 50 strict-passed
+    cases, 50 graph-passed cases, 50 hardening-passed cases, pass rate `1.0`,
+    median joint graph target-logit drop `0.2544403076171875`, p10 graph drop
+    `0.10530853271484375`, median graph-control p95 positive target-logit drop
+    `0.06884765625`, median graph lift over control p95
+    `3.8083037124802526`, mean selected graph node count `1.6`, and 46 unique
     selected graph neurons.
   - Output: recovered token/neuron/target circuit graphs with token-support
     edges, neuron-target causal-drop edges, selected-graph joint ablation, and
@@ -614,10 +619,11 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
 - Stage I: graph hardening with paraphrases and negative facts.
   - DONE for release gate: the fact-circuit benchmark now validates paraphrased
     prompts, wrong-answer targets, negative facts, unrelated factual answer
-    logits, graph-level controls, and explicit failedSubjects artifacts.
-  - Current hardening result: aggregate pass `true`, paraphrase pass rate
-    `0.75`, wrong-answer specificity `0.9666666666666667`, negative-fact
-    specificity `1`, unrelated-logit preservation `0.8725`, over `80`, `150`,
+    logits, graph-level controls, explicit failedSubjects artifacts, and strict
+    per-case gating.
+  - Current hardening result: case-level pass `50/50`, aggregate pass `true`,
+    paraphrase pass rate `1.0`, wrong-answer specificity `1.0`, negative-fact
+    specificity `1.0`, unrelated-logit preservation `0.955`, over `80`, `150`,
     `100`, and `400` validation items respectively.
 - Stage J: attention-head and path graph recovery.
   - NEXT mechanism expansion after Stage I hardening.

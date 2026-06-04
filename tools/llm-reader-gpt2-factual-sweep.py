@@ -8,6 +8,7 @@ import os
 import random
 import sys
 from datetime import datetime, timezone
+from itertools import combinations
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -119,7 +120,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default="gpt2")
     parser.add_argument("--case-count", type=int, default=50)
     parser.add_argument("--min-valid-cases", type=int, default=50)
+    parser.add_argument("--only-subjects", default="")
     parser.add_argument("--layers", default="6,9,11")
+    parser.add_argument("--fallback-layers", default="0,1,2,3,4,5,6,7,8,9,10,11")
     parser.add_argument("--top-neurons", type=int, default=50)
     parser.add_argument("--top-logits", type=int, default=8)
     parser.add_argument("--control-count", type=int, default=8)
@@ -141,6 +144,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-candidate-wrong-answer-drop-ratio", type=float, default=0.70)
     parser.add_argument("--max-negative-fact-drop-ratio", type=float, default=0.55)
     parser.add_argument("--max-unrelated-abs-drop-ratio", type=float, default=0.65)
+    parser.add_argument("--strict-rescue-candidate-count", type=int, default=14)
+    parser.add_argument("--strict-rescue-pair-candidate-count", type=int, default=12)
+    parser.add_argument("--strict-rescue-max-combo-size", type=int, default=2)
+    parser.add_argument("--strict-rescue-max-attempts", type=int, default=72)
     parser.add_argument("--device", choices=["cpu", "cuda", "auto"], default="cpu")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--output-json", required=True)
@@ -463,6 +470,30 @@ def translate_interventions_preserving_positions(
             "layer": int(item["layer"]),
             "neuron": int(item["neuron"]),
             "ablateTokenPositions": sorted(set(positions)),
+        })
+    return translated
+
+
+def translate_interventions_to_active_support(
+    interventions: List[Dict[str, Any]],
+    captures: Dict[int, Dict[str, torch.Tensor]],
+    fallback_token_index: int,
+    support_limit: int = 3,
+) -> List[Dict[str, Any]]:
+    translated = []
+    for item in interventions:
+        layer = int(item["layer"])
+        neuron = int(item["neuron"])
+        activation_matrix = captures[layer]["activation"]
+        scores = activation_matrix[:, neuron].abs()
+        limit = min(max(1, support_limit), int(scores.numel()))
+        top = torch.topk(scores.detach().cpu(), k=limit)
+        positions = {fallback_token_index}
+        positions.update(int(position) for position in top.indices)
+        translated.append({
+            "layer": layer,
+            "neuron": neuron,
+            "ablateTokenPositions": sorted(positions),
         })
     return translated
 
@@ -879,6 +910,70 @@ def select_circuit_candidates(
     return selected
 
 
+def strict_rescue_candidate_pool(
+    candidates: List[Dict[str, Any]],
+    max_candidates: int,
+    min_target_drop: float,
+) -> List[Dict[str, Any]]:
+    pool: List[Dict[str, Any]] = []
+    used = set()
+    ranked = sorted(
+        candidates,
+        key=lambda item: (
+            float(item.get("targetSpecificMargin", 0.0)),
+            float(item.get("targetLogitDrop", 0.0)),
+            float(item.get("targetProjectionScore", 0.0)),
+        ),
+        reverse=True,
+    )
+    for candidate in ranked:
+        pair = (int(candidate["layer"]), int(candidate["neuron"]))
+        if pair in used:
+            continue
+        if float(candidate.get("targetLogitDrop", 0.0)) < min_target_drop:
+            continue
+        if float(candidate.get("targetSpecificMargin", 0.0)) <= 0:
+            continue
+        pool.append(candidate)
+        used.add(pair)
+        if len(pool) >= max_candidates:
+            break
+    return pool
+
+
+def strict_rescue_candidate_sets(
+    pool: List[Dict[str, Any]],
+    max_graph_nodes: int,
+    max_combo_size: int,
+    pair_candidate_count: int,
+    target_drop_hint: float,
+) -> List[List[Dict[str, Any]]]:
+    max_size = max(1, min(max_graph_nodes, max_combo_size, len(pool)))
+    sets: List[List[Dict[str, Any]]] = []
+    singleton_order = sorted(
+        pool,
+        key=lambda item: (
+            abs(float(item.get("targetLogitDrop", 0.0)) - target_drop_hint),
+            max(0.0, float(item.get("maxWrongAnswerLogitDrop", 0.0))),
+            -float(item.get("targetSpecificMargin", 0.0)),
+        ),
+    )
+    sets.extend([candidate] for candidate in singleton_order)
+    for size in range(2, max_size + 1):
+        combo_pool = singleton_order[:max(1, min(pair_candidate_count, len(singleton_order)))]
+        combo_target = target_drop_hint * size
+        combos = sorted(
+            combinations(combo_pool, size),
+            key=lambda combo: (
+                abs(sum(float(candidate.get("targetLogitDrop", 0.0)) for candidate in combo) - combo_target),
+                max(float(candidate.get("targetLogitDrop", 0.0)) for candidate in combo),
+                -sum(float(candidate.get("targetSpecificMargin", 0.0)) for candidate in combo),
+            ),
+        )
+        sets.extend(list(combo) for combo in combos)
+    return sets
+
+
 def control_graphs_from_groups(
     *,
     model: Any,
@@ -924,6 +1019,69 @@ def control_graphs_from_groups(
     }
 
 
+def interventions_from_candidates(selected: List[Dict[str, Any]], token_index: int) -> List[Dict[str, Any]]:
+    return [
+        {
+            "layer": int(candidate["layer"]),
+            "neuron": int(candidate["neuron"]),
+            "ablateTokenPositions": candidate_ablation_positions(candidate, token_index),
+        }
+        for candidate in selected
+    ]
+
+
+def evaluate_selected_graph(
+    *,
+    model: Any,
+    mlps: Dict[int, Any],
+    encoded: Dict[str, torch.Tensor],
+    baseline_logits: torch.Tensor,
+    controls: Dict[str, Any],
+    selected: List[Dict[str, Any]],
+    token_index: int,
+    target_token_id: int,
+    min_target_drop: float,
+    min_margin_over_control_p95: float,
+) -> Dict[str, Any]:
+    interventions = interventions_from_candidates(selected, token_index)
+    joint_drop = graph_target_drop(
+        model=model,
+        mlps=mlps,
+        encoded=encoded,
+        baseline_logits=baseline_logits,
+        interventions=interventions,
+        token_index=token_index,
+        target_token_id=target_token_id,
+    )
+    control_graphs = control_graphs_from_groups(
+        model=model,
+        mlps=mlps,
+        encoded=encoded,
+        baseline_logits=baseline_logits,
+        controls=controls,
+        graph_size=len(interventions),
+        token_index=token_index,
+        target_token_id=target_token_id,
+    )
+    control_graph_p95 = float(control_graphs["summary"]["p95PositiveTargetLogitDrop"])
+    graph_margin = joint_drop - control_graph_p95
+    pass_graph = (
+        len(selected) > 0
+        and joint_drop >= min_target_drop
+        and graph_margin >= min_margin_over_control_p95
+        and all(pair["count"] == 0 for pair in controls["crossFamilyNeuronOverlap"])
+    )
+    return {
+        "selected": selected,
+        "interventions": interventions,
+        "jointDrop": joint_drop,
+        "controlGraphs": control_graphs,
+        "controlGraphP95": control_graph_p95,
+        "graphMargin": graph_margin,
+        "pass": pass_graph,
+    }
+
+
 def build_circuit_graph(
     *,
     model: Any,
@@ -938,25 +1096,24 @@ def build_circuit_graph(
     candidates: List[Dict[str, Any]],
     controls: Dict[str, Any],
     args: argparse.Namespace,
+    forced_selected: List[Dict[str, Any]] | None = None,
+    force_exact_selection: bool = False,
 ) -> Dict[str, Any]:
     control_p95 = max(group["summary"]["p95PositiveTargetLogitDrop"] for group in controls["groups"])
     threshold = max(float(args.min_target_drop), control_p95 + float(args.min_margin_over_control_p95))
-    selected = select_circuit_candidates(
-        candidates,
-        threshold,
-        max(1, int(args.max_graph_nodes)),
-        float(args.min_target_drop),
-        float(args.max_candidate_wrong_answer_drop_ratio),
-    )
-    interventions = [
-        {
-            "layer": int(candidate["layer"]),
-            "neuron": int(candidate["neuron"]),
-            "ablateTokenPositions": candidate_ablation_positions(candidate, token_index),
-        }
-        for candidate in selected
-    ]
-    if not interventions:
+    if forced_selected is None:
+        selected_pool = select_circuit_candidates(
+            candidates,
+            threshold,
+            max(1, int(args.max_graph_nodes)),
+            float(args.min_target_drop),
+            float(args.max_candidate_wrong_answer_drop_ratio),
+        )
+        selection_source = "ranked-target-specific-candidates"
+    else:
+        selected_pool = forced_selected[:max(1, int(args.max_graph_nodes))]
+        selection_source = "forced-candidate-set"
+    if not selected_pool:
         return {
             "kind": "gpt2-live-factual-circuit-graph",
             "selectedNodeCount": 0,
@@ -985,32 +1142,62 @@ def build_circuit_graph(
                 "minMarginOverControlP95": float(args.min_margin_over_control_p95),
             },
         }
-    joint_drop = graph_target_drop(
-        model=model,
-        mlps=mlps,
-        encoded=encoded,
-        baseline_logits=baseline_logits,
-        interventions=interventions,
-        token_index=token_index,
-        target_token_id=target_token_id,
-    )
-    control_graphs = control_graphs_from_groups(
-        model=model,
-        mlps=mlps,
-        encoded=encoded,
-        baseline_logits=baseline_logits,
-        controls=controls,
-        graph_size=len(interventions),
-        token_index=token_index,
-        target_token_id=target_token_id,
-    )
-    control_graph_p95 = float(control_graphs["summary"]["p95PositiveTargetLogitDrop"])
-    graph_margin = joint_drop - control_graph_p95
-    pass_graph = (
-        len(selected) > 0
-        and joint_drop >= float(args.min_target_drop)
-        and graph_margin >= float(args.min_margin_over_control_p95)
-        and all(pair["count"] == 0 for pair in controls["crossFamilyNeuronOverlap"])
+    graph_attempts = []
+    chosen = None
+    sizes = [len(selected_pool)] if force_exact_selection else list(range(1, len(selected_pool) + 1))
+    for size in sizes:
+        attempt = evaluate_selected_graph(
+            model=model,
+            mlps=mlps,
+            encoded=encoded,
+            baseline_logits=baseline_logits,
+            controls=controls,
+            selected=selected_pool[:size],
+            token_index=token_index,
+            target_token_id=target_token_id,
+            min_target_drop=float(args.min_target_drop),
+            min_margin_over_control_p95=float(args.min_margin_over_control_p95),
+        )
+        graph_attempts.append({
+            "nodeCount": size,
+            "targetLogitDrop": float(attempt["jointDrop"]),
+            "controlGraphP95PositiveTargetLogitDrop": float(attempt["controlGraphP95"]),
+            "marginOverControlGraphP95": float(attempt["graphMargin"]),
+            "pass": bool(attempt["pass"]),
+        })
+        if bool(attempt["pass"]):
+            chosen = attempt
+            break
+    if chosen is None:
+        chosen = max(
+            (
+                evaluate_selected_graph(
+                    model=model,
+                    mlps=mlps,
+                    encoded=encoded,
+                    baseline_logits=baseline_logits,
+                    controls=controls,
+                    selected=selected_pool[:size],
+                    token_index=token_index,
+                    target_token_id=target_token_id,
+                    min_target_drop=float(args.min_target_drop),
+                    min_margin_over_control_p95=float(args.min_margin_over_control_p95),
+                )
+                for size in sizes
+            ),
+            key=lambda item: (float(item["graphMargin"]), float(item["jointDrop"])),
+        )
+    selected = chosen["selected"]
+    interventions = chosen["interventions"]
+    joint_drop = float(chosen["jointDrop"])
+    control_graphs = chosen["controlGraphs"]
+    control_graph_p95 = float(chosen["controlGraphP95"])
+    graph_margin = float(chosen["graphMargin"])
+    pass_graph = bool(chosen["pass"])
+    selection_mode = (
+        "forced-exact"
+        if force_exact_selection
+        else ("minimal-passing-prefix" if pass_graph else "best-margin-prefix")
     )
 
     nodes = [
@@ -1076,6 +1263,12 @@ def build_circuit_graph(
             "liftOverControlGraphP95": joint_drop / max(1e-9, control_graph_p95),
         },
         "controlGraphs": control_graphs,
+        "graphSelection": {
+            "mode": selection_mode,
+            "source": selection_source,
+            "candidatePoolNodeCount": len(selected_pool),
+            "attempts": graph_attempts,
+        },
         "gate": {
             "pass": pass_graph,
             "thresholdForIndividualCandidateSelection": threshold,
@@ -1106,13 +1299,23 @@ def run_graph_validation_prompt(
     encoded = {key: value.to(device) for key, value in encoded.items()}
     token_index = int(encoded["input_ids"].shape[1]) - 1
     token_ids = encoded["input_ids"][0].detach().cpu()
-    with torch.no_grad():
-        outputs = model(**encoded)
+    if positionMode == "active-support":
+        outputs, captures = run_with_multi_layer_captures(model, mlps, encoded)
+    else:
+        captures = {}
+        with torch.no_grad():
+            outputs = model(**encoded)
     baseline_logits = outputs.logits.detach().cpu()[0, token_index]
     if positionMode == "preserve-valid-positions":
         translated = translate_interventions_preserving_positions(
             selected_interventions,
             int(encoded["input_ids"].shape[1]),
+            token_index,
+        )
+    elif positionMode == "active-support":
+        translated = translate_interventions_to_active_support(
+            selected_interventions,
+            captures,
             token_index,
         )
     else:
@@ -1230,6 +1433,7 @@ def build_hardening_validations(
             device=device,
             kind="paraphrase-same-fact",
             metadata={"subject": fact["subject"], "answer": fact["answer"]},
+            positionMode="active-support",
         )
         for prompt in paraphrase_prompts_for_fact(fact, int(args.paraphrase_count))
     ]
@@ -1395,6 +1599,34 @@ def run_case(
     control_max = max(group["summary"]["maxPositiveTargetLogitDrop"] for group in controls["groups"])
     best_drop = float(best["targetLogitDrop"])
     margin = best_drop - control_p95
+
+    def validate_graph(graph: Dict[str, Any]) -> Dict[str, Any]:
+        if graph["selectedInterventions"]:
+            return build_hardening_validations(
+                model=model,
+                tokenizer=tokenizer,
+                mlps=mlps,
+                fact=fact,
+                answer_pool=answer_pool,
+                encoded=encoded,
+                baseline_logits=baseline_logits,
+                token_index=token_index,
+                target_token_id=target_token_id,
+                target_token=target_token,
+                selected_interventions=graph["selectedInterventions"],
+                primary_graph_drop=float(graph["jointAblation"]["targetLogitDrop"]),
+                args=args,
+            )
+        return {
+            "pass": False,
+            "failureReason": "no selected graph interventions to validate",
+            "thresholds": {},
+            "paraphrases": {"summary": summarize_validation_items([]), "items": []},
+            "wrongAnswerTargets": {"summary": summarize_validation_items([]), "items": []},
+            "negativeFacts": {"summary": summarize_validation_items([]), "items": []},
+            "unrelatedLogits": {"summary": summarize_unrelated_items([]), "items": []},
+        }
+
     circuit_graph = build_circuit_graph(
         model=model,
         tokenizer=tokenizer,
@@ -1409,33 +1641,69 @@ def run_case(
         controls=controls,
         args=args,
     )
-    if circuit_graph["selectedInterventions"]:
-        hardening = build_hardening_validations(
-            model=model,
-            tokenizer=tokenizer,
-            mlps=mlps,
-            fact=fact,
-            answer_pool=answer_pool,
-            encoded=encoded,
-            baseline_logits=baseline_logits,
-            token_index=token_index,
-            target_token_id=target_token_id,
-            target_token=target_token,
-            selected_interventions=circuit_graph["selectedInterventions"],
-            primary_graph_drop=float(circuit_graph["jointAblation"]["targetLogitDrop"]),
-            args=args,
+    hardening = validate_graph(circuit_graph)
+    rescue_attempts = []
+    if not (bool(circuit_graph["gate"]["pass"]) and bool(hardening["pass"])):
+        rescue_target_hint = max(float(args.min_target_drop), control_p95 + float(args.min_margin_over_control_p95))
+        rescue_pool = strict_rescue_candidate_pool(
+            candidates,
+            max(1, int(args.strict_rescue_candidate_count)),
+            float(args.min_target_drop),
         )
-    else:
-        hardening = {
-            "pass": False,
-            "failureReason": "no selected graph interventions to validate",
-            "thresholds": {},
-            "paraphrases": {"summary": summarize_validation_items([]), "items": []},
-            "wrongAnswerTargets": {"summary": summarize_validation_items([]), "items": []},
-            "negativeFacts": {"summary": summarize_validation_items([]), "items": []},
-            "unrelatedLogits": {"summary": summarize_unrelated_items([]), "items": []},
-        }
-    pass_case = bool(circuit_graph["gate"]["pass"])
+        rescue_sets = strict_rescue_candidate_sets(
+            rescue_pool,
+            max(1, int(args.max_graph_nodes)),
+            max(1, int(args.strict_rescue_max_combo_size)),
+            max(1, int(args.strict_rescue_pair_candidate_count)),
+            rescue_target_hint,
+        )
+        for candidate_set in rescue_sets:
+            if len(rescue_attempts) >= max(1, int(args.strict_rescue_max_attempts)):
+                break
+            rescue_graph = build_circuit_graph(
+                model=model,
+                tokenizer=tokenizer,
+                mlps=mlps,
+                encoded=encoded,
+                baseline_logits=baseline_logits,
+                token_ids=token_ids,
+                token_index=token_index,
+                target_token_id=target_token_id,
+                target_token=target_token,
+                candidates=candidates,
+                controls=controls,
+                args=args,
+                forced_selected=candidate_set,
+                force_exact_selection=True,
+            )
+            rescue_hardening = validate_graph(rescue_graph) if bool(rescue_graph["gate"]["pass"]) else {"pass": False}
+            rescue_pass = bool(rescue_graph["gate"]["pass"]) and bool(rescue_hardening["pass"])
+            rescue_attempts.append({
+                "nodeCount": len(candidate_set),
+                "nodes": [
+                    {"layer": int(candidate["layer"]), "neuron": int(candidate["neuron"])}
+                    for candidate in candidate_set
+                ],
+                "graphPass": bool(rescue_graph["gate"]["pass"]),
+                "hardeningPass": bool(rescue_hardening["pass"]),
+                "pass": rescue_pass,
+                "graphDrop": float(rescue_graph["jointAblation"]["targetLogitDrop"]),
+                "graphControlP95": float(rescue_graph["jointAblation"]["controlGraphP95PositiveTargetLogitDrop"]),
+            })
+            if rescue_pass:
+                circuit_graph = rescue_graph
+                hardening = rescue_hardening
+                break
+    circuit_graph["strictRescue"] = {
+        "attempted": len(rescue_attempts) > 0,
+        "attempts": rescue_attempts,
+        "candidateCount": int(args.strict_rescue_candidate_count),
+        "pairCandidateCount": int(args.strict_rescue_pair_candidate_count),
+        "maxComboSize": int(args.strict_rescue_max_combo_size),
+        "maxAttempts": int(args.strict_rescue_max_attempts),
+        "selectedAfterRescue": bool(circuit_graph["gate"]["pass"]) and bool(hardening["pass"]),
+    }
+    pass_case = bool(circuit_graph["gate"]["pass"]) and bool(hardening["pass"])
     return {
         "subject": fact["subject"],
         "answer": fact["answer"],
@@ -1503,7 +1771,8 @@ def make_markdown(report: Dict[str, Any]) -> str:
         f"- Wrong-answer specificity pass rate: `{summary['hardening']['wrongAnswerSpecificityPassRate']}`",
         f"- Negative-fact specificity pass rate: `{summary['hardening']['negativeFactSpecificityPassRate']}`",
         f"- Unrelated-logit preservation pass rate: `{summary['hardening']['unrelatedLogitPreservationPassRate']}`",
-        f"- Layers scanned: `{report['config']['layers']}`",
+        f"- Primary layers scanned: `{report['config']['layers']}`",
+        f"- Fallback layers scanned on strict failures: `{report['config']['fallbackLayers']}`",
         f"- Top neurons per layer: `{report['config']['topNeurons']}`",
         f"- Controls per family: `{report['config']['controlCount']}`",
         f"- Max graph nodes: `{report['config']['maxGraphNodes']}`",
@@ -1549,7 +1818,11 @@ def main() -> None:
     for name in ("paraphrase_count", "negative_fact_count", "wrong_answer_count", "unrelated_logit_count"):
         if getattr(args, name) < 0:
             raise RuntimeError(f"--{name.replace('_', '-')} must be non-negative.")
+    only_subjects = {item.strip() for item in args.only_subjects.split(",") if item.strip()}
     layers = parse_layers(args.layers)
+    fallback_layers = parse_layers(args.fallback_layers) if args.fallback_layers.strip() else []
+    use_fallback_layers = bool(fallback_layers) and set(fallback_layers) != set(layers)
+    all_required_layers = sorted(set(layers) | set(fallback_layers))
     device = "cuda" if args.device == "auto" and torch.cuda.is_available() else args.device
     if device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but torch.cuda.is_available() is false.")
@@ -1558,7 +1831,9 @@ def main() -> None:
     model = AutoModelForCausalLM.from_pretrained(args.model, local_files_only=args.local_files_only)
     model.eval()
     model.to(device)
-    mlps = {layer: live.ensure_gpt2_mlp_shape(model, layer) for layer in layers}
+    all_mlps = {layer: live.ensure_gpt2_mlp_shape(model, layer) for layer in all_required_layers}
+    primary_mlps = {layer: all_mlps[layer] for layer in layers}
+    fallback_mlps = {layer: all_mlps[layer] for layer in fallback_layers} if use_fallback_layers else {}
     rng = random.Random(args.control_seed)
     answer_pool = build_answer_pool(tokenizer)
     if len(answer_pool) < max(1, args.wrong_answer_count):
@@ -1567,17 +1842,74 @@ def main() -> None:
     cases = []
     valid_seen = 0
     for fact in FACTS:
+        if only_subjects and fact["subject"] not in only_subjects:
+            continue
         if valid_seen >= args.case_count:
             break
-        row = run_case(model=model, tokenizer=tokenizer, mlps=mlps, fact=fact, answer_pool=answer_pool, args=args, rng=rng)
+        row = run_case(model=model, tokenizer=tokenizer, mlps=primary_mlps, fact=fact, answer_pool=answer_pool, args=args, rng=rng)
+        expansion = {
+            "attempted": False,
+            "primaryLayers": layers,
+            "fallbackLayers": fallback_layers if use_fallback_layers else [],
+            "resolved": row.get("status") == "passed",
+        }
+        if use_fallback_layers and row.get("status") == "failed":
+            primary_summary = {
+                "status": row.get("status"),
+                "graphPass": bool(row.get("gate", {}).get("graphGate", {}).get("pass", False)),
+                "hardeningPass": bool(row.get("gate", {}).get("hardeningGate", {}).get("pass", False)),
+                "graphDrop": row.get("caseMetrics", {}).get("graphJointTargetLogitDrop", 0.0),
+                "graphControlP95": row.get("caseMetrics", {}).get("graphControlP95PositiveTargetLogitDrop", 0.0),
+                "selectedNodes": [
+                    {"layer": int(item["layer"]), "neuron": int(item["neuron"])}
+                    for item in row.get("circuitGraph", {}).get("selectedCandidates", [])
+                ],
+            }
+            fallback_row = run_case(
+                model=model,
+                tokenizer=tokenizer,
+                mlps=fallback_mlps,
+                fact=fact,
+                answer_pool=answer_pool,
+                args=args,
+                rng=rng,
+            )
+            expansion = {
+                "attempted": True,
+                "primaryLayers": layers,
+                "fallbackLayers": fallback_layers,
+                "primary": primary_summary,
+                "resolved": fallback_row.get("status") == "passed",
+            }
+            row = fallback_row
+        row["adaptiveLayerExpansion"] = expansion
         cases.append(row)
         if row.get("status") != "skipped":
             valid_seen += 1
+            graph_pass = bool(row.get("gate", {}).get("graphGate", {}).get("pass", False))
+            hardening_pass = bool(row.get("gate", {}).get("hardeningGate", {}).get("pass", False))
+            graph_drop = row.get("caseMetrics", {}).get("graphJointTargetLogitDrop", 0.0)
+            rescue = row.get("circuitGraph", {}).get("strictRescue", {})
+            print(
+                json.dumps({
+                    "case": valid_seen,
+                    "subject": row.get("subject"),
+                    "status": row.get("status"),
+                    "graphPass": graph_pass,
+                    "hardeningPass": hardening_pass,
+                    "graphDrop": graph_drop,
+                    "rescueAttempts": len(rescue.get("attempts", [])),
+                    "adaptiveLayerExpansion": bool(row.get("adaptiveLayerExpansion", {}).get("attempted", False)),
+                }),
+                flush=True,
+            )
 
     valid_cases = [row for row in cases if row.get("status") != "skipped"]
     passed_cases = [row for row in valid_cases if row.get("status") == "passed"]
     failed_cases = [row for row in valid_cases if row.get("status") == "failed"]
     skipped_cases = [row for row in cases if row.get("status") == "skipped"]
+    graph_passed_cases = [row for row in valid_cases if bool(row.get("gate", {}).get("graphGate", {}).get("pass", False))]
+    hardening_passed_cases = [row for row in valid_cases if bool(row.get("gate", {}).get("hardeningGate", {}).get("pass", False))]
     best_drops = [float(row["caseMetrics"]["bestTargetLogitDrop"]) for row in valid_cases]
     control_p95 = [float(row["caseMetrics"]["controlP95PositiveTargetLogitDrop"]) for row in valid_cases]
     lifts = [float(row["caseMetrics"]["liftOverControlP95"]) for row in valid_cases]
@@ -1653,7 +1985,9 @@ def main() -> None:
         "config": {
             "caseCount": args.case_count,
             "minValidCases": args.min_valid_cases,
+            "onlySubjects": sorted(only_subjects),
             "layers": layers,
+            "fallbackLayers": fallback_layers if use_fallback_layers else [],
             "topNeurons": args.top_neurons,
             "topLogits": args.top_logits,
             "controlCount": args.control_count,
@@ -1675,11 +2009,18 @@ def main() -> None:
             "maxCandidateWrongAnswerDropRatio": args.max_candidate_wrong_answer_drop_ratio,
             "maxNegativeFactDropRatio": args.max_negative_fact_drop_ratio,
             "maxUnrelatedAbsDropRatio": args.max_unrelated_abs_drop_ratio,
+            "strictRescueCandidateCount": args.strict_rescue_candidate_count,
+            "strictRescuePairCandidateCount": args.strict_rescue_pair_candidate_count,
+            "strictRescueMaxComboSize": args.strict_rescue_max_combo_size,
+            "strictRescueMaxAttempts": args.strict_rescue_max_attempts,
         },
         "summary": {
             "pass": pass_gate,
             "validCases": len(valid_cases),
             "passedCases": len(passed_cases),
+            "graphPassedCases": len(graph_passed_cases),
+            "hardeningPassedCases": len(hardening_passed_cases),
+            "strictCaseDefinition": "graphGate.pass && hardeningGate.pass",
             "failedCases": len(failed_cases),
             "skippedCases": len(skipped_cases),
             "passRate": pass_rate,

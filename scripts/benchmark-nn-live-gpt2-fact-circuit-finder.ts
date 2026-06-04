@@ -35,7 +35,9 @@ const args = [
   '--model', envValue('GCL_LIVE_GPT2_MODEL', 'gpt2'),
   '--case-count', envValue('GCL_LIVE_GPT2_FACT_COUNT', '50'),
   '--min-valid-cases', envValue('GCL_LIVE_GPT2_MIN_VALID_CASES', '50'),
+  '--only-subjects', envValue('GCL_LIVE_GPT2_ONLY_SUBJECTS', ''),
   '--layers', envValue('GCL_LIVE_GPT2_LAYERS', '6,9,11'),
+  '--fallback-layers', envValue('GCL_LIVE_GPT2_FALLBACK_LAYERS', '0,1,2,3,4,5,6,7,8,9,10,11'),
   '--top-neurons', envValue('GCL_LIVE_GPT2_TOP_NEURONS', '50'),
   '--top-logits', envValue('GCL_LIVE_GPT2_TOP_LOGITS', '8'),
   '--control-count', envValue('GCL_LIVE_GPT2_CONTROL_COUNT', '8'),
@@ -57,6 +59,10 @@ const args = [
   '--max-candidate-wrong-answer-drop-ratio', envValue('GCL_LIVE_GPT2_MAX_CANDIDATE_WRONG_ANSWER_DROP_RATIO', '0.70'),
   '--max-negative-fact-drop-ratio', envValue('GCL_LIVE_GPT2_MAX_NEGATIVE_FACT_DROP_RATIO', '0.55'),
   '--max-unrelated-abs-drop-ratio', envValue('GCL_LIVE_GPT2_MAX_UNRELATED_ABS_DROP_RATIO', '0.65'),
+  '--strict-rescue-candidate-count', envValue('GCL_LIVE_GPT2_STRICT_RESCUE_CANDIDATE_COUNT', '14'),
+  '--strict-rescue-pair-candidate-count', envValue('GCL_LIVE_GPT2_STRICT_RESCUE_PAIR_CANDIDATE_COUNT', '12'),
+  '--strict-rescue-max-combo-size', envValue('GCL_LIVE_GPT2_STRICT_RESCUE_MAX_COMBO_SIZE', '2'),
+  '--strict-rescue-max-attempts', envValue('GCL_LIVE_GPT2_STRICT_RESCUE_MAX_ATTEMPTS', '72'),
   '--device', envValue('GCL_LIVE_GPT2_DEVICE', 'cpu'),
   '--local-files-only',
   '--output-json', output.jsonOutputPath,
@@ -67,7 +73,7 @@ const result = spawnSync(resolveGclPython(), args, {
   cwd: repoRoot,
   stdio: 'inherit',
   env: process.env,
-  timeout: Number(envValue('GCL_LIVE_GPT2_TIMEOUT_MS', '900000')),
+  timeout: Number(envValue('GCL_LIVE_GPT2_TIMEOUT_MS', '1800000')),
   maxBuffer: 128 * 1024 * 1024
 });
 

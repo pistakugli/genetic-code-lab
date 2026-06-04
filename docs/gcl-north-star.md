@@ -129,14 +129,17 @@ token/neuron/target graph artifacts, and validates each selected graph through
 joint causal ablation against graph-level controls. The current release artifact
 is
 `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`:
-50 valid facts, 45 graph-passed cases, pass rate `0.9`, median joint graph
-target-logit drop `0.7129135131835938`, p10 graph drop
-`0.45391082763671875`, median graph-control p95 positive target-logit drop
-`0.3569793701171875`, median graph lift over control p95
-`1.845643203157706`, mean selected graph node count `4.96`, and 103 unique
-selected graph neurons. Aggregate Stage-I hardening passed with paraphrase pass
-rate `0.75`, wrong-answer specificity `0.9666666666666667`, negative-fact
-specificity `1`, and unrelated-logit preservation `0.8725`.
+50 valid facts, strict case definition `graphGate.pass && hardeningGate.pass`,
+50 strict-passed cases, graph-passed cases `50`, hardening-passed cases `50`,
+pass rate `1.0`, median joint graph target-logit drop
+`0.2544403076171875`, p10 graph drop `0.10530853271484375`, median
+graph-control p95 positive target-logit drop `0.06884765625`, median graph
+lift over control p95 `3.8083037124802526`, mean selected graph node count
+`1.6`, and 46 unique selected graph neurons. Stage-I hardening passed with
+paraphrase pass rate `1.0`, wrong-answer specificity `1.0`, negative-fact
+specificity `1.0`, and unrelated-logit preservation `0.955`. The benchmark
+uses primary layers `[6,9,11]` and adaptive fallback to `[0..11]` on strict
+primary failures; the current report used fallback on Russia only.
 
 Boundary: hook reading, activation ablation, logit-delta scoring, and negative
 controls are known mechanistic-interpretability measurement techniques. They
