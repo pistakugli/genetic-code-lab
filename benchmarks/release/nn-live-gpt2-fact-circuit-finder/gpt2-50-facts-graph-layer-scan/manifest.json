@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-03T18:18:12.329Z",
+  "generatedAt": "2026-06-04T08:10:16.179Z",
   "lane": "nn-live-gpt2-fact-circuit-finder",
   "variant": "gpt2-50-facts-graph-layer-scan",
   "status": "pass",
@@ -15,8 +15,8 @@
   },
   "env": {},
   "git": {
-    "commit": "7ed549ce1686f010c94662914784d1db24db144b",
-    "statusShort": "M package.json\n M src/cli/index.ts\n?? benchmarks/release/nn-live-gpt2-fact-circuit-finder/\n?? scripts/benchmark-nn-live-gpt2-fact-circuit-finder.ts\n?? tools/__pycache__/\n?? tools/llm-reader-gpt2-factual-sweep.py"
+    "commit": "045989faabf7463f7fdc02d9f0d7fe8ab2a42735",
+    "statusShort": "M benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/manifest.json\n M benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json\n M benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.md\n M scripts/benchmark-nn-live-gpt2-fact-circuit-finder.ts\n M tools/llm-reader-gpt2-factual-sweep.py\n?? tools/__pycache__/"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json",
@@ -26,29 +26,105 @@
   "summary": {
     "pass": true,
     "validCases": 50,
-    "passedCases": 50,
-    "failedCases": 0,
+    "passedCases": 45,
+    "failedCases": 5,
     "skippedCases": 30,
-    "passRate": 1,
-    "medianBestTargetLogitDrop": 2.84942626953125,
-    "p10BestTargetLogitDrop": 2.4633255004882812,
-    "medianControlP95PositiveTargetLogitDrop": 1.418670654296875,
-    "medianLiftOverControlP95": 2.0793055350085594,
-    "minLiftOverControlP95": 1.471600323926992,
-    "medianGraphJointTargetLogitDrop": 9.597953796386719,
-    "p10GraphJointTargetLogitDrop": 7.7571563720703125,
-    "medianGraphControlP95PositiveTargetLogitDrop": 1.7921218872070312,
-    "medianGraphLiftOverControlP95": 4.993501607767975,
-    "minGraphLiftOverControlP95": 3.053458716515491,
-    "meanGraphSelectedNodeCount": 3.74,
-    "uniqueSelectedGraphNeurons": 15,
+    "passRate": 0.9,
+    "medianBestTargetLogitDrop": 1.8946914672851562,
+    "p10BestTargetLogitDrop": 0.4284210205078125,
+    "medianControlP95PositiveTargetLogitDrop": 0.2857818603515625,
+    "medianLiftOverControlP95": 4.73345355551317,
+    "minLiftOverControlP95": 0.5827660050500207,
+    "medianGraphJointTargetLogitDrop": 0.7129135131835938,
+    "p10GraphJointTargetLogitDrop": 0.45391082763671875,
+    "medianGraphControlP95PositiveTargetLogitDrop": 0.3569793701171875,
+    "medianGraphLiftOverControlP95": 1.845643203157706,
+    "minGraphLiftOverControlP95": 0.399284473866322,
+    "meanGraphSelectedNodeCount": 4.96,
+    "uniqueSelectedGraphNeurons": 103,
     "selectedGraphLayerHistogram": {
-      "0": 92,
-      "6": 15,
-      "9": 40,
-      "11": 40
+      "6": 127,
+      "9": 70,
+      "11": 51
     },
-    "failedSubjects": [],
+    "hardening": {
+      "pass": true,
+      "paraphrasePassRate": 0.75,
+      "paraphraseCount": 80,
+      "wrongAnswerSpecificityPassRate": 0.9666666666666667,
+      "wrongAnswerCount": 150,
+      "negativeFactSpecificityPassRate": 1,
+      "negativeFactCount": 100,
+      "unrelatedLogitPreservationPassRate": 0.8725,
+      "unrelatedLogitCount": 400,
+      "paraphraseSummary": {
+        "count": 80,
+        "passed": 60,
+        "passRate": 0.75,
+        "medianTargetLogitDrop": 0.43474578857421875,
+        "maxTargetLogitDrop": 2.4941787719726562,
+        "medianRatioToPrimaryGraphDrop": 0.5932843206560159,
+        "maxRatioToPrimaryGraphDrop": 1.5612770701475636
+      },
+      "wrongAnswerSummary": {
+        "count": 150,
+        "passed": 145,
+        "passRate": 0.9666666666666667,
+        "medianTargetLogitDrop": 0.1636199951171875,
+        "maxTargetLogitDrop": 1.7741775512695312,
+        "medianRatioToPrimaryGraphDrop": 0.1993526371255081,
+        "maxRatioToPrimaryGraphDrop": 0.7003017490604221
+      },
+      "negativeFactSummary": {
+        "count": 100,
+        "passed": 100,
+        "passRate": 1,
+        "medianTargetLogitDrop": 0.0326690673828125,
+        "maxTargetLogitDrop": 0.2525787353515625,
+        "medianRatioToPrimaryGraphDrop": 0.04925179982661356,
+        "maxRatioToPrimaryGraphDrop": 0.4151170518238016
+      },
+      "unrelatedLogitSummary": {
+        "count": 400,
+        "passed": 349,
+        "passRate": 0.8725,
+        "medianAbsDropRatioToPrimaryGraphDrop": 0.29279187008523666,
+        "maxAbsDropRatioToPrimaryGraphDrop": 1.9852079876866493
+      },
+      "failedSubjects": [
+        "Germany",
+        "Italy",
+        "Egypt",
+        "Japan",
+        "Russia",
+        "Sweden",
+        "Norway",
+        "Austria",
+        "Belgium",
+        "Netherlands",
+        "Ireland",
+        "Iraq",
+        "Israel",
+        "Saudi Arabia",
+        "Pakistan",
+        "Thailand",
+        "Indonesia",
+        "Philippines",
+        "South Korea",
+        "Chile",
+        "Peru",
+        "Jamaica",
+        "number after nine",
+        "baby dog"
+      ]
+    },
+    "failedSubjects": [
+      "Portugal",
+      "Netherlands",
+      "South Korea",
+      "Tunisia",
+      "number after nine"
+    ],
     "skippedSubjects": [
       "Brazil",
       "Jordan",
@@ -84,6 +160,6 @@
   },
   "notes": [
     "Real GPT-2 live factual-prompt graph-level circuit finder.",
-    "This uses automatic layer/neuron scanning, token/neuron/target graph construction, joint graph ablation, and graph-level controls."
+    "This uses automatic layer/neuron scanning, token/neuron/target graph construction, joint graph ablation, graph-level controls, paraphrase validation, wrong-answer targets, negative facts, and unrelated-logit preservation checks."
   ]
 }

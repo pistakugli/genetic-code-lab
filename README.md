@@ -215,12 +215,14 @@ What these gates currently support:
   hooks, causal ablations, and disjoint negative-control families for the
   current GPT-2 prompt test.
 - Live GPT-2 graph-level fact circuit finding for the configured factual prompt
-  set: `50` valid facts, `50` passed cases, median joint graph target-logit drop
-  `9.597953796386719`, median graph-control p95 positive target-logit drop
-  `1.7921218872070312`, median graph lift over control p95
-  `4.993501607767975`, minimum graph lift `3.053458716515491`, mean selected
-  graph node count `3.74`, and `15` unique selected graph neurons. The artifact
-  is
+  set with Stage-I hardening: `50` valid facts, `45` graph-passed cases, pass
+  rate `0.9`, median joint graph target-logit drop `0.7129135131835938`, p10
+  graph drop `0.45391082763671875`, median graph-control p95 positive
+  target-logit drop `0.3569793701171875`, median graph lift over control p95
+  `1.845643203157706`, mean selected graph node count `4.96`, and `103` unique
+  selected graph neurons. Aggregate hardening passed with paraphrase pass rate
+  `0.75`, wrong-answer specificity `0.9666666666666667`, negative-fact
+  specificity `1`, and unrelated-logit preservation `0.8725`. The artifact is
   `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`.
 
 What they do not support yet:
@@ -271,7 +273,7 @@ Release-gate status:
 - default promotion recommendation is `promote-candidate`
 - promotion must not regress exact accuracy, boundary total, or fitness
 
-`npm run release:gate` is green as of 2026-06-02 after the deep 3D/4D ND
+`npm run release:gate` is green as of 2026-06-04 after the deep 3D/4D ND
 region-sampler, recovered-adjacency geometry, 5D clean/noisy sweep, 6D
 randomized/adversarial robustness and baseline court, active-subspace FFN
 decompiler, 4096D/noisy active-subspace gates, explicit GELU structure finder,
@@ -280,8 +282,10 @@ cross-decomposition GELU invariance gate, GELU formalization negative-case
 gate, noisy mixed GELU IID/OOD prediction-sanity court, mixed SwiGLU structure
 gate, noisy mixed SwiGLU structure gate, shared-gate cancellation SwiGLU
 canonical gate, source-neuron provenance verifier gate, local transformer MLP
-hook gate, and live GPT-2 fact circuit finder gate. This is
-release-lane proof, not a promotion of scratch experiments, not
+hook gate, compact GPT-2 FFN source-structure gates, and the open-source hybrid
+baseline gate. The live GPT-2 fact-circuit finder remains a separate heavy
+real-model benchmark command, freshly green with Stage-I hardening as listed
+above. This is release-lane proof, not a promotion of scratch experiments, not
 full GPT-2/LLM extraction, not a pure-GCL universal superiority claim, and not a
 broad SOTA claim.
 

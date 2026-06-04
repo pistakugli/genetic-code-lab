@@ -129,11 +129,14 @@ token/neuron/target graph artifacts, and validates each selected graph through
 joint causal ablation against graph-level controls. The current release artifact
 is
 `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`:
-50 valid facts, 50 passed cases, median joint graph target-logit drop
-`9.597953796386719`, median graph-control p95 positive target-logit drop
-`1.7921218872070312`, median graph lift over control p95
-`4.993501607767975`, minimum graph lift `3.053458716515491`, mean selected
-graph node count `3.74`, and 15 unique selected graph neurons.
+50 valid facts, 45 graph-passed cases, pass rate `0.9`, median joint graph
+target-logit drop `0.7129135131835938`, p10 graph drop
+`0.45391082763671875`, median graph-control p95 positive target-logit drop
+`0.3569793701171875`, median graph lift over control p95
+`1.845643203157706`, mean selected graph node count `4.96`, and 103 unique
+selected graph neurons. Aggregate Stage-I hardening passed with paraphrase pass
+rate `0.75`, wrong-answer specificity `0.9666666666666667`, negative-fact
+specificity `1`, and unrelated-logit preservation `0.8725`.
 
 Boundary: hook reading, activation ablation, logit-delta scoring, and negative
 controls are known mechanistic-interpretability measurement techniques. They
@@ -147,15 +150,11 @@ LLM understanding, or output-only original-neuron identity.
 
 The next development must stay on this order:
 
-1. Harden `nn-live-gpt2-fact-circuit-finder`:
-   add paraphrased factual prompts, negative facts, wrong-answer target tokens,
-   preserved unrelated-logit checks, graph stability metrics, and explicit
-   failure artifacts for skipped/unstable facts.
-2. Add attention-head and path edges:
+1. Add attention-head and path edges:
    extend the graph beyond MLP neurons into attention heads/value paths and
    path-patching-style interventions while keeping token/neuron/target evidence
    comparable to the current gate.
-3. Refactor the current live-reader/fact-finder runtime into a reusable
+2. Refactor the current live-reader/fact-finder runtime into a reusable
    `GPT2Oracle` control plane:
    prompt/token/layer/component/intervention -> logits, activations, logit
    deltas, controls, cache keys, runtime warnings, and query-budget records.

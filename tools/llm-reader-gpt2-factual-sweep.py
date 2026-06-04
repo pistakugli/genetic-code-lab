@@ -119,16 +119,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default="gpt2")
     parser.add_argument("--case-count", type=int, default=50)
     parser.add_argument("--min-valid-cases", type=int, default=50)
-    parser.add_argument("--layers", default="0,3,6,9,11")
-    parser.add_argument("--top-neurons", type=int, default=6)
+    parser.add_argument("--layers", default="6,9,11")
+    parser.add_argument("--top-neurons", type=int, default=50)
     parser.add_argument("--top-logits", type=int, default=8)
     parser.add_argument("--control-count", type=int, default=8)
     parser.add_argument("--control-prompt", default="The weather in Berlin is")
     parser.add_argument("--control-seed", type=int, default=260603)
-    parser.add_argument("--max-graph-nodes", type=int, default=4)
+    parser.add_argument("--max-graph-nodes", type=int, default=5)
     parser.add_argument("--min-pass-rate", type=float, default=0.55)
     parser.add_argument("--min-target-drop", type=float, default=0.05)
     parser.add_argument("--min-margin-over-control-p95", type=float, default=0.02)
+    parser.add_argument("--paraphrase-count", type=int, default=2)
+    parser.add_argument("--negative-fact-count", type=int, default=2)
+    parser.add_argument("--wrong-answer-count", type=int, default=3)
+    parser.add_argument("--unrelated-logit-count", type=int, default=8)
+    parser.add_argument("--min-paraphrase-pass-rate", type=float, default=0.70)
+    parser.add_argument("--min-wrong-answer-specificity-rate", type=float, default=0.85)
+    parser.add_argument("--min-negative-fact-specificity-rate", type=float, default=0.85)
+    parser.add_argument("--min-unrelated-preservation-rate", type=float, default=0.85)
+    parser.add_argument("--max-wrong-answer-drop-ratio", type=float, default=0.55)
+    parser.add_argument("--max-candidate-wrong-answer-drop-ratio", type=float, default=0.70)
+    parser.add_argument("--max-negative-fact-drop-ratio", type=float, default=0.55)
+    parser.add_argument("--max-unrelated-abs-drop-ratio", type=float, default=0.65)
     parser.add_argument("--device", choices=["cpu", "cuda", "auto"], default="cpu")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--output-json", required=True)
@@ -194,6 +206,99 @@ def encode_single_answer_token(tokenizer: Any, answer: str) -> Tuple[int, str] |
     if len(encoded) != 1:
         return None
     return int(encoded[0]), live.clean_token(tokenizer, int(encoded[0]))
+
+
+def prompt_for_fact(fact: Dict[str, str]) -> str:
+    return fact.get("prompt") or f"The capital of {fact['subject']} is"
+
+
+def paraphrase_prompts_for_fact(fact: Dict[str, str], count: int) -> List[str]:
+    if count <= 0:
+        return []
+    if "paraphrases" in fact:
+        values = fact["paraphrases"]
+        if isinstance(values, list):
+            return [str(value) for value in values[:count]]
+    if "prompt" in fact:
+        return []
+    subject = fact["subject"]
+    candidates = [
+        f"The capital city of {subject} is",
+        f"In {subject}, the capital is",
+        f"In {subject}, the capital city is",
+    ]
+    return candidates[:count]
+
+
+def build_answer_pool(tokenizer: Any) -> List[Dict[str, Any]]:
+    pool = []
+    seen = set()
+    for fact in FACTS:
+        target = encode_single_answer_token(tokenizer, fact["answer"])
+        if target is None:
+            continue
+        token_id, token = target
+        if token_id in seen:
+            continue
+        seen.add(token_id)
+        pool.append({
+            "subject": fact["subject"],
+            "answer": fact["answer"],
+            "tokenId": token_id,
+            "token": token,
+            "hasPrompt": "prompt" in fact,
+        })
+    return pool
+
+
+def choose_wrong_answer_tokens(
+    answer_pool: List[Dict[str, Any]],
+    target_token_id: int,
+    count: int,
+) -> List[Dict[str, Any]]:
+    if count <= 0:
+        return []
+    choices = [item for item in answer_pool if int(item["tokenId"]) != int(target_token_id)]
+    return choices[:count]
+
+
+def choose_unrelated_answer_tokens(
+    answer_pool: List[Dict[str, Any]],
+    fact: Dict[str, str],
+    excluded_token_ids: set[int],
+    count: int,
+) -> List[Dict[str, Any]]:
+    if count <= 0:
+        return []
+    source_has_prompt = "prompt" in fact
+    preferred = [
+        item
+        for item in answer_pool
+        if int(item["tokenId"]) not in excluded_token_ids and bool(item.get("hasPrompt")) != source_has_prompt
+    ]
+    fallback = [
+        item
+        for item in answer_pool
+        if int(item["tokenId"]) not in excluded_token_ids and item not in preferred
+    ]
+    return (preferred + fallback)[:count]
+
+
+def choose_negative_facts(fact: Dict[str, str], count: int) -> List[Dict[str, str]]:
+    if count <= 0:
+        return []
+    preferred = [candidate for candidate in FACTS if ("prompt" in candidate) != ("prompt" in fact)]
+    fallback = [candidate for candidate in FACTS if candidate not in preferred]
+    selected: List[Dict[str, str]] = []
+    for candidate in preferred + fallback:
+        if candidate["subject"] == fact["subject"]:
+            continue
+        if candidate["answer"] == fact["answer"]:
+            continue
+        selected.append(candidate)
+        if len(selected) >= count:
+            break
+    return selected
 
 
 def run_with_multi_layer_captures(
@@ -315,6 +420,92 @@ def graph_target_drop(
     return float(baseline_logits[target_token_id] - ablated[target_token_id])
 
 
+def graph_ablation_logits_for_interventions(
+    *,
+    model: Any,
+    mlps: Dict[int, Any],
+    encoded: Dict[str, torch.Tensor],
+    interventions: List[Dict[str, Any]],
+    read_token_index: int,
+) -> torch.Tensor:
+    return run_graph_ablation_logits(model, mlps, encoded, interventions, read_token_index)
+
+
+def translate_interventions_to_token(
+    interventions: List[Dict[str, Any]],
+    token_index: int,
+) -> List[Dict[str, Any]]:
+    return [
+        {
+            "layer": int(item["layer"]),
+            "neuron": int(item["neuron"]),
+            "ablateTokenPositions": [int(token_index)],
+        }
+        for item in interventions
+    ]
+
+
+def translate_interventions_preserving_positions(
+    interventions: List[Dict[str, Any]],
+    seq_len: int,
+    fallback_token_index: int,
+) -> List[Dict[str, Any]]:
+    translated = []
+    for item in interventions:
+        positions = [
+            int(position)
+            for position in item.get("ablateTokenPositions", [])
+            if 0 <= int(position) < seq_len
+        ]
+        if not positions:
+            positions = [fallback_token_index]
+        translated.append({
+            "layer": int(item["layer"]),
+            "neuron": int(item["neuron"]),
+            "ablateTokenPositions": sorted(set(positions)),
+        })
+    return translated
+
+
+def candidate_ablation_positions(candidate: Dict[str, Any], token_index: int) -> List[int]:
+    positions = {int(token_index)}
+    for edge in candidate.get("tokenSupportEdges", []):
+        if edge.get("kind") == "token-activation-support":
+            positions.add(int(edge["tokenIndex"]))
+    return sorted(positions)
+
+
+def summarize_validation_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    if not items:
+        return {"count": 0, "passed": 0, "passRate": 0.0}
+    passed = [item for item in items if item.get("pass")]
+    target_drops = [float(item.get("targetLogitDrop", 0.0)) for item in items]
+    ratios = [float(item.get("ratioToPrimaryGraphDrop", 0.0)) for item in items]
+    return {
+        "count": len(items),
+        "passed": len(passed),
+        "passRate": len(passed) / len(items),
+        "medianTargetLogitDrop": percentile(target_drops, 0.50),
+        "maxTargetLogitDrop": max(target_drops) if target_drops else 0.0,
+        "medianRatioToPrimaryGraphDrop": percentile(ratios, 0.50),
+        "maxRatioToPrimaryGraphDrop": max(ratios) if ratios else 0.0,
+    }
+
+
+def summarize_unrelated_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    if not items:
+        return {"count": 0, "passed": 0, "passRate": 0.0}
+    passed = [item for item in items if item.get("pass")]
+    ratios = [float(item.get("absDropRatioToPrimaryGraphDrop", 0.0)) for item in items]
+    return {
+        "count": len(items),
+        "passed": len(passed),
+        "passRate": len(passed) / len(items),
+        "medianAbsDropRatioToPrimaryGraphDrop": percentile(ratios, 0.50),
+        "maxAbsDropRatioToPrimaryGraphDrop": max(ratios) if ratios else 0.0,
+    }
+
+
 def token_support_edges(
     *,
     tokenizer: Any,
@@ -353,35 +544,82 @@ def build_candidate_records(
     token_ids: torch.Tensor,
     token_index: int,
     target_token_id: int,
+    wrong_answer_targets: List[Dict[str, Any]],
     top_neurons: int,
 ) -> List[Dict[str, Any]]:
     records: List[Dict[str, Any]] = []
+    lm_head_weight = model.lm_head.weight.detach().cpu()
+    target_unembed = lm_head_weight[target_token_id]
+    wrong_token_ids = [int(item["tokenId"]) for item in wrong_answer_targets]
+    wrong_unembeds = lm_head_weight[wrong_token_ids] if wrong_token_ids else None
     for layer, mlp in mlps.items():
         activation_matrix = captures[layer]["activation"]
         activation = activation_matrix[token_index]
         c_proj_weight = mlp.c_proj.weight.detach().cpu()
         projection_norms = torch.linalg.vector_norm(c_proj_weight, dim=1)
-        scores = activation.abs() * projection_norms
-        top = torch.topk(scores.detach().cpu(), k=min(top_neurons, int(scores.numel())))
-        for rank, (score, neuron_tensor) in enumerate(zip(top.values, top.indices), start=1):
-            neuron = int(neuron_tensor)
-            drop = ablate_target_drop(
+        norm_scores = activation.abs() * projection_norms
+        target_projection = torch.mv(c_proj_weight, target_unembed)
+        signed_target_scores = activation * target_projection
+        if wrong_unembeds is not None and int(wrong_unembeds.numel()) > 0:
+            wrong_projection = torch.matmul(c_proj_weight, wrong_unembeds.T)
+            signed_wrong_scores = activation.unsqueeze(1) * wrong_projection
+            max_wrong_scores = torch.max(signed_wrong_scores, dim=1).values
+        else:
+            max_wrong_scores = torch.zeros_like(signed_target_scores)
+        contrast_scores = signed_target_scores - max_wrong_scores
+        candidate_indices = set()
+        for score_tensor in (norm_scores, signed_target_scores, contrast_scores):
+            limit = min(top_neurons, int(score_tensor.numel()))
+            if limit <= 0:
+                continue
+            top = torch.topk(score_tensor.detach().cpu(), k=limit)
+            candidate_indices.update(int(neuron) for neuron in top.indices)
+        ranked_indices = sorted(
+            candidate_indices,
+            key=lambda neuron: (
+                float(contrast_scores[neuron]),
+                float(signed_target_scores[neuron]),
+                float(norm_scores[neuron]),
+            ),
+            reverse=True,
+        )
+        for rank, neuron in enumerate(ranked_indices, start=1):
+            ablated_logits = live.run_activation_ablation_logits(
                 model,
                 mlp,
                 encoded,
-                baseline_logits,
-                neuron,
+                int(neuron),
                 [token_index],
                 token_index,
-                target_token_id,
             )
+            drop = float(baseline_logits[target_token_id] - ablated_logits[target_token_id])
+            wrong_drops = []
+            for wrong in wrong_answer_targets:
+                wrong_token_id = int(wrong["tokenId"])
+                wrong_drop = float(baseline_logits[wrong_token_id] - ablated_logits[wrong_token_id])
+                wrong_drops.append({
+                    "subject": wrong["subject"],
+                    "answer": wrong["answer"],
+                    "tokenId": wrong_token_id,
+                    "token": wrong["token"],
+                    "logitDrop": wrong_drop,
+                })
+            max_wrong_drop = max([float(item["logitDrop"]) for item in wrong_drops] + [0.0])
+            target_specific_margin = drop - max_wrong_drop
             records.append({
                 "layer": int(layer),
                 "rankWithinLayer": rank,
                 "neuron": neuron,
-                "selectionScore": float(score),
+                "selectionScore": float(contrast_scores[neuron]),
+                "normSelectionScore": float(norm_scores[neuron]),
+                "targetProjectionScore": float(signed_target_scores[neuron]),
+                "contrastiveTargetScore": float(contrast_scores[neuron]),
                 "activation": float(activation[neuron]),
                 "targetLogitDrop": drop,
+                "wrongAnswerLogitDrops": wrong_drops,
+                "maxWrongAnswerLogitDrop": max_wrong_drop,
+                "targetSpecificMargin": target_specific_margin,
+                "targetSpecificLift": drop / max(1e-9, max_wrong_drop),
                 "tokenSupportEdges": token_support_edges(
                     tokenizer=tokenizer,
                     token_ids=token_ids,
@@ -391,7 +629,7 @@ def build_candidate_records(
                     neuron=neuron,
                 ),
             })
-    return sorted(records, key=lambda item: item["targetLogitDrop"], reverse=True)
+    return sorted(records, key=lambda item: (item["targetSpecificMargin"], item["targetLogitDrop"]), reverse=True)
 
 
 def make_control_drop_item(
@@ -608,14 +846,32 @@ def select_circuit_candidates(
     candidates: List[Dict[str, Any]],
     threshold: float,
     max_graph_nodes: int,
+    min_target_drop: float,
+    max_wrong_answer_drop_ratio: float,
 ) -> List[Dict[str, Any]]:
     selected: List[Dict[str, Any]] = []
     used = set()
-    for candidate in candidates:
+    ranked = sorted(
+        candidates,
+        key=lambda item: (
+            float(item.get("targetSpecificLift", 0.0)),
+            float(item.get("targetSpecificMargin", 0.0)),
+            float(item.get("targetLogitDrop", 0.0)),
+        ),
+        reverse=True,
+    )
+    for candidate in ranked:
         pair = (int(candidate["layer"]), int(candidate["neuron"]))
         if pair in used:
             continue
-        if float(candidate["targetLogitDrop"]) >= threshold or not selected:
+        target_drop = float(candidate["targetLogitDrop"])
+        wrong_drop = max(0.0, float(candidate.get("maxWrongAnswerLogitDrop", 0.0)))
+        wrong_ratio = wrong_drop / max(1e-9, target_drop)
+        if (
+            target_drop >= min_target_drop
+            and float(candidate.get("targetSpecificMargin", 0.0)) > 0
+            and wrong_ratio <= max_wrong_answer_drop_ratio
+        ):
             selected.append(candidate)
             used.add(pair)
         if len(selected) >= max_graph_nodes:
@@ -685,15 +941,50 @@ def build_circuit_graph(
 ) -> Dict[str, Any]:
     control_p95 = max(group["summary"]["p95PositiveTargetLogitDrop"] for group in controls["groups"])
     threshold = max(float(args.min_target_drop), control_p95 + float(args.min_margin_over_control_p95))
-    selected = select_circuit_candidates(candidates, threshold, max(1, int(args.max_graph_nodes)))
+    selected = select_circuit_candidates(
+        candidates,
+        threshold,
+        max(1, int(args.max_graph_nodes)),
+        float(args.min_target_drop),
+        float(args.max_candidate_wrong_answer_drop_ratio),
+    )
     interventions = [
         {
             "layer": int(candidate["layer"]),
             "neuron": int(candidate["neuron"]),
-            "ablateTokenPositions": [token_index],
+            "ablateTokenPositions": candidate_ablation_positions(candidate, token_index),
         }
         for candidate in selected
     ]
+    if not interventions:
+        return {
+            "kind": "gpt2-live-factual-circuit-graph",
+            "selectedNodeCount": 0,
+            "nodes": [
+                {"id": "fact", "kind": "fact-prompt"},
+                {"id": f"target:{target_token_id}", "kind": "target-token", "tokenId": target_token_id, "token": target_token},
+            ],
+            "edges": [
+                {"source": "fact", "target": f"target:{target_token_id}", "kind": "expected-answer", "answerToken": target_token}
+            ],
+            "selectedInterventions": [],
+            "selectedCandidates": [],
+            "jointAblation": {
+                "targetLogitDrop": 0.0,
+                "controlGraphP95PositiveTargetLogitDrop": 0.0,
+                "controlGraphMaxPositiveTargetLogitDrop": 0.0,
+                "marginOverControlGraphP95": 0.0,
+                "liftOverControlGraphP95": 0.0,
+            },
+            "controlGraphs": {"items": [], "summary": summarize_drops([])},
+            "gate": {
+                "pass": False,
+                "failureReason": "no target-specific candidates passed selection threshold",
+                "thresholdForIndividualCandidateSelection": threshold,
+                "minTargetDrop": float(args.min_target_drop),
+                "minMarginOverControlP95": float(args.min_margin_over_control_p95),
+            },
+        }
     joint_drop = graph_target_drop(
         model=model,
         mlps=mlps,
@@ -794,16 +1085,253 @@ def build_circuit_graph(
     }
 
 
+def run_graph_validation_prompt(
+    *,
+    model: Any,
+    tokenizer: Any,
+    mlps: Dict[int, Any],
+    prompt: str,
+    target_token_id: int,
+    target_token: str,
+    selected_interventions: List[Dict[str, Any]],
+    primary_graph_drop: float,
+    min_target_drop: float,
+    min_drop_ratio: float,
+    device: torch.device,
+    kind: str,
+    metadata: Dict[str, Any],
+    positionMode: str = "last-token",
+) -> Dict[str, Any]:
+    encoded = tokenizer(prompt, return_tensors="pt")
+    encoded = {key: value.to(device) for key, value in encoded.items()}
+    token_index = int(encoded["input_ids"].shape[1]) - 1
+    token_ids = encoded["input_ids"][0].detach().cpu()
+    with torch.no_grad():
+        outputs = model(**encoded)
+    baseline_logits = outputs.logits.detach().cpu()[0, token_index]
+    if positionMode == "preserve-valid-positions":
+        translated = translate_interventions_preserving_positions(
+            selected_interventions,
+            int(encoded["input_ids"].shape[1]),
+            token_index,
+        )
+    else:
+        translated = translate_interventions_to_token(selected_interventions, token_index)
+    ablated_logits = graph_ablation_logits_for_interventions(
+        model=model,
+        mlps=mlps,
+        encoded=encoded,
+        interventions=translated,
+        read_token_index=token_index,
+    )
+    drop = float(baseline_logits[target_token_id] - ablated_logits[target_token_id])
+    ratio = drop / max(1e-9, primary_graph_drop)
+    return {
+        "kind": kind,
+        **metadata,
+        "prompt": prompt,
+        "tokenIndex": token_index,
+        "promptTokens": [
+            {"position": index, "id": int(token_id), "text": live.clean_token(tokenizer, int(token_id))}
+            for index, token_id in enumerate(token_ids)
+        ],
+        "targetTokenId": target_token_id,
+        "targetToken": target_token,
+        "targetBaselineLogit": float(baseline_logits[target_token_id]),
+        "targetBaselineRank": target_rank(baseline_logits, target_token_id),
+        "targetLogitDrop": drop,
+        "ratioToPrimaryGraphDrop": ratio,
+        "minTargetDrop": min_target_drop,
+        "minDropRatioToPrimary": min_drop_ratio,
+        "positionMode": positionMode,
+        "pass": drop >= min_target_drop and ratio >= min_drop_ratio,
+        "translatedInterventions": translated,
+    }
+
+
+def build_hardening_validations(
+    *,
+    model: Any,
+    tokenizer: Any,
+    mlps: Dict[int, Any],
+    fact: Dict[str, str],
+    answer_pool: List[Dict[str, Any]],
+    encoded: Dict[str, torch.Tensor],
+    baseline_logits: torch.Tensor,
+    token_index: int,
+    target_token_id: int,
+    target_token: str,
+    selected_interventions: List[Dict[str, Any]],
+    primary_graph_drop: float,
+    args: argparse.Namespace,
+) -> Dict[str, Any]:
+    device = encoded["input_ids"].device
+    primary_ablated_logits = graph_ablation_logits_for_interventions(
+        model=model,
+        mlps=mlps,
+        encoded=encoded,
+        interventions=selected_interventions,
+        read_token_index=token_index,
+    )
+    wrong_answers = []
+    for wrong in choose_wrong_answer_tokens(answer_pool, target_token_id, int(args.wrong_answer_count)):
+        drop = float(baseline_logits[int(wrong["tokenId"])] - primary_ablated_logits[int(wrong["tokenId"])])
+        ratio = drop / max(1e-9, primary_graph_drop)
+        wrong_answers.append({
+            "kind": "wrong-answer-target-token",
+            "subject": wrong["subject"],
+            "answer": wrong["answer"],
+            "tokenId": int(wrong["tokenId"]),
+            "token": wrong["token"],
+            "baselineLogit": float(baseline_logits[int(wrong["tokenId"])]),
+            "logitDrop": drop,
+            "targetLogitDrop": drop,
+            "ratioToPrimaryGraphDrop": ratio,
+            "maxAllowedRatioToPrimary": float(args.max_wrong_answer_drop_ratio),
+            "pass": ratio <= float(args.max_wrong_answer_drop_ratio),
+        })
+
+    excluded = {int(target_token_id)}
+    excluded.update(int(item["tokenId"]) for item in wrong_answers)
+    unrelated = []
+    for unrelated_answer in choose_unrelated_answer_tokens(answer_pool, fact, excluded, int(args.unrelated_logit_count)):
+        token_id = int(unrelated_answer["tokenId"])
+        baseline = float(baseline_logits[token_id])
+        ablated = float(primary_ablated_logits[token_id])
+        drop = baseline - ablated
+        ratio = abs(drop) / max(1e-9, primary_graph_drop)
+        unrelated.append({
+            "kind": "unrelated-factual-answer-logit-preservation",
+            "subject": unrelated_answer["subject"],
+            "answer": unrelated_answer["answer"],
+            "tokenId": token_id,
+            "token": unrelated_answer["token"],
+            "baselineLogit": baseline,
+            "ablatedLogit": ablated,
+            "logitDrop": drop,
+            "absDropRatioToPrimaryGraphDrop": ratio,
+            "maxAllowedAbsDropRatioToPrimary": float(args.max_unrelated_abs_drop_ratio),
+            "pass": ratio <= float(args.max_unrelated_abs_drop_ratio),
+        })
+
+    paraphrase_min_ratio = 0.35
+    paraphrases = [
+        run_graph_validation_prompt(
+            model=model,
+            tokenizer=tokenizer,
+            mlps=mlps,
+            prompt=prompt,
+            target_token_id=target_token_id,
+            target_token=target_token,
+            selected_interventions=selected_interventions,
+            primary_graph_drop=primary_graph_drop,
+            min_target_drop=float(args.min_target_drop),
+            min_drop_ratio=paraphrase_min_ratio,
+            device=device,
+            kind="paraphrase-same-fact",
+            metadata={"subject": fact["subject"], "answer": fact["answer"]},
+        )
+        for prompt in paraphrase_prompts_for_fact(fact, int(args.paraphrase_count))
+    ]
+
+    negative_facts = []
+    for negative in choose_negative_facts(fact, int(args.negative_fact_count)):
+        negative_target = encode_single_answer_token(tokenizer, negative["answer"])
+        if negative_target is None:
+            negative_facts.append({
+                "kind": "negative-fact-correct-answer-token",
+                "sourceSubject": fact["subject"],
+                "negativeSubject": negative["subject"],
+                "negativeAnswer": negative["answer"],
+                "status": "skipped",
+                "skipReason": "negative fact answer is not one GPT-2 token with a leading space",
+                "pass": True,
+                "targetLogitDrop": 0.0,
+                "ratioToPrimaryGraphDrop": 0.0,
+            })
+            continue
+        negative_token_id, negative_token = negative_target
+        prompt = prompt_for_fact(negative)
+        item = run_graph_validation_prompt(
+            model=model,
+            tokenizer=tokenizer,
+            mlps=mlps,
+            prompt=prompt,
+            target_token_id=negative_token_id,
+            target_token=negative_token,
+            selected_interventions=selected_interventions,
+            primary_graph_drop=primary_graph_drop,
+            min_target_drop=-1e9,
+            min_drop_ratio=-1e9,
+            device=device,
+            kind="negative-fact-correct-answer-token",
+            metadata={
+                "sourceSubject": fact["subject"],
+                "negativeSubject": negative["subject"],
+                "negativeAnswer": negative["answer"],
+                "originalAnswer": fact["answer"],
+            },
+            positionMode="preserve-valid-positions",
+        )
+        ratio = float(item["targetLogitDrop"]) / max(1e-9, primary_graph_drop)
+        item["ratioToPrimaryGraphDrop"] = ratio
+        item["maxAllowedRatioToPrimary"] = float(args.max_negative_fact_drop_ratio)
+        item["pass"] = ratio <= float(args.max_negative_fact_drop_ratio)
+        negative_facts.append(item)
+
+    paraphrase_summary = summarize_validation_items(paraphrases)
+    wrong_summary = summarize_validation_items(wrong_answers)
+    negative_summary = summarize_validation_items(negative_facts)
+    unrelated_summary = summarize_unrelated_items(unrelated)
+    pass_hardening = (
+        (paraphrase_summary["count"] == 0 or paraphrase_summary["passRate"] >= float(args.min_paraphrase_pass_rate))
+        and (wrong_summary["count"] == 0 or wrong_summary["passRate"] >= float(args.min_wrong_answer_specificity_rate))
+        and (negative_summary["count"] == 0 or negative_summary["passRate"] >= float(args.min_negative_fact_specificity_rate))
+        and (unrelated_summary["count"] == 0 or unrelated_summary["passRate"] >= float(args.min_unrelated_preservation_rate))
+    )
+    return {
+        "pass": pass_hardening,
+        "thresholds": {
+            "minParaphrasePassRate": float(args.min_paraphrase_pass_rate),
+            "minWrongAnswerSpecificityRate": float(args.min_wrong_answer_specificity_rate),
+            "minNegativeFactSpecificityRate": float(args.min_negative_fact_specificity_rate),
+            "minUnrelatedPreservationRate": float(args.min_unrelated_preservation_rate),
+            "maxWrongAnswerDropRatio": float(args.max_wrong_answer_drop_ratio),
+            "maxCandidateWrongAnswerDropRatio": float(args.max_candidate_wrong_answer_drop_ratio),
+            "maxNegativeFactDropRatio": float(args.max_negative_fact_drop_ratio),
+            "maxUnrelatedAbsDropRatio": float(args.max_unrelated_abs_drop_ratio),
+            "paraphraseMinDropRatio": paraphrase_min_ratio,
+        },
+        "paraphrases": {
+            "summary": paraphrase_summary,
+            "items": paraphrases,
+        },
+        "wrongAnswerTargets": {
+            "summary": wrong_summary,
+            "items": wrong_answers,
+        },
+        "negativeFacts": {
+            "summary": negative_summary,
+            "items": negative_facts,
+        },
+        "unrelatedLogits": {
+            "summary": unrelated_summary,
+            "items": unrelated,
+        },
+    }
+
+
 def run_case(
     *,
     model: Any,
     tokenizer: Any,
     mlps: Dict[int, Any],
     fact: Dict[str, str],
+    answer_pool: List[Dict[str, Any]],
     args: argparse.Namespace,
     rng: random.Random,
 ) -> Dict[str, Any]:
-    prompt = fact.get("prompt") or f"The capital of {fact['subject']} is"
+    prompt = prompt_for_fact(fact)
     encoded = tokenizer(prompt, return_tensors="pt")
     device = next(model.parameters()).device
     encoded = {key: value.to(device) for key, value in encoded.items()}
@@ -821,6 +1349,7 @@ def run_case(
     target_token_id, target_token = target
     outputs, captures = run_with_multi_layer_captures(model, mlps, encoded)
     baseline_logits = outputs.logits.detach().cpu()[0, token_index]
+    wrong_answer_targets = choose_wrong_answer_tokens(answer_pool, target_token_id, int(args.wrong_answer_count))
     candidates = build_candidate_records(
         model=model,
         tokenizer=tokenizer,
@@ -831,6 +1360,7 @@ def run_case(
         token_ids=token_ids,
         token_index=token_index,
         target_token_id=target_token_id,
+        wrong_answer_targets=wrong_answer_targets,
         top_neurons=args.top_neurons,
     )
     best = candidates[0] if candidates else None
@@ -879,6 +1409,32 @@ def run_case(
         controls=controls,
         args=args,
     )
+    if circuit_graph["selectedInterventions"]:
+        hardening = build_hardening_validations(
+            model=model,
+            tokenizer=tokenizer,
+            mlps=mlps,
+            fact=fact,
+            answer_pool=answer_pool,
+            encoded=encoded,
+            baseline_logits=baseline_logits,
+            token_index=token_index,
+            target_token_id=target_token_id,
+            target_token=target_token,
+            selected_interventions=circuit_graph["selectedInterventions"],
+            primary_graph_drop=float(circuit_graph["jointAblation"]["targetLogitDrop"]),
+            args=args,
+        )
+    else:
+        hardening = {
+            "pass": False,
+            "failureReason": "no selected graph interventions to validate",
+            "thresholds": {},
+            "paraphrases": {"summary": summarize_validation_items([]), "items": []},
+            "wrongAnswerTargets": {"summary": summarize_validation_items([]), "items": []},
+            "negativeFacts": {"summary": summarize_validation_items([]), "items": []},
+            "unrelatedLogits": {"summary": summarize_unrelated_items([]), "items": []},
+        }
     pass_case = bool(circuit_graph["gate"]["pass"])
     return {
         "subject": fact["subject"],
@@ -901,6 +1457,7 @@ def run_case(
         "topCandidates": candidates[:12],
         "controls": controls,
         "circuitGraph": circuit_graph,
+        "hardening": hardening,
         "caseMetrics": {
             "bestTargetLogitDrop": best_drop,
             "controlP95PositiveTargetLogitDrop": control_p95,
@@ -917,6 +1474,11 @@ def run_case(
             "minTargetDrop": args.min_target_drop,
             "minMarginOverControlP95": args.min_margin_over_control_p95,
             "graphGate": circuit_graph["gate"],
+            "hardeningGate": {
+                "pass": hardening["pass"],
+                "thresholds": hardening["thresholds"],
+            },
+            "hardeningCasePass": bool(hardening["pass"]),
             "pass": pass_case,
         },
     }
@@ -937,6 +1499,10 @@ def make_markdown(report: Dict[str, Any]) -> str:
         f"- Median graph control p95 target-logit drop: `{summary['medianGraphControlP95PositiveTargetLogitDrop']}`",
         f"- Median graph lift over control p95: `{summary['medianGraphLiftOverControlP95']}`",
         f"- Mean selected graph nodes: `{summary['meanGraphSelectedNodeCount']}`",
+        f"- Paraphrase validation pass rate: `{summary['hardening']['paraphrasePassRate']}`",
+        f"- Wrong-answer specificity pass rate: `{summary['hardening']['wrongAnswerSpecificityPassRate']}`",
+        f"- Negative-fact specificity pass rate: `{summary['hardening']['negativeFactSpecificityPassRate']}`",
+        f"- Unrelated-logit preservation pass rate: `{summary['hardening']['unrelatedLogitPreservationPassRate']}`",
         f"- Layers scanned: `{report['config']['layers']}`",
         f"- Top neurons per layer: `{report['config']['topNeurons']}`",
         f"- Controls per family: `{report['config']['controlCount']}`",
@@ -950,15 +1516,16 @@ def make_markdown(report: Dict[str, Any]) -> str:
         "",
         "## Cases",
         "",
-        "| subject | answer | status | target rank | graph nodes | graph drop | graph control p95 | graph margin | best layer | best neuron |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| subject | answer | status | target rank | graph nodes | graph drop | graph control p95 | graph margin | hardening | best layer | best neuron |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in report["cases"]:
         if row.get("status") == "skipped":
-            lines.append(f"| {row['subject']} | {row['answer']} | skipped | - | - | - | - | - | - | - |")
+            lines.append(f"| {row['subject']} | {row['answer']} | skipped | - | - | - | - | - | - | - | - |")
             continue
         best = row["bestCandidate"]
         metrics = row["caseMetrics"]
+        hardening = row["hardening"]
         lines.append(
             f"| {row['subject']} | {row['answer']} | {row['status']} | "
             f"{row['target']['baselineRank']} | "
@@ -966,6 +1533,7 @@ def make_markdown(report: Dict[str, Any]) -> str:
             f"{metrics['graphJointTargetLogitDrop']:.6f} | "
             f"{metrics['graphControlP95PositiveTargetLogitDrop']:.6f} | "
             f"{metrics['graphMarginOverControlP95']:.6f} | "
+            f"{hardening['pass']} | "
             f"{best['layer']} | {best['neuron']} |"
         )
     lines.append("")
@@ -978,6 +1546,9 @@ def main() -> None:
         raise RuntimeError("case counts must be positive.")
     if args.top_neurons <= 0 or args.control_count <= 0:
         raise RuntimeError("--top-neurons and --control-count must be positive.")
+    for name in ("paraphrase_count", "negative_fact_count", "wrong_answer_count", "unrelated_logit_count"):
+        if getattr(args, name) < 0:
+            raise RuntimeError(f"--{name.replace('_', '-')} must be non-negative.")
     layers = parse_layers(args.layers)
     device = "cuda" if args.device == "auto" and torch.cuda.is_available() else args.device
     if device == "cuda" and not torch.cuda.is_available():
@@ -989,13 +1560,16 @@ def main() -> None:
     model.to(device)
     mlps = {layer: live.ensure_gpt2_mlp_shape(model, layer) for layer in layers}
     rng = random.Random(args.control_seed)
+    answer_pool = build_answer_pool(tokenizer)
+    if len(answer_pool) < max(1, args.wrong_answer_count):
+        raise RuntimeError("Not enough single-token answer targets for wrong-answer controls.")
 
     cases = []
     valid_seen = 0
     for fact in FACTS:
         if valid_seen >= args.case_count:
             break
-        row = run_case(model=model, tokenizer=tokenizer, mlps=mlps, fact=fact, args=args, rng=rng)
+        row = run_case(model=model, tokenizer=tokenizer, mlps=mlps, fact=fact, answer_pool=answer_pool, args=args, rng=rng)
         cases.append(row)
         if row.get("status") != "skipped":
             valid_seen += 1
@@ -1011,6 +1585,35 @@ def main() -> None:
     graph_control_p95 = [float(row["caseMetrics"]["graphControlP95PositiveTargetLogitDrop"]) for row in valid_cases]
     graph_lifts = [float(row["caseMetrics"]["graphLiftOverControlP95"]) for row in valid_cases]
     graph_node_counts = [int(row["caseMetrics"]["graphSelectedNodeCount"]) for row in valid_cases]
+    paraphrase_items = [
+        item
+        for row in valid_cases
+        for item in row["hardening"]["paraphrases"]["items"]
+    ]
+    wrong_answer_items = [
+        item
+        for row in valid_cases
+        for item in row["hardening"]["wrongAnswerTargets"]["items"]
+    ]
+    negative_fact_items = [
+        item
+        for row in valid_cases
+        for item in row["hardening"]["negativeFacts"]["items"]
+    ]
+    unrelated_items = [
+        item
+        for row in valid_cases
+        for item in row["hardening"]["unrelatedLogits"]["items"]
+    ]
+    paraphrase_summary = summarize_validation_items(paraphrase_items)
+    wrong_answer_summary = summarize_validation_items(wrong_answer_items)
+    negative_fact_summary = summarize_validation_items(negative_fact_items)
+    unrelated_summary = summarize_unrelated_items(unrelated_items)
+    hardening_failed_cases = [
+        row["subject"]
+        for row in valid_cases
+        if not bool(row.get("hardening", {}).get("pass", False))
+    ]
     selected_graph_neurons = []
     layer_histogram: Dict[str, int] = {}
     for row in valid_cases:
@@ -1020,7 +1623,13 @@ def main() -> None:
             layer_key = str(intervention["layer"])
             layer_histogram[layer_key] = layer_histogram.get(layer_key, 0) + 1
     pass_rate = len(passed_cases) / max(1, len(valid_cases))
-    pass_gate = len(valid_cases) >= args.min_valid_cases and pass_rate >= args.min_pass_rate
+    hardening_gate = (
+        (paraphrase_summary["count"] == 0 or paraphrase_summary["passRate"] >= float(args.min_paraphrase_pass_rate))
+        and (wrong_answer_summary["count"] == 0 or wrong_answer_summary["passRate"] >= float(args.min_wrong_answer_specificity_rate))
+        and (negative_fact_summary["count"] == 0 or negative_fact_summary["passRate"] >= float(args.min_negative_fact_specificity_rate))
+        and (unrelated_summary["count"] == 0 or unrelated_summary["passRate"] >= float(args.min_unrelated_preservation_rate))
+    )
+    pass_gate = len(valid_cases) >= args.min_valid_cases and pass_rate >= args.min_pass_rate and hardening_gate
 
     report = {
         "schemaVersion": 1,
@@ -1054,6 +1663,18 @@ def main() -> None:
             "minPassRate": args.min_pass_rate,
             "minTargetDrop": args.min_target_drop,
             "minMarginOverControlP95": args.min_margin_over_control_p95,
+            "paraphraseCount": args.paraphrase_count,
+            "negativeFactCount": args.negative_fact_count,
+            "wrongAnswerCount": args.wrong_answer_count,
+            "unrelatedLogitCount": args.unrelated_logit_count,
+            "minParaphrasePassRate": args.min_paraphrase_pass_rate,
+            "minWrongAnswerSpecificityRate": args.min_wrong_answer_specificity_rate,
+            "minNegativeFactSpecificityRate": args.min_negative_fact_specificity_rate,
+            "minUnrelatedPreservationRate": args.min_unrelated_preservation_rate,
+            "maxWrongAnswerDropRatio": args.max_wrong_answer_drop_ratio,
+            "maxCandidateWrongAnswerDropRatio": args.max_candidate_wrong_answer_drop_ratio,
+            "maxNegativeFactDropRatio": args.max_negative_fact_drop_ratio,
+            "maxUnrelatedAbsDropRatio": args.max_unrelated_abs_drop_ratio,
         },
         "summary": {
             "pass": pass_gate,
@@ -1075,11 +1696,27 @@ def main() -> None:
             "meanGraphSelectedNodeCount": sum(graph_node_counts) / max(1, len(graph_node_counts)),
             "uniqueSelectedGraphNeurons": len(set(selected_graph_neurons)),
             "selectedGraphLayerHistogram": layer_histogram,
+            "hardening": {
+                "pass": hardening_gate,
+                "paraphrasePassRate": paraphrase_summary["passRate"],
+                "paraphraseCount": paraphrase_summary["count"],
+                "wrongAnswerSpecificityPassRate": wrong_answer_summary["passRate"],
+                "wrongAnswerCount": wrong_answer_summary["count"],
+                "negativeFactSpecificityPassRate": negative_fact_summary["passRate"],
+                "negativeFactCount": negative_fact_summary["count"],
+                "unrelatedLogitPreservationPassRate": unrelated_summary["passRate"],
+                "unrelatedLogitCount": unrelated_summary["count"],
+                "paraphraseSummary": paraphrase_summary,
+                "wrongAnswerSummary": wrong_answer_summary,
+                "negativeFactSummary": negative_fact_summary,
+                "unrelatedLogitSummary": unrelated_summary,
+                "failedSubjects": hardening_failed_cases,
+            },
             "failedSubjects": [row["subject"] for row in failed_cases],
             "skippedSubjects": [row["subject"] for row in skipped_cases],
         },
         "claimScope": {
-            "provesIfPasses": "Benchmark-scoped evidence that the real GPT-2 live pipeline can automatically scan layers/top activation-contribution neurons, build a token/neuron/target graph, and validate the graph through joint causal ablation above graph-level negative controls across a factual prompt set.",
+            "provesIfPasses": "Benchmark-scoped evidence that the real GPT-2 live pipeline can automatically scan layers/top activation-contribution neurons, build a token/neuron/target graph, validate the graph through joint causal ablation above graph-level controls, and harden it against paraphrase, wrong-answer, negative-fact, and unrelated-logit checks across a factual prompt set.",
             "doesNotProve": "This is not attention-head/path recovery yet, not full GPT-2 FFN extraction, not arbitrary LLM understanding, and not output-only original-neuron identity.",
         },
         "cases": cases,

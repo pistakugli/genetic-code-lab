@@ -708,8 +708,8 @@ const CAPABILITIES: Capability[] = [
     id: 'nn-live-gpt2-fact-circuit-finder',
     name: 'NN live GPT-2 fact circuit finder',
     status: 'preview',
-    summary: 'Loads real GPT-2, automatically scans layers/top MLP neurons for factual prompts, builds token/neuron/target circuit graphs, and validates each graph through joint causal ablation above graph-level negative controls.',
-    scope: 'Live real-model benchmark; proves benchmark-scoped graph-level MLP circuit discovery for the configured GPT-2 factual prompt set using real hooks, real ablations, token-support edges, selected-neuron graph nodes, and graph-level controls. This is not attention-head/path recovery, full GPT-2 FFN extraction, arbitrary LLM understanding, output-only original-neuron identity, or broad SOTA status.',
+    summary: 'Loads real GPT-2, automatically scans layers/top MLP neurons for factual prompts, builds token/neuron/target circuit graphs, and validates graph causality plus paraphrase, wrong-answer, negative-fact, and unrelated-logit hardening controls.',
+    scope: 'Live real-model benchmark; proves benchmark-scoped graph-level MLP circuit discovery for the configured GPT-2 factual prompt set using real hooks, real ablations, token-support edges, selected-neuron graph nodes, graph-level controls, paraphrase checks, wrong-answer specificity, negative-fact specificity, and unrelated-logit preservation. This is not attention-head/path recovery, full GPT-2 FFN extraction, arbitrary LLM understanding, output-only original-neuron identity, or broad SOTA status.',
     run: { label: 'NN live GPT-2 fact circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-gpt2-fact-circuit-finder'] },
     proofs: [
       { label: 'NN live GPT-2 fact circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-gpt2-fact-circuit-finder'] }

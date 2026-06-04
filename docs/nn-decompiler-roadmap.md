@@ -50,24 +50,20 @@ benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-sc
 Current result:
 
 - pass `true`;
-- 50 valid facts, 50 passed cases;
-- median joint graph target-logit drop `9.597953796386719`;
-- p10 joint graph target-logit drop `7.7571563720703125`;
-- median graph-control p95 positive target-logit drop `1.7921218872070312`;
-- median graph lift over control p95 `4.993501607767975`;
-- minimum graph lift over control p95 `3.053458716515491`;
-- mean selected graph node count `3.74`;
-- 15 unique selected graph neurons.
+- 50 valid facts, 45 graph-passed cases, pass rate `0.9`;
+- median joint graph target-logit drop `0.7129135131835938`;
+- p10 joint graph target-logit drop `0.45391082763671875`;
+- median graph-control p95 positive target-logit drop `0.3569793701171875`;
+- median graph lift over control p95 `1.845643203157706`;
+- mean selected graph node count `4.96`;
+- 103 unique selected graph neurons;
+- aggregate Stage-I hardening pass `true`: paraphrase pass rate `0.75`,
+  wrong-answer specificity `0.9666666666666667`, negative-fact specificity `1`,
+  unrelated-logit preservation `0.8725`.
 
 The next production path is:
 
-1. Harden `nn-live-gpt2-fact-circuit-finder`
-   - Add paraphrased factual prompts, negative facts, wrong-answer targets,
-     unrelated-logit preservation, graph stability metrics, and explicit
-     skipped/unstable-fact failure artifacts.
-   - Keep hard failures for runtime/import/hook-shape/control-overlap problems.
-     Do not silence them.
-2. Add attention-head and path graph recovery
+1. Add attention-head and path graph recovery
    - Extend candidate search from MLP neurons to attention heads/value paths and
      path-patching-style interventions.
    - Emit comparable token/head/neuron/target graph edges with causal effect,
@@ -602,12 +598,12 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   - Current command: `npm run benchmark:nn-live-gpt2-fact-circuit-finder`.
   - Current artifact:
     `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`.
-  - Current result: pass `true`, 50 valid facts, 50 passed cases, median joint
-    graph target-logit drop `9.597953796386719`, p10 joint graph target-logit
-    drop `7.7571563720703125`, median graph-control p95 positive target-logit
-    drop `1.7921218872070312`, median graph lift over control p95
-    `4.993501607767975`, minimum graph lift `3.053458716515491`, mean selected
-    graph node count `3.74`, and 15 unique selected graph neurons.
+  - Current result: pass `true`, 50 valid facts, 45 graph-passed cases, pass
+    rate `0.9`, median joint graph target-logit drop `0.7129135131835938`, p10
+    graph drop `0.45391082763671875`, median graph-control p95 positive
+    target-logit drop `0.3569793701171875`, median graph lift over control p95
+    `1.845643203157706`, mean selected graph node count `4.96`, and 103 unique
+    selected graph neurons.
   - Output: recovered token/neuron/target circuit graphs with token-support
     edges, neuron-target causal-drop edges, selected-graph joint ablation, and
     graph-level negative controls.
@@ -616,13 +612,13 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     attention-head/path recovery, full GPT-2 FFN extraction, arbitrary LLM
     understanding, or output-only original-neuron identity.
 - Stage I: graph hardening with paraphrases and negative facts.
-  - NEXT release-candidate hardening.
-  - Required cases: paraphrased prompts, negative facts, wrong-answer targets,
-    unrelated-prompt controls, random-active controls, random-inactive controls,
-    off-prompt controls, and same-neuron other-position controls.
-  - Required metrics: target-logit causal support, preserved unrelated logits,
-    control-normalized effect, graph size, prompt-template stability, query and
-    intervention budget, and failure artifacts for facts that do not stabilize.
+  - DONE for release gate: the fact-circuit benchmark now validates paraphrased
+    prompts, wrong-answer targets, negative facts, unrelated factual answer
+    logits, graph-level controls, and explicit failedSubjects artifacts.
+  - Current hardening result: aggregate pass `true`, paraphrase pass rate
+    `0.75`, wrong-answer specificity `0.9666666666666667`, negative-fact
+    specificity `1`, unrelated-logit preservation `0.8725`, over `80`, `150`,
+    `100`, and `400` validation items respectively.
 - Stage J: attention-head and path graph recovery.
   - NEXT mechanism expansion after Stage I hardening.
   - Extend candidate search from MLP neurons to attention heads/value paths and
@@ -703,9 +699,9 @@ The following items are still required before any broad SOTA language:
   top-8 report is retained as the intermediate targeted scaling proof. The
   compact real GPT-2 top-20 source extractor remains a separate instrumented
   source-graph gate. The first live GPT-2 MLP fact-circuit graph finder is now
-  covered by `benchmark:nn-live-gpt2-fact-circuit-finder`. Next evidence must
-  harden graph stability with paraphrases, negative facts, unrelated-logit
-  preservation, and attention/path edges before any broad GPT-2/LLM
+  covered by `benchmark:nn-live-gpt2-fact-circuit-finder`, now with Stage-I
+  paraphrase, wrong-answer, negative-fact, and unrelated-logit hardening. Next
+  evidence must add attention/path edges before any broad GPT-2/LLM
   decompilation claim.
 
 ## Current Frontier Target

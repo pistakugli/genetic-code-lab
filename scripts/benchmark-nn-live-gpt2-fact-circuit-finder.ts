@@ -35,16 +35,28 @@ const args = [
   '--model', envValue('GCL_LIVE_GPT2_MODEL', 'gpt2'),
   '--case-count', envValue('GCL_LIVE_GPT2_FACT_COUNT', '50'),
   '--min-valid-cases', envValue('GCL_LIVE_GPT2_MIN_VALID_CASES', '50'),
-  '--layers', envValue('GCL_LIVE_GPT2_LAYERS', '0,3,6,9,11'),
-  '--top-neurons', envValue('GCL_LIVE_GPT2_TOP_NEURONS', '6'),
+  '--layers', envValue('GCL_LIVE_GPT2_LAYERS', '6,9,11'),
+  '--top-neurons', envValue('GCL_LIVE_GPT2_TOP_NEURONS', '50'),
   '--top-logits', envValue('GCL_LIVE_GPT2_TOP_LOGITS', '8'),
   '--control-count', envValue('GCL_LIVE_GPT2_CONTROL_COUNT', '8'),
   '--control-prompt', envValue('GCL_LIVE_GPT2_CONTROL_PROMPT', 'The weather in Berlin is'),
   '--control-seed', envValue('GCL_LIVE_GPT2_CONTROL_SEED', '260603'),
-  '--max-graph-nodes', envValue('GCL_LIVE_GPT2_MAX_GRAPH_NODES', '4'),
+  '--max-graph-nodes', envValue('GCL_LIVE_GPT2_MAX_GRAPH_NODES', '5'),
   '--min-pass-rate', envValue('GCL_LIVE_GPT2_MIN_PASS_RATE', '0.55'),
   '--min-target-drop', envValue('GCL_LIVE_GPT2_MIN_TARGET_DROP', '0.05'),
   '--min-margin-over-control-p95', envValue('GCL_LIVE_GPT2_MIN_MARGIN_OVER_CONTROL_P95', '0.02'),
+  '--paraphrase-count', envValue('GCL_LIVE_GPT2_PARAPHRASE_COUNT', '2'),
+  '--negative-fact-count', envValue('GCL_LIVE_GPT2_NEGATIVE_FACT_COUNT', '2'),
+  '--wrong-answer-count', envValue('GCL_LIVE_GPT2_WRONG_ANSWER_COUNT', '3'),
+  '--unrelated-logit-count', envValue('GCL_LIVE_GPT2_UNRELATED_LOGIT_COUNT', '8'),
+  '--min-paraphrase-pass-rate', envValue('GCL_LIVE_GPT2_MIN_PARAPHRASE_PASS_RATE', '0.70'),
+  '--min-wrong-answer-specificity-rate', envValue('GCL_LIVE_GPT2_MIN_WRONG_ANSWER_SPECIFICITY_RATE', '0.85'),
+  '--min-negative-fact-specificity-rate', envValue('GCL_LIVE_GPT2_MIN_NEGATIVE_FACT_SPECIFICITY_RATE', '0.85'),
+  '--min-unrelated-preservation-rate', envValue('GCL_LIVE_GPT2_MIN_UNRELATED_PRESERVATION_RATE', '0.85'),
+  '--max-wrong-answer-drop-ratio', envValue('GCL_LIVE_GPT2_MAX_WRONG_ANSWER_DROP_RATIO', '0.55'),
+  '--max-candidate-wrong-answer-drop-ratio', envValue('GCL_LIVE_GPT2_MAX_CANDIDATE_WRONG_ANSWER_DROP_RATIO', '0.70'),
+  '--max-negative-fact-drop-ratio', envValue('GCL_LIVE_GPT2_MAX_NEGATIVE_FACT_DROP_RATIO', '0.55'),
+  '--max-unrelated-abs-drop-ratio', envValue('GCL_LIVE_GPT2_MAX_UNRELATED_ABS_DROP_RATIO', '0.65'),
   '--device', envValue('GCL_LIVE_GPT2_DEVICE', 'cpu'),
   '--local-files-only',
   '--output-json', output.jsonOutputPath,
@@ -71,7 +83,7 @@ if (fs.existsSync(output.jsonOutputPath)) {
     summary: report.summary,
     notes: [
       'Real GPT-2 live factual-prompt graph-level circuit finder.',
-      'This uses automatic layer/neuron scanning, token/neuron/target graph construction, joint graph ablation, and graph-level controls.'
+      'This uses automatic layer/neuron scanning, token/neuron/target graph construction, joint graph ablation, graph-level controls, paraphrase validation, wrong-answer targets, negative facts, and unrelated-logit preservation checks.'
     ]
   });
 } else {

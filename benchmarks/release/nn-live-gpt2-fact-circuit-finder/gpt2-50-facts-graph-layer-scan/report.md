@@ -4,104 +4,108 @@ This benchmark uses a real GPT-2 model, real forward-pass hooks, automatic layer
 
 - Pass: `True`
 - Valid cases: `50`
-- Passed cases: `50`
-- Pass rate: `1.0`
-- Median graph joint target-logit drop: `9.597953796386719`
-- Median graph control p95 target-logit drop: `1.7921218872070312`
-- Median graph lift over control p95: `4.993501607767975`
-- Mean selected graph nodes: `3.74`
-- Layers scanned: `[0, 3, 6, 9, 11]`
-- Top neurons per layer: `6`
+- Passed cases: `45`
+- Pass rate: `0.9`
+- Median graph joint target-logit drop: `0.7129135131835938`
+- Median graph control p95 target-logit drop: `0.3569793701171875`
+- Median graph lift over control p95: `1.845643203157706`
+- Mean selected graph nodes: `4.96`
+- Paraphrase validation pass rate: `0.75`
+- Wrong-answer specificity pass rate: `0.9666666666666667`
+- Negative-fact specificity pass rate: `1.0`
+- Unrelated-logit preservation pass rate: `0.8725`
+- Layers scanned: `[6, 9, 11]`
+- Top neurons per layer: `50`
 - Controls per family: `8`
-- Max graph nodes: `4`
+- Max graph nodes: `5`
 
 ## Claim Boundary
 
-Benchmark-scoped evidence that the real GPT-2 live pipeline can automatically scan layers/top activation-contribution neurons, build a token/neuron/target graph, and validate the graph through joint causal ablation above graph-level negative controls across a factual prompt set.
+Benchmark-scoped evidence that the real GPT-2 live pipeline can automatically scan layers/top activation-contribution neurons, build a token/neuron/target graph, validate the graph through joint causal ablation above graph-level controls, and harden it against paraphrase, wrong-answer, negative-fact, and unrelated-logit checks across a factual prompt set.
 
 This is not attention-head/path recovery yet, not full GPT-2 FFN extraction, not arbitrary LLM understanding, and not output-only original-neuron identity.
 
 ## Cases
 
-| subject | answer | status | target rank | graph nodes | graph drop | graph control p95 | graph margin | best layer | best neuron |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| France | Paris | passed | 5 | 4 | 10.166962 | 3.105385 | 7.061577 | 0 | 2845 |
-| Germany | Berlin | passed | 2 | 4 | 9.456749 | 1.702347 | 7.754402 | 0 | 2845 |
-| Italy | Rome | passed | 1 | 4 | 9.516647 | 0.412781 | 9.103867 | 0 | 2845 |
-| Spain | Madrid | passed | 1 | 4 | 9.555214 | 1.723885 | 7.831329 | 0 | 2845 |
-| Portugal | Lisbon | passed | 2 | 4 | 9.319481 | 0.327751 | 8.991730 | 9 | 1828 |
-| Greece | Athens | passed | 1 | 4 | 10.563339 | 1.459114 | 9.104225 | 0 | 2845 |
-| Egypt | Cairo | passed | 2 | 4 | 9.767120 | 0.366425 | 9.400696 | 9 | 1828 |
-| Japan | Tokyo | passed | 2 | 4 | 9.790222 | 1.599899 | 8.190323 | 0 | 2845 |
-| China | Beijing | passed | 10 | 4 | 9.704384 | 2.474213 | 7.230171 | 0 | 2845 |
-| Russia | Moscow | passed | 7 | 4 | 10.315933 | 2.593445 | 7.722488 | 0 | 2845 |
-| Canada | Ottawa | passed | 23 | 4 | 10.940765 | 1.943192 | 8.997574 | 0 | 874 |
-| Australia | Canberra | passed | 17 | 4 | 10.618103 | 1.777977 | 8.840126 | 0 | 874 |
-| Brazil | Brasilia | skipped | - | - | - | - | - | - | - |
-| Sweden | Stockholm | passed | 13 | 4 | 10.255722 | 2.531647 | 7.724075 | 0 | 2845 |
-| Norway | Oslo | passed | 19 | 4 | 10.475067 | 1.080238 | 9.394829 | 0 | 2845 |
-| Denmark | Copenhagen | passed | 11 | 4 | 10.139236 | 3.197227 | 6.942009 | 0 | 874 |
-| Finland | Helsinki | passed | 7 | 4 | 8.937233 | 2.571976 | 6.365257 | 0 | 874 |
-| Poland | Warsaw | passed | 1 | 4 | 10.261368 | 2.121391 | 8.139977 | 0 | 2845 |
-| Hungary | Budapest | passed | 2 | 4 | 9.998451 | 3.274467 | 6.723984 | 0 | 2845 |
-| Austria | Vienna | passed | 13 | 4 | 9.704758 | 1.983871 | 7.720886 | 0 | 2845 |
-| Belgium | Brussels | passed | 11 | 4 | 9.527870 | 2.162788 | 7.365082 | 0 | 874 |
-| Netherlands | Amsterdam | passed | 3 | 4 | 8.976707 | 2.124001 | 6.852707 | 0 | 874 |
-| Ireland | Dublin | passed | 3 | 4 | 11.124382 | 2.500313 | 8.624069 | 0 | 874 |
-| Turkey | Ankara | passed | 12 | 4 | 10.698349 | 2.431816 | 8.266533 | 0 | 874 |
-| Iran | Tehran | passed | 4 | 4 | 9.620506 | 1.926605 | 7.693901 | 0 | 2845 |
-| Iraq | Baghdad | passed | 10 | 4 | 9.597954 | 0.336266 | 9.261688 | 9 | 1828 |
-| Syria | Damascus | passed | 18 | 4 | 10.072174 | 2.605751 | 7.466423 | 0 | 2845 |
-| Jordan | Amman | skipped | - | - | - | - | - | - | - |
-| Israel | Jerusalem | passed | 8 | 4 | 10.019386 | 2.052559 | 7.966827 | 0 | 2845 |
-| Saudi Arabia | Riyadh | passed | 10 | 4 | 7.895279 | 0.272713 | 7.622566 | 9 | 1828 |
-| Pakistan | Islamabad | passed | 3 | 4 | 8.546646 | 1.981613 | 6.565033 | 0 | 874 |
-| Bangladesh | Dhaka | skipped | - | - | - | - | - | - | - |
-| Thailand | Bangkok | passed | 8 | 4 | 9.315147 | 0.348244 | 8.966904 | 9 | 1828 |
-| Vietnam | Hanoi | skipped | - | - | - | - | - | - | - |
-| Indonesia | Jakarta | passed | 10 | 4 | 9.050201 | 0.835594 | 8.214607 | 9 | 1828 |
-| Philippines | Manila | passed | 3 | 4 | 9.489128 | 2.437134 | 7.051994 | 0 | 874 |
-| South Korea | Seoul | passed | 6 | 4 | 8.760201 | 0.352142 | 8.408058 | 0 | 2845 |
-| Belarus | Minsk | skipped | - | - | - | - | - | - | - |
-| Estonia | Tallinn | skipped | - | - | - | - | - | - | - |
-| Latvia | Riga | skipped | - | - | - | - | - | - | - |
-| Lithuania | Vilnius | skipped | - | - | - | - | - | - | - |
-| Romania | Bucharest | skipped | - | - | - | - | - | - | - |
-| Bulgaria | Sofia | skipped | - | - | - | - | - | - | - |
-| Serbia | Belgrade | skipped | - | - | - | - | - | - | - |
-| Croatia | Zagreb | skipped | - | - | - | - | - | - | - |
-| Slovakia | Bratislava | skipped | - | - | - | - | - | - | - |
-| Czech Republic | Prague | passed | 5 | 4 | 8.615654 | 1.112953 | 7.502701 | 0 | 874 |
-| Switzerland | Bern | passed | 299 | 4 | 9.574471 | 1.847267 | 7.727203 | 0 | 2845 |
-| Morocco | Rabat | skipped | - | - | - | - | - | - | - |
-| Algeria | Algiers | skipped | - | - | - | - | - | - | - |
-| Tunisia | Tunis | passed | 23 | 4 | 7.757156 | 2.060722 | 5.696434 | 0 | 2845 |
-| Kenya | Nairobi | skipped | - | - | - | - | - | - | - |
-| Nigeria | Abuja | skipped | - | - | - | - | - | - | - |
-| Ghana | Accra | skipped | - | - | - | - | - | - | - |
-| Senegal | Dakar | skipped | - | - | - | - | - | - | - |
-| Mali | Bamako | skipped | - | - | - | - | - | - | - |
-| Niger | Niamey | skipped | - | - | - | - | - | - | - |
-| Sudan | Khartoum | skipped | - | - | - | - | - | - | - |
-| Uganda | Kampala | skipped | - | - | - | - | - | - | - |
-| Tanzania | Dodoma | skipped | - | - | - | - | - | - | - |
-| Rwanda | Kigali | skipped | - | - | - | - | - | - | - |
-| Chile | Santiago | passed | 11 | 4 | 8.605949 | 1.792122 | 6.813828 | 0 | 2845 |
-| Peru | Lima | passed | 63 | 3 | 7.395676 | 2.287041 | 5.108635 | 0 | 2845 |
-| Colombia | Bogota | skipped | - | - | - | - | - | - | - |
-| Venezuela | Caracas | skipped | - | - | - | - | - | - | - |
-| Cuba | Havana | passed | 16 | 4 | 9.912682 | 2.031479 | 7.881203 | 0 | 2845 |
-| Jamaica | Kingston | passed | 43 | 4 | 9.877563 | 0.439796 | 9.437767 | 9 | 1828 |
-| Uruguay | Montevideo | skipped | - | - | - | - | - | - | - |
-| Paraguay | Asuncion | skipped | - | - | - | - | - | - | - |
-| Ecuador | Quito | skipped | - | - | - | - | - | - | - |
-| largest planet | Jupiter | passed | 7 | 4 | 10.907997 | 0.169624 | 10.738373 | 9 | 1828 |
-| smallest planet | Mercury | passed | 43 | 4 | 12.829201 | 1.625832 | 11.203369 | 0 | 874 |
-| nearest star | Sun | passed | 1 | 1 | 1.802338 | 0.512520 | 1.289818 | 11 | 2910 |
-| grass color | green | passed | 7 | 3 | 8.413315 | 2.103096 | 6.310219 | 0 | 874 |
-| opposite of hot | cold | passed | 1 | 2 | 5.497864 | 0.872467 | 4.625397 | 0 | 874 |
-| number after nine | ten | passed | 119 | 4 | 12.493248 | 0.001923 | 12.491325 | 0 | 874 |
-| month after January | February | passed | 205 | 3 | 10.506828 | 1.041466 | 9.465363 | 0 | 874 |
-| frozen water | ice | passed | 2 | 1 | 8.468842 | 2.030708 | 6.438133 | 0 | 2754 |
-| baby dog | puppy | passed | 5 | 4 | 4.166328 | 0.156548 | 4.009781 | 9 | 1312 |
-| female parent | mother | passed | 4 | 2 | 5.352074 | 0.951622 | 4.400452 | 9 | 1312 |
+| subject | answer | status | target rank | graph nodes | graph drop | graph control p95 | graph margin | hardening | best layer | best neuron |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| France | Paris | passed | 5 | 5 | 0.541969 | 0.356186 | 0.185783 | True | 9 | 1828 |
+| Germany | Berlin | passed | 2 | 5 | 0.593224 | 0.000000 | 0.593224 | False | 9 | 1409 |
+| Italy | Rome | passed | 1 | 5 | 0.479263 | 0.377739 | 0.101524 | False | 9 | 1828 |
+| Spain | Madrid | passed | 1 | 5 | 0.568916 | 0.000000 | 0.568916 | True | 9 | 2416 |
+| Portugal | Lisbon | failed | 2 | 5 | 0.869118 | 0.983238 | -0.114120 | True | 9 | 1828 |
+| Greece | Athens | passed | 1 | 5 | 0.739990 | 0.608505 | 0.131485 | True | 9 | 1828 |
+| Egypt | Cairo | passed | 2 | 5 | 0.799164 | 0.554832 | 0.244331 | False | 9 | 1828 |
+| Japan | Tokyo | passed | 2 | 5 | 0.542244 | 0.302277 | 0.239967 | False | 9 | 1828 |
+| China | Beijing | passed | 10 | 5 | 0.529465 | 0.481621 | 0.047844 | True | 9 | 2416 |
+| Russia | Moscow | passed | 7 | 5 | 1.534798 | 0.188492 | 1.346306 | False | 9 | 2416 |
+| Canada | Ottawa | passed | 23 | 5 | 0.539627 | 0.000000 | 0.539627 | True | 9 | 2746 |
+| Australia | Canberra | passed | 17 | 5 | 0.600212 | 0.306099 | 0.294113 | True | 9 | 1828 |
+| Brazil | Brasilia | skipped | - | - | - | - | - | - | - | - |
+| Sweden | Stockholm | passed | 13 | 5 | 0.963264 | 0.340660 | 0.622604 | False | 9 | 1828 |
+| Norway | Oslo | passed | 19 | 5 | 1.150993 | 0.476501 | 0.674492 | False | 9 | 1828 |
+| Denmark | Copenhagen | passed | 11 | 5 | 0.941460 | 0.431267 | 0.510193 | True | 9 | 1828 |
+| Finland | Helsinki | passed | 7 | 5 | 1.223145 | 0.358612 | 0.864532 | True | 9 | 1828 |
+| Poland | Warsaw | passed | 1 | 5 | 0.823303 | 0.544434 | 0.278870 | True | 9 | 2416 |
+| Hungary | Budapest | passed | 2 | 5 | 1.229851 | 0.190628 | 1.039223 | True | 9 | 2416 |
+| Austria | Vienna | passed | 13 | 5 | 0.866959 | 0.377350 | 0.489609 | False | 9 | 1828 |
+| Belgium | Brussels | passed | 11 | 3 | 0.688850 | 0.335548 | 0.353302 | False | 9 | 1828 |
+| Netherlands | Amsterdam | failed | 3 | 5 | 0.310921 | 0.612320 | -0.301399 | False | 9 | 1828 |
+| Ireland | Dublin | passed | 3 | 5 | 0.608452 | 0.428818 | 0.179634 | False | 9 | 1828 |
+| Turkey | Ankara | passed | 12 | 5 | 2.489037 | 0.223511 | 2.265526 | True | 9 | 2416 |
+| Iran | Tehran | passed | 4 | 5 | 0.887604 | 0.650276 | 0.237328 | True | 9 | 2416 |
+| Iraq | Baghdad | passed | 10 | 5 | 0.763351 | 0.336266 | 0.427086 | False | 9 | 1828 |
+| Syria | Damascus | passed | 18 | 5 | 0.995361 | 0.658424 | 0.336937 | True | 9 | 2416 |
+| Jordan | Amman | skipped | - | - | - | - | - | - | - | - |
+| Israel | Jerusalem | passed | 8 | 5 | 0.607231 | 0.412682 | 0.194550 | False | 9 | 1828 |
+| Saudi Arabia | Riyadh | passed | 10 | 5 | 1.072502 | 0.271652 | 0.800850 | False | 9 | 1828 |
+| Pakistan | Islamabad | passed | 3 | 5 | 0.792046 | 0.325798 | 0.466248 | False | 9 | 1828 |
+| Bangladesh | Dhaka | skipped | - | - | - | - | - | - | - | - |
+| Thailand | Bangkok | passed | 8 | 5 | 0.824661 | 0.577202 | 0.247459 | False | 9 | 1828 |
+| Vietnam | Hanoi | skipped | - | - | - | - | - | - | - | - |
+| Indonesia | Jakarta | passed | 10 | 5 | 1.071083 | 1.047318 | 0.023766 | False | 9 | 2416 |
+| Philippines | Manila | passed | 3 | 5 | 0.706352 | 0.382713 | 0.323639 | False | 9 | 1828 |
+| South Korea | Seoul | failed | 6 | 5 | 0.309166 | 0.294899 | 0.014267 | False | 9 | 1828 |
+| Belarus | Minsk | skipped | - | - | - | - | - | - | - | - |
+| Estonia | Tallinn | skipped | - | - | - | - | - | - | - | - |
+| Latvia | Riga | skipped | - | - | - | - | - | - | - | - |
+| Lithuania | Vilnius | skipped | - | - | - | - | - | - | - | - |
+| Romania | Bucharest | skipped | - | - | - | - | - | - | - | - |
+| Bulgaria | Sofia | skipped | - | - | - | - | - | - | - | - |
+| Serbia | Belgrade | skipped | - | - | - | - | - | - | - | - |
+| Croatia | Zagreb | skipped | - | - | - | - | - | - | - | - |
+| Slovakia | Bratislava | skipped | - | - | - | - | - | - | - | - |
+| Czech Republic | Prague | passed | 5 | 5 | 1.340836 | 0.356979 | 0.983856 | True | 9 | 1828 |
+| Switzerland | Bern | passed | 299 | 5 | 0.642700 | 0.364204 | 0.278496 | True | 9 | 1828 |
+| Morocco | Rabat | skipped | - | - | - | - | - | - | - | - |
+| Algeria | Algiers | skipped | - | - | - | - | - | - | - | - |
+| Tunisia | Tunis | failed | 23 | 5 | 0.453911 | 0.837578 | -0.383667 | True | 9 | 2416 |
+| Kenya | Nairobi | skipped | - | - | - | - | - | - | - | - |
+| Nigeria | Abuja | skipped | - | - | - | - | - | - | - | - |
+| Ghana | Accra | skipped | - | - | - | - | - | - | - | - |
+| Senegal | Dakar | skipped | - | - | - | - | - | - | - | - |
+| Mali | Bamako | skipped | - | - | - | - | - | - | - | - |
+| Niger | Niamey | skipped | - | - | - | - | - | - | - | - |
+| Sudan | Khartoum | skipped | - | - | - | - | - | - | - | - |
+| Uganda | Kampala | skipped | - | - | - | - | - | - | - | - |
+| Tanzania | Dodoma | skipped | - | - | - | - | - | - | - | - |
+| Rwanda | Kigali | skipped | - | - | - | - | - | - | - | - |
+| Chile | Santiago | passed | 11 | 5 | 0.712914 | 0.496262 | 0.216652 | False | 9 | 1828 |
+| Peru | Lima | passed | 63 | 5 | 0.383720 | 0.334801 | 0.048920 | False | 9 | 1828 |
+| Colombia | Bogota | skipped | - | - | - | - | - | - | - | - |
+| Venezuela | Caracas | skipped | - | - | - | - | - | - | - | - |
+| Cuba | Havana | passed | 16 | 5 | 0.912186 | 0.368591 | 0.543594 | True | 9 | 1828 |
+| Jamaica | Kingston | passed | 43 | 5 | 0.489510 | 0.318504 | 0.171005 | False | 9 | 1828 |
+| Uruguay | Montevideo | skipped | - | - | - | - | - | - | - | - |
+| Paraguay | Asuncion | skipped | - | - | - | - | - | - | - | - |
+| Ecuador | Quito | skipped | - | - | - | - | - | - | - | - |
+| largest planet | Jupiter | passed | 7 | 5 | 1.268684 | 0.832397 | 0.436287 | True | 9 | 662 |
+| smallest planet | Mercury | passed | 43 | 5 | 0.425140 | 0.293915 | 0.131226 | True | 9 | 662 |
+| nearest star | Sun | passed | 1 | 5 | 0.519554 | 0.015656 | 0.503899 | True | 11 | 2527 |
+| grass color | green | passed | 7 | 5 | 0.666512 | 0.224762 | 0.441750 | True | 11 | 2471 |
+| opposite of hot | cold | passed | 1 | 5 | 0.547638 | 0.184494 | 0.363144 | True | 6 | 219 |
+| number after nine | ten | failed | 119 | 5 | 0.233307 | 0.584312 | -0.351006 | False | 9 | 2798 |
+| month after January | February | passed | 205 | 5 | 0.914276 | 0.152924 | 0.761353 | True | 9 | 1873 |
+| frozen water | ice | passed | 2 | 5 | 0.510277 | 0.013748 | 0.496529 | True | 11 | 965 |
+| baby dog | puppy | passed | 5 | 5 | 2.533447 | 0.452110 | 2.081337 | False | 11 | 165 |
+| female parent | mother | passed | 4 | 5 | 0.883804 | 0.135529 | 0.748276 | True | 11 | 2627 |
