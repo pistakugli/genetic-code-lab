@@ -55,16 +55,18 @@ Current result:
 - strict case definition `graphGate.pass && hardeningGate.pass`;
 - 50 valid facts, 50 strict-passed cases, 50 graph-passed cases, 50
   hardening-passed cases, pass rate `1.0`;
-- median joint graph target-logit drop `0.2544403076171875`;
-- p10 joint graph target-logit drop `0.10530853271484375`;
+- median joint graph target-logit drop `0.25433349609375`;
+- p10 joint graph target-logit drop `0.1052703857421875`;
 - median graph-control p95 positive target-logit drop `0.06884765625`;
-- median graph lift over control p95 `3.8083037124802526`;
+- median graph lift over control p95 `3.8081556082148498`;
 - mean selected graph node count `1.6`;
 - hardening pass rates: paraphrase `1.0`, wrong-answer specificity `1.0`,
   negative-fact specificity `1.0`, unrelated-logit preservation `0.955`;
 - primary layers `[6,9,11]`, adaptive fallback layers `[0..11]` on strict
   primary failures; the current report used fallback on Russia only.
 - 46 unique selected graph neurons.
+- current artifact records `model.device = cuda` after the explicit GPU
+  benchmark command.
 
 The next production path is:
 
@@ -622,11 +624,11 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   - Current result: pass `true`, strict case definition
     `graphGate.pass && hardeningGate.pass`, 50 valid facts, 50 strict-passed
     cases, 50 graph-passed cases, 50 hardening-passed cases, pass rate `1.0`,
-    median joint graph target-logit drop `0.2544403076171875`, p10 graph drop
-    `0.10530853271484375`, median graph-control p95 positive target-logit drop
+    median joint graph target-logit drop `0.25433349609375`, p10 graph drop
+    `0.1052703857421875`, median graph-control p95 positive target-logit drop
     `0.06884765625`, median graph lift over control p95
-    `3.8083037124802526`, mean selected graph node count `1.6`, and 46 unique
-    selected graph neurons.
+    `3.8081556082148498`, mean selected graph node count `1.6`, and 46 unique
+    selected graph neurons. The current artifact records `model.device = cuda`.
   - Output: recovered token/neuron/target circuit graphs with token-support
     edges, neuron-target causal-drop edges, selected-graph joint ablation, and
     graph-level negative controls.
@@ -651,6 +653,11 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     control selection, and runtime dependency metadata.
   - Verified gate: the full 50-fact GPT-2 graph benchmark still passes with
     strict case definition `graphGate.pass && hardeningGate.pass`.
+  - Runtime acceleration lane: CPU remains the default release path, while GPU
+    execution is explicit through `.gcl-python-gpu`, `npm run python:setup:gpu`,
+    and `npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu`. The GPU setup
+    must prove CUDA through `torch.cuda.is_available()` and a real CUDA tensor
+    operation before any GPU benchmark claim is accepted.
   - Gate 2: Pythia/GPT-Neo GELU adapters must run the same graph-search and
     hardening protocol with model/tokenizer identity, layer/component mapping,
     controls, warnings, and budgets recorded.

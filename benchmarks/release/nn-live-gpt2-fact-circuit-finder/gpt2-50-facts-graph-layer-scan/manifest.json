@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-04T18:20:41.217Z",
+  "generatedAt": "2026-06-04T18:43:21.495Z",
   "lane": "nn-live-gpt2-fact-circuit-finder",
   "variant": "gpt2-50-facts-graph-layer-scan",
   "status": "pass",
@@ -9,14 +9,17 @@
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-gpt2-fact-circuit-finder.ts"
     ],
-    "npmLifecycleEvent": "benchmark:nn-live-gpt2-fact-circuit-finder",
+    "npmLifecycleEvent": "benchmark:nn-live-gpt2-fact-circuit-finder:gpu",
     "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
     "node": "v22.22.2"
   },
-  "env": {},
+  "env": {
+    "GCL_LIVE_GPT2_DEVICE": "cuda",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
   "git": {
-    "commit": "cab51584275e7149d869f7fdd161c7321e05f826",
-    "statusShort": "M benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json\n M tools/llm-reader-gpt2-factual-sweep.py\n?? tools/llm_reader/"
+    "commit": "d9a58d40b3656f396c7c8f2a09c39ffdf5d822b1",
+    "statusShort": "M .gitignore\n M README.md\n M benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json\n M benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.md\n M docs/evidence-map.md\n M docs/gcl-north-star.md\n M docs/nn-decompiler-roadmap.md\n M package.json\n?? requirements/gcl-python-gpu.txt\n?? tools/setup-gcl-python-gpu.sh"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json",
@@ -33,16 +36,16 @@
     "failedCases": 0,
     "skippedCases": 30,
     "passRate": 1,
-    "medianBestTargetLogitDrop": 1.8946914672851562,
-    "p10BestTargetLogitDrop": 0.4284210205078125,
-    "medianControlP95PositiveTargetLogitDrop": 0.291595458984375,
-    "medianLiftOverControlP95": 5.199356558217287,
-    "minLiftOverControlP95": 0.5827660050500207,
-    "medianGraphJointTargetLogitDrop": 0.2544403076171875,
-    "p10GraphJointTargetLogitDrop": 0.10530853271484375,
+    "medianBestTargetLogitDrop": 1.8947067260742188,
+    "p10BestTargetLogitDrop": 0.42838287353515625,
+    "medianControlP95PositiveTargetLogitDrop": 0.2916259765625,
+    "medianLiftOverControlP95": 5.199962146304533,
+    "minLiftOverControlP95": 0.5828352245485057,
+    "medianGraphJointTargetLogitDrop": 0.25433349609375,
+    "p10GraphJointTargetLogitDrop": 0.1052703857421875,
     "medianGraphControlP95PositiveTargetLogitDrop": 0.06884765625,
-    "medianGraphLiftOverControlP95": 3.8083037124802526,
-    "minGraphLiftOverControlP95": 1.2035052709210012,
+    "medianGraphLiftOverControlP95": 3.8081556082148498,
+    "minGraphLiftOverControlP95": 1.2035663152414422,
     "meanGraphSelectedNodeCount": 1.6,
     "uniqueSelectedGraphNeurons": 46,
     "selectedGraphLayerHistogram": {
@@ -66,35 +69,35 @@
         "count": 80,
         "passed": 80,
         "passRate": 1,
-        "medianTargetLogitDrop": 0.337921142578125,
-        "maxTargetLogitDrop": 2.3235015869140625,
-        "medianRatioToPrimaryGraphDrop": 1.0244832625791636,
-        "maxRatioToPrimaryGraphDrop": 5.477615631956468
+        "medianTargetLogitDrop": 0.3378143310546875,
+        "maxTargetLogitDrop": 2.3234786987304688,
+        "medianRatioToPrimaryGraphDrop": 1.0245389379915095,
+        "maxRatioToPrimaryGraphDrop": 5.477238990598713
       },
       "wrongAnswerSummary": {
         "count": 150,
         "passed": 150,
         "passRate": 1,
-        "medianTargetLogitDrop": 0.08869171142578125,
-        "maxTargetLogitDrop": 0.5237045288085938,
-        "medianRatioToPrimaryGraphDrop": 0.31928315988266964,
-        "maxRatioToPrimaryGraphDrop": 0.5494072801910108
+        "medianTargetLogitDrop": 0.08868408203125,
+        "maxTargetLogitDrop": 0.5236740112304688,
+        "medianRatioToPrimaryGraphDrop": 0.31959798994974875,
+        "maxRatioToPrimaryGraphDrop": 0.5492544814876864
       },
       "negativeFactSummary": {
         "count": 100,
         "passed": 100,
         "passRate": 1,
         "medianTargetLogitDrop": 0,
-        "maxTargetLogitDrop": 0.168731689453125,
+        "maxTargetLogitDrop": 0.16876220703125,
         "medianRatioToPrimaryGraphDrop": 0,
-        "maxRatioToPrimaryGraphDrop": 0.5381555153707053
+        "maxRatioToPrimaryGraphDrop": 0.5383549261825851
       },
       "unrelatedLogitSummary": {
         "count": 400,
         "passed": 382,
         "passRate": 0.955,
-        "medianAbsDropRatioToPrimaryGraphDrop": 0.32791743306764765,
-        "maxAbsDropRatioToPrimaryGraphDrop": 1.1185372005044136
+        "medianAbsDropRatioToPrimaryGraphDrop": 0.32791660279012724,
+        "maxAbsDropRatioToPrimaryGraphDrop": 1.1185284082480345
       },
       "failedSubjects": []
     },

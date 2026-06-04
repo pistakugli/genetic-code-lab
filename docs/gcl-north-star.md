@@ -133,14 +133,16 @@ is
 50 valid facts, strict case definition `graphGate.pass && hardeningGate.pass`,
 50 strict-passed cases, graph-passed cases `50`, hardening-passed cases `50`,
 pass rate `1.0`, median joint graph target-logit drop
-`0.2544403076171875`, p10 graph drop `0.10530853271484375`, median
+`0.25433349609375`, p10 graph drop `0.1052703857421875`, median
 graph-control p95 positive target-logit drop `0.06884765625`, median graph
-lift over control p95 `3.8083037124802526`, mean selected graph node count
+lift over control p95 `3.8081556082148498`, mean selected graph node count
 `1.6`, and 46 unique selected graph neurons. Stage-I hardening passed with
 paraphrase pass rate `1.0`, wrong-answer specificity `1.0`, negative-fact
 specificity `1.0`, and unrelated-logit preservation `0.955`. The benchmark
 uses primary layers `[6,9,11]` and adaptive fallback to `[0..11]` on strict
-primary failures; the current report used fallback on Russia only.
+primary failures; the current report used fallback on Russia only. The current
+artifact was generated with the explicit GPU command and records
+`model.device = cuda`.
 
 Boundary: hook reading, activation ablation, logit-delta scoring, and negative
 controls are known mechanistic-interpretability measurement techniques. They
@@ -164,6 +166,12 @@ The next development must stay on this order:
    selection now go through a typed adapter boundary. The circuit finder must
    not hard-code GPT-2. The next adapter targets are GPT-Neo/Pythia-style
    HuggingFace models and then LLaMA/Mistral-style SwiGLU models.
+   Runtime acceleration is explicit and hardware-gated: CPU remains the default
+   release path, while NVIDIA CUDA runs use `.gcl-python-gpu`,
+   `npm run python:setup:gpu`, and
+   `npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu`. The GPU setup must
+   prove `torch.cuda.is_available()` and a real CUDA tensor operation before GPU
+   benchmark output is trusted.
 2. Add attention-head and path edges:
    extend the graph beyond MLP neurons into attention heads/value paths and
    path-patching-style interventions while keeping token/neuron/target evidence

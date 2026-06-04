@@ -14,7 +14,9 @@ benchmark command, not a hidden synthetic fixture and not a fitted surrogate.
 Its current artifact reports 50 valid factual prompts, 50 strict-passed cases
 under `graphGate.pass && hardeningGate.pass`, and Stage-I hardening over
 paraphrase, wrong-answer, negative-fact, and unrelated-logit controls. This
-does not promote attention-head/path recovery or arbitrary LLM understanding.
+artifact was regenerated through the explicit CUDA runtime lane and records
+`model.device = cuda`. This does not promote attention-head/path recovery or
+arbitrary LLM understanding.
 
 Release benchmark scripts now write to `benchmarks/release/<lane>/<variant>/report.{json,md}` and `manifest.json` by default. Root-level `benchmarks/*.json` and `benchmarks/*.md` are legacy mixed-use artifacts and should be treated as command-scoped evidence, not timeless truth.
 

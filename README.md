@@ -156,6 +156,19 @@ npm run llm:read:gpt2
 npm run benchmark:nn-live-gpt2-fact-circuit-finder
 ```
 
+GPU-accelerated live GPT-2 instrumentation on machines with NVIDIA CUDA:
+
+```bash
+npm run python:setup:gpu
+npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu
+```
+
+The CPU environment remains the default reproducible release path. The GPU
+environment is intentionally separate at `.gcl-python-gpu` and is used only when
+`GCL_PYTHON=.gcl-python-gpu/bin/python` and `GCL_LIVE_GPT2_DEVICE=cuda` are set.
+`npm run python:setup:gpu` installs a CUDA PyTorch wheel and fails if
+`torch.cuda.is_available()` is false or a real CUDA tensor probe cannot run.
+
 The live reader loads the real local GPT-2 model through the GCL-managed Python
 runtime, hooks real MLP activations, runs causal neuron ablations, and records
 negative-control families. GCL now also has a first benchmark-scoped live GPT-2
@@ -218,13 +231,14 @@ What these gates currently support:
   set with Stage-I hardening: `50` valid facts, strict case definition
   `graphGate.pass && hardeningGate.pass`, `50` strict-passed cases, `50`
   graph-passed cases, `50` hardening-passed cases, pass rate `1.0`, median
-  joint graph target-logit drop `0.2544403076171875`, p10 graph drop
-  `0.10530853271484375`, median graph-control p95 positive target-logit drop
+  joint graph target-logit drop `0.25433349609375`, p10 graph drop
+  `0.1052703857421875`, median graph-control p95 positive target-logit drop
   `0.06884765625`, median graph lift over control p95
-  `3.8083037124802526`, mean selected graph node count `1.6`, and `46` unique
+  `3.8081556082148498`, mean selected graph node count `1.6`, and `46` unique
   selected graph neurons. Hardening passed with paraphrase pass rate `1.0`,
   wrong-answer specificity `1.0`, negative-fact specificity `1.0`, and
-  unrelated-logit preservation `0.955`. The artifact is
+  unrelated-logit preservation `0.955`. The current artifact was generated with
+  the GPU command and records `model.device = cuda`. The artifact is
   `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`.
 
 What they do not support yet:
