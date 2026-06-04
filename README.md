@@ -153,15 +153,19 @@ Live GPT-2 oracle instrumentation:
 ```bash
 npm run python:setup
 npm run llm:read:gpt2
+npm run benchmark:nn-live-gpt2-fact-circuit-finder
 ```
 
 The live reader loads the real local GPT-2 model through the GCL-managed Python
 runtime, hooks real MLP activations, runs causal neuron ablations, and records
-negative-control families. This is the measurement layer for the next roadmap
-step: an automatic GPT-2 circuit finder. Hooking, ablation, logit-delta scoring,
-and negative controls are known mechanistic-interpretability techniques; GCL's
-next claim must come from automatic circuit selection and graph evidence, not
-from another hand-inspected ablation report.
+negative-control families. GCL now also has a first benchmark-scoped live GPT-2
+fact-circuit finder: it scans real GPT-2 layers/top MLP neurons for factual
+prompts, builds token/neuron/target graph artifacts, and validates the selected
+graph through joint causal ablation against graph-level controls. Hooking,
+ablation, logit-delta scoring, and controls are known mechanistic-
+interpretability sensors; the GCL claim is the automatic graph selection,
+control-normalized graph evidence, and release artifact, not a hand-inspected
+single-neuron demo.
 
 What these gates currently support:
 
@@ -209,8 +213,15 @@ What these gates currently support:
   `0.9106904584057108`, and `19540` raw oracle calls.
 - Live GPT-2 oracle instrumentation: real model loading, real forward-pass MLP
   hooks, causal ablations, and disjoint negative-control families for the
-  current GPT-2 prompt test. This supports the planned automatic circuit finder;
-  it is not the circuit finder itself.
+  current GPT-2 prompt test.
+- Live GPT-2 graph-level fact circuit finding for the configured factual prompt
+  set: `50` valid facts, `50` passed cases, median joint graph target-logit drop
+  `9.597953796386719`, median graph-control p95 positive target-logit drop
+  `1.7921218872070312`, median graph lift over control p95
+  `4.993501607767975`, minimum graph lift `3.053458716515491`, mean selected
+  graph node count `3.74`, and `15` unique selected graph neurons. The artifact
+  is
+  `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`.
 
 What they do not support yet:
 
@@ -221,9 +232,11 @@ What they do not support yet:
   provenance instrumentation.
 - Full GPT-2/LLM FFN extraction, arbitrary transformer block decompilation, or
   production-model source identity from the local transformer hook gate alone.
-- Automatic GPT-2 circuit discovery from the live reader alone. The current live
-  reader is an oracle/measurement layer; the roadmap now requires `GPT2Oracle`,
-  `AutomaticCircuitFinder`, and a fact-circuit gate before that claim is valid.
+- Treating the single-prompt live reader as circuit discovery. The new
+  fact-circuit finder is benchmark-scoped MLP graph discovery for a configured
+  real GPT-2 factual prompt set; it is not attention-head/path recovery, full
+  GPT-2 FFN extraction, arbitrary LLM understanding, or output-only original
+  neuron identity.
 - Arbitrary noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs beyond the
   controlled release-gated noisy mixed GELU, noisy mixed SwiGLU, and shared-gate
   SwiGLU canonicalization families.
@@ -266,8 +279,8 @@ rank-adaptive mixed GELU gate, near-parallel mixed GELU family, and
 cross-decomposition GELU invariance gate, GELU formalization negative-case
 gate, noisy mixed GELU IID/OOD prediction-sanity court, mixed SwiGLU structure
 gate, noisy mixed SwiGLU structure gate, shared-gate cancellation SwiGLU
-canonical gate, source-neuron provenance verifier gate, and local transformer
-MLP hook gate. This is
+canonical gate, source-neuron provenance verifier gate, local transformer MLP
+hook gate, and live GPT-2 fact circuit finder gate. This is
 release-lane proof, not a promotion of scratch experiments, not
 full GPT-2/LLM extraction, not a pure-GCL universal superiority claim, and not a
 broad SOTA claim.

@@ -122,31 +122,45 @@ and run negative-control ablations. The current local proof for
 controls, 50 off-prompt controls, same-neuron other-position controls, and a
 cross-family overlap audit.
 
+The first automatic graph-level gate now exists:
+`npm run benchmark:nn-live-gpt2-fact-circuit-finder`. It loads real GPT-2,
+scans configured factual prompts across selected layers/top MLP neurons, builds
+token/neuron/target graph artifacts, and validates each selected graph through
+joint causal ablation against graph-level controls. The current release artifact
+is
+`benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`:
+50 valid facts, 50 passed cases, median joint graph target-logit drop
+`9.597953796386719`, median graph-control p95 positive target-logit drop
+`1.7921218872070312`, median graph lift over control p95
+`4.993501607767975`, minimum graph lift `3.053458716515491`, mean selected
+graph node count `3.74`, and 15 unique selected graph neurons.
+
 Boundary: hook reading, activation ablation, logit-delta scoring, and negative
 controls are known mechanistic-interpretability measurement techniques. They
 are not the GCL invention by themselves. In this rail they are the measurement
-layer that feeds a GCL-native automatic circuit finder. A result in this rail
-may not be promoted as "GCL understands GPT-2" until the system selects the
-circuit automatically, validates it across prompt templates and negative facts,
-and emits a graph with causal evidence and query-budget accounting.
+layer for GCL-native circuit discovery. The current graph finder is a
+benchmark-scoped MLP circuit finder for the configured GPT-2 factual prompt set;
+it is not attention-head/path recovery, full GPT-2 FFN extraction, arbitrary
+LLM understanding, or output-only original-neuron identity.
 
 ## Current Mainline
 
 The next development must stay on this order:
 
-1. Build the live GPT-2 oracle control plane:
+1. Harden `nn-live-gpt2-fact-circuit-finder`:
+   add paraphrased factual prompts, negative facts, wrong-answer target tokens,
+   preserved unrelated-logit checks, graph stability metrics, and explicit
+   failure artifacts for skipped/unstable facts.
+2. Add attention-head and path edges:
+   extend the graph beyond MLP neurons into attention heads/value paths and
+   path-patching-style interventions while keeping token/neuron/target evidence
+   comparable to the current gate.
+3. Refactor the current live-reader/fact-finder runtime into a reusable
+   `GPT2Oracle` control plane:
    prompt/token/layer/component/intervention -> logits, activations, logit
-   deltas, controls, cache keys, and query-budget records. This must use the
-   real model runtime, not synthetic teachers and not a fitted surrogate.
-2. Build the automatic circuit finder:
-   from a target such as `France -> Paris`, GCL must search candidate layers,
-   token positions, MLP neurons, and later attention heads without a human
-   hand-picking the neuron list. It must rank nodes by causal effect,
-   control-normalized effect, prompt-template stability, and graph minimality.
-3. Add the first `nn-live-gpt2-circuit-finder` release candidate gate:
-   multiple factual prompts, paraphrases, negative facts, random-active,
-   random-inactive, off-prompt, and other-position controls, with a graph
-   artifact under `benchmarks/release/...`.
+   deltas, controls, cache keys, runtime warnings, and query-budget records.
+   This must keep using the real model runtime, not synthetic teachers and not a
+   fitted surrogate.
 4. Continue blind real GPT-2 top-K FFN recovery and source-structure scaling
    only when it feeds the circuit finder or verifies source/provenance for
    circuits the live oracle selected.
@@ -157,9 +171,9 @@ Do not make 7D/8D ReLU scaling the center of the project. ReLU ND work remains
 important only when it improves the probing, adjacency, query-budget, or
 failure-generation machinery needed by the smooth FFN decompiler.
 
-Do not make another hook-and-ablate report the center of the project. The live
-LLM reader is useful only if it becomes an oracle interface for automatic
-circuit discovery.
+Do not make another single-prompt hook-and-ablate report the center of the
+project. The live LLM reader is useful only when it feeds graph-level circuit
+discovery, graph stability tests, and path-level interventions.
 
 ## Proof Standard
 
@@ -186,8 +200,11 @@ Do not claim:
 - scratch output as release evidence;
 - a surrogate as a structure finder.
 - instrumented source extraction as proof of output-only decompilation.
-- live GPT-2 hook/ablation instrumentation as proof of automatic circuit
-  discovery before the circuit finder exists and passes its gate.
+- single-prompt live GPT-2 hook/ablation instrumentation as proof of automatic
+  circuit discovery.
+- the current MLP-only fact-circuit graph gate as proof of attention-head/path
+  recovery, full GPT-2 FFN extraction, arbitrary LLM understanding, or
+  output-only original-neuron identity.
 
 If a benchmark exposes a weakness, the weakness becomes a gate, a negative
 case, or a visible non-promoted limitation. It must not be hidden by easier

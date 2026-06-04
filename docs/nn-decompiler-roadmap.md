@@ -28,47 +28,62 @@ the failure becomes an explicit test or benchmark variant, and the implementatio
 must be fixed or the limitation must remain visible as a failing/non-promoted
 gate. Do not make the task easier just to preserve a pass.
 
-## Immediate Pivot: Live GPT-2 Oracle Circuit Finder
+## Immediate Pivot: Live GPT-2 Graph Circuit Finder
 
 The live GPT-2 reader is not the destination. It is the measurement layer.
 Hooking activations, ablating neurons, measuring logit deltas, and comparing
 negative controls are known mechanistic-interpretability techniques. GCL must
-use them as sensors, then add the missing mechanism: automatic oracle-driven
-circuit discovery.
+use them as sensors for automatic graph discovery, not as the final claim.
+
+The first graph-level gate now exists:
+`npm run benchmark:nn-live-gpt2-fact-circuit-finder`. It loads the real GPT-2
+runtime, scans configured factual prompts across selected layers/top MLP
+neurons, emits token/neuron/target graph artifacts, and validates selected
+graphs through joint causal ablation above graph-level controls.
+
+Current gate artifact:
+
+```text
+benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json
+```
+
+Current result:
+
+- pass `true`;
+- 50 valid facts, 50 passed cases;
+- median joint graph target-logit drop `9.597953796386719`;
+- p10 joint graph target-logit drop `7.7571563720703125`;
+- median graph-control p95 positive target-logit drop `1.7921218872070312`;
+- median graph lift over control p95 `4.993501607767975`;
+- minimum graph lift over control p95 `3.053458716515491`;
+- mean selected graph node count `3.74`;
+- 15 unique selected graph neurons.
 
 The next production path is:
 
-1. `GPT2Oracle`
-   - Load the real model through the managed GCL Python runtime.
-   - Expose deterministic calls for prompt, token position, layer, component,
-     neuron/head intervention, logits, activations, and candidate-token deltas.
-   - Record query/intervention budgets, cache keys, runtime warnings, model
-     hash/identity, tokenizer identity, and failure details.
-   - Hard-fail model/runtime/import/hook-shape errors. Do not silence them.
-2. `AutomaticCircuitFinder`
-   - Start from a target relation such as `France -> Paris`.
-   - Search candidate token positions, layers, MLP neurons, and then attention
-     heads without a human-provided neuron list.
-   - Score candidates by causal target-logit effect, collateral damage,
-     random-active controls, random-inactive controls, off-prompt controls,
-     same-neuron other-position controls, prompt-template stability, and graph
-     minimality.
-   - Emit a graph, not just a ranked neuron table.
-3. `FactCircuitTask`
-   - Run multiple factual prompts and paraphrases.
-   - Include negative facts and unrelated prompt controls.
-   - Require a compact recovered circuit to explain the target-token effect
-     better than controls while preserving unrelated logits.
-   - Write artifacts under
-     `benchmarks/release/nn-live-gpt2-circuit-finder/<variant>/report.json`.
-4. Expansion after the first gate
-   - Add attention-head path search and path-patching style interventions.
-   - Run the same circuit search over a fact set, not one hand-picked prompt.
-   - Compare graph stability across prompt templates and token positions.
-   - Only then revisit larger GPT-2/LLM blocks.
+1. Harden `nn-live-gpt2-fact-circuit-finder`
+   - Add paraphrased factual prompts, negative facts, wrong-answer targets,
+     unrelated-logit preservation, graph stability metrics, and explicit
+     skipped/unstable-fact failure artifacts.
+   - Keep hard failures for runtime/import/hook-shape/control-overlap problems.
+     Do not silence them.
+2. Add attention-head and path graph recovery
+   - Extend candidate search from MLP neurons to attention heads/value paths and
+     path-patching-style interventions.
+   - Emit comparable token/head/neuron/target graph edges with causal effect,
+     collateral damage, and control-normalized effect.
+3. Formalize `GPT2Oracle`
+   - Refactor the current live reader/fact finder into a reusable typed oracle
+     for prompt, token position, layer, component, intervention, logits,
+     activations, deltas, controls, cache ids, runtime warnings, model identity,
+     tokenizer identity, and query/intervention budgets.
+4. Scale the fact set and model coverage
+   - Run the same graph search over larger factual sets and then larger local
+     transformer models only after the GPT-2 graph hardening and path recovery
+     gates hold.
 
-This pivot forbids promoting another hook-and-ablate report as an innovation.
-The innovation target is automatic circuit selection and graph evidence from a
+This pivot forbids promoting another single-prompt hook-and-ablate report as an
+innovation. The innovation target is stable automatic graph evidence from a
 real model oracle.
 
 ## SOTA Seriousness Checklist
@@ -582,38 +597,49 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `crossFamilyNeuronOverlap`.
   - Claim boundary: this is real model instrumentation and causal measurement,
     not the GCL invention by itself. It may not be called automatic circuit
-    discovery until Stage H/I pass.
-- Stage H: `GPT2Oracle` control plane.
-  - NEXT implementation target.
-  - Convert the current live-reader script into a reusable oracle interface
-    with typed request/response records for logits, activations, interventions,
-    ablations, control families, cache ids, and budget accounting.
-  - Runtime failures, import warnings, hook mismatches, tokenizer mismatches,
-    non-disjoint controls, and empty-control families must be hard failures or
-    visible artifact errors.
-  - The oracle must support both MLP activation ablation and later attention
-    head/value-path intervention without changing the circuit-finder API.
-- Stage I: automatic live GPT-2 circuit finder.
-  - NEXT implementation target after Stage H.
-  - Input: prompt templates, target token(s), negative target token(s), and a
-    search budget.
-  - Output: a recovered circuit graph with token-position nodes, layer nodes,
-    MLP neuron nodes, later attention-head nodes, edge/effect scores, negative
-    controls, stability metrics, and a minimality/MDL diagnostic.
-  - The solver must choose candidates itself. A human-provided top-neuron list
-    is allowed only as a debugging override and cannot satisfy the gate.
-- Stage J: live GPT-2 fact-circuit gate.
-  - NEXT release-candidate gate.
-  - Required cases: at least several factual relations, paraphrased prompts,
-    unrelated-prompt controls, wrong-answer controls, random-active controls,
-    random-inactive controls, off-prompt controls, and same-neuron
-    other-position controls.
+    discovery. That proof now lives in Stage H and remains benchmark-scoped.
+- Stage H: live GPT-2 MLP fact-circuit graph finder.
+  - Current command: `npm run benchmark:nn-live-gpt2-fact-circuit-finder`.
+  - Current artifact:
+    `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`.
+  - Current result: pass `true`, 50 valid facts, 50 passed cases, median joint
+    graph target-logit drop `9.597953796386719`, p10 joint graph target-logit
+    drop `7.7571563720703125`, median graph-control p95 positive target-logit
+    drop `1.7921218872070312`, median graph lift over control p95
+    `4.993501607767975`, minimum graph lift `3.053458716515491`, mean selected
+    graph node count `3.74`, and 15 unique selected graph neurons.
+  - Output: recovered token/neuron/target circuit graphs with token-support
+    edges, neuron-target causal-drop edges, selected-graph joint ablation, and
+    graph-level negative controls.
+  - Claim boundary: this proves benchmark-scoped MLP graph circuit discovery
+    for the configured real GPT-2 factual prompt set. It does not prove
+    attention-head/path recovery, full GPT-2 FFN extraction, arbitrary LLM
+    understanding, or output-only original-neuron identity.
+- Stage I: graph hardening with paraphrases and negative facts.
+  - NEXT release-candidate hardening.
+  - Required cases: paraphrased prompts, negative facts, wrong-answer targets,
+    unrelated-prompt controls, random-active controls, random-inactive controls,
+    off-prompt controls, and same-neuron other-position controls.
   - Required metrics: target-logit causal support, preserved unrelated logits,
     control-normalized effect, graph size, prompt-template stability, query and
     intervention budget, and failure artifacts for facts that do not stabilize.
-  - Required boundary: this proves benchmark-scoped automatic circuit discovery
-    for the chosen GPT-2/fact set. It is not full LLM understanding and not
-    arbitrary 3072-channel FFN decompilation.
+- Stage J: attention-head and path graph recovery.
+  - NEXT mechanism expansion after Stage I hardening.
+  - Extend candidate search from MLP neurons to attention heads/value paths and
+    path-patching-style interventions.
+  - Output: recovered token/head/neuron/target graph edges with edge/effect
+    scores, collateral-damage metrics, control-normalized effect, and stability
+    metrics.
+- Stage K: `GPT2Oracle` control plane.
+  - Refactor the current live-reader/fact-finder implementation into a reusable
+    oracle interface with typed request/response records for logits,
+    activations, interventions, ablations, control families, cache ids, runtime
+    warnings, model/tokenizer identity, and budget accounting.
+  - Runtime failures, import warnings, hook mismatches, tokenizer mismatches,
+    non-disjoint controls, and empty-control families must be hard failures or
+    visible artifact errors.
+  - The oracle must support both MLP activation ablation and attention
+    head/value-path intervention without changing the circuit-finder API.
 
 The following items are still required before any broad SOTA language:
 
@@ -676,15 +702,19 @@ The following items are still required before any broad SOTA language:
   `benchmark:nn-gpt2-gelu-ffn-real-structure:top10`; the compact real GPT-2
   top-8 report is retained as the intermediate targeted scaling proof. The
   compact real GPT-2 top-20 source extractor remains a separate instrumented
-  source-graph gate. Next evidence must add negative full-slice guards before
-  any broad GPT-2/LLM decompilation claim.
+  source-graph gate. The first live GPT-2 MLP fact-circuit graph finder is now
+  covered by `benchmark:nn-live-gpt2-fact-circuit-finder`. Next evidence must
+  harden graph stability with paraphrases, negative facts, unrelated-logit
+  preservation, and attention/path edges before any broad GPT-2/LLM
+  decompilation claim.
 
 ## Current Frontier Target
 
 The current frontier target is Active-Subspace Neural Decompilation, using the
 release-gated ReLU recovered-geometry lanes as the oracle/probing discipline
-floor and the new GELU/SwiGLU active-subspace lane as the bridge toward
-LLM-style FFN channels.
+floor, the GELU/SwiGLU active-subspace lanes as the bridge toward LLM-style FFN
+channels, and the live GPT-2 fact-circuit graph finder as the first real-model
+graph-discovery rail.
 
 The adaptive adversarial noisy 4D/5D ND shallow-ReLU lane and the adaptive
 adversarial noisy folded-2D deep-ReLU lane are now release-gated robustness
@@ -740,6 +770,7 @@ Target commands:
 - `npm run benchmark:nn-gpt2-gelu-ffn-real-structure`
 - `npm run benchmark:nn-gpt2-gelu-ffn-real-structure:top5`
 - `npm run benchmark:nn-gpt2-gelu-ffn-source-extractor`
+- `npm run benchmark:nn-live-gpt2-fact-circuit-finder`
 - `npm run research:nn-gpt2-gelu-ffn-structure-finder`
 - `npm run experiment:nn-nd-adjacency-geometry-5d`
 - `npm run experiment:nn-nd-adjacency-geometry-6d`
