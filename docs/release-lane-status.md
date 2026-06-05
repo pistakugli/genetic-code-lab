@@ -18,6 +18,15 @@ artifact was regenerated through the explicit CUDA runtime lane and records
 `model.device = cuda`. This does not promote attention-head/path recovery or
 arbitrary LLM understanding.
 
+The live GPT-2 attention-path graph finder is a separate heavy CUDA real-model
+benchmark command. Its current artifact reports 50 valid factual prompts, 48
+passed attention-path graph cases, pass rate `0.96`, median attention graph
+target-logit drop `3.77752685546875`, median attention-control p95
+`0.8765945434570312`, and `model.device = cuda`. Wrong-answer collateral is
+reported but not gated in this lane, because attention heads can carry broad
+token-class effects; this does not promote answer-specific identity or full
+attention-to-MLP circuit recovery.
+
 Release benchmark scripts now write to `benchmarks/release/<lane>/<variant>/report.{json,md}` and `manifest.json` by default. Root-level `benchmarks/*.json` and `benchmarks/*.md` are legacy mixed-use artifacts and should be treated as command-scoped evidence, not timeless truth.
 
 ## Release-Gated Lanes

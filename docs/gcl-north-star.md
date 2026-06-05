@@ -155,6 +155,19 @@ framework contract. It is not attention-head/path recovery, full GPT-2 FFN
 extraction, arbitrary LLM understanding, or output-only original-neuron
 identity.
 
+The first attention-head/path gate now exists:
+`npm run benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu`. It loads
+real GPT-2 through the CUDA runtime lane, scans configured attention heads,
+builds token/head/target path artifacts, and validates selected heads through
+causal attention-path ablation above attention-head controls. Current artifact:
+`benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json`.
+Current result: 50 valid facts, 48 passed cases, pass rate `0.96`, median
+attention graph target-logit drop `3.77752685546875`, median control p95
+`0.8765945434570312`, median lift `4.1454169816074575`, mean selected heads
+`3`, unique selected heads `20`, median wrong-answer collateral ratio
+`0.7703779014285085`, and `model.device = cuda`. This is path evidence, not
+answer-specific factual identity.
+
 ## Current Mainline
 
 The next development must stay on this order:
@@ -172,10 +185,12 @@ The next development must stay on this order:
    `npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu`. The GPU setup must
    prove `torch.cuda.is_available()` and a real CUDA tensor operation before GPU
    benchmark output is trusted.
-2. Add attention-head and path edges:
-   extend the graph beyond MLP neurons into attention heads/value paths and
-   path-patching-style interventions while keeping token/neuron/target evidence
-   comparable to the current gate.
+2. Compose attention-head and MLP graph edges:
+   the first attention-head/path gate is now present. The next move is to join
+   attention path edges with the existing MLP graph nodes into a single
+   token/head/neuron/target circuit graph, while keeping controls and claim
+   boundaries separate for broad attention effects versus answer-specific MLP
+   effects.
 3. Keep the current live-reader/fact-finder runtime behind that adapter:
    prompt/token/layer/component/intervention -> logits, activations, logit
    deltas, controls, cache keys, runtime warnings, model/tokenizer identities,

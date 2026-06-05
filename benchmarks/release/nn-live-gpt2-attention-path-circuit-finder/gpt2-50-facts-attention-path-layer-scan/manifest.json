@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-05T14:40:55.216Z",
+  "lane": "nn-live-gpt2-attention-path-circuit-finder",
+  "variant": "gpt2-50-facts-attention-path-layer-scan",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-gpt2-attention-path-circuit-finder.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_LIVE_GPT2_DEVICE": "cuda",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "484aed668678091c1e59ad7def2f7a9a4724f8d7",
+    "statusShort": "M package.json\n M tools/llm_reader/adapters/base.py\n M tools/llm_reader/adapters/gpt2.py\n?? benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/\n?? scripts/benchmark-nn-live-gpt2-attention-path-circuit-finder.ts\n?? tools/llm-reader-gpt2-attention-path-sweep.py"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.md",
+    "manifest": "benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "validCases": 50,
+    "passedCases": 48,
+    "failedCases": 2,
+    "passRate": 0.96,
+    "medianGraphJointTargetLogitDrop": 3.77752685546875,
+    "p10GraphJointTargetLogitDrop": 2.0320892333984375,
+    "medianGraphControlP95PositiveTargetLogitDrop": 0.8765945434570312,
+    "medianGraphLiftOverControlP95": 4.1454169816074575,
+    "meanSelectedHeadCount": 3,
+    "uniqueSelectedHeads": 20,
+    "medianWrongAnswerDropRatio": 0.7703779014285085,
+    "wrongAnswerSpecificityIsGated": false,
+    "failedSubjects": [
+      "Belgium",
+      "month after January"
+    ]
+  },
+  "notes": [
+    "Real GPT-2 live factual-prompt attention-head/path circuit finder.",
+    "This uses automatic layer/head scanning, token/head/target path graph construction, joint attention-head ablation, attention-head controls, wrong-answer specificity checks, and explicit CUDA runtime support when available."
+  ]
+}

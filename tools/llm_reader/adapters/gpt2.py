@@ -49,6 +49,23 @@ class GPT2OracleAdapter(LLMOracleAdapter):
     def mlp_modules(self, model: Any, layers: Iterable[int]) -> Dict[int, Any]:
         return {int(layer): self._live.ensure_gpt2_mlp_shape(model, int(layer)) for layer in layers}
 
+    def attention_modules(self, model: Any, layers: Iterable[int]) -> Dict[int, Any]:
+        blocks = getattr(getattr(model, "transformer", None), "h", None)
+        if blocks is None:
+            raise RuntimeError("GPT-2 adapter expected model.transformer.h blocks.")
+        attentions: Dict[int, Any] = {}
+        for layer in layers:
+            layer_index = int(layer)
+            attention = blocks[layer_index].attn
+            for name in ("c_proj", "num_heads", "head_dim"):
+                if not hasattr(attention, name):
+                    raise RuntimeError(f"GPT-2 attention layer {layer_index} is missing {name}.")
+            attentions[layer_index] = attention
+        return attentions
+
+    def attention_head_count(self, attention: Any) -> int:
+        return int(attention.num_heads)
+
     def clean_token(self, tokenizer: Any, token_id: int) -> str:
         return self._live.clean_token(tokenizer, int(token_id))
 
@@ -69,6 +86,77 @@ class GPT2OracleAdapter(LLMOracleAdapter):
             ablate_positions,
             int(read_token_index),
         )
+
+    def run_attention_head_ablation_logits(
+        self,
+        model: Any,
+        attention: Any,
+        encoded: Dict[str, torch.Tensor],
+        head: int,
+        ablate_positions: list[int],
+        read_token_index: int,
+    ) -> torch.Tensor:
+        layer_attentions = {0: attention}
+        return self.run_attention_heads_ablation_logits(
+            model,
+            layer_attentions,
+            encoded,
+            [{
+                "layer": 0,
+                "head": int(head),
+                "ablateTokenPositions": ablate_positions,
+            }],
+            int(read_token_index),
+        )
+
+    def run_attention_heads_ablation_logits(
+        self,
+        model: Any,
+        attentions: Dict[int, Any],
+        encoded: Dict[str, torch.Tensor],
+        interventions: list[Dict[str, Any]],
+        read_token_index: int,
+    ) -> torch.Tensor:
+        seq_len = int(encoded["input_ids"].shape[1])
+        grouped: Dict[int, Dict[int, list[int]]] = {}
+        for intervention in interventions:
+            layer = int(intervention["layer"])
+            head = int(intervention["head"])
+            positions = sorted(set(int(position) for position in intervention.get("ablateTokenPositions", [])))
+            valid_positions = [position for position in positions if 0 <= position < seq_len]
+            if not valid_positions:
+                raise RuntimeError("Attention-head ablation requires at least one valid token position.")
+            if layer not in attentions:
+                raise RuntimeError(f"Attention-head ablation references unavailable layer {layer}.")
+            head_count = self.attention_head_count(attentions[layer])
+            if head < 0 or head >= head_count:
+                raise RuntimeError(f"Attention-head ablation references invalid head {head} for layer {layer}.")
+            grouped.setdefault(layer, {}).setdefault(head, [])
+            grouped[layer][head] = sorted(set(grouped[layer][head] + valid_positions))
+        if not grouped:
+            raise RuntimeError("Attention-head graph ablation requires at least one intervention.")
+
+        handles = []
+        for layer, heads in grouped.items():
+            attention = attentions[layer]
+            head_dim = int(attention.head_dim)
+
+            def patch_attention_path(module: Any, inputs: Any, layer_index: int = layer) -> tuple[torch.Tensor, ...]:
+                patched = inputs[0].clone()
+                for head, positions in grouped[layer_index].items():
+                    start = int(head) * head_dim
+                    end = start + head_dim
+                    for position in positions:
+                        patched[:, position, start:end] = 0
+                return (patched,) + tuple(inputs[1:])
+
+            handles.append(attention.c_proj.register_forward_pre_hook(patch_attention_path))
+        try:
+            with torch.no_grad():
+                return model(**encoded).logits.detach().cpu()[0, read_token_index]
+        finally:
+            for handle in handles:
+                handle.remove()
 
     def package_version(self, name: str) -> str | None:
         return self._live.package_version(name)

@@ -87,8 +87,11 @@ The next production path is:
    - No adapter may replace the real model with a synthetic teacher or a fitted
      surrogate.
 2. Add attention-head and path graph recovery
-   - Extend candidate search from MLP neurons to attention heads/value paths and
-     path-patching-style interventions.
+   - Current status: DONE for first CUDA GPT-2 attention-head/path graph gate.
+     `npm run benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu` scans
+     real GPT-2 attention heads, builds token/head/target path evidence, and
+     validates selected heads through causal attention-path ablation above
+     attention-head controls.
    - Emit comparable token/head/neuron/target graph edges with causal effect,
      collateral damage, and control-normalized effect.
 3. Scale model coverage through adapter gates
@@ -668,12 +671,24 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     when each adapter has a command, artifact, gate, and negative controls. It
     does not prove arbitrary LLM understanding.
 - Stage K: attention-head and path graph recovery.
-  - NEXT mechanism expansion after Stage I hardening.
-  - Extend candidate search from MLP neurons to attention heads/value paths and
-    path-patching-style interventions.
+  - Current status: first CUDA gate implemented.
+  - Current command: `npm run benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu`.
+  - Current artifact:
+    `benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json`.
+  - Current result: pass `true`, 50 valid facts, 48 passed cases, pass rate
+    `0.96`, median attention graph target-logit drop `3.77752685546875`, p10
+    graph drop `2.0320892333984375`, median attention-control p95 target-logit
+    drop `0.8765945434570312`, median lift over control p95
+    `4.1454169816074575`, mean selected head count `3`, unique selected heads
+    `20`, median wrong-answer collateral ratio `0.7703779014285085`,
+    `model.device = cuda`.
   - Output: recovered token/head/neuron/target graph edges with edge/effect
     scores, collateral-damage metrics, control-normalized effect, and stability
     metrics.
+  - Claim boundary: this proves benchmark-scoped attention-head/path graph
+    discovery, not answer-specific factual identity. Wrong-answer collateral is
+    reported but not gated because attention heads can carry broad task or
+    token-class effects. It is not attention-to-MLP composition recovery yet.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

@@ -720,6 +720,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-live-gpt2-attention-path-circuit-finder',
+    name: 'NN live GPT-2 attention path circuit finder',
+    status: 'preview',
+    summary: 'Loads real GPT-2 on the live LLM oracle path, scans attention heads for factual prompts, builds token/head/target path graphs, and validates selected heads through causal head ablation above attention-head controls.',
+    scope: 'Live real-model benchmark; proves benchmark-scoped attention-head/path graph discovery for the configured GPT-2 factual prompt set using real attention c_proj path hooks, real CUDA ablations, selected-head graph nodes, attention-head controls, and wrong-answer collateral reporting. Wrong-answer specificity is reported but not gated because attention heads can carry broad task or token-class effects. This is not answer-specific factual identity, attention-to-MLP composition recovery, full GPT-2 FFN extraction, arbitrary LLM understanding, output-only original-neuron identity, or broad SOTA status.',
+    run: { label: 'NN live GPT-2 attention path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu'] },
+    proofs: [
+      { label: 'NN live GPT-2 attention path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json',
+      'benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

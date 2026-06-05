@@ -28,6 +28,14 @@ class LLMOracleAdapter(ABC):
         """Return layer-indexed MLP components addressable by the circuit finder."""
 
     @abstractmethod
+    def attention_modules(self, model: Any, layers: Iterable[int]) -> Dict[int, Any]:
+        """Return layer-indexed attention components addressable by the circuit finder."""
+
+    @abstractmethod
+    def attention_head_count(self, attention: Any) -> int:
+        """Return the number of independently addressable attention heads."""
+
+    @abstractmethod
     def clean_token(self, tokenizer: Any, token_id: int) -> str:
         """Return a report-safe token string."""
 
@@ -42,6 +50,29 @@ class LLMOracleAdapter(ABC):
         read_token_index: int,
     ) -> torch.Tensor:
         """Run a real forward pass with one activation channel ablated."""
+
+    @abstractmethod
+    def run_attention_head_ablation_logits(
+        self,
+        model: Any,
+        attention: Any,
+        encoded: Dict[str, torch.Tensor],
+        head: int,
+        ablate_positions: list[int],
+        read_token_index: int,
+    ) -> torch.Tensor:
+        """Run a real forward pass with one attention head path ablated."""
+
+    @abstractmethod
+    def run_attention_heads_ablation_logits(
+        self,
+        model: Any,
+        attentions: Dict[int, Any],
+        encoded: Dict[str, torch.Tensor],
+        interventions: list[Dict[str, Any]],
+        read_token_index: int,
+    ) -> torch.Tensor:
+        """Run a real forward pass with multiple attention head paths ablated."""
 
     @abstractmethod
     def package_version(self, name: str) -> str | None:
