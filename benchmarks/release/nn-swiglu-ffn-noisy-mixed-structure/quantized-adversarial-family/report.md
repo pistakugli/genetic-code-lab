@@ -1,6 +1,6 @@
 # Noisy Mixed SwiGLU FFN Structure Benchmark
 
-Generated: 2026-06-03T11:13:27.248Z
+Generated: 2026-06-05T16:07:03.197Z
 
 ## Claim Scope
 

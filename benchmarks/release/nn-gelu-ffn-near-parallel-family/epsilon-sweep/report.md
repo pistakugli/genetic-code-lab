@@ -1,6 +1,6 @@
 # Near-Parallel Mixed GELU FFN Family Benchmark
 
-Generated: 2026-06-03T11:04:57.650Z
+Generated: 2026-06-05T15:58:27.922Z
 
 ## Claim Scope
 

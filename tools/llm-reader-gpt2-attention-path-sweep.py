@@ -49,6 +49,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-margin-over-control-p95", type=float, default=0.02)
     parser.add_argument("--wrong-answer-count", type=int, default=3)
     parser.add_argument("--max-wrong-answer-drop-ratio", type=float, default=0.80)
+    parser.add_argument("--max-target-rank", type=int, default=100)
     parser.add_argument("--device", choices=["cpu", "cuda", "auto"], default="cpu")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--output-json", required=True)
@@ -224,6 +225,154 @@ def control_graphs(
             "interventions": interventions,
         })
     return {"items": items, "summary": summarize_drops(items)}
+
+
+def evaluate_attention_prefix(
+    *,
+    model: Any,
+    attentions: Dict[int, Any],
+    encoded: Dict[str, torch.Tensor],
+    baseline_logits: torch.Tensor,
+    selected: List[Dict[str, Any]],
+    controls: Dict[str, Any],
+    read_token_index: int,
+    target_token_id: int,
+    wrong_answer_targets: List[Dict[str, Any]],
+    min_graph_drop: float,
+    min_margin_over_control_p95: float,
+) -> Dict[str, Any]:
+    interventions = graph_interventions(selected, read_token_index)
+    if interventions:
+        joint_drop, joint_logits = target_drop(
+            model=model,
+            attentions=attentions,
+            encoded=encoded,
+            baseline_logits=baseline_logits,
+            interventions=interventions,
+            read_token_index=read_token_index,
+            target_token_id=target_token_id,
+        )
+    else:
+        joint_drop, joint_logits = 0.0, baseline_logits
+    wrong_graph_drops = []
+    for wrong in wrong_answer_targets:
+        token_id = int(wrong["tokenId"])
+        wrong_graph_drops.append({
+            "subject": wrong["subject"],
+            "answer": wrong["answer"],
+            "tokenId": token_id,
+            "token": wrong["token"],
+            "logitDrop": float(baseline_logits[token_id] - joint_logits[token_id]),
+        })
+    max_wrong_graph_drop = max([float(item["logitDrop"]) for item in wrong_graph_drops] + [0.0])
+    controls_graph = control_graphs(
+        model=model,
+        attentions=attentions,
+        encoded=encoded,
+        baseline_logits=baseline_logits,
+        controls=controls,
+        graph_size=max(1, len(interventions)),
+        read_token_index=read_token_index,
+        target_token_id=target_token_id,
+    )
+    control_p95 = float(controls_graph["summary"]["p95PositiveTargetLogitDrop"])
+    margin = joint_drop - control_p95
+    pass_case = (
+        len(selected) > 0
+        and joint_drop >= min_graph_drop
+        and margin >= min_margin_over_control_p95
+    )
+    return {
+        "selected": selected,
+        "interventions": interventions,
+        "jointDrop": joint_drop,
+        "jointLogits": joint_logits,
+        "wrongGraphDrops": wrong_graph_drops,
+        "maxWrongGraphDrop": max_wrong_graph_drop,
+        "wrongRatio": max_wrong_graph_drop / max(1e-9, joint_drop),
+        "controlsGraph": controls_graph,
+        "controlP95": control_p95,
+        "margin": margin,
+        "lift": joint_drop / max(1e-9, control_p95),
+        "pass": pass_case,
+    }
+
+
+def select_attention_prefix_against_controls(
+    *,
+    model: Any,
+    attentions: Dict[int, Any],
+    encoded: Dict[str, torch.Tensor],
+    baseline_logits: torch.Tensor,
+    selected_pool: List[Dict[str, Any]],
+    controls: Dict[str, Any],
+    read_token_index: int,
+    target_token_id: int,
+    wrong_answer_targets: List[Dict[str, Any]],
+    min_graph_drop: float,
+    min_margin_over_control_p95: float,
+) -> Dict[str, Any]:
+    attempts = []
+    for size in range(1, len(selected_pool) + 1):
+        attempt = evaluate_attention_prefix(
+            model=model,
+            attentions=attentions,
+            encoded=encoded,
+            baseline_logits=baseline_logits,
+            selected=selected_pool[:size],
+            controls=controls,
+            read_token_index=read_token_index,
+            target_token_id=target_token_id,
+            wrong_answer_targets=wrong_answer_targets,
+            min_graph_drop=min_graph_drop,
+            min_margin_over_control_p95=min_margin_over_control_p95,
+        )
+        attempts.append(attempt)
+    if not attempts:
+        return {
+            "selected": [],
+            "interventions": [],
+            "jointDrop": 0.0,
+            "jointLogits": baseline_logits,
+            "wrongGraphDrops": [],
+            "maxWrongGraphDrop": 0.0,
+            "wrongRatio": 0.0,
+            "controlsGraph": {"items": [], "summary": summarize_drops([])},
+            "controlP95": 0.0,
+            "margin": 0.0,
+            "lift": 0.0,
+            "pass": False,
+            "selectionMode": "no-selected-head-candidates",
+            "attempts": [],
+        }
+    passing = [attempt for attempt in attempts if bool(attempt["pass"])]
+    if passing:
+        chosen = sorted(
+            passing,
+            key=lambda item: (
+                len(item["selected"]),
+                -float(item["margin"]),
+                -float(item["jointDrop"]),
+            ),
+        )[0]
+        selection_mode = "minimal-passing-attention-prefix"
+    else:
+        chosen = max(attempts, key=lambda item: (float(item["margin"]), float(item["jointDrop"])))
+        selection_mode = "best-margin-attention-prefix"
+    return {
+        **chosen,
+        "selectionMode": selection_mode,
+        "attempts": [
+            {
+                "headCount": len(attempt["selected"]),
+                "targetLogitDrop": float(attempt["jointDrop"]),
+                "controlGraphP95PositiveTargetLogitDrop": float(attempt["controlP95"]),
+                "marginOverControlGraphP95": float(attempt["margin"]),
+                "pass": bool(attempt["pass"]),
+            }
+            for attempt in attempts
+        ],
+    }
 
 
 def make_control_item(
@@ -405,6 +554,25 @@ def run_case(
     read_token_index = int(token_ids.numel()) - 1
     with torch.no_grad():
         baseline_logits = model(**encoded).logits.detach().cpu()[0, read_token_index]
+    baseline_rank = factual.target_rank(baseline_logits, target_token_id)
+    if int(args.max_target_rank) > 0 and baseline_rank > int(args.max_target_rank):
+        return {
+            "subject": fact["subject"],
+            "answer": fact["answer"],
+            "prompt": prompt,
+            "status": "skipped",
+            "reason": "low-confidence target rank",
+            "target": {
+                "tokenId": int(target_token_id),
+                "token": target_token,
+                "baselineLogit": float(baseline_logits[target_token_id]),
+                "baselineRank": baseline_rank,
+                "maxAllowedBaselineRank": int(args.max_target_rank),
+            },
+            "readTokenIndex": read_token_index,
+            "readToken": live.clean_token(tokenizer, int(token_ids[read_token_index])),
+            "topLogits": factual.top_logit_tokens(tokenizer, baseline_logits, 8),
+        }
 
     candidates = scan_attention_heads(
         model=model,
@@ -416,7 +584,7 @@ def run_case(
         wrong_answer_targets=wrong_answer_targets,
         ablate_positions=[read_token_index],
     )
-    selected = select_attention_graph(
+    selected_pool = select_attention_graph(
         candidates,
         max_graph_heads=max(1, int(args.max_graph_heads)),
         min_graph_drop=float(args.min_graph_drop),
@@ -427,7 +595,7 @@ def run_case(
         attentions=attentions,
         encoded=encoded,
         baseline_logits=baseline_logits,
-        selected=selected,
+        selected=selected_pool,
         token_ids=token_ids,
         read_token_index=read_token_index,
         target_token_id=target_token_id,
@@ -435,48 +603,22 @@ def run_case(
         control_prompt=args.control_prompt,
         rng=rng,
     )
-    interventions = graph_interventions(selected, read_token_index)
-    if interventions:
-        joint_drop, joint_logits = target_drop(
-            model=model,
-            attentions=attentions,
-            encoded=encoded,
-            baseline_logits=baseline_logits,
-            interventions=interventions,
-            read_token_index=read_token_index,
-            target_token_id=target_token_id,
-        )
-    else:
-        joint_drop, joint_logits = 0.0, baseline_logits
-    wrong_graph_drops = []
-    for wrong in wrong_answer_targets:
-        token_id = int(wrong["tokenId"])
-        wrong_graph_drops.append({
-            "subject": wrong["subject"],
-            "answer": wrong["answer"],
-            "tokenId": token_id,
-            "token": wrong["token"],
-            "logitDrop": float(baseline_logits[token_id] - joint_logits[token_id]),
-        })
-    max_wrong_graph_drop = max([float(item["logitDrop"]) for item in wrong_graph_drops] + [0.0])
-    controls_graph = control_graphs(
+    selected_graph = select_attention_prefix_against_controls(
         model=model,
         attentions=attentions,
         encoded=encoded,
         baseline_logits=baseline_logits,
+        selected_pool=selected_pool,
         controls=controls,
-        graph_size=max(1, len(interventions)),
         read_token_index=read_token_index,
         target_token_id=target_token_id,
+        wrong_answer_targets=wrong_answer_targets,
+        min_graph_drop=float(args.min_graph_drop),
+        min_margin_over_control_p95=float(args.min_margin_over_control_p95),
     )
-    control_p95 = float(controls_graph["summary"]["p95PositiveTargetLogitDrop"])
-    margin = joint_drop - control_p95
-    wrong_ratio = max_wrong_graph_drop / max(1e-9, joint_drop)
-    pass_case = (
-        len(selected) > 0
-        and joint_drop >= float(args.min_graph_drop)
-        and margin >= float(args.min_margin_over_control_p95)
-    )
+    selected = selected_graph["selected"]
+    interventions = selected_graph["interventions"]
+    pass_case = bool(selected_graph["pass"])
     return {
         "subject": fact["subject"],
         "answer": fact["answer"],
@@ -486,7 +628,7 @@ def run_case(
             "tokenId": int(target_token_id),
             "token": target_token,
             "baselineLogit": float(baseline_logits[target_token_id]),
-            "baselineRank": factual.target_rank(baseline_logits, target_token_id),
+            "baselineRank": baseline_rank,
         },
         "readTokenIndex": read_token_index,
         "readToken": live.clean_token(tokenizer, int(token_ids[read_token_index])),
@@ -497,17 +639,21 @@ def run_case(
             "kind": "gpt2-live-factual-attention-path-graph",
             "selectedInterventions": interventions,
             "jointAblation": {
-                "targetLogitDrop": joint_drop,
-                "controlGraphP95PositiveTargetLogitDrop": control_p95,
-                "marginOverControlGraphP95": margin,
-                "liftOverControlGraphP95": joint_drop / max(1e-9, control_p95),
-                "wrongAnswerLogitDrops": wrong_graph_drops,
-                "maxWrongAnswerLogitDrop": max_wrong_graph_drop,
-                "maxWrongAnswerDropRatio": wrong_ratio,
+                "targetLogitDrop": float(selected_graph["jointDrop"]),
+                "controlGraphP95PositiveTargetLogitDrop": float(selected_graph["controlP95"]),
+                "marginOverControlGraphP95": float(selected_graph["margin"]),
+                "liftOverControlGraphP95": float(selected_graph["lift"]),
+                "wrongAnswerLogitDrops": selected_graph["wrongGraphDrops"],
+                "maxWrongAnswerLogitDrop": float(selected_graph["maxWrongGraphDrop"]),
+                "maxWrongAnswerDropRatio": float(selected_graph["wrongRatio"]),
                 "wrongAnswerSpecificityIsGated": False,
             },
-            "controlGraphs": controls_graph,
+            "controlGraphs": selected_graph["controlsGraph"],
             "controls": controls,
+            "graphSelection": {
+                "mode": selected_graph["selectionMode"],
+                "attempts": selected_graph["attempts"],
+            },
             "gate": {
                 "pass": pass_case,
                 "minGraphDrop": float(args.min_graph_drop),
@@ -680,6 +826,7 @@ def main() -> None:
             "minMarginOverControlP95": args.min_margin_over_control_p95,
             "wrongAnswerCount": args.wrong_answer_count,
             "maxWrongAnswerDropRatio": args.max_wrong_answer_drop_ratio,
+            "maxTargetRank": args.max_target_rank,
             "device": device,
         },
         "summary": {
@@ -697,6 +844,12 @@ def main() -> None:
             "medianWrongAnswerDropRatio": factual.percentile(wrong_ratios, 0.50),
             "wrongAnswerSpecificityIsGated": False,
             "failedSubjects": [row["subject"] for row in valid_cases if row["status"] != "passed"],
+            "skippedCases": len([row for row in cases if row.get("status") == "skipped"]),
+            "skippedSubjects": [
+                {"subject": row["subject"], "reason": row.get("reason", row.get("skipReason", "skipped"))}
+                for row in cases
+                if row.get("status") == "skipped"
+            ],
         },
         "cases": cases,
         "claimBoundary": {

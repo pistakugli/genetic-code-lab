@@ -54,6 +54,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-target-drop", type=float, default=0.05)
     parser.add_argument("--min-margin-over-control-p95", type=float, default=0.02)
     parser.add_argument("--wrong-answer-count", type=int, default=3)
+    parser.add_argument("--attention-max-target-rank", type=int, default=100)
     parser.add_argument("--paraphrase-count", type=int, default=2)
     parser.add_argument("--negative-fact-count", type=int, default=2)
     parser.add_argument("--unrelated-logit-count", type=int, default=8)
@@ -120,6 +121,7 @@ def namespace_for_attention(args: argparse.Namespace) -> argparse.Namespace:
         min_margin_over_control_p95=args.min_margin_over_control_p95,
         wrong_answer_count=args.wrong_answer_count,
         max_wrong_answer_drop_ratio=0.80,
+        max_target_rank=args.attention_max_target_rank,
     )
 
 
@@ -267,7 +269,7 @@ def evaluate_combined_controls(
     attention_groups = attention_row.get("attentionGraph", {}).get("controls", {}).get("groups", [])
     items: List[Dict[str, Any]] = []
 
-    def add_item(kind: str, mlp_items: List[Dict[str, Any]], attention_items: List[Dict[str, Any]]) -> None:
+    def add_item(kind: str, control_class: str, mlp_items: List[Dict[str, Any]], attention_items: List[Dict[str, Any]]) -> None:
         if not mlp_items and not attention_items:
             return
         ablated = run_combined_ablation_logits(
@@ -281,6 +283,7 @@ def evaluate_combined_controls(
         )
         items.append({
             "kind": kind,
+            "controlClass": control_class,
             "mlpNodeCount": len(mlp_items),
             "attentionHeadCount": len(attention_items),
             "targetLogitDrop": target_drop_from_logits(baseline_logits, ablated, target_token_id),
@@ -290,11 +293,11 @@ def evaluate_combined_controls(
 
     for group in attention_groups:
         attention_controls = attention_control_interventions(group, attention_size, read_token_index)
-        add_item(f"selected-mlp-plus-{group.get('kind', 'attention-control')}", selected_mlp, attention_controls)
+        add_item(f"selected-mlp-plus-{group.get('kind', 'attention-control')}", "attention-swap", selected_mlp, attention_controls)
 
     for group in mlp_groups:
         mlp_controls = mlp_control_interventions(group, mlp_size, read_token_index)
-        add_item(f"{group.get('kind', 'mlp-control')}-plus-selected-attention", mlp_controls, selected_attention)
+        add_item(f"{group.get('kind', 'mlp-control')}-plus-selected-attention", "mlp-swap", mlp_controls, selected_attention)
 
     for mlp_group in mlp_groups:
         mlp_controls = mlp_control_interventions(mlp_group, mlp_size, read_token_index)
@@ -306,11 +309,21 @@ def evaluate_combined_controls(
                 continue
             add_item(
                 f"{mlp_group.get('kind', 'mlp-control')}-plus-{attention_group.get('kind', 'attention-control')}",
+                "full-control",
                 mlp_controls,
                 attention_controls,
             )
 
-    return {"items": items, "summary": factual.summarize_drops(items)}
+    full_control_items = [item for item in items if item.get("controlClass") == "full-control"]
+    return {
+        "items": items,
+        "summary": factual.summarize_drops(items),
+        "gateSummary": factual.summarize_drops(full_control_items),
+        "controlClassSummaries": {
+            control_class: factual.summarize_drops([item for item in items if item.get("controlClass") == control_class])
+            for control_class in ("attention-swap", "mlp-swap", "full-control")
+        },
+    }
 
 
 def evaluate_combined_attempt(
@@ -352,7 +365,7 @@ def evaluate_combined_attempt(
         read_token_index=read_token_index,
         target_token_id=target_token_id,
     )
-    control_p95 = float(controls["summary"]["p95PositiveTargetLogitDrop"])
+    control_p95 = float(controls["gateSummary"]["p95PositiveTargetLogitDrop"])
     margin = combined_drop - control_p95
     return {
         "selectedMlp": selected_mlp,
@@ -360,7 +373,7 @@ def evaluate_combined_attempt(
         "combinedDrop": combined_drop,
         "controls": controls,
         "controlP95": control_p95,
-        "controlMax": float(controls["summary"]["maxPositiveTargetLogitDrop"]),
+        "controlMax": float(controls["gateSummary"]["maxPositiveTargetLogitDrop"]),
         "margin": margin,
         "lift": combined_drop / max(1e-9, control_p95),
         "pass": combined_drop >= min_target_drop and margin >= min_margin_over_control_p95,
@@ -840,6 +853,7 @@ def main() -> None:
             "minPassRate": args.min_pass_rate,
             "minComponentPassRate": args.min_component_pass_rate,
             "controlCount": args.control_count,
+            "attentionMaxTargetRank": args.attention_max_target_rank,
             "device": device,
         },
         "summary": {

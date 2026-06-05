@@ -54,6 +54,7 @@ const args = [
   '--min-target-drop', envValue('GCL_LIVE_GPT2_COMBINED_MIN_TARGET_DROP', '0.05'),
   '--min-margin-over-control-p95', envValue('GCL_LIVE_GPT2_COMBINED_MIN_MARGIN_OVER_CONTROL_P95', '0.02'),
   '--wrong-answer-count', envValue('GCL_LIVE_GPT2_WRONG_ANSWER_COUNT', '3'),
+  '--attention-max-target-rank', envValue('GCL_LIVE_GPT2_ATTENTION_MAX_TARGET_RANK', '100'),
   '--paraphrase-count', envValue('GCL_LIVE_GPT2_PARAPHRASE_COUNT', '2'),
   '--negative-fact-count', envValue('GCL_LIVE_GPT2_NEGATIVE_FACT_COUNT', '2'),
   '--unrelated-logit-count', envValue('GCL_LIVE_GPT2_UNRELATED_LOGIT_COUNT', '8'),
@@ -83,7 +84,7 @@ if (fs.existsSync(output.jsonOutputPath)) {
     summary: report.summary,
     notes: [
       'Real GPT-2 live factual-prompt combined attention+MLP circuit finder.',
-      'This uses automatic MLP neuron scanning, attention-head scanning, one token/head/neuron/target graph, simultaneous attention+MLP causal ablation, combined controls, and explicit CUDA runtime support when available.'
+      'This uses automatic MLP neuron scanning, attention-head scanning, one token/head/neuron/target graph, simultaneous attention+MLP causal ablation, full component-replacement controls for pass/fail, diagnostic MLP-swap and attention-swap controls, and explicit CUDA runtime support when available.'
     ]
   });
 } else {

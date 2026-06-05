@@ -49,6 +49,7 @@ const args = [
   '--min-margin-over-control-p95', envValue('GCL_LIVE_GPT2_ATTENTION_MIN_MARGIN_OVER_CONTROL_P95', '0.02'),
   '--wrong-answer-count', envValue('GCL_LIVE_GPT2_ATTENTION_WRONG_ANSWER_COUNT', '3'),
   '--max-wrong-answer-drop-ratio', envValue('GCL_LIVE_GPT2_ATTENTION_MAX_WRONG_ANSWER_DROP_RATIO', '0.80'),
+  '--max-target-rank', envValue('GCL_LIVE_GPT2_ATTENTION_MAX_TARGET_RANK', '100'),
   '--device', envValue('GCL_LIVE_GPT2_DEVICE', fs.existsSync(path.join(repoRoot, '.gcl-python-gpu', 'bin', 'python')) ? 'cuda' : 'cpu'),
   '--local-files-only',
   '--output-json', output.jsonOutputPath,
@@ -75,7 +76,7 @@ if (fs.existsSync(output.jsonOutputPath)) {
     summary: report.summary,
     notes: [
       'Real GPT-2 live factual-prompt attention-head/path circuit finder.',
-      'This uses automatic layer/head scanning, token/head/target path graph construction, joint attention-head ablation, attention-head controls, wrong-answer collateral reporting, and explicit CUDA runtime support when available.'
+      'This uses automatic layer/head scanning, token/head/target path graph construction, target-rank validity filtering, joint attention-head ablation, attention-head controls, wrong-answer collateral reporting, and explicit CUDA runtime support when available.'
     ]
   });
 } else {

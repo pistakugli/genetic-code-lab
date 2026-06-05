@@ -1,6 +1,6 @@
 # GELU FFN Rank-Cap Negative Guard
 
-Generated: 2026-06-03T11:08:04.933Z
+Generated: 2026-06-05T16:01:36.029Z
 
 ## Purpose
 

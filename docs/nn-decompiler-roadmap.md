@@ -681,35 +681,39 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
   - Current command: `npm run benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu`.
   - Current artifact:
     `benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json`.
-  - Current result: pass `true`, 50 valid facts, 48 passed cases, pass rate
-    `0.96`, median attention graph target-logit drop `3.77752685546875`, p10
-    graph drop `2.0320892333984375`, median attention-control p95 target-logit
-    drop `0.8765945434570312`, median lift over control p95
-    `4.1454169816074575`, mean selected head count `3`, unique selected heads
-    `20`, median wrong-answer collateral ratio `0.7703779014285085`,
-    `model.device = cuda`.
+  - Current result: pass `true`, 50 valid facts, 50 passed cases, pass rate
+    `1.0`, median attention graph target-logit drop `1.7271881103515625`, p10
+    graph drop `1.1454010009765625`, median attention-control p95 target-logit
+    drop `0.448638916015625`, median lift over control p95
+    `3.7378692395502666`, mean selected head count `1.04`, unique selected
+    heads `6`, median wrong-answer collateral ratio `0.7162562846461261`,
+    skipped rows `33`, `model.device = cuda`.
   - Output: recovered token/head/neuron/target graph edges with edge/effect
     scores, collateral-damage metrics, control-normalized effect, and stability
     metrics.
   - Claim boundary: this proves benchmark-scoped attention-head/path graph
     discovery, not answer-specific factual identity. Wrong-answer collateral is
     reported but not gated because attention heads can carry broad task or
-    token-class effects. It is not attention-to-MLP composition recovery yet.
+    token-class effects. Skipped rows are explicit and excluded from valid
+    pass/fail counts when the answer is not a single token or the target
+    baseline rank is low-confidence. It is not attention-to-MLP composition
+    recovery yet.
 - Stage K2: combined attention+MLP graph recovery.
   - Current status: first CUDA gate implemented.
   - Current command: `npm run benchmark:nn-live-gpt2-combined-circuit-finder:gpu`.
   - Current artifact:
     `benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json`.
-  - Current result: pass `true`, 50 valid facts, 48 passed cases, pass rate
-    `0.96`, MLP component pass rate `1.0`, attention component pass rate
-    `0.96`, median combined target-logit drop `2.0570144653320312`, p10
-    combined drop `1.3149337768554688`, median combined-control p95 target-
-    logit drop `1.8040924072265625`, median combined lift over control p95
-    `1.0844234406017157`, mean selected MLP nodes `1.64`, mean selected
-    attention heads `3`, `model.device = cuda`.
+  - Current result: pass `true`, 50 valid facts, 50 passed cases, pass rate
+    `1.0`, MLP component pass rate `1.0`, attention component pass rate
+    `1.0`, median combined target-logit drop `1.92523193359375`, p10
+    combined drop `1.1469650268554688`, median full-control combined p95
+    target-logit drop `0.417144775390625`, median combined lift over full-
+    control p95 `4.333544871993313`, mean selected MLP nodes `1.56`, mean
+    selected attention heads `1.02`, `model.device = cuda`.
   - Output: one token/head/neuron/target union graph with simultaneous
-    attention+MLP ablation evidence, combined controls, component pass rates,
-    and explicit failed subjects (`Belgium`, `month after January`).
+    attention+MLP ablation evidence, full component-replacement gate controls,
+    diagnostic MLP-swap and attention-swap controls, component pass rates, and
+    explicit failed subject reporting (`[]` in the current artifact).
   - Claim boundary: this proves benchmark-scoped combined graph discovery for
     the configured GPT-2 factual prompt set. It is not ordered path-patching
     through every residual stream edge, not full GPT-2 circuit recovery, not

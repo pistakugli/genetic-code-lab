@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-05T15:15:51.349Z",
+  "generatedAt": "2026-06-05T15:38:41.583Z",
   "lane": "nn-live-gpt2-combined-circuit-finder",
   "variant": "gpt2-50-facts-attention-mlp-combined-graph",
   "status": "pass",
@@ -18,8 +18,8 @@
     "GCL_PYTHON": ".gcl-python-gpu/bin/python"
   },
   "git": {
-    "commit": "4fa8aeb9d70724ce26254cbfeb85796735f1c7ef",
-    "statusShort": "M package.json\n?? benchmarks/release/nn-live-gpt2-combined-circuit-finder/\n?? scripts/benchmark-nn-live-gpt2-combined-circuit-finder.ts\n?? tools/llm-reader-gpt2-combined-circuit-sweep.py"
+    "commit": "fe7fa8a2fc08787f009dc080d82bec16eb444f83",
+    "statusShort": "M benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/manifest.json\n M benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json\n M benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.md\n M benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/manifest.json\n M benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json\n M benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.md\n M scripts/benchmark-nn-live-gpt2-attention-path-circuit-finder.ts\n M scripts/benchmark-nn-live-gpt2-combined-circuit-finder.ts\n M tools/llm-reader-gpt2-attention-path-sweep.py\n M tools/llm-reader-gpt2-combined-circuit-sweep.py"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json",
@@ -29,21 +29,18 @@
   "summary": {
     "pass": true,
     "validCases": 50,
-    "passedCases": 48,
-    "failedCases": 2,
-    "passRate": 0.96,
+    "passedCases": 50,
+    "failedCases": 0,
+    "passRate": 1,
     "mlpComponentPassRate": 1,
-    "attentionComponentPassRate": 0.96,
-    "medianCombinedTargetLogitDrop": 2.0570144653320312,
-    "p10CombinedTargetLogitDrop": 1.3149337768554688,
-    "medianCombinedControlP95PositiveTargetLogitDrop": 1.8040924072265625,
-    "medianCombinedLiftOverControlP95": 1.0844234406017157,
-    "meanSelectedMlpNodes": 1.64,
-    "meanSelectedAttentionHeads": 3,
-    "failedSubjects": [
-      "Belgium",
-      "month after January"
-    ]
+    "attentionComponentPassRate": 1,
+    "medianCombinedTargetLogitDrop": 1.92523193359375,
+    "p10CombinedTargetLogitDrop": 1.1469650268554688,
+    "medianCombinedControlP95PositiveTargetLogitDrop": 0.417144775390625,
+    "medianCombinedLiftOverControlP95": 4.333544871993313,
+    "meanSelectedMlpNodes": 1.56,
+    "meanSelectedAttentionHeads": 1.02,
+    "failedSubjects": []
   },
   "notes": [
     "Real GPT-2 live factual-prompt combined attention+MLP circuit finder.",

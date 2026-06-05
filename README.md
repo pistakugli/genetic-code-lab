@@ -245,26 +245,30 @@ What these gates currently support:
   the GPU command and records `model.device = cuda`. The artifact is
   `benchmarks/release/nn-live-gpt2-fact-circuit-finder/gpt2-50-facts-graph-layer-scan/report.json`.
 - Live GPT-2 attention-head/path circuit finding for the configured factual
-  prompt set: `50` valid facts, `48` passed cases, pass rate `0.96`, median
-  attention graph target-logit drop `3.77752685546875`, p10 graph drop
-  `2.0320892333984375`, median attention-control p95 target-logit drop
-  `0.8765945434570312`, median lift over control p95 `4.1454169816074575`,
-  mean selected heads `3`, and `20` unique selected heads. The current artifact
-  was generated with the GPU command and records `model.device = cuda`. Wrong-
-  answer collateral ratio is reported, median `0.7703779014285085`, but is not
-  gated for this attention-path lane because heads can carry broad token-class
-  effects. The artifact is
+  prompt set: `50` valid facts, `50` passed cases, pass rate `1.0`, median
+  attention graph target-logit drop `1.7271881103515625`, p10 graph drop
+  `1.1454010009765625`, median attention-control p95 target-logit drop
+  `0.448638916015625`, median lift over control p95 `3.7378692395502666`,
+  mean selected heads `1.04`, and `6` unique selected heads. The current
+  artifact was generated with the GPU command and records `model.device =
+  cuda`. Wrong-answer collateral ratio is reported, median
+  `0.7162562846461261`, but is not gated for this attention-path lane because
+  heads can carry broad token-class effects. Skipped rows are reported
+  separately and are not counted as valid pass/fail cases when the answer is
+  not a single token or the target baseline rank is low-confidence. The
+  artifact is
   `benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json`.
 - Live GPT-2 combined attention+MLP circuit finding for the configured factual
-  prompt set: `50` valid facts, `48` passed cases, pass rate `0.96`, MLP
-  component pass rate `1.0`, attention component pass rate `0.96`, median
-  combined target-logit drop `2.0570144653320312`, p10 combined drop
-  `1.3149337768554688`, median combined-control p95 target-logit drop
-  `1.8040924072265625`, median combined lift over control p95
-  `1.0844234406017157`, mean selected MLP nodes `1.64`, and mean selected
-  attention heads `3`. The current artifact was generated with the GPU command
-  and records `model.device = cuda`; failed cases are `Belgium` and `month
-  after January`, inherited from the attention component boundary. The artifact
+  prompt set: `50` valid facts, `50` passed cases, pass rate `1.0`, MLP
+  component pass rate `1.0`, attention component pass rate `1.0`, median
+  combined target-logit drop `1.92523193359375`, p10 combined drop
+  `1.1469650268554688`, median full-control combined p95 target-logit drop
+  `0.417144775390625`, median combined lift over full-control p95
+  `4.333544871993313`, mean selected MLP nodes `1.56`, and mean selected
+  attention heads `1.02`. The current artifact was generated with the GPU
+  command and records `model.device = cuda`; failed subjects are empty. The
+  combined gate uses full component-replacement controls for pass/fail while
+  retaining MLP-swap and attention-swap controls as diagnostics. The artifact
   is
   `benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json`.
 
@@ -324,7 +328,7 @@ Release-gate status:
 - default promotion recommendation is `promote-candidate`
 - promotion must not regress exact accuracy, boundary total, or fitness
 
-`npm run release:gate` is green as of 2026-06-04 after the deep 3D/4D ND
+`npm run release:gate` is green as of 2026-06-05 after the deep 3D/4D ND
 region-sampler, recovered-adjacency geometry, 5D clean/noisy sweep, 6D
 randomized/adversarial robustness and baseline court, active-subspace FFN
 decompiler, 4096D/noisy active-subspace gates, explicit GELU structure finder,

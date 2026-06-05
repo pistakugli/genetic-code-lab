@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-05T14:40:55.216Z",
+  "generatedAt": "2026-06-05T15:31:56.235Z",
   "lane": "nn-live-gpt2-attention-path-circuit-finder",
   "variant": "gpt2-50-facts-attention-path-layer-scan",
   "status": "pass",
@@ -18,8 +18,8 @@
     "GCL_PYTHON": ".gcl-python-gpu/bin/python"
   },
   "git": {
-    "commit": "484aed668678091c1e59ad7def2f7a9a4724f8d7",
-    "statusShort": "M package.json\n M tools/llm_reader/adapters/base.py\n M tools/llm_reader/adapters/gpt2.py\n?? benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/\n?? scripts/benchmark-nn-live-gpt2-attention-path-circuit-finder.ts\n?? tools/llm-reader-gpt2-attention-path-sweep.py"
+    "commit": "fe7fa8a2fc08787f009dc080d82bec16eb444f83",
+    "statusShort": "M benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/manifest.json\n M benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json\n M benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.md\n M scripts/benchmark-nn-live-gpt2-attention-path-circuit-finder.ts\n M scripts/benchmark-nn-live-gpt2-combined-circuit-finder.ts\n M tools/llm-reader-gpt2-attention-path-sweep.py\n M tools/llm-reader-gpt2-combined-circuit-sweep.py"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json",
@@ -29,24 +29,156 @@
   "summary": {
     "pass": true,
     "validCases": 50,
-    "passedCases": 48,
-    "failedCases": 2,
-    "passRate": 0.96,
-    "medianGraphJointTargetLogitDrop": 3.77752685546875,
-    "p10GraphJointTargetLogitDrop": 2.0320892333984375,
-    "medianGraphControlP95PositiveTargetLogitDrop": 0.8765945434570312,
-    "medianGraphLiftOverControlP95": 4.1454169816074575,
-    "meanSelectedHeadCount": 3,
-    "uniqueSelectedHeads": 20,
-    "medianWrongAnswerDropRatio": 0.7703779014285085,
+    "passedCases": 50,
+    "failedCases": 0,
+    "passRate": 1,
+    "medianGraphJointTargetLogitDrop": 1.7271881103515625,
+    "p10GraphJointTargetLogitDrop": 1.1454010009765625,
+    "medianGraphControlP95PositiveTargetLogitDrop": 0.448638916015625,
+    "medianGraphLiftOverControlP95": 3.7378692395502666,
+    "meanSelectedHeadCount": 1.04,
+    "uniqueSelectedHeads": 6,
+    "medianWrongAnswerDropRatio": 0.7162562846461261,
     "wrongAnswerSpecificityIsGated": false,
-    "failedSubjects": [
-      "Belgium",
-      "month after January"
+    "failedSubjects": [],
+    "skippedCases": 33,
+    "skippedSubjects": [
+      {
+        "subject": "Brazil",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Jordan",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Bangladesh",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Vietnam",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Belarus",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Estonia",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Latvia",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Lithuania",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Romania",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Bulgaria",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Serbia",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Croatia",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Slovakia",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Switzerland",
+        "reason": "low-confidence target rank"
+      },
+      {
+        "subject": "Morocco",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Algeria",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Kenya",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Nigeria",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Ghana",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Senegal",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Mali",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Niger",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Sudan",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Uganda",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Tanzania",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Rwanda",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Colombia",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Venezuela",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Uruguay",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Paraguay",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "Ecuador",
+        "reason": "answer is not a single token"
+      },
+      {
+        "subject": "number after nine",
+        "reason": "low-confidence target rank"
+      },
+      {
+        "subject": "month after January",
+        "reason": "low-confidence target rank"
+      }
     ]
   },
   "notes": [
     "Real GPT-2 live factual-prompt attention-head/path circuit finder.",
-    "This uses automatic layer/head scanning, token/head/target path graph construction, joint attention-head ablation, attention-head controls, wrong-answer specificity checks, and explicit CUDA runtime support when available."
+    "This uses automatic layer/head scanning, token/head/target path graph construction, joint attention-head ablation, attention-head controls, wrong-answer collateral reporting, and explicit CUDA runtime support when available."
   ]
 }

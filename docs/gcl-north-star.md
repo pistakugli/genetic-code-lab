@@ -161,12 +161,14 @@ real GPT-2 through the CUDA runtime lane, scans configured attention heads,
 builds token/head/target path artifacts, and validates selected heads through
 causal attention-path ablation above attention-head controls. Current artifact:
 `benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json`.
-Current result: 50 valid facts, 48 passed cases, pass rate `0.96`, median
-attention graph target-logit drop `3.77752685546875`, median control p95
-`0.8765945434570312`, median lift `4.1454169816074575`, mean selected heads
-`3`, unique selected heads `20`, median wrong-answer collateral ratio
-`0.7703779014285085`, and `model.device = cuda`. This is path evidence, not
-answer-specific factual identity.
+Current result: 50 valid facts, 50 passed cases, pass rate `1.0`, median
+attention graph target-logit drop `1.7271881103515625`, median control p95
+`0.448638916015625`, median lift `3.7378692395502666`, mean selected heads
+`1.04`, unique selected heads `6`, median wrong-answer collateral ratio
+`0.7162562846461261`, skipped rows `33`, and `model.device = cuda`. Skipped
+rows are separated from valid pass/fail cases and currently reflect
+non-single-token answers or low-confidence target baseline rank. This is path
+evidence, not answer-specific factual identity.
 
 The first combined attention+MLP graph gate now exists:
 `npm run benchmark:nn-live-gpt2-combined-circuit-finder:gpu`. It loads real
@@ -175,13 +177,13 @@ attention heads, builds one token/head/neuron/target graph, and validates the
 union through simultaneous attention+MLP causal ablation above combined
 controls. Current artifact:
 `benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json`.
-Current result: 50 valid facts, 48 passed cases, pass rate `0.96`, MLP
-component pass rate `1.0`, attention component pass rate `0.96`, median
-combined target-logit drop `2.0570144653320312`, median combined-control p95
-`1.8040924072265625`, median lift `1.0844234406017157`, mean selected MLP
-nodes `1.64`, mean selected attention heads `3`, and `model.device = cuda`.
-Failed subjects are `Belgium` and `month after January`, matching the current
-attention-component boundary.
+Current result: 50 valid facts, 50 passed cases, pass rate `1.0`, MLP
+component pass rate `1.0`, attention component pass rate `1.0`, median
+combined target-logit drop `1.92523193359375`, median full-control combined
+p95 `0.417144775390625`, median lift `4.333544871993313`, mean selected MLP
+nodes `1.56`, mean selected attention heads `1.02`, failed subjects `[]`, and
+`model.device = cuda`. Combined pass/fail uses full component-replacement
+controls; MLP-swap and attention-swap controls remain diagnostic.
 
 ## Current Mainline
 

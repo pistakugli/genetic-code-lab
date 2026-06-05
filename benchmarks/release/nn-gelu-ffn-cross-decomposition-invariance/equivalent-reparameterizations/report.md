@@ -1,6 +1,6 @@
 # GELU FFN Cross-Decomposition Invariance Benchmark
 
-Generated: 2026-06-03T11:07:08.052Z
+Generated: 2026-06-05T16:00:39.631Z
 
 ## Claim Scope
 
