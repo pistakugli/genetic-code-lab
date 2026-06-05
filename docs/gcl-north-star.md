@@ -168,6 +168,21 @@ attention graph target-logit drop `3.77752685546875`, median control p95
 `0.7703779014285085`, and `model.device = cuda`. This is path evidence, not
 answer-specific factual identity.
 
+The first combined attention+MLP graph gate now exists:
+`npm run benchmark:nn-live-gpt2-combined-circuit-finder:gpu`. It loads real
+GPT-2 through the CUDA runtime lane, discovers selected MLP graph nodes and
+attention heads, builds one token/head/neuron/target graph, and validates the
+union through simultaneous attention+MLP causal ablation above combined
+controls. Current artifact:
+`benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json`.
+Current result: 50 valid facts, 48 passed cases, pass rate `0.96`, MLP
+component pass rate `1.0`, attention component pass rate `0.96`, median
+combined target-logit drop `2.0570144653320312`, median combined-control p95
+`1.8040924072265625`, median lift `1.0844234406017157`, mean selected MLP
+nodes `1.64`, mean selected attention heads `3`, and `model.device = cuda`.
+Failed subjects are `Belgium` and `month after January`, matching the current
+attention-component boundary.
+
 ## Current Mainline
 
 The next development must stay on this order:
@@ -185,12 +200,11 @@ The next development must stay on this order:
    `npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu`. The GPU setup must
    prove `torch.cuda.is_available()` and a real CUDA tensor operation before GPU
    benchmark output is trusted.
-2. Compose attention-head and MLP graph edges:
-   the first attention-head/path gate is now present. The next move is to join
-   attention path edges with the existing MLP graph nodes into a single
-   token/head/neuron/target circuit graph, while keeping controls and claim
-   boundaries separate for broad attention effects versus answer-specific MLP
-   effects.
+2. Move from union graph to ordered residual path evidence:
+   the first combined attention+MLP gate is now present. The next move is not
+   another union-ablation report; it is ordered path-patching-style evidence
+   that scores attention-to-MLP-to-target edges through residual stream
+   interventions while preserving the existing component and combined gates.
 3. Keep the current live-reader/fact-finder runtime behind that adapter:
    prompt/token/layer/component/intervention -> logits, activations, logit
    deltas, controls, cache keys, runtime warnings, model/tokenizer identities,

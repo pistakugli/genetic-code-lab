@@ -94,7 +94,13 @@ The next production path is:
      attention-head controls.
    - Emit comparable token/head/neuron/target graph edges with causal effect,
      collateral damage, and control-normalized effect.
-3. Scale model coverage through adapter gates
+3. Add combined attention+MLP graph recovery
+   - Current status: DONE for first CUDA GPT-2 combined graph gate.
+     `npm run benchmark:nn-live-gpt2-combined-circuit-finder:gpu` discovers
+     selected MLP nodes and attention heads, builds one token/head/neuron/target
+     graph, and validates the union through simultaneous attention+MLP causal
+     ablation above combined controls.
+4. Scale model coverage through adapter gates
    - GPT-2 remains the fast GELU proof gate.
    - Pythia/GPT-Neo adapters must prove the framework is not GPT-2-specific.
    - LLaMA/Mistral adapters must prove SwiGLU MLP/value-gate handling without
@@ -689,6 +695,26 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     discovery, not answer-specific factual identity. Wrong-answer collateral is
     reported but not gated because attention heads can carry broad task or
     token-class effects. It is not attention-to-MLP composition recovery yet.
+- Stage K2: combined attention+MLP graph recovery.
+  - Current status: first CUDA gate implemented.
+  - Current command: `npm run benchmark:nn-live-gpt2-combined-circuit-finder:gpu`.
+  - Current artifact:
+    `benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json`.
+  - Current result: pass `true`, 50 valid facts, 48 passed cases, pass rate
+    `0.96`, MLP component pass rate `1.0`, attention component pass rate
+    `0.96`, median combined target-logit drop `2.0570144653320312`, p10
+    combined drop `1.3149337768554688`, median combined-control p95 target-
+    logit drop `1.8040924072265625`, median combined lift over control p95
+    `1.0844234406017157`, mean selected MLP nodes `1.64`, mean selected
+    attention heads `3`, `model.device = cuda`.
+  - Output: one token/head/neuron/target union graph with simultaneous
+    attention+MLP ablation evidence, combined controls, component pass rates,
+    and explicit failed subjects (`Belgium`, `month after January`).
+  - Claim boundary: this proves benchmark-scoped combined graph discovery for
+    the configured GPT-2 factual prompt set. It is not ordered path-patching
+    through every residual stream edge, not full GPT-2 circuit recovery, not
+    full FFN extraction, not arbitrary LLM understanding, and not output-only
+    original-neuron identity.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

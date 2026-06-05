@@ -735,6 +735,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-live-gpt2-combined-circuit-finder',
+    name: 'NN live GPT-2 combined attention+MLP circuit finder',
+    status: 'preview',
+    summary: 'Loads real GPT-2 on the live LLM oracle path, discovers MLP graph nodes and attention heads for factual prompts, builds one token/head/neuron/target graph, and validates it through simultaneous attention+MLP causal ablation above combined controls.',
+    scope: 'Live real-model benchmark; proves benchmark-scoped combined attention+MLP graph discovery for the configured GPT-2 factual prompt set using real MLP activation hooks, real attention c_proj path hooks, real CUDA ablations, minimal combined-prefix selection, and combined control graphs. This is not full GPT-2 circuit recovery, not ordered path-patching through every residual stream edge, not full GPT-2 FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not broad SOTA status.',
+    run: { label: 'NN live GPT-2 combined circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-gpt2-combined-circuit-finder:gpu'] },
+    proofs: [
+      { label: 'NN live GPT-2 combined circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-gpt2-combined-circuit-finder:gpu'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json',
+      'benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

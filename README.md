@@ -155,6 +155,7 @@ npm run python:setup
 npm run llm:read:gpt2
 npm run benchmark:nn-live-gpt2-fact-circuit-finder
 npm run benchmark:nn-live-gpt2-attention-path-circuit-finder
+npm run benchmark:nn-live-gpt2-combined-circuit-finder
 ```
 
 GPU-accelerated live GPT-2 instrumentation on machines with NVIDIA CUDA:
@@ -163,6 +164,7 @@ GPU-accelerated live GPT-2 instrumentation on machines with NVIDIA CUDA:
 npm run python:setup:gpu
 npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu
 npm run benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu
+npm run benchmark:nn-live-gpt2-combined-circuit-finder:gpu
 ```
 
 The CPU environment remains the default reproducible release path. The GPU
@@ -253,6 +255,18 @@ What these gates currently support:
   gated for this attention-path lane because heads can carry broad token-class
   effects. The artifact is
   `benchmarks/release/nn-live-gpt2-attention-path-circuit-finder/gpt2-50-facts-attention-path-layer-scan/report.json`.
+- Live GPT-2 combined attention+MLP circuit finding for the configured factual
+  prompt set: `50` valid facts, `48` passed cases, pass rate `0.96`, MLP
+  component pass rate `1.0`, attention component pass rate `0.96`, median
+  combined target-logit drop `2.0570144653320312`, p10 combined drop
+  `1.3149337768554688`, median combined-control p95 target-logit drop
+  `1.8040924072265625`, median combined lift over control p95
+  `1.0844234406017157`, mean selected MLP nodes `1.64`, and mean selected
+  attention heads `3`. The current artifact was generated with the GPU command
+  and records `model.device = cuda`; failed cases are `Belgium` and `month
+  after January`, inherited from the attention component boundary. The artifact
+  is
+  `benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json`.
 
 What they do not support yet:
 
@@ -265,10 +279,12 @@ What they do not support yet:
   production-model source identity from the local transformer hook gate alone.
 - Treating the single-prompt live reader as circuit discovery. The new
   fact-circuit finder is benchmark-scoped MLP graph discovery for a configured
-  real GPT-2 factual prompt set. The attention-path finder is now a separate
-  benchmark-scoped head/path graph lane. Neither one proves full GPT-2 FFN
-  extraction, arbitrary LLM understanding, attention-to-MLP composition
-  recovery, or output-only original-neuron identity.
+  real GPT-2 factual prompt set. The attention-path finder is a separate
+  benchmark-scoped head/path graph lane, and the combined finder now validates a
+  token/head/neuron/target union graph through simultaneous attention+MLP
+  ablation. These gates still do not prove full GPT-2 FFN extraction, arbitrary
+  LLM understanding, ordered path-patching through every residual stream edge,
+  or output-only original-neuron identity.
 - Treating the current GPT-2-specific implementation as proof that the circuit
   finder already scales to GPT-Neo, Pythia, LLaMA, Mistral, or arbitrary LLM
   architectures. The live reader now has a model-agnostic `LLMOracleAdapter`

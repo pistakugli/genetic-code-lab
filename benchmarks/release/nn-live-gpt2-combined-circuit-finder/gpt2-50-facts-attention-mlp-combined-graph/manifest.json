@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-05T15:15:51.349Z",
+  "lane": "nn-live-gpt2-combined-circuit-finder",
+  "variant": "gpt2-50-facts-attention-mlp-combined-graph",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-gpt2-combined-circuit-finder.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-gpt2-combined-circuit-finder:gpu",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.2"
+  },
+  "env": {
+    "GCL_LIVE_GPT2_DEVICE": "cuda",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "4fa8aeb9d70724ce26254cbfeb85796735f1c7ef",
+    "statusShort": "M package.json\n?? benchmarks/release/nn-live-gpt2-combined-circuit-finder/\n?? scripts/benchmark-nn-live-gpt2-combined-circuit-finder.ts\n?? tools/llm-reader-gpt2-combined-circuit-sweep.py"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.md",
+    "manifest": "benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "validCases": 50,
+    "passedCases": 48,
+    "failedCases": 2,
+    "passRate": 0.96,
+    "mlpComponentPassRate": 1,
+    "attentionComponentPassRate": 0.96,
+    "medianCombinedTargetLogitDrop": 2.0570144653320312,
+    "p10CombinedTargetLogitDrop": 1.3149337768554688,
+    "medianCombinedControlP95PositiveTargetLogitDrop": 1.8040924072265625,
+    "medianCombinedLiftOverControlP95": 1.0844234406017157,
+    "meanSelectedMlpNodes": 1.64,
+    "meanSelectedAttentionHeads": 3,
+    "failedSubjects": [
+      "Belgium",
+      "month after January"
+    ]
+  },
+  "notes": [
+    "Real GPT-2 live factual-prompt combined attention+MLP circuit finder.",
+    "This uses automatic MLP neuron scanning, attention-head scanning, one token/head/neuron/target graph, simultaneous attention+MLP causal ablation, combined controls, and explicit CUDA runtime support when available."
+  ]
+}
