@@ -750,6 +750,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-live-gpt2-ordered-residual-path-circuit-finder',
+    name: 'NN live GPT-2 ordered residual path circuit finder',
+    status: 'preview',
+    summary: 'Loads real GPT-2 on the live LLM oracle path, reuses discovered attention heads and MLP nodes, then validates ordered attention->residual->MLP->target path evidence through activation-dependency patching above full-control paths.',
+    scope: 'Live real-model benchmark; proves benchmark-scoped ordered residual path evidence for the configured GPT-2 factual prompt set using real MLP activation hooks, real attention c_proj path hooks, real CUDA interventions, selected attention->MLP activation dependency measurements, and full-control path interventions. This is not full GPT-2 circuit recovery, not exhaustive residual-stream patching for every edge, not full GPT-2 FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not broad SOTA status.',
+    run: { label: 'NN live GPT-2 ordered residual path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu'] },
+    proofs: [
+      { label: 'NN live GPT-2 ordered residual path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json',
+      'benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

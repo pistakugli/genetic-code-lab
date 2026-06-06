@@ -1,6 +1,6 @@
 # Adaptive-Budget Noisy Deep Black-Box ReLU ND Region-Sampler Benchmark
 
-Generated: 2026-06-05T15:53:37.073Z
+Generated: 2026-06-06T05:53:35.360Z
 
 ## Claim Scope
 

@@ -1,6 +1,6 @@
 # 5D ND Recovered-Adjacency Geometry Sweep
 
-Generated: 2026-06-05T15:53:56.792Z
+Generated: 2026-06-06T05:53:54.643Z
 
 ## Claim Scope
 

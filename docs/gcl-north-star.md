@@ -202,11 +202,15 @@ The next development must stay on this order:
    `npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu`. The GPU setup must
    prove `torch.cuda.is_available()` and a real CUDA tensor operation before GPU
    benchmark output is trusted.
-2. Move from union graph to ordered residual path evidence:
-   the first combined attention+MLP gate is now present. The next move is not
-   another union-ablation report; it is ordered path-patching-style evidence
-   that scores attention-to-MLP-to-target edges through residual stream
-   interventions while preserving the existing component and combined gates.
+2. Expand ordered residual path evidence beyond the first GPT-2 gate:
+   the first ordered attention->residual->MLP->target gate is now present via
+   `npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu`.
+   The current artifact passed 50 valid GPT-2 factual prompts with median
+   selected path activation delta `0.16316372156143188`, median full-control
+   path p95 activation delta `0.02243638038635254`, and median ordered path
+   lift `6.071965452028251`. The next move is to generalize this path protocol
+   through the model adapter layer instead of adding more GPT-2-only special
+   cases.
 3. Keep the current live-reader/fact-finder runtime behind that adapter:
    prompt/token/layer/component/intervention -> logits, activations, logit
    deltas, controls, cache keys, runtime warnings, model/tokenizer identities,

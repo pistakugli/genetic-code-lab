@@ -719,6 +719,28 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     through every residual stream edge, not full GPT-2 circuit recovery, not
     full FFN extraction, not arbitrary LLM understanding, and not output-only
     original-neuron identity.
+- Stage K3: ordered residual path recovery.
+  - Current status: first CUDA gate implemented.
+  - Current command: `npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu`.
+  - Current artifact:
+    `benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json`.
+  - Current result: pass `true`, 50 valid facts, 50 passed cases, pass rate
+    `1.0`, combined graph pass rate `1.0`, median selected path activation
+    delta `0.16316372156143188`, p10 selected path activation delta
+    `0.07098615169525146`, median full-control path p95 activation delta
+    `0.02243638038635254`, median ordered path lift over full-control p95
+    `6.071965452028251`, median combined target-logit drop
+    `1.9691314697265625`, skipped rows `33`, `model.device = cuda`.
+  - Output: attention->residual->MLP->target path records with selected
+    attention heads, selected MLP nodes, path activation deltas, full-control
+    path deltas, combined target-logit evidence, and order-aware rescue
+    attempts when a causal union graph is not a valid attention-before-MLP
+    path.
+  - Claim boundary: this proves benchmark-scoped ordered residual path evidence
+    for the configured GPT-2 factual prompt set. It is not exhaustive residual
+    patching for every edge, not full GPT-2 circuit recovery, not full FFN
+    extraction, not arbitrary LLM understanding, and not output-only
+    original-neuron identity.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

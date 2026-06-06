@@ -156,6 +156,7 @@ npm run llm:read:gpt2
 npm run benchmark:nn-live-gpt2-fact-circuit-finder
 npm run benchmark:nn-live-gpt2-attention-path-circuit-finder
 npm run benchmark:nn-live-gpt2-combined-circuit-finder
+npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder
 ```
 
 GPU-accelerated live GPT-2 instrumentation on machines with NVIDIA CUDA:
@@ -165,6 +166,7 @@ npm run python:setup:gpu
 npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu
 npm run benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu
 npm run benchmark:nn-live-gpt2-combined-circuit-finder:gpu
+npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu
 ```
 
 The CPU environment remains the default reproducible release path. The GPU
@@ -271,6 +273,19 @@ What these gates currently support:
   retaining MLP-swap and attention-swap controls as diagnostics. The artifact
   is
   `benchmarks/release/nn-live-gpt2-combined-circuit-finder/gpt2-50-facts-attention-mlp-combined-graph/report.json`.
+- Live GPT-2 ordered residual path circuit finding for the configured factual
+  prompt set: `50` valid facts, `50` passed cases, pass rate `1.0`, combined
+  graph pass rate `1.0`, median selected attention-to-MLP activation delta
+  `0.16316372156143188`, p10 selected path activation delta
+  `0.07098615169525146`, median full-control path p95 activation delta
+  `0.02243638038635254`, median ordered path lift over full-control p95
+  `6.071965452028251`, and median combined target-logit drop
+  `1.9691314697265625`. The current artifact was generated with the GPU
+  command and records `model.device = cuda`, `torch = 2.10.0+cu128`,
+  `synthetic = false`, and `surrogate = false`. The gate uses an order-aware
+  rescue selector when the union graph is causal but not a valid
+  attention->residual->MLP ordering. The artifact is
+  `benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json`.
 
 What they do not support yet:
 
@@ -286,9 +301,11 @@ What they do not support yet:
   real GPT-2 factual prompt set. The attention-path finder is a separate
   benchmark-scoped head/path graph lane, and the combined finder now validates a
   token/head/neuron/target union graph through simultaneous attention+MLP
-  ablation. These gates still do not prove full GPT-2 FFN extraction, arbitrary
-  LLM understanding, ordered path-patching through every residual stream edge,
-  or output-only original-neuron identity.
+  ablation. The ordered residual path finder adds benchmark-scoped
+  attention->residual->MLP->target evidence above full-control path
+  interventions. These gates still do not prove full GPT-2 FFN extraction,
+  arbitrary LLM understanding, exhaustive residual-stream patching for every
+  edge, or output-only original-neuron identity.
 - Treating the current GPT-2-specific implementation as proof that the circuit
   finder already scales to GPT-Neo, Pythia, LLaMA, Mistral, or arbitrary LLM
   architectures. The live reader now has a model-agnostic `LLMOracleAdapter`

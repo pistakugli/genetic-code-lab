@@ -1,6 +1,6 @@
 # Active-Subspace FFN Decompiler Benchmark
 
-Generated: 2026-06-05T15:55:47.603Z
+Generated: 2026-06-06T05:55:45.490Z
 
 ## Claim Scope
 
