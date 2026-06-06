@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Tuple
 
 import torch
 
-from llm_reader.adapters.gpt2 import GPT2OracleAdapter
+from llm_reader.adapters.registry import adapter_choices, create_adapter
 
 
 def load_tool_module(filename: str, module_name: str) -> Any:
@@ -29,13 +29,26 @@ def load_tool_module(filename: str, module_name: str) -> Any:
 factual = load_tool_module("llm-reader-gpt2-factual-sweep.py", "gcl_factual_sweep")
 attention = load_tool_module("llm-reader-gpt2-attention-path-sweep.py", "gcl_attention_sweep")
 combined = load_tool_module("llm-reader-gpt2-combined-circuit-sweep.py", "gcl_combined_sweep")
-live = GPT2OracleAdapter()
+live = create_adapter("gpt2")
+
+
+def set_live_adapter(adapter_id: str) -> None:
+    global live
+    live = create_adapter(adapter_id)
+    factual.live = live
+    attention.live = live
+    attention.factual.live = live
+    combined.live = live
+    combined.factual.live = live
+    combined.attention.live = live
+    combined.attention.factual.live = live
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run a real GPT-2 ordered residual attention->MLP->target path-patching sweep."
+        description="Run a real LLM ordered residual attention->MLP->target path-patching sweep."
     )
+    parser.add_argument("--adapter", choices=adapter_choices(), default="gpt2")
     parser.add_argument("--model", default="gpt2")
     parser.add_argument("--case-count", type=int, default=50)
     parser.add_argument("--min-valid-cases", type=int, default=50)
@@ -57,6 +70,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-margin-over-control-p95", type=float, default=0.02)
     parser.add_argument("--min-path-activation-delta", type=float, default=0.005)
     parser.add_argument("--min-path-margin-over-control-p95", type=float, default=0.001)
+    parser.add_argument("--require-component-hardening", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--ordered-rescue-candidate-count", type=int, default=10)
     parser.add_argument("--wrong-answer-count", type=int, default=3)
     parser.add_argument("--attention-max-target-rank", type=int, default=100)
@@ -69,6 +83,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-unrelated-preservation-rate", type=float, default=0.85)
     parser.add_argument("--max-wrong-answer-drop-ratio", type=float, default=0.55)
     parser.add_argument("--max-candidate-wrong-answer-drop-ratio", type=float, default=0.70)
+    parser.add_argument("--allow-target-causal-mlp-fallback", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--max-negative-fact-drop-ratio", type=float, default=0.55)
     parser.add_argument("--max-unrelated-abs-drop-ratio", type=float, default=0.65)
     parser.add_argument("--strict-rescue-candidate-count", type=int, default=14)
@@ -466,8 +481,9 @@ def select_ordered_rescue_attempt(
             path_control_p95 = float(path_controls["gateSummary"]["p95PathActivationDelta"])
             path_delta = float(path_score["pathActivationDelta"])
             path_margin = path_delta - path_control_p95
+            component_gate = component_pass or not bool(args.require_component_hardening)
             pass_attempt = (
-                component_pass
+                component_gate
                 and bool(combined_attempt.get("pass"))
                 and path_delta >= float(args.min_path_activation_delta)
                 and path_margin >= float(args.min_path_margin_over_control_p95)
@@ -477,6 +493,8 @@ def select_ordered_rescue_attempt(
                 "attention": attention_intervention,
                 "orderValid": True,
                 "componentPass": component_pass,
+                "componentHardeningRequired": bool(args.require_component_hardening),
+                "componentGatePass": component_gate,
                 "combined": combined_attempt,
                 "pathScore": path_score,
                 "pathControls": path_controls,
@@ -526,6 +544,9 @@ def select_ordered_rescue_attempt(
                 "pathDelta": float(attempt.get("pathDelta", 0.0)),
                 "pathControlP95": float(attempt.get("pathControlP95", 0.0)),
                 "pathMargin": float(attempt.get("pathMargin", 0.0)),
+                "componentHardeningRequired": bool(attempt.get("componentHardeningRequired", True)),
+                "componentHardeningPass": bool(attempt.get("componentPass", False)),
+                "componentGatePass": bool(attempt.get("componentGatePass", False)),
                 "pass": bool(attempt.get("pass")),
                 "failureReason": attempt.get("failureReason"),
             }
@@ -662,7 +683,7 @@ def run_ordered_case(
             path_delta = float(rescue_chosen["pathDelta"])
             path_margin = float(rescue_chosen["pathMargin"])
             combined_summary = compact_combined_attempt(
-                component_pass=bool(ordered_rescue.get("componentPass")),
+                component_pass=bool(rescue_chosen.get("componentGatePass")),
                 chosen=rescue_combined,
             )
             combined_pass = combined_summary.get("status") == "passed"
@@ -684,7 +705,7 @@ def run_ordered_case(
         "readToken": live.clean_token(tokenizer, int(token_ids[read_token_index])),
         "combined": combined_summary,
         "orderedResidualPath": {
-            "kind": "gpt2-live-ordered-residual-attention-mlp-target-path",
+            "kind": f"{live.adapter_id}-live-ordered-residual-attention-mlp-target-path",
             "nodes": {
                 "attention": selected_attention,
                 "mlp": selected_mlp,
@@ -731,6 +752,7 @@ def run_ordered_case(
             "gate": {
                 "pass": pass_case,
                 "requiresCombinedGraphPass": True,
+                "requiresComponentHardening": bool(args.require_component_hardening),
                 "minPathActivationDelta": float(args.min_path_activation_delta),
                 "minPathMarginOverControlP95": float(args.min_path_margin_over_control_p95),
             },
@@ -741,9 +763,9 @@ def run_ordered_case(
 def make_report_md(report: Dict[str, Any]) -> str:
     summary = report["summary"]
     lines = [
-        "# Live GPT-2 Ordered Residual Path Circuit Finder",
+        "# Live LLM Ordered Residual Path Circuit Finder",
         "",
-        "This benchmark uses a real GPT-2 model, real attention-path hooks, real MLP activation hooks, and ordered attention->residual->MLP->target path evidence. It is not synthetic and does not fit a surrogate.",
+        "This benchmark uses a real causal-LM model, real attention-path hooks, real MLP activation hooks, and ordered attention->residual->MLP->target path evidence. It is not synthetic and does not fit a surrogate.",
         "",
         "## Summary",
         "",
@@ -784,6 +806,7 @@ def make_report_md(report: Dict[str, Any]) -> str:
 
 def main() -> None:
     args = parse_args()
+    set_live_adapter(args.adapter)
     if args.case_count <= 0 or args.min_valid_cases <= 0:
         raise RuntimeError("case counts must be positive.")
     only_subjects = {item.strip() for item in args.only_subjects.split(",") if item.strip()}
@@ -858,8 +881,8 @@ def main() -> None:
     )
     report = {
         "schemaVersion": 1,
-        "kind": "gpt2-live-ordered-residual-path-circuit-finder",
-        "mode": "live-gpt2-ordered-residual-attention-mlp-target-path",
+        "kind": f"{live.adapter_id}-live-ordered-residual-path-circuit-finder",
+        "mode": f"live-{live.adapter_id}-ordered-residual-attention-mlp-target-path",
         "synthetic": False,
         "surrogate": False,
         "generatedAt": now_iso(),
@@ -888,7 +911,9 @@ def main() -> None:
             "attentionMaxTargetRank": args.attention_max_target_rank,
             "minPathActivationDelta": args.min_path_activation_delta,
             "minPathMarginOverControlP95": args.min_path_margin_over_control_p95,
+            "requireComponentHardening": bool(args.require_component_hardening),
             "device": device,
+            "adapter": args.adapter,
         },
         "summary": {
             "pass": pass_summary,

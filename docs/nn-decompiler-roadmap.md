@@ -720,10 +720,15 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     full FFN extraction, not arbitrary LLM understanding, and not output-only
     original-neuron identity.
 - Stage K3: ordered residual path recovery.
-  - Current status: first CUDA gate implemented.
+  - Current status: first CUDA GPT-2 gate implemented and first second-adapter
+    Pythia/GPT-NeoX preview gate implemented.
   - Current command: `npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu`.
+  - Second-adapter command:
+    `npm run benchmark:nn-live-pythia-ordered-residual-path-circuit-finder:gpu`.
   - Current artifact:
     `benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json`.
+  - Second-adapter artifact:
+    `benchmarks/release/nn-live-pythia-ordered-residual-path-circuit-finder/pythia-70m-20-facts-ordered-residual-path/report.json`.
   - Current result: pass `true`, 50 valid facts, 50 passed cases, pass rate
     `1.0`, combined graph pass rate `1.0`, median selected path activation
     delta `0.16316372156143188`, p10 selected path activation delta
@@ -731,6 +736,13 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `0.02243638038635254`, median ordered path lift over full-control p95
     `6.071965452028251`, median combined target-logit drop
     `1.9691314697265625`, skipped rows `33`, `model.device = cuda`.
+  - Second-adapter result: pass `true`, real EleutherAI/pythia-70m-deduped /
+    GPT-NeoX, 20 valid facts, 18 passed cases, pass rate `0.9`, combined graph
+    pass rate `0.9`, median selected path activation delta `0.421875`, p10
+    selected path activation delta `0.076171875`, median full-control path p95
+    activation delta `0.045970916748046875`, median ordered path lift
+    `9.395348837209303`, median combined target-logit drop `2`, failed
+    subjects `Ireland, Israel`, `adapter = gpt-neox`, `model.device = cuda`.
   - Output: attention->residual->MLP->target path records with selected
     attention heads, selected MLP nodes, path activation deltas, full-control
     path deltas, combined target-logit evidence, and order-aware rescue

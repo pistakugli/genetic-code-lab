@@ -139,6 +139,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-unrelated-preservation-rate", type=float, default=0.85)
     parser.add_argument("--max-wrong-answer-drop-ratio", type=float, default=0.55)
     parser.add_argument("--max-candidate-wrong-answer-drop-ratio", type=float, default=0.70)
+    parser.add_argument("--allow-target-causal-mlp-fallback", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--max-negative-fact-drop-ratio", type=float, default=0.55)
     parser.add_argument("--max-unrelated-abs-drop-ratio", type=float, default=0.65)
     parser.add_argument("--strict-rescue-candidate-count", type=int, default=14)
@@ -486,6 +487,9 @@ def translate_interventions_to_active_support(
 
 
 def candidate_ablation_positions(candidate: Dict[str, Any], token_index: int) -> List[int]:
+    explicit_positions = candidate.get("ablateTokenPositions")
+    if isinstance(explicit_positions, list) and explicit_positions:
+        return sorted(set(int(position) for position in explicit_positions))
     positions = {int(token_index)}
     for edge in candidate.get("tokenSupportEdges", []):
         if edge.get("kind") == "token-activation-support":
@@ -566,7 +570,7 @@ def build_candidate_records(
     top_neurons: int,
 ) -> List[Dict[str, Any]]:
     records: List[Dict[str, Any]] = []
-    lm_head_weight = model.lm_head.weight.detach().cpu()
+    lm_head_weight = live.unembedding_weight(model).detach().cpu()
     target_unembed = lm_head_weight[target_token_id]
     wrong_token_ids = [int(item["tokenId"]) for item in wrong_answer_targets]
     wrong_unembeds = lm_head_weight[wrong_token_ids] if wrong_token_ids else None
@@ -634,6 +638,7 @@ def build_candidate_records(
                 "contrastiveTargetScore": float(contrast_scores[neuron]),
                 "activation": float(activation[neuron]),
                 "targetLogitDrop": drop,
+                "ablateTokenPositions": [int(token_index)],
                 "wrongAnswerLogitDrops": wrong_drops,
                 "maxWrongAnswerLogitDrop": max_wrong_drop,
                 "targetSpecificMargin": target_specific_margin,
@@ -897,6 +902,35 @@ def select_circuit_candidates(
     return selected
 
 
+def select_target_causal_candidates(
+    candidates: List[Dict[str, Any]],
+    max_graph_nodes: int,
+    min_target_drop: float,
+) -> List[Dict[str, Any]]:
+    selected: List[Dict[str, Any]] = []
+    used = set()
+    ranked = sorted(
+        candidates,
+        key=lambda item: (
+            float(item.get("targetLogitDrop", 0.0)),
+            float(item.get("targetSpecificMargin", 0.0)),
+            float(item.get("targetProjectionScore", 0.0)),
+        ),
+        reverse=True,
+    )
+    for candidate in ranked:
+        pair = (int(candidate["layer"]), int(candidate["neuron"]))
+        if pair in used:
+            continue
+        if float(candidate.get("targetLogitDrop", 0.0)) < min_target_drop:
+            continue
+        selected.append(candidate)
+        used.add(pair)
+        if len(selected) >= max_graph_nodes:
+            break
+    return selected
+
+
 def strict_rescue_candidate_pool(
     candidates: List[Dict[str, Any]],
     max_candidates: int,
@@ -1097,6 +1131,13 @@ def build_circuit_graph(
             float(args.max_candidate_wrong_answer_drop_ratio),
         )
         selection_source = "ranked-target-specific-candidates"
+        if not selected_pool and bool(getattr(args, "allow_target_causal_mlp_fallback", False)):
+            selected_pool = select_target_causal_candidates(
+                candidates,
+                max(1, int(args.max_graph_nodes)),
+                float(args.min_target_drop),
+            )
+            selection_source = "ranked-target-causal-fallback-candidates"
     else:
         selected_pool = forced_selected[:max(1, int(args.max_graph_nodes))]
         selection_source = "forced-candidate-set"
@@ -1125,6 +1166,7 @@ def build_circuit_graph(
                 "pass": False,
                 "failureReason": "no target-specific candidates passed selection threshold",
                 "thresholdForIndividualCandidateSelection": threshold,
+                "allowTargetCausalMlpFallback": bool(getattr(args, "allow_target_causal_mlp_fallback", False)),
                 "minTargetDrop": float(args.min_target_drop),
                 "minMarginOverControlP95": float(args.min_margin_over_control_p95),
             },

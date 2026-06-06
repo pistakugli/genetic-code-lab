@@ -40,6 +40,10 @@ class LLMOracleAdapter(ABC):
         """Return a report-safe token string."""
 
     @abstractmethod
+    def unembedding_weight(self, model: Any) -> torch.Tensor:
+        """Return the output unembedding matrix indexed by token id."""
+
+    @abstractmethod
     def run_activation_ablation_logits(
         self,
         model: Any,

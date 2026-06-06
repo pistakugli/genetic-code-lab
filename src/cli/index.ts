@@ -765,6 +765,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-live-pythia-ordered-residual-path-circuit-finder',
+    name: 'NN live Pythia ordered residual path circuit finder',
+    status: 'preview',
+    summary: 'Loads real Pythia/GPT-NeoX through the model-agnostic LLM adapter path and validates ordered attention->residual->MLP->target path evidence on a second real transformer family.',
+    scope: 'Live real-model benchmark; proves benchmark-scoped second-adapter ordered residual path evidence for EleutherAI/pythia-70m-deduped using real GPT-NeoX MLP activation hooks, real attention output-path hooks, CUDA interventions, target-causal MLP fallback guarded by graph/path controls, and failed-subject reporting. This is not full Pythia circuit recovery, not exhaustive residual-stream patching, not full FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not broad SOTA status.',
+    run: { label: 'NN live Pythia ordered residual path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-pythia-ordered-residual-path-circuit-finder:gpu'] },
+    proofs: [
+      { label: 'NN live Pythia ordered residual path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-pythia-ordered-residual-path-circuit-finder:gpu'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-pythia-ordered-residual-path-circuit-finder/pythia-70m-20-facts-ordered-residual-path/report.json',
+      'benchmarks/release/nn-live-pythia-ordered-residual-path-circuit-finder/pythia-70m-20-facts-ordered-residual-path/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

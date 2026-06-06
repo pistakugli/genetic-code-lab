@@ -208,9 +208,13 @@ The next development must stay on this order:
    The current artifact passed 50 valid GPT-2 factual prompts with median
    selected path activation delta `0.16316372156143188`, median full-control
    path p95 activation delta `0.02243638038635254`, and median ordered path
-   lift `6.071965452028251`. The next move is to generalize this path protocol
-   through the model adapter layer instead of adding more GPT-2-only special
-   cases.
+   lift `6.071965452028251`. The same protocol now has a second real-model
+   adapter preview via
+   `npm run benchmark:nn-live-pythia-ordered-residual-path-circuit-finder:gpu`:
+   real EleutherAI/pythia-70m-deduped / GPT-NeoX, 20 valid facts, 18 passed
+   ordered path cases, pass rate `0.9`, median selected path activation delta
+   `0.421875`, and failed subjects `Ireland, Israel`. The next move is a
+   LLaMA/Mistral-style SwiGLU adapter, not more GPT-2-only special cases.
 3. Keep the current live-reader/fact-finder runtime behind that adapter:
    prompt/token/layer/component/intervention -> logits, activations, logit
    deltas, controls, cache keys, runtime warnings, model/tokenizer identities,

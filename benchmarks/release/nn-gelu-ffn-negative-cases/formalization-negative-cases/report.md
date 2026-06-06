@@ -1,6 +1,6 @@
 # GELU FFN Formalization Negative-Case Benchmark
 
-Generated: 2026-06-06T06:00:58.569Z
+Generated: 2026-06-06T07:33:39.098Z
 
 ## Claim Scope
 

@@ -102,6 +102,7 @@ def namespace_for_mlp(args: argparse.Namespace) -> argparse.Namespace:
         min_unrelated_preservation_rate=args.min_unrelated_preservation_rate,
         max_wrong_answer_drop_ratio=args.max_wrong_answer_drop_ratio,
         max_candidate_wrong_answer_drop_ratio=args.max_candidate_wrong_answer_drop_ratio,
+        allow_target_causal_mlp_fallback=getattr(args, "allow_target_causal_mlp_fallback", False),
         max_negative_fact_drop_ratio=args.max_negative_fact_drop_ratio,
         max_unrelated_abs_drop_ratio=args.max_unrelated_abs_drop_ratio,
         strict_rescue_candidate_count=args.strict_rescue_candidate_count,

@@ -69,6 +69,11 @@ class GPT2OracleAdapter(LLMOracleAdapter):
     def clean_token(self, tokenizer: Any, token_id: int) -> str:
         return self._live.clean_token(tokenizer, int(token_id))
 
+    def unembedding_weight(self, model: Any) -> torch.Tensor:
+        if not hasattr(model, "lm_head"):
+            raise RuntimeError("GPT-2 adapter expected model.lm_head.")
+        return model.lm_head.weight
+
     def run_activation_ablation_logits(
         self,
         model: Any,
