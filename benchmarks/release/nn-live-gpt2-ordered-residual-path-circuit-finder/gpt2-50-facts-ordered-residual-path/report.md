@@ -16,9 +16,9 @@ This benchmark uses a real causal-LM model, real attention-path hooks, real MLP 
 
 ## Claim Boundary
 
-Benchmark-scoped evidence that the real GPT-2 live pipeline can discover selected attention heads and MLP nodes for factual prompts, then validate an ordered attention->residual->MLP->target path by showing selected attention interventions change selected MLP activations above full-control path interventions while the combined circuit remains causally effective on the target logit.
+Benchmark-scoped evidence that the real gpt2 pipeline can discover selected attention heads and MLP units for factual prompts, then validate an ordered attention->residual->MLP->target path by showing selected attention interventions change selected MLP activations above full-control path interventions while the combined circuit remains causally effective on the target logit.
 
-This is not full GPT-2 circuit recovery, not exhaustive residual-stream patching for every edge, not full GPT-2 FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not a broad SOTA claim.
+This is not full-model circuit recovery, not exhaustive residual-stream patching for every edge, not full FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not a broad SOTA claim.
 
 ## Cases
 

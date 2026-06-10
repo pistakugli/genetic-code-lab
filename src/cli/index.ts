@@ -780,6 +780,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-live-llama-swiglu-ordered-residual-path-circuit-finder',
+    name: 'NN live Llama SwiGLU ordered residual path circuit finder',
+    status: 'preview',
+    summary: 'Loads a real quantized Llama-3.2-3B model through the model-agnostic adapter path, addresses real SwiGLU value/gate pair channels, and validates ordered attention->residual->SwiGLU->target path evidence.',
+    scope: 'Live real-model benchmark; proves benchmark-scoped ordered residual path evidence for a real Llama-3.2-3B-Instruct model using the actual SiLU(gate_proj(x))*up_proj(x) pair before down_proj, real attention output-path hooks, CUDA interventions, graph/path controls, and explicit skipped/failed case reporting. This does not yet verify Mistral runtime parity, full Llama circuit recovery, exhaustive residual-stream patching, full FFN extraction, arbitrary LLM understanding, output-only original-neuron identity, or broad SOTA status.',
+    run: { label: 'NN live Llama SwiGLU ordered residual path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-llama-swiglu-ordered-residual-path-circuit-finder:gpu'] },
+    proofs: [
+      { label: 'NN live Llama SwiGLU ordered residual path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-llama-swiglu-ordered-residual-path-circuit-finder:gpu'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/llama-3.2-3b-20-facts-ordered-residual-path/report.json',
+      'benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/llama-3.2-3b-20-facts-ordered-residual-path/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

@@ -19,7 +19,7 @@ import sys
 import torch
 
 print("python", sys.executable)
-for package in ("torch", "transformers", "numpy", "torchao"):
+for package in ("torch", "transformers", "numpy", "accelerate", "bitsandbytes", "torchao"):
     try:
         print(package, metadata.version(package))
     except metadata.PackageNotFoundError:

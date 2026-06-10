@@ -4,7 +4,7 @@
   "mode": "live-gpt2-ordered-residual-attention-mlp-target-path",
   "synthetic": false,
   "surrogate": false,
-  "generatedAt": "2026-06-06T08:05:46.741081Z",
+  "generatedAt": "2026-06-10T19:58:48.023099Z",
   "model": {
     "id": "gpt2",
     "class": "GPT2LMHeadModel",
@@ -22,7 +22,9 @@
     "python": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu/bin/python",
     "torch": "2.10.0+cu128",
     "transformers": "5.5.0",
-    "numpy": "2.4.6"
+    "numpy": "2.4.6",
+    "accelerate": "1.13.0",
+    "bitsandbytes": "0.49.2"
   },
   "config": {
     "mlpLayers": [
@@ -117753,7 +117755,7 @@
     }
   ],
   "claimBoundary": {
-    "provesIfPasses": "Benchmark-scoped evidence that the real GPT-2 live pipeline can discover selected attention heads and MLP nodes for factual prompts, then validate an ordered attention->residual->MLP->target path by showing selected attention interventions change selected MLP activations above full-control path interventions while the combined circuit remains causally effective on the target logit.",
-    "doesNotProve": "This is not full GPT-2 circuit recovery, not exhaustive residual-stream patching for every edge, not full GPT-2 FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not a broad SOTA claim."
+    "provesIfPasses": "Benchmark-scoped evidence that the real gpt2 pipeline can discover selected attention heads and MLP units for factual prompts, then validate an ordered attention->residual->MLP->target path by showing selected attention interventions change selected MLP activations above full-control path interventions while the combined circuit remains causally effective on the target logit.",
+    "doesNotProve": "This is not full-model circuit recovery, not exhaustive residual-stream patching for every edge, not full FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not a broad SOTA claim."
   }
 }

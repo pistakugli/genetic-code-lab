@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-06T07:25:13.863Z",
+  "generatedAt": "2026-06-10T19:18:32.066Z",
   "benchmark": "distributed-island-nn",
   "task": {
     "formula": "0.7*sin(x0) + 1.3*x1*x1 - 0.4*x0*x1",
@@ -66,21 +66,21 @@
     "singleSolvedCount": 0,
     "singleFallbackCount": 0,
     "meanSingleMae": 2.32431537884001,
-    "meanPolicyMae": 0.05033132553001186,
-    "meanValidationOnlyMae": 0.05033132553001186,
-    "meanOracleMae": 0.04662717383923323,
-    "medianLift": 7.010939084156586,
-    "medianEligibleLift": 7.010939084156586,
-    "meanLift": 22977551078.249863,
-    "meanEligibleLift": 22977551078.249863,
-    "meanRegretVsOracle": 0.00370415169077863,
+    "meanPolicyMae": 0.05099865596910031,
+    "meanValidationOnlyMae": 0.05099865596910031,
+    "meanOracleMae": 0.049659593060916045,
+    "medianLift": 11.47910519051463,
+    "medianEligibleLift": 11.47910519051463,
+    "meanLift": 22912284082.972538,
+    "meanEligibleLift": 22912284082.972538,
+    "meanRegretVsOracle": 0.001339062908184274,
     "policyBeatsValidationOnlyRate": 0,
-    "totalHubDrops": 359,
-    "totalHubPullSuccesses": 237,
-    "fallbackCount": 5,
-    "meanHoldoutAccuracy": 0.7790387426900584,
-    "meanHoldoutBrier": 0.15273093072992128,
-    "meanHoldoutAuc": 0.800701793062904
+    "totalHubDrops": 357,
+    "totalHubPullSuccesses": 220,
+    "fallbackCount": 3,
+    "meanHoldoutAccuracy": 0.8248186828150064,
+    "meanHoldoutBrier": 0.14316571166467662,
+    "meanHoldoutAuc": 0.8626864711934156
   },
   "results": [
     {
@@ -106,62 +106,70 @@
         }
       },
       "nn": {
-        "samples": 92,
+        "samples": 91,
         "positives": 34,
-        "trainingAccuracy": 0.9130434782608695,
-        "holdoutSamples": 19,
+        "trainingAccuracy": 0.9340659340659341,
+        "holdoutSamples": 18,
         "holdoutAccuracy": 1,
-        "holdoutBrier": 0.07361692193557783,
+        "holdoutBrier": 0.07372568303628357,
         "holdoutAuc": 1
       },
       "policy": {
         "islandId": 0,
-        "probability": 0.9199212544126211,
+        "probability": 0.9014350396892276,
         "nnTopIslandId": 0,
-        "nnTopProbability": 0.9199212544126211,
+        "nnTopProbability": 0.9014350396892276,
         "validationBestIslandId": 0,
-        "validationBestMae": 0.048307543352667445,
-        "hybridScore": 0.9400212544126211,
+        "validationBestMae": 0.03359523188319006,
+        "hybridScore": 0.9222350396892276,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.048307543352667445,
-        "guardMae": 0.053048624593675556,
+        "validationMae": 0.03359523188319006,
+        "guardMae": 0.03775963570508991,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.051298511613894815,
-          "rmse": 0.1374334665302445,
-          "r2": 0.9953691726376892,
-          "maxAbsError": 0.9295426751903122
+          "mae": 0.03637955506005375,
+          "rmse": 0.08821107358388845,
+          "r2": 0.9980922572829913,
+          "maxAbsError": 0.6030820403081982
         }
       },
       "validationOnly": {
         "islandId": 0,
-        "validationMae": 0.048307543352667445,
-        "guardMae": 0.053048624593675556,
+        "validationMae": 0.03359523188319006,
+        "guardMae": 0.03775963570508991,
         "metrics": {
-          "mae": 0.051298511613894815,
-          "rmse": 0.1374334665302445,
-          "r2": 0.9953691726376892,
-          "maxAbsError": 0.9295426751903122
+          "mae": 0.03637955506005375,
+          "rmse": 0.08821107358388845,
+          "r2": 0.9980922572829913,
+          "maxAbsError": 0.6030820403081982
         }
       },
       "oracle": {
         "islandId": 0,
-        "validationMae": 0.048307543352667445,
-        "guardMae": 0.053048624593675556,
+        "validationMae": 0.03359523188319006,
+        "guardMae": 0.03775963570508991,
         "metrics": {
-          "mae": 0.051298511613894815,
-          "rmse": 0.1374334665302445,
-          "r2": 0.9953691726376892,
-          "maxAbsError": 0.9295426751903122
+          "mae": 0.03637955506005375,
+          "rmse": 0.08821107358388845,
+          "r2": 0.9980922572829913,
+          "maxAbsError": 0.6030820403081982
         }
       },
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 12
+        "pullSuccesses": 11
       },
       "candidates": [
+        {
+          "islandId": 2,
+          "validationMae": 0.4801678744949241,
+          "guardMae": 0.490949358473496,
+          "testMae": 0.48076096625996073,
+          "archiveInjections": 0,
+          "archiveSize": 87
+        },
         {
           "islandId": 1,
           "validationMae": 0.1453327000630926,
@@ -171,31 +179,23 @@
           "archiveSize": 69
         },
         {
-          "islandId": 2,
-          "validationMae": 0.4801678744949241,
-          "guardMae": 0.490949358473496,
-          "testMae": 0.48076096625996073,
-          "archiveInjections": 0,
-          "archiveSize": 85
-        },
-        {
           "islandId": 3,
-          "validationMae": 0.21537550558440868,
-          "guardMae": 0.21324018401538164,
-          "testMae": 0.21053430069374057,
+          "validationMae": 0.21537122153911775,
+          "guardMae": 0.21323084429338668,
+          "testMae": 0.210532049633319,
           "archiveInjections": 12,
-          "archiveSize": 135
+          "archiveSize": 118
         },
         {
           "islandId": 0,
-          "validationMae": 0.048307543352667445,
-          "guardMae": 0.053048624593675556,
-          "testMae": 0.051298511613894815,
-          "archiveInjections": 3,
+          "validationMae": 0.03359523188319006,
+          "guardMae": 0.03775963570508991,
+          "testMae": 0.03637955506005375,
+          "archiveInjections": 8,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 3.075279405887655,
+      "liftVsSingle": 4.336426216826478,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -224,54 +224,54 @@
         }
       },
       "nn": {
-        "samples": 89,
-        "positives": 34,
-        "trainingAccuracy": 0.9438202247191011,
+        "samples": 92,
+        "positives": 35,
+        "trainingAccuracy": 0.782608695652174,
         "holdoutSamples": 17,
-        "holdoutAccuracy": 1,
-        "holdoutBrier": 0.10651613117881083,
+        "holdoutAccuracy": 0.7058823529411765,
+        "holdoutBrier": 0.18257156419386034,
         "holdoutAuc": 1
       },
       "policy": {
         "islandId": 2,
-        "probability": 0.7874642404528528,
-        "nnTopIslandId": 1,
-        "nnTopProbability": 0.8758146307386184,
+        "probability": 0.6707067971912782,
+        "nnTopIslandId": 2,
+        "nnTopProbability": 0.6707067971912782,
         "validationBestIslandId": 2,
-        "validationBestMae": 0.08590430870892282,
-        "hybridScore": 0.7972642404528527,
+        "validationBestMae": 0.1033088538085436,
+        "hybridScore": 0.6854067971912783,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.08590430870892282,
-        "guardMae": 0.09346668469861075,
+        "validationMae": 0.1033088538085436,
+        "guardMae": 0.12006366026900912,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.08861455154750922,
-          "rmse": 0.1420243693488061,
-          "r2": 0.9950546238759009,
-          "maxAbsError": 0.770164168461168
+          "mae": 0.11475701004212954,
+          "rmse": 0.24394276809799342,
+          "r2": 0.9854101951146366,
+          "maxAbsError": 1.2449181597284333
         }
       },
       "validationOnly": {
         "islandId": 2,
-        "validationMae": 0.08590430870892282,
-        "guardMae": 0.09346668469861075,
+        "validationMae": 0.1033088538085436,
+        "guardMae": 0.12006366026900912,
         "metrics": {
-          "mae": 0.08861455154750922,
-          "rmse": 0.1420243693488061,
-          "r2": 0.9950546238759009,
-          "maxAbsError": 0.770164168461168
+          "mae": 0.11475701004212954,
+          "rmse": 0.24394276809799342,
+          "r2": 0.9854101951146366,
+          "maxAbsError": 1.2449181597284333
         }
       },
       "oracle": {
         "islandId": 2,
-        "validationMae": 0.08590430870892282,
-        "guardMae": 0.09346668469861075,
+        "validationMae": 0.1033088538085436,
+        "guardMae": 0.12006366026900912,
         "metrics": {
-          "mae": 0.08861455154750922,
-          "rmse": 0.1420243693488061,
-          "r2": 0.9950546238759009,
-          "maxAbsError": 0.770164168461168
+          "mae": 0.11475701004212954,
+          "rmse": 0.24394276809799342,
+          "r2": 0.9854101951146366,
+          "maxAbsError": 1.2449181597284333
         }
       },
       "hub": {
@@ -286,34 +286,34 @@
           "guardMae": 0.5339716688491422,
           "testMae": 0.5286713286713302,
           "archiveInjections": 1,
-          "archiveSize": 92
-        },
-        {
-          "islandId": 1,
-          "validationMae": 0.2620760243562247,
-          "guardMae": 0.2752483549975026,
-          "testMae": 0.35033036102886517,
-          "archiveInjections": 0,
-          "archiveSize": 256
+          "archiveSize": 100
         },
         {
           "islandId": 2,
-          "validationMae": 0.08590430870892282,
-          "guardMae": 0.09346668469861075,
-          "testMae": 0.08861455154750922,
-          "archiveInjections": 1,
-          "archiveSize": 234
+          "validationMae": 0.1033088538085436,
+          "guardMae": 0.12006366026900912,
+          "testMae": 0.11475701004212954,
+          "archiveInjections": 2,
+          "archiveSize": 256
+        },
+        {
+          "islandId": 1,
+          "validationMae": 0.17574719128796204,
+          "guardMae": 0.20848205748936657,
+          "testMae": 0.1857847192016242,
+          "archiveInjections": 8,
+          "archiveSize": 256
         },
         {
           "islandId": 3,
-          "validationMae": 3.2618465425111283,
-          "guardMae": 3.1603682960041173,
-          "testMae": 3.2171626384440017,
-          "archiveInjections": 7,
+          "validationMae": 0.9905253501865123,
+          "guardMae": 1.1273176947461638,
+          "testMae": 0.9747896662139488,
+          "archiveInjections": 4,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 8.67653476184165,
+      "liftVsSingle": 6.699958779204044,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -343,21 +343,21 @@
       },
       "nn": {
         "samples": 86,
-        "positives": 39,
-        "trainingAccuracy": 0.8488372093023255,
+        "positives": 41,
+        "trainingAccuracy": 0.872093023255814,
         "holdoutSamples": 16,
-        "holdoutAccuracy": 0.875,
-        "holdoutBrier": 0.16065259667401957,
+        "holdoutAccuracy": 1,
+        "holdoutBrier": 0.12057510223102345,
         "holdoutAuc": 1
       },
       "policy": {
         "islandId": 1,
-        "probability": 0.7665678730499379,
+        "probability": 0.7855609131832583,
         "nnTopIslandId": 3,
-        "nnTopProbability": 0.8702741216534431,
+        "nnTopProbability": 0.8829672172397549,
         "validationBestIslandId": 1,
         "validationBestMae": 0.14247543910069624,
-        "hybridScore": 0.7909678730499379,
+        "hybridScore": 0.8074609131832583,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
         "validationMae": 0.14247543910069624,
@@ -395,16 +395,16 @@
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 12
+        "pullSuccesses": 11
       },
       "candidates": [
         {
           "islandId": 0,
           "validationMae": 0.5457067936404532,
-          "guardMae": 0.5585286666208289,
-          "testMae": 0.5520088115564702,
+          "guardMae": 0.5585308699271635,
+          "testMae": 0.5520088115564704,
           "archiveInjections": 1,
-          "archiveSize": 54
+          "archiveSize": 62
         },
         {
           "islandId": 1,
@@ -424,9 +424,9 @@
         },
         {
           "islandId": 2,
-          "validationMae": 0.47477277886177827,
-          "guardMae": 0.48132713343038275,
-          "testMae": 0.47735556489745645,
+          "validationMae": 0.3804475163890814,
+          "guardMae": 0.4022837607286493,
+          "testMae": 0.4010506221142011,
           "archiveInjections": 0,
           "archiveSize": 256
         }
@@ -460,22 +460,22 @@
         }
       },
       "nn": {
-        "samples": 73,
-        "positives": 29,
-        "trainingAccuracy": 0.8767123287671232,
-        "holdoutSamples": 14,
+        "samples": 71,
+        "positives": 33,
+        "trainingAccuracy": 0.9014084507042254,
+        "holdoutSamples": 12,
         "holdoutAccuracy": 1,
-        "holdoutBrier": 0.14748176351683043,
-        "holdoutAuc": 1
+        "holdoutBrier": 0.08620674872638395,
+        "holdoutAuc": 0.5
       },
       "policy": {
         "islandId": 2,
-        "probability": 0.8581738219428802,
-        "nnTopIslandId": 1,
-        "nnTopProbability": 0.8717456294144221,
+        "probability": 0.8853747290056115,
+        "nnTopIslandId": 3,
+        "nnTopProbability": 0.9175443605860076,
         "validationBestIslandId": 2,
         "validationBestMae": 1.3224412636387533e-11,
-        "hybridScore": 0.8583738219428801,
+        "hybridScore": 0.8830747290056115,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
         "validationMae": 1.3224412636387533e-11,
@@ -534,18 +534,18 @@
         },
         {
           "islandId": 0,
-          "validationMae": 0.18321894820055756,
-          "guardMae": 0.19552021434407021,
-          "testMae": 0.1890807835841659,
+          "validationMae": 0.11556300854855639,
+          "guardMae": 0.12238316059984586,
+          "testMae": 0.11950027739905959,
           "archiveInjections": 12,
-          "archiveSize": 161
+          "archiveSize": 165
         },
         {
           "islandId": 3,
-          "validationMae": 0.04625043284222637,
-          "guardMae": 0.04679677279864567,
-          "testMae": 0.04637252081957791,
-          "archiveInjections": 5,
+          "validationMae": 0.021702550024359325,
+          "guardMae": 0.049470857886384445,
+          "testMae": 0.030602637541798015,
+          "archiveInjections": 1,
           "archiveSize": 256
         }
       ],
@@ -578,54 +578,54 @@
         }
       },
       "nn": {
-        "samples": 95,
-        "positives": 45,
-        "trainingAccuracy": 0.8736842105263158,
+        "samples": 98,
+        "positives": 42,
+        "trainingAccuracy": 0.9081632653061225,
         "holdoutSamples": 18,
-        "holdoutAccuracy": 0.7777777777777778,
-        "holdoutBrier": 0.12570955378102694,
+        "holdoutAccuracy": 0.8333333333333334,
+        "holdoutBrier": 0.1418254378775623,
         "holdoutAuc": 1
       },
       "policy": {
         "islandId": 2,
-        "probability": 0.8752882714141442,
+        "probability": 0.8930589382770958,
         "nnTopIslandId": 3,
-        "nnTopProbability": 0.9012683656293586,
+        "nnTopProbability": 0.914499553639895,
         "validationBestIslandId": 2,
-        "validationBestMae": 0.11446388120620228,
-        "hybridScore": 0.8935882714141442,
+        "validationBestMae": 0.08105419251545569,
+        "hybridScore": 0.9138589382770959,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.11446388120620228,
-        "guardMae": 0.1216105259492837,
+        "validationMae": 0.08105419251545569,
+        "guardMae": 0.09451746440753661,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.11720622123028612,
-          "rmse": 0.1916173463396561,
-          "r2": 0.9909979124647575,
-          "maxAbsError": 0.7378839968862887
+          "mae": 0.0900442616230691,
+          "rmse": 0.16171241878872428,
+          "r2": 0.9935884898387946,
+          "maxAbsError": 0.6461547656259969
         }
       },
       "validationOnly": {
         "islandId": 2,
-        "validationMae": 0.11446388120620228,
-        "guardMae": 0.1216105259492837,
+        "validationMae": 0.08105419251545569,
+        "guardMae": 0.09451746440753661,
         "metrics": {
-          "mae": 0.11720622123028612,
-          "rmse": 0.1916173463396561,
-          "r2": 0.9909979124647575,
-          "maxAbsError": 0.7378839968862887
+          "mae": 0.0900442616230691,
+          "rmse": 0.16171241878872428,
+          "r2": 0.9935884898387946,
+          "maxAbsError": 0.6461547656259969
         }
       },
       "oracle": {
         "islandId": 2,
-        "validationMae": 0.11446388120620228,
-        "guardMae": 0.1216105259492837,
+        "validationMae": 0.08105419251545569,
+        "guardMae": 0.09451746440753661,
         "metrics": {
-          "mae": 0.11720622123028612,
-          "rmse": 0.1916173463396561,
-          "r2": 0.9909979124647575,
-          "maxAbsError": 0.7378839968862887
+          "mae": 0.0900442616230691,
+          "rmse": 0.16171241878872428,
+          "r2": 0.9935884898387946,
+          "maxAbsError": 0.6461547656259969
         }
       },
       "hub": {
@@ -636,38 +636,38 @@
       "candidates": [
         {
           "islandId": 1,
-          "validationMae": 0.14247685578177174,
-          "guardMae": 0.16668408668751258,
-          "testMae": 0.1577599562133382,
+          "validationMae": 0.14247685709079638,
+          "guardMae": 0.16668409067730408,
+          "testMae": 0.1577599591823926,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 0,
-          "validationMae": 0.9302470734244961,
-          "guardMae": 0.956595071409208,
-          "testMae": 0.8484429086458789,
-          "archiveInjections": 3,
-          "archiveSize": 256
-        },
-        {
-          "islandId": 3,
-          "validationMae": 0.13955433613931464,
-          "guardMae": 0.1600971576549368,
-          "testMae": 0.14949823865376574,
-          "archiveInjections": 2,
+          "validationMae": 0.3041042840596142,
+          "guardMae": 0.3029699086696019,
+          "testMae": 0.29600671471291456,
+          "archiveInjections": 5,
           "archiveSize": 256
         },
         {
           "islandId": 2,
-          "validationMae": 0.11446388120620228,
-          "guardMae": 0.1216105259492837,
-          "testMae": 0.11720622123028612,
-          "archiveInjections": 1,
+          "validationMae": 0.08105419251545569,
+          "guardMae": 0.09451746440753661,
+          "testMae": 0.0900442616230691,
+          "archiveInjections": 2,
+          "archiveSize": 256
+        },
+        {
+          "islandId": 3,
+          "validationMae": 0.13016349108918246,
+          "guardMae": 0.21148748218786853,
+          "testMae": 0.19663979008961277,
+          "archiveInjections": 3,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 4.86778880280336,
+      "liftVsSingle": 6.336163138434916,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -696,96 +696,96 @@
         }
       },
       "nn": {
-        "samples": 93,
-        "positives": 39,
-        "trainingAccuracy": 0.8172043010752689,
-        "holdoutSamples": 17,
-        "holdoutAccuracy": 0.47058823529411764,
-        "holdoutBrier": 0.2650903276511808,
-        "holdoutAuc": 0.6153846153846154
+        "samples": 95,
+        "positives": 40,
+        "trainingAccuracy": 0.9473684210526315,
+        "holdoutSamples": 18,
+        "holdoutAccuracy": 1,
+        "holdoutBrier": 0.025592992524156963,
+        "holdoutAuc": 1
       },
       "policy": {
-        "islandId": 0,
-        "probability": 0.3589556452391254,
+        "islandId": 3,
+        "probability": 0.9043379217370799,
         "nnTopIslandId": 3,
-        "nnTopProbability": 0.8757076718212046,
-        "validationBestIslandId": 0,
-        "validationBestMae": 0.15948854710394111,
-        "hybridScore": 0.38335564523912535,
-        "fallbackUsed": true,
-        "fallbackReason": "validation-veto",
-        "validationMae": 0.15948854710394111,
-        "guardMae": 0.16680154643862338,
-        "regretVsOracle": 0.02243514651504719,
+        "nnTopProbability": 0.9043379217370799,
+        "validationBestIslandId": 3,
+        "validationBestMae": 0.0716055500342574,
+        "hybridScore": 0.9184379217370799,
+        "fallbackUsed": false,
+        "fallbackReason": "accepted-hybrid",
+        "validationMae": 0.0716055500342574,
+        "guardMae": 0.1344414961389045,
+        "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.18020408526648818,
-          "rmse": 0.24818793097439,
-          "r2": 0.9848979847011787,
-          "maxAbsError": 0.8107892438619446
+          "mae": 0.08112498601431148,
+          "rmse": 0.1359572780510404,
+          "r2": 0.9954681188577964,
+          "maxAbsError": 0.3698009184752258
         }
       },
       "validationOnly": {
-        "islandId": 0,
-        "validationMae": 0.15948854710394111,
-        "guardMae": 0.16680154643862338,
+        "islandId": 3,
+        "validationMae": 0.0716055500342574,
+        "guardMae": 0.1344414961389045,
         "metrics": {
-          "mae": 0.18020408526648818,
-          "rmse": 0.24818793097439,
-          "r2": 0.9848979847011787,
-          "maxAbsError": 0.8107892438619446
+          "mae": 0.08112498601431148,
+          "rmse": 0.1359572780510404,
+          "r2": 0.9954681188577964,
+          "maxAbsError": 0.3698009184752258
         }
       },
       "oracle": {
-        "islandId": 1,
-        "validationMae": 7.355598801223873e+24,
-        "guardMae": 0.19506913050665542,
+        "islandId": 3,
+        "validationMae": 0.0716055500342574,
+        "guardMae": 0.1344414961389045,
         "metrics": {
-          "mae": 0.157768938751441,
-          "rmse": 0.22515491892732378,
-          "r2": 0.9875709920009099,
-          "maxAbsError": 0.5029169026008264
+          "mae": 0.08112498601431148,
+          "rmse": 0.1359572780510404,
+          "r2": 0.9954681188577964,
+          "maxAbsError": 0.3698009184752258
         }
       },
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 11
+        "pullSuccesses": 10
       },
       "candidates": [
         {
+          "islandId": 0,
+          "validationMae": 0.5428924607689812,
+          "guardMae": 0.5513487959814631,
+          "testMae": 0.5446372257972377,
+          "archiveInjections": 1,
+          "archiveSize": 66
+        },
+        {
           "islandId": 1,
-          "validationMae": 7.355598801223873e+24,
-          "guardMae": 0.19506913050665542,
-          "testMae": 0.157768938751441,
-          "archiveInjections": 4,
+          "validationMae": 0.13209510094425375,
+          "guardMae": 0.1940471761901253,
+          "testMae": 0.15920178061994816,
+          "archiveInjections": 3,
           "archiveSize": 256
         },
         {
           "islandId": 2,
-          "validationMae": 0.36176306397426,
-          "guardMae": 0.382530248152054,
-          "testMae": 0.3758089068158911,
+          "validationMae": 0.2983637666252438,
+          "guardMae": 0.32110325751878577,
+          "testMae": 0.3131233950261472,
           "archiveInjections": 0,
           "archiveSize": 256
         },
         {
-          "islandId": 0,
-          "validationMae": 0.15948854710394111,
-          "guardMae": 0.16680154643862338,
-          "testMae": 0.18020408526648818,
-          "archiveInjections": 12,
-          "archiveSize": 256
-        },
-        {
           "islandId": 3,
-          "validationMae": 0.20095192487438476,
-          "guardMae": 0.23584047431549154,
-          "testMae": 0.22990050190993058,
-          "archiveInjections": 4,
+          "validationMae": 0.0716055500342574,
+          "guardMae": 0.1344414961389045,
+          "testMae": 0.08112498601431148,
+          "archiveInjections": 2,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 2.9337787729190845,
+      "liftVsSingle": 6.516844515139369,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -814,96 +814,96 @@
         }
       },
       "nn": {
-        "samples": 93,
-        "positives": 40,
-        "trainingAccuracy": 0.7741935483870968,
-        "holdoutSamples": 18,
-        "holdoutAccuracy": 0.7222222222222222,
-        "holdoutBrier": 0.15513435593924738,
-        "holdoutAuc": 0.9846153846153847
+        "samples": 94,
+        "positives": 41,
+        "trainingAccuracy": 0.8191489361702128,
+        "holdoutSamples": 17,
+        "holdoutAccuracy": 0.7058823529411765,
+        "holdoutBrier": 0.15496576807265347,
+        "holdoutAuc": 1
       },
       "policy": {
         "islandId": 0,
-        "probability": 0.8976010842311742,
+        "probability": 0.9282580096979939,
         "nnTopIslandId": 0,
-        "nnTopProbability": 0.8976010842311742,
+        "nnTopProbability": 0.9282580096979939,
         "validationBestIslandId": 0,
-        "validationBestMae": 0.0016459004180838029,
-        "hybridScore": 0.9187010842311742,
+        "validationBestMae": 0.014935660099802387,
+        "hybridScore": 0.954758009697994,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.0016459004180838029,
-        "guardMae": 0.001784244396031386,
+        "validationMae": 0.014935660099802387,
+        "guardMae": 0.016359938843643472,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.0017288059721632045,
-          "rmse": 0.0037452242849750645,
-          "r2": 0.9999965610231654,
-          "maxAbsError": 0.01721949596847816
+          "mae": 0.016258544078142666,
+          "rmse": 0.01978609734096954,
+          "r2": 0.9999040170991174,
+          "maxAbsError": 0.04500215434325572
         }
       },
       "validationOnly": {
         "islandId": 0,
-        "validationMae": 0.0016459004180838029,
-        "guardMae": 0.001784244396031386,
+        "validationMae": 0.014935660099802387,
+        "guardMae": 0.016359938843643472,
         "metrics": {
-          "mae": 0.0017288059721632045,
-          "rmse": 0.0037452242849750645,
-          "r2": 0.9999965610231654,
-          "maxAbsError": 0.01721949596847816
+          "mae": 0.016258544078142666,
+          "rmse": 0.01978609734096954,
+          "r2": 0.9999040170991174,
+          "maxAbsError": 0.04500215434325572
         }
       },
       "oracle": {
         "islandId": 0,
-        "validationMae": 0.0016459004180838029,
-        "guardMae": 0.001784244396031386,
+        "validationMae": 0.014935660099802387,
+        "guardMae": 0.016359938843643472,
         "metrics": {
-          "mae": 0.0017288059721632045,
-          "rmse": 0.0037452242849750645,
-          "r2": 0.9999965610231654,
-          "maxAbsError": 0.01721949596847816
+          "mae": 0.016258544078142666,
+          "rmse": 0.01978609734096954,
+          "r2": 0.9999040170991174,
+          "maxAbsError": 0.04500215434325572
         }
       },
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 11
+        "pullSuccesses": 10
       },
       "candidates": [
         {
           "islandId": 1,
-          "validationMae": 0.14251097715146183,
-          "guardMae": 0.3955392680074096,
-          "testMae": 0.3153565961623787,
+          "validationMae": 0.14251098385037467,
+          "guardMae": 0.39553927976390607,
+          "testMae": 0.3153566040240223,
           "archiveInjections": 1,
-          "archiveSize": 50
+          "archiveSize": 38
         },
         {
           "islandId": 0,
-          "validationMae": 0.0016459004180838029,
-          "guardMae": 0.001784244396031386,
-          "testMae": 0.0017288059721632045,
-          "archiveInjections": 2,
+          "validationMae": 0.014935660099802387,
+          "guardMae": 0.016359938843643472,
+          "testMae": 0.016258544078142666,
+          "archiveInjections": 6,
           "archiveSize": 256
         },
         {
           "islandId": 2,
-          "validationMae": 0.07742867901556826,
-          "guardMae": 0.08879624126983811,
-          "testMae": 0.08549685567887567,
-          "archiveInjections": 2,
+          "validationMae": 0.10081645183949295,
+          "guardMae": 0.11156535414286076,
+          "testMae": 0.1096586448075013,
+          "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 3,
-          "validationMae": 0.41798463236875644,
-          "guardMae": 0.652278433578714,
-          "testMae": 0.5195208670371526,
+          "validationMae": 0.26628514864422753,
+          "guardMae": 0.6538870963016172,
+          "testMae": 0.572297173532332,
           "archiveInjections": 2,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 450.73358215489606,
+      "liftVsSingle": 47.927471545958745,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -932,54 +932,54 @@
         }
       },
       "nn": {
-        "samples": 95,
-        "positives": 37,
-        "trainingAccuracy": 0.7368421052631579,
-        "holdoutSamples": 18,
-        "holdoutAccuracy": 0.5555555555555556,
-        "holdoutBrier": 0.22180767746537108,
-        "holdoutAuc": 0.691358024691358
+        "samples": 92,
+        "positives": 34,
+        "trainingAccuracy": 0.8260869565217391,
+        "holdoutSamples": 16,
+        "holdoutAccuracy": 0.6875,
+        "holdoutBrier": 0.23236351046706974,
+        "holdoutAuc": 0.9375
       },
       "policy": {
         "islandId": 2,
-        "probability": 0.5822697873671536,
-        "nnTopIslandId": 0,
-        "nnTopProbability": 0.7114405099852865,
+        "probability": 0.6030304512187186,
+        "nnTopIslandId": 2,
+        "nnTopProbability": 0.6030304512187186,
         "validationBestIslandId": 2,
-        "validationBestMae": 0.013160810676292541,
-        "hybridScore": 0.5977697873671536,
+        "validationBestMae": 0.021666494522444537,
+        "hybridScore": 0.6202304512187186,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.013160810676292541,
-        "guardMae": 0.015717103009031085,
+        "validationMae": 0.021666494522444537,
+        "guardMae": 0.02453252672900586,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.015240771253632907,
-          "rmse": 0.023912403291723394,
-          "r2": 0.9998598090295643,
-          "maxAbsError": 0.10349450181175524
+          "mae": 0.023801197711031986,
+          "rmse": 0.03944857750106372,
+          "r2": 0.9996184633312615,
+          "maxAbsError": 0.17536239344143656
         }
       },
       "validationOnly": {
         "islandId": 2,
-        "validationMae": 0.013160810676292541,
-        "guardMae": 0.015717103009031085,
+        "validationMae": 0.021666494522444537,
+        "guardMae": 0.02453252672900586,
         "metrics": {
-          "mae": 0.015240771253632907,
-          "rmse": 0.023912403291723394,
-          "r2": 0.9998598090295643,
-          "maxAbsError": 0.10349450181175524
+          "mae": 0.023801197711031986,
+          "rmse": 0.03944857750106372,
+          "r2": 0.9996184633312615,
+          "maxAbsError": 0.17536239344143656
         }
       },
       "oracle": {
         "islandId": 2,
-        "validationMae": 0.013160810676292541,
-        "guardMae": 0.015717103009031085,
+        "validationMae": 0.021666494522444537,
+        "guardMae": 0.02453252672900586,
         "metrics": {
-          "mae": 0.015240771253632907,
-          "rmse": 0.023912403291723394,
-          "r2": 0.9998598090295643,
-          "maxAbsError": 0.10349450181175524
+          "mae": 0.023801197711031986,
+          "rmse": 0.03944857750106372,
+          "r2": 0.9996184633312615,
+          "maxAbsError": 0.17536239344143656
         }
       },
       "hub": {
@@ -989,39 +989,39 @@
       },
       "candidates": [
         {
-          "islandId": 1,
-          "validationMae": 0.1438175008034051,
-          "guardMae": 0.15679605349073808,
-          "testMae": 0.16008134846151892,
-          "archiveInjections": 1,
-          "archiveSize": 256
-        },
-        {
           "islandId": 2,
-          "validationMae": 0.013160810676292541,
-          "guardMae": 0.015717103009031085,
-          "testMae": 0.015240771253632907,
+          "validationMae": 0.021666494522444537,
+          "guardMae": 0.02453252672900586,
+          "testMae": 0.023801197711031986,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
-          "islandId": 3,
-          "validationMae": 0.28205065646192085,
-          "guardMae": 0.29218403427075706,
-          "testMae": 0.29906830978487375,
+          "islandId": 1,
+          "validationMae": 0.14371882440009412,
+          "guardMae": 0.16680711797179337,
+          "testMae": 0.1986219198815115,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 0,
-          "validationMae": 0.13049075837631974,
-          "guardMae": 0.2115815012140556,
-          "testMae": 0.19865162934916478,
+          "validationMae": 0.18525742390765723,
+          "guardMae": 0.2545084873806462,
+          "testMae": 0.24724986682002992,
           "archiveInjections": 2,
+          "archiveSize": 256
+        },
+        {
+          "islandId": 3,
+          "validationMae": 0.27125602633252316,
+          "guardMae": 0.28540650692464425,
+          "testMae": 0.28411390799325364,
+          "archiveInjections": 1,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 25.390175757575545,
+      "liftVsSingle": 16.258251601825215,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -1050,22 +1050,22 @@
         }
       },
       "nn": {
-        "samples": 91,
-        "positives": 39,
-        "trainingAccuracy": 0.8681318681318682,
+        "samples": 92,
+        "positives": 37,
+        "trainingAccuracy": 0.75,
         "holdoutSamples": 18,
-        "holdoutAccuracy": 1,
-        "holdoutBrier": 0.1418532056111928,
-        "holdoutAuc": 1
+        "holdoutAccuracy": 0.5,
+        "holdoutBrier": 0.19207368492881,
+        "holdoutAuc": 0.75
       },
       "policy": {
         "islandId": 1,
-        "probability": 0.8477335759490927,
+        "probability": 0.7299363784896116,
         "nnTopIslandId": 0,
-        "nnTopProbability": 0.9020884678660387,
+        "nnTopProbability": 0.8576997962966155,
         "validationBestIslandId": 1,
         "validationBestMae": 0.1424735863103748,
-        "hybridScore": 0.8543335759490926,
+        "hybridScore": 0.7365363784896115,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
         "validationMae": 0.1424735863103748,
@@ -1112,29 +1112,29 @@
           "guardMae": 0.16668179034326394,
           "testMae": 0.15775724269811808,
           "archiveInjections": 1,
-          "archiveSize": 256
+          "archiveSize": 232
         },
         {
           "islandId": 3,
-          "validationMae": 0.3447892215546288,
-          "guardMae": 0.39997301933734836,
-          "testMae": 0.3870722792007037,
-          "archiveInjections": 1,
+          "validationMae": 1.5010082143540195,
+          "guardMae": 1.494839182063702,
+          "testMae": 1.4872674143158418,
+          "archiveInjections": 3,
           "archiveSize": 256
         },
         {
           "islandId": 0,
-          "validationMae": 0.18428267722278185,
-          "guardMae": 0.20197062272731808,
-          "testMae": 0.19592591196523712,
+          "validationMae": 0.1806559526122293,
+          "guardMae": 0.20485524745759956,
+          "testMae": 0.20943898519594426,
           "archiveInjections": 2,
           "archiveSize": 256
         },
         {
           "islandId": 2,
-          "validationMae": 0.24008564129305862,
-          "guardMae": 0.2675860028280507,
-          "testMae": 0.2616761735211905,
+          "validationMae": 0.25340656465910016,
+          "guardMae": 0.2795153962662417,
+          "testMae": 0.2744375981284262,
           "archiveInjections": 1,
           "archiveSize": 256
         }
@@ -1168,54 +1168,54 @@
         }
       },
       "nn": {
-        "samples": 89,
-        "positives": 32,
-        "trainingAccuracy": 0.8314606741573034,
-        "holdoutSamples": 18,
-        "holdoutAccuracy": 0.7222222222222222,
-        "holdoutBrier": 0.18453630992410333,
-        "holdoutAuc": 0.875
+        "samples": 88,
+        "positives": 33,
+        "trainingAccuracy": 0.8863636363636364,
+        "holdoutSamples": 17,
+        "holdoutAccuracy": 0.8823529411764706,
+        "holdoutBrier": 0.1675181998517415,
+        "holdoutAuc": 0.9583333333333334
       },
       "policy": {
         "islandId": 2,
-        "probability": 0.6656277867717688,
+        "probability": 0.7710497003106079,
         "nnTopIslandId": 1,
-        "nnTopProbability": 0.9271568896755712,
+        "nnTopProbability": 0.9303805351492582,
         "validationBestIslandId": 2,
-        "validationBestMae": 0.07425157818968454,
-        "hybridScore": 0.6771277867717689,
+        "validationBestMae": 0.07840348009160707,
+        "hybridScore": 0.785049700310608,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.07425157818968454,
-        "guardMae": 0.0820047709951813,
+        "validationMae": 0.07840348009160707,
+        "guardMae": 0.08772578706410893,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.07959389383304949,
-          "rmse": 0.11403021939253179,
-          "r2": 0.9968120352653161,
-          "maxAbsError": 0.4408808725671358
+          "mae": 0.08467667353402361,
+          "rmse": 0.12174087910897555,
+          "r2": 0.9963663218630572,
+          "maxAbsError": 0.4648495461491051
         }
       },
       "validationOnly": {
         "islandId": 2,
-        "validationMae": 0.07425157818968454,
-        "guardMae": 0.0820047709951813,
+        "validationMae": 0.07840348009160707,
+        "guardMae": 0.08772578706410893,
         "metrics": {
-          "mae": 0.07959389383304949,
-          "rmse": 0.11403021939253179,
-          "r2": 0.9968120352653161,
-          "maxAbsError": 0.4408808725671358
+          "mae": 0.08467667353402361,
+          "rmse": 0.12174087910897555,
+          "r2": 0.9963663218630572,
+          "maxAbsError": 0.4648495461491051
         }
       },
       "oracle": {
         "islandId": 2,
-        "validationMae": 0.07425157818968454,
-        "guardMae": 0.0820047709951813,
+        "validationMae": 0.07840348009160707,
+        "guardMae": 0.08772578706410893,
         "metrics": {
-          "mae": 0.07959389383304949,
-          "rmse": 0.11403021939253179,
-          "r2": 0.9968120352653161,
-          "maxAbsError": 0.4408808725671358
+          "mae": 0.08467667353402361,
+          "rmse": 0.12174087910897555,
+          "r2": 0.9963663218630572,
+          "maxAbsError": 0.4648495461491051
         }
       },
       "hub": {
@@ -1226,38 +1226,38 @@
       "candidates": [
         {
           "islandId": 1,
-          "validationMae": 0.14247378834269067,
-          "guardMae": 0.16668189290643026,
-          "testMae": 0.15775742855002992,
+          "validationMae": 0.14247375041097413,
+          "guardMae": 0.16668180694858506,
+          "testMae": 0.15775734812625353,
           "archiveInjections": 1,
-          "archiveSize": 50
+          "archiveSize": 41
         },
         {
           "islandId": 2,
-          "validationMae": 0.07425157818968454,
-          "guardMae": 0.0820047709951813,
-          "testMae": 0.07959389383304949,
+          "validationMae": 0.07840348009160707,
+          "guardMae": 0.08772578706410893,
+          "testMae": 0.08467667353402361,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 3,
-          "validationMae": 0.19926972243423785,
-          "guardMae": 0.19865657648162194,
-          "testMae": 0.1998492303780057,
+          "validationMae": 0.32383706082613034,
+          "guardMae": 0.3149815580673003,
+          "testMae": 0.2965288892522829,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 0,
-          "validationMae": 6323942088132.338,
-          "guardMae": 1.1171648789193427,
-          "testMae": 0.7733816909488329,
-          "archiveInjections": 1,
+          "validationMae": 0.9514263177996919,
+          "guardMae": 1.152025602996647,
+          "testMae": 0.9667107035379595,
+          "archiveInjections": 2,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 2.3634793525482505,
+      "liftVsSingle": 2.2216097634933996,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -1286,96 +1286,96 @@
         }
       },
       "nn": {
-        "samples": 90,
-        "positives": 40,
-        "trainingAccuracy": 0.8333333333333334,
+        "samples": 91,
+        "positives": 38,
+        "trainingAccuracy": 0.967032967032967,
         "holdoutSamples": 17,
-        "holdoutAccuracy": 0.5294117647058824,
-        "holdoutBrier": 0.25618065141776813,
-        "holdoutAuc": 0.8194444444444444
+        "holdoutAccuracy": 0.8823529411764706,
+        "holdoutBrier": 0.10563442269608385,
+        "holdoutAuc": 1
       },
       "policy": {
         "islandId": 3,
-        "probability": 0.8376175902132769,
+        "probability": 0.9381013332151987,
         "nnTopIslandId": 3,
-        "nnTopProbability": 0.8376175902132769,
+        "nnTopProbability": 0.9381013332151987,
         "validationBestIslandId": 3,
-        "validationBestMae": 0.002119055883986865,
-        "hybridScore": 0.8521175902132768,
+        "validationBestMae": 0.00030716681557902006,
+        "hybridScore": 0.9513013332151987,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.002119055883986865,
-        "guardMae": 0.0021896186820828624,
+        "validationMae": 0.00030716681557902006,
+        "guardMae": 0.00030112294298148085,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.0021553244091869397,
-          "rmse": 0.0055533623297003044,
-          "r2": 0.9999924388890865,
-          "maxAbsError": 0.02412328260087726
+          "mae": 0.0003074784430393768,
+          "rmse": 0.0003369102527392619,
+          "r2": 0.9999999721707153,
+          "maxAbsError": 0.0004769385234446588
         }
       },
       "validationOnly": {
         "islandId": 3,
-        "validationMae": 0.002119055883986865,
-        "guardMae": 0.0021896186820828624,
+        "validationMae": 0.00030716681557902006,
+        "guardMae": 0.00030112294298148085,
         "metrics": {
-          "mae": 0.0021553244091869397,
-          "rmse": 0.0055533623297003044,
-          "r2": 0.9999924388890865,
-          "maxAbsError": 0.02412328260087726
+          "mae": 0.0003074784430393768,
+          "rmse": 0.0003369102527392619,
+          "r2": 0.9999999721707153,
+          "maxAbsError": 0.0004769385234446588
         }
       },
       "oracle": {
         "islandId": 3,
-        "validationMae": 0.002119055883986865,
-        "guardMae": 0.0021896186820828624,
+        "validationMae": 0.00030716681557902006,
+        "guardMae": 0.00030112294298148085,
         "metrics": {
-          "mae": 0.0021553244091869397,
-          "rmse": 0.0055533623297003044,
-          "r2": 0.9999924388890865,
-          "maxAbsError": 0.02412328260087726
+          "mae": 0.0003074784430393768,
+          "rmse": 0.0003369102527392619,
+          "r2": 0.9999999721707153,
+          "maxAbsError": 0.0004769385234446588
         }
       },
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 10
+        "pullSuccesses": 11
       },
       "candidates": [
         {
-          "islandId": 2,
-          "validationMae": 0.16371799207283885,
-          "guardMae": 0.16098192379181142,
-          "testMae": 0.16004730618558405,
-          "archiveInjections": 1,
-          "archiveSize": 236
-        },
-        {
-          "islandId": 1,
-          "validationMae": 0.14190604735759668,
-          "guardMae": 0.167916284727523,
-          "testMae": 0.15842604039346236,
-          "archiveInjections": 2,
-          "archiveSize": 256
-        },
-        {
           "islandId": 3,
-          "validationMae": 0.002119055883986865,
-          "guardMae": 0.0021896186820828624,
-          "testMae": 0.0021553244091869397,
+          "validationMae": 0.00030716681557902006,
+          "guardMae": 0.00030112294298148085,
+          "testMae": 0.0003074784430393768,
           "archiveInjections": 3,
           "archiveSize": 256
         },
         {
+          "islandId": 1,
+          "validationMae": 0.14179927484718066,
+          "guardMae": 0.16704742664848188,
+          "testMae": 0.1580181006720653,
+          "archiveInjections": 2,
+          "archiveSize": 256
+        },
+        {
+          "islandId": 2,
+          "validationMae": 0.003257940555731392,
+          "guardMae": 0.003500786778485771,
+          "testMae": 0.0034656435028818607,
+          "archiveInjections": 4,
+          "archiveSize": 256
+        },
+        {
           "islandId": 0,
-          "validationMae": 0.46960592409764684,
-          "guardMae": 0.5013108728394915,
-          "testMae": 0.48693377264034565,
+          "validationMae": 0.4668899415227334,
+          "guardMae": 0.4821095518652293,
+          "testMae": 0.4841212690376312,
           "archiveInjections": 1,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 125.54617726118092,
+      "liftVsSingle": 880.0380854552476,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -1404,22 +1404,22 @@
         }
       },
       "nn": {
-        "samples": 74,
-        "positives": 32,
-        "trainingAccuracy": 0.918918918918919,
-        "holdoutSamples": 15,
-        "holdoutAccuracy": 0.6666666666666666,
-        "holdoutBrier": 0.15334104245837502,
+        "samples": 71,
+        "positives": 29,
+        "trainingAccuracy": 0.8450704225352113,
+        "holdoutSamples": 13,
+        "holdoutAccuracy": 0.6153846153846154,
+        "holdoutBrier": 0.18769940191065354,
         "holdoutAuc": 1
       },
       "policy": {
         "islandId": 2,
-        "probability": 0.3603373021834744,
+        "probability": 0.2746276087708614,
         "nnTopIslandId": 3,
-        "nnTopProbability": 0.8816803737383864,
+        "nnTopProbability": 0.8263376222100381,
         "validationBestIslandId": 2,
         "validationBestMae": 6.377454615989566e-12,
-        "hybridScore": 0.35593730218347436,
+        "hybridScore": 0.2702276087708614,
         "fallbackUsed": true,
         "fallbackReason": "low-nn-confidence",
         "validationMae": 6.377454615989566e-12,
@@ -1457,7 +1457,7 @@
       "hub": {
         "drops": 12,
         "pullAttempts": 12,
-        "pullSuccesses": 7
+        "pullSuccesses": 3
       },
       "candidates": [
         {
@@ -1469,26 +1469,26 @@
           "archiveSize": 18
         },
         {
-          "islandId": 0,
-          "validationMae": 1.5013556632523604,
-          "guardMae": 1.494825883208064,
-          "testMae": 1.4873735240296533,
+          "islandId": 1,
+          "validationMae": 0.20135946636463506,
+          "guardMae": 0.19381607777025475,
+          "testMae": 0.16344726800572515,
           "archiveInjections": 2,
           "archiveSize": 256
         },
         {
-          "islandId": 1,
-          "validationMae": 0.010275459358829965,
-          "guardMae": 0.06759053032958164,
-          "testMae": 0.01318146843182011,
-          "archiveInjections": 3,
+          "islandId": 0,
+          "validationMae": 1.5013829813024402,
+          "guardMae": 1.4948704614928194,
+          "testMae": 1.487411967860929,
+          "archiveInjections": 2,
           "archiveSize": 256
         },
         {
           "islandId": 3,
-          "validationMae": 0.1112004403234866,
-          "guardMae": 0.12370388180504006,
-          "testMae": 0.12761159433160305,
+          "validationMae": 0.12805722804909747,
+          "guardMae": 0.13777325060336393,
+          "testMae": 0.14533928829065745,
           "archiveInjections": 2,
           "archiveSize": 256
         }
@@ -1522,22 +1522,22 @@
         }
       },
       "nn": {
-        "samples": 71,
-        "positives": 33,
-        "trainingAccuracy": 0.9436619718309859,
-        "holdoutSamples": 13,
-        "holdoutAccuracy": 0.5384615384615384,
-        "holdoutBrier": 0.21431478698502301,
-        "holdoutAuc": 0.5
+        "samples": 73,
+        "positives": 30,
+        "trainingAccuracy": 0.8493150684931506,
+        "holdoutSamples": 14,
+        "holdoutAccuracy": 0.7857142857142857,
+        "holdoutBrier": 0.14294395707097296,
+        "holdoutAuc": 1
       },
       "policy": {
         "islandId": 3,
-        "probability": 0.9356072625136703,
+        "probability": 0.927431825653906,
         "nnTopIslandId": 3,
-        "nnTopProbability": 0.9356072625136703,
+        "nnTopProbability": 0.927431825653906,
         "validationBestIslandId": 3,
         "validationBestMae": 3.0425816380241777e-10,
-        "hybridScore": 0.9333072625136702,
+        "hybridScore": 0.925131825653906,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
         "validationMae": 3.0425816380241777e-10,
@@ -1575,7 +1575,7 @@
       "hub": {
         "drops": 12,
         "pullAttempts": 12,
-        "pullSuccesses": 4
+        "pullSuccesses": 3
       },
       "candidates": [
         {
@@ -1588,25 +1588,25 @@
         },
         {
           "islandId": 2,
-          "validationMae": 0.13728315068599323,
-          "guardMae": 0.15913347540468142,
-          "testMae": 0.14941093381925502,
+          "validationMae": 0.13728303203638847,
+          "guardMae": 0.15913365947112254,
+          "testMae": 0.14941085914885868,
           "archiveInjections": 1,
-          "archiveSize": 102
+          "archiveSize": 114
         },
         {
           "islandId": 1,
-          "validationMae": 0.15292700152469169,
-          "guardMae": 0.1712261325808945,
-          "testMae": 0.1635764176302238,
+          "validationMae": 0.15382571602483167,
+          "guardMae": 0.17146805827380518,
+          "testMae": 0.16456623089542505,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 0,
-          "validationMae": 0.027962279768969884,
-          "guardMae": 0.05003507501272892,
-          "testMae": 0.0680366841004773,
+          "validationMae": 0.17510411241413554,
+          "guardMae": 0.19058397856819023,
+          "testMae": 0.17982569976308405,
           "archiveInjections": 2,
           "archiveSize": 256
         }
@@ -1642,94 +1642,94 @@
       "nn": {
         "samples": 82,
         "positives": 38,
-        "trainingAccuracy": 0.9390243902439024,
-        "holdoutSamples": 13,
+        "trainingAccuracy": 0.926829268292683,
+        "holdoutSamples": 15,
         "holdoutAccuracy": 1,
-        "holdoutBrier": 0.0646703377627655,
+        "holdoutBrier": 0.0700231056268754,
         "holdoutAuc": 0.5
       },
       "policy": {
         "islandId": 0,
-        "probability": 0.9161431047356631,
+        "probability": 0.8868225533863153,
         "nnTopIslandId": 2,
-        "nnTopProbability": 0.9400418679599397,
+        "nnTopProbability": 0.930015186502463,
         "validationBestIslandId": 0,
-        "validationBestMae": 6.145342072518188e-11,
-        "hybridScore": 0.930743104735663,
+        "validationBestMae": 8.993072414828892e-8,
+        "hybridScore": 0.8899225533863153,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 6.145342072518188e-11,
-        "guardMae": 6.323809734502994e-11,
+        "validationMae": 8.993072414828892e-8,
+        "guardMae": 8.973071474957981e-8,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 6.234226496415901e-11,
-          "rmse": 8.457814728392364e-11,
-          "r2": 1,
-          "maxAbsError": 2.7085311771202214e-10
+          "mae": 8.955371587673308e-8,
+          "rmse": 1.1129765796562608e-7,
+          "r2": 0.999999999999997,
+          "maxAbsError": 2.649676682509039e-7
         }
       },
       "validationOnly": {
         "islandId": 0,
-        "validationMae": 6.145342072518188e-11,
-        "guardMae": 6.323809734502994e-11,
+        "validationMae": 8.993072414828892e-8,
+        "guardMae": 8.973071474957981e-8,
         "metrics": {
-          "mae": 6.234226496415901e-11,
-          "rmse": 8.457814728392364e-11,
-          "r2": 1,
-          "maxAbsError": 2.7085311771202214e-10
+          "mae": 8.955371587673308e-8,
+          "rmse": 1.1129765796562608e-7,
+          "r2": 0.999999999999997,
+          "maxAbsError": 2.649676682509039e-7
         }
       },
       "oracle": {
         "islandId": 0,
-        "validationMae": 6.145342072518188e-11,
-        "guardMae": 6.323809734502994e-11,
+        "validationMae": 8.993072414828892e-8,
+        "guardMae": 8.973071474957981e-8,
         "metrics": {
-          "mae": 6.234226496415901e-11,
-          "rmse": 8.457814728392364e-11,
-          "r2": 1,
-          "maxAbsError": 2.7085311771202214e-10
+          "mae": 8.955371587673308e-8,
+          "rmse": 1.1129765796562608e-7,
+          "r2": 0.999999999999997,
+          "maxAbsError": 2.649676682509039e-7
         }
       },
       "hub": {
-        "drops": 15,
-        "pullAttempts": 15,
-        "pullSuccesses": 13
+        "drops": 14,
+        "pullAttempts": 14,
+        "pullSuccesses": 9
       },
       "candidates": [
         {
           "islandId": 0,
-          "validationMae": 6.145342072518188e-11,
-          "guardMae": 6.323809734502994e-11,
-          "testMae": 6.234226496415901e-11,
+          "validationMae": 8.993072414828892e-8,
+          "guardMae": 8.973071474957981e-8,
+          "testMae": 8.955371587673308e-8,
           "archiveInjections": 3,
-          "archiveSize": 220
+          "archiveSize": 181
         },
         {
           "islandId": 1,
-          "validationMae": 0.14248701262994629,
-          "guardMae": 0.16669361733796265,
-          "testMae": 0.15777013206695384,
+          "validationMae": 0.14248696054156684,
+          "guardMae": 0.16669336713641564,
+          "testMae": 0.15777011071275296,
           "archiveInjections": 1,
-          "archiveSize": 109
+          "archiveSize": 171
         },
         {
           "islandId": 2,
-          "validationMae": 0.1283725989993454,
-          "guardMae": 0.1560452085746828,
-          "testMae": 0.154277112868765,
+          "validationMae": 0.14337707518850779,
+          "guardMae": 0.1699393445903005,
+          "testMae": 0.16588454067130912,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 3,
-          "validationMae": 0.0648046715031166,
-          "guardMae": 0.06259611407610581,
-          "testMae": 0.06318998931736013,
+          "validationMae": 0.04658129712002639,
+          "guardMae": 0.04283840758505895,
+          "testMae": 0.04389481756060272,
           "archiveInjections": 0,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 2530488438.0669813,
+      "liftVsSingle": 1761583.8622694076,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -1760,58 +1760,58 @@
       "nn": {
         "samples": 88,
         "positives": 33,
-        "trainingAccuracy": 0.8295454545454546,
-        "holdoutSamples": 18,
-        "holdoutAccuracy": 0.7222222222222222,
-        "holdoutBrier": 0.16830388178135888,
-        "holdoutAuc": 0.8024691358024691
+        "trainingAccuracy": 0.7954545454545454,
+        "holdoutSamples": 17,
+        "holdoutAccuracy": 0.7647058823529411,
+        "holdoutBrier": 0.1673867087226062,
+        "holdoutAuc": 0.9722222222222222
       },
       "policy": {
-        "islandId": 0,
-        "probability": 0.8564510435281686,
+        "islandId": 2,
+        "probability": 0.6454304413326258,
         "nnTopIslandId": 0,
-        "nnTopProbability": 0.8564510435281686,
-        "validationBestIslandId": 0,
-        "validationBestMae": 0.10760428397598644,
-        "hybridScore": 0.8746510435281686,
-        "fallbackUsed": false,
-        "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.10760428397598644,
-        "guardMae": 0.12098464359740439,
+        "nnTopProbability": 0.7329151480076197,
+        "validationBestIslandId": 2,
+        "validationBestMae": 0.2605582089993416,
+        "hybridScore": 0.6545304413326258,
+        "fallbackUsed": true,
+        "fallbackReason": "validation-veto",
+        "validationMae": 0.2605582089993416,
+        "guardMae": 0.2919206517809157,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.12661524406484048,
-          "rmse": 0.16999615565519052,
-          "r2": 0.9929148052978413,
-          "maxAbsError": 0.47804069470244315
+          "mae": 0.2890210503910335,
+          "rmse": 0.48229992666083793,
+          "r2": 0.9429693947648754,
+          "maxAbsError": 2.0609878389166694
         }
       },
       "validationOnly": {
-        "islandId": 0,
-        "validationMae": 0.10760428397598644,
-        "guardMae": 0.12098464359740439,
+        "islandId": 2,
+        "validationMae": 0.2605582089993416,
+        "guardMae": 0.2919206517809157,
         "metrics": {
-          "mae": 0.12661524406484048,
-          "rmse": 0.16999615565519052,
-          "r2": 0.9929148052978413,
-          "maxAbsError": 0.47804069470244315
+          "mae": 0.2890210503910335,
+          "rmse": 0.48229992666083793,
+          "r2": 0.9429693947648754,
+          "maxAbsError": 2.0609878389166694
         }
       },
       "oracle": {
-        "islandId": 0,
-        "validationMae": 0.10760428397598644,
-        "guardMae": 0.12098464359740439,
+        "islandId": 2,
+        "validationMae": 0.2605582089993416,
+        "guardMae": 0.2919206517809157,
         "metrics": {
-          "mae": 0.12661524406484048,
-          "rmse": 0.16999615565519052,
-          "r2": 0.9929148052978413,
-          "maxAbsError": 0.47804069470244315
+          "mae": 0.2890210503910335,
+          "rmse": 0.48229992666083793,
+          "r2": 0.9429693947648754,
+          "maxAbsError": 2.0609878389166694
         }
       },
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 12
+        "pullSuccesses": 11
       },
       "candidates": [
         {
@@ -1820,7 +1820,7 @@
           "guardMae": 0.37772794455705255,
           "testMae": 0.3119177135060397,
           "archiveInjections": 1,
-          "archiveSize": 99
+          "archiveSize": 104
         },
         {
           "islandId": 2,
@@ -1828,26 +1828,26 @@
           "guardMae": 0.2919206517809157,
           "testMae": 0.2890210503910335,
           "archiveInjections": 1,
-          "archiveSize": 48
+          "archiveSize": 41
         },
         {
           "islandId": 0,
-          "validationMae": 0.10760428397598644,
-          "guardMae": 0.12098464359740439,
-          "testMae": 0.12661524406484048,
-          "archiveInjections": 2,
+          "validationMae": 0.3017032087977826,
+          "guardMae": 0.3127234159462019,
+          "testMae": 0.31224564304986646,
+          "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 3,
-          "validationMae": 2341344394021.0005,
-          "guardMae": 0.5044451085705632,
-          "testMae": 0.4539248736471373,
+          "validationMae": 10159231.865938473,
+          "guardMae": 8050566.470636394,
+          "testMae": 123.71148450861928,
           "archiveInjections": 12,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 2.4237326307516165,
+      "liftVsSingle": 1.0617963576540044,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -1876,22 +1876,22 @@
         }
       },
       "nn": {
-        "samples": 73,
-        "positives": 37,
-        "trainingAccuracy": 0.863013698630137,
-        "holdoutSamples": 13,
-        "holdoutAccuracy": 1,
-        "holdoutBrier": 0.04105100086768032,
-        "holdoutAuc": 0.5
+        "samples": 76,
+        "positives": 32,
+        "trainingAccuracy": 0.8289473684210527,
+        "holdoutSamples": 14,
+        "holdoutAccuracy": 0.7142857142857143,
+        "holdoutBrier": 0.21068003992887316,
+        "holdoutAuc": 1
       },
       "policy": {
         "islandId": 0,
-        "probability": 0.5120509472244121,
+        "probability": 0.3593849122999701,
         "nnTopIslandId": 1,
-        "nnTopProbability": 0.9066685682339323,
+        "nnTopProbability": 0.7433986721933562,
         "validationBestIslandId": 0,
         "validationBestMae": 3.0425816380241777e-10,
-        "hybridScore": 0.509750947224412,
+        "hybridScore": 0.3595849122999701,
         "fallbackUsed": true,
         "fallbackReason": "low-nn-confidence",
         "validationMae": 3.0425816380241777e-10,
@@ -1929,7 +1929,7 @@
       "hub": {
         "drops": 12,
         "pullAttempts": 12,
-        "pullSuccesses": 7
+        "pullSuccesses": 8
       },
       "candidates": [
         {
@@ -1942,26 +1942,26 @@
         },
         {
           "islandId": 1,
-          "validationMae": 0.17170547180238457,
-          "guardMae": 0.17763676701052764,
-          "testMae": 0.17246552891765943,
+          "validationMae": 0.14410001826619026,
+          "guardMae": 0.1684061637001926,
+          "testMae": 0.1593305351379345,
+          "archiveInjections": 2,
+          "archiveSize": 256
+        },
+        {
+          "islandId": 2,
+          "validationMae": 0.08118283455230514,
+          "guardMae": 0.08812470030797688,
+          "testMae": 0.0842511781789359,
           "archiveInjections": 2,
           "archiveSize": 256
         },
         {
           "islandId": 3,
-          "validationMae": 0.26968833851051444,
-          "guardMae": 0.3020844917918667,
-          "testMae": 0.29529186662466556,
+          "validationMae": 0.4053409286564823,
+          "guardMae": 0.4602927922397768,
+          "testMae": 0.4503337050364637,
           "archiveInjections": 1,
-          "archiveSize": 256
-        },
-        {
-          "islandId": 2,
-          "validationMae": 0.05154049802897298,
-          "guardMae": 0.05903477607833092,
-          "testMae": 0.05784617358492616,
-          "archiveInjections": 3,
           "archiveSize": 256
         }
       ],
@@ -1995,42 +1995,42 @@
       },
       "nn": {
         "samples": 89,
-        "positives": 33,
-        "trainingAccuracy": 0.8089887640449438,
+        "positives": 34,
+        "trainingAccuracy": 0.8539325842696629,
         "holdoutSamples": 16,
         "holdoutAccuracy": 0.75,
-        "holdoutBrier": 0.17639413560078704,
+        "holdoutBrier": 0.1706204713774006,
         "holdoutAuc": 0.75
       },
       "policy": {
         "islandId": 0,
-        "probability": 0.5874182599962502,
+        "probability": 0.6161809810596491,
         "nnTopIslandId": 3,
-        "nnTopProbability": 0.7146539268376149,
+        "nnTopProbability": 0.7080872904498504,
         "validationBestIslandId": 0,
-        "validationBestMae": 0.050792298713957004,
-        "hybridScore": 0.6059182599962503,
-        "fallbackUsed": true,
-        "fallbackReason": "validation-veto",
-        "validationMae": 0.050792298713957004,
-        "guardMae": 0.04868749274685886,
-        "regretVsOracle": 0.046028323251370816,
+        "validationBestMae": 0.028913607611775614,
+        "hybridScore": 0.6255809810596492,
+        "fallbackUsed": false,
+        "fallbackReason": "accepted-hybrid",
+        "validationMae": 0.028913607611775614,
+        "guardMae": 0.03496402493502018,
+        "regretVsOracle": 0.032137509796422575,
         "metrics": {
-          "mae": 0.04869669204176848,
-          "rmse": 0.06683792078594694,
-          "r2": 0.9989047343906369,
-          "maxAbsError": 0.22439912497246262
+          "mae": 0.03480587858682024,
+          "rmse": 0.05078481902286245,
+          "r2": 0.9993676734648734,
+          "maxAbsError": 0.1494488907828735
         }
       },
       "validationOnly": {
         "islandId": 0,
-        "validationMae": 0.050792298713957004,
-        "guardMae": 0.04868749274685886,
+        "validationMae": 0.028913607611775614,
+        "guardMae": 0.03496402493502018,
         "metrics": {
-          "mae": 0.04869669204176848,
-          "rmse": 0.06683792078594694,
-          "r2": 0.9989047343906369,
-          "maxAbsError": 0.22439912497246262
+          "mae": 0.03480587858682024,
+          "rmse": 0.05078481902286245,
+          "r2": 0.9993676734648734,
+          "maxAbsError": 0.1494488907828735
         }
       },
       "oracle": {
@@ -2047,7 +2047,7 @@
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 14
+        "pullSuccesses": 10
       },
       "candidates": [
         {
@@ -2056,7 +2056,7 @@
           "guardMae": 0.16667452734171478,
           "testMae": 0.1577563806906381,
           "archiveInjections": 1,
-          "archiveSize": 19
+          "archiveSize": 23
         },
         {
           "islandId": 3,
@@ -2064,26 +2064,26 @@
           "guardMae": 0.05799047892732154,
           "testMae": 0.002668368790397661,
           "archiveInjections": 0,
-          "archiveSize": 256
+          "archiveSize": 246
         },
         {
           "islandId": 2,
-          "validationMae": 0.18860555116342656,
-          "guardMae": 0.19620973075003795,
-          "testMae": 0.19296493554176689,
+          "validationMae": 0.18958640474090704,
+          "guardMae": 0.2020039803209542,
+          "testMae": 0.19750242268783189,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 0,
-          "validationMae": 0.050792298713957004,
-          "guardMae": 0.04868749274685886,
-          "testMae": 0.04869669204176848,
+          "validationMae": 0.028913607611775614,
+          "guardMae": 0.03496402493502018,
+          "testMae": 0.03480587858682024,
           "archiveInjections": 0,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 1.249755794184668,
+      "liftVsSingle": 1.7485256947334098,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -2112,22 +2112,22 @@
         }
       },
       "nn": {
-        "samples": 95,
-        "positives": 39,
-        "trainingAccuracy": 0.8947368421052632,
-        "holdoutSamples": 18,
+        "samples": 94,
+        "positives": 35,
+        "trainingAccuracy": 0.9787234042553191,
+        "holdoutSamples": 19,
         "holdoutAccuracy": 1,
-        "holdoutBrier": 0.08242105449824973,
+        "holdoutBrier": 0.13456801289894027,
         "holdoutAuc": 1
       },
       "policy": {
         "islandId": 1,
-        "probability": 0.9033299721525001,
-        "nnTopIslandId": 1,
-        "nnTopProbability": 0.9033299721525001,
+        "probability": 0.724386856831248,
+        "nnTopIslandId": 2,
+        "nnTopProbability": 0.7885732203866372,
         "validationBestIslandId": 1,
         "validationBestMae": 0.02795831951784805,
-        "hybridScore": 0.9137299721525001,
+        "hybridScore": 0.7322868568312481,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
         "validationMae": 0.02795831951784805,
@@ -2165,7 +2165,7 @@
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 11
+        "pullSuccesses": 10
       },
       "candidates": [
         {
@@ -2177,27 +2177,27 @@
           "archiveSize": 256
         },
         {
-          "islandId": 2,
-          "validationMae": 0.031362918260227975,
-          "guardMae": 0.07042274077886246,
-          "testMae": 0.07909547926363367,
-          "archiveInjections": 1,
-          "archiveSize": 248
-        },
-        {
           "islandId": 3,
-          "validationMae": 0.0648480389189453,
-          "guardMae": 0.11854784817027791,
-          "testMae": 0.12375844700599038,
+          "validationMae": 0.8680500870920917,
+          "guardMae": 1.29376045370892,
+          "testMae": 1.151318787974532,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
+          "islandId": 2,
+          "validationMae": 0.03141303596553004,
+          "guardMae": 0.07033563077231593,
+          "testMae": 0.07905289620871075,
+          "archiveInjections": 1,
+          "archiveSize": 236
+        },
+        {
           "islandId": 0,
-          "validationMae": 7.820965686356362,
-          "guardMae": 8.014515904483195,
-          "testMae": 8.047627006588872,
-          "archiveInjections": 11,
+          "validationMae": 44.14327572761795,
+          "guardMae": 28.563375718775823,
+          "testMae": 0.5410398768792364,
+          "archiveInjections": 7,
           "archiveSize": 256
         }
       ],
@@ -2230,96 +2230,96 @@
         }
       },
       "nn": {
-        "samples": 93,
-        "positives": 36,
+        "samples": 94,
+        "positives": 35,
         "trainingAccuracy": 1,
         "holdoutSamples": 18,
         "holdoutAccuracy": 1,
-        "holdoutBrier": 0.021206738087406394,
+        "holdoutBrier": 0.034617759721127586,
         "holdoutAuc": 1
       },
       "policy": {
         "islandId": 3,
-        "probability": 0.8844139944545075,
+        "probability": 0.9294584012591525,
         "nnTopIslandId": 3,
-        "nnTopProbability": 0.8844139944545075,
+        "nnTopProbability": 0.9294584012591525,
         "validationBestIslandId": 3,
-        "validationBestMae": 0.05061628002948656,
-        "hybridScore": 0.9111139944545075,
+        "validationBestMae": 0.056690593801807465,
+        "hybridScore": 0.9401584012591524,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.05061628002948656,
-        "guardMae": 0.11150762855903266,
+        "validationMae": 0.056690593801807465,
+        "guardMae": 0.11796734528639181,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.056912304183639344,
-          "rmse": 0.10828044559930618,
-          "r2": 0.9971254249126119,
-          "maxAbsError": 0.46755426313707904
+          "mae": 0.0643039941145555,
+          "rmse": 0.12275350755654348,
+          "r2": 0.9963056213159929,
+          "maxAbsError": 0.5217498965205838
         }
       },
       "validationOnly": {
         "islandId": 3,
-        "validationMae": 0.05061628002948656,
-        "guardMae": 0.11150762855903266,
+        "validationMae": 0.056690593801807465,
+        "guardMae": 0.11796734528639181,
         "metrics": {
-          "mae": 0.056912304183639344,
-          "rmse": 0.10828044559930618,
-          "r2": 0.9971254249126119,
-          "maxAbsError": 0.46755426313707904
+          "mae": 0.0643039941145555,
+          "rmse": 0.12275350755654348,
+          "r2": 0.9963056213159929,
+          "maxAbsError": 0.5217498965205838
         }
       },
       "oracle": {
         "islandId": 3,
-        "validationMae": 0.05061628002948656,
-        "guardMae": 0.11150762855903266,
+        "validationMae": 0.056690593801807465,
+        "guardMae": 0.11796734528639181,
         "metrics": {
-          "mae": 0.056912304183639344,
-          "rmse": 0.10828044559930618,
-          "r2": 0.9971254249126119,
-          "maxAbsError": 0.46755426313707904
+          "mae": 0.0643039941145555,
+          "rmse": 0.12275350755654348,
+          "r2": 0.9963056213159929,
+          "maxAbsError": 0.5217498965205838
         }
       },
       "hub": {
         "drops": 16,
         "pullAttempts": 16,
-        "pullSuccesses": 14
+        "pullSuccesses": 11
       },
       "candidates": [
         {
           "islandId": 1,
-          "validationMae": 0.3208838107412854,
-          "guardMae": 0.3362313714626121,
-          "testMae": 0.334040969104044,
+          "validationMae": 0.3208834538850983,
+          "guardMae": 0.3362310985565173,
+          "testMae": 0.334040676084211,
           "archiveInjections": 1,
-          "archiveSize": 86
+          "archiveSize": 63
         },
         {
-          "islandId": 0,
-          "validationMae": 0.26809722776971723,
-          "guardMae": 0.30151060497791793,
-          "testMae": 0.29550088728412743,
+          "islandId": 3,
+          "validationMae": 0.056690593801807465,
+          "guardMae": 0.11796734528639181,
+          "testMae": 0.0643039941145555,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
-          "islandId": 3,
-          "validationMae": 0.05061628002948656,
-          "guardMae": 0.11150762855903266,
-          "testMae": 0.056912304183639344,
+          "islandId": 0,
+          "validationMae": 0.276785125595889,
+          "guardMae": 0.3063428900512263,
+          "testMae": 0.29692877162173553,
           "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 2,
-          "validationMae": 0.21716907506856284,
-          "guardMae": 0.23361024583707585,
-          "testMae": 0.22404232686445313,
+          "validationMae": 0.1941220935435898,
+          "guardMae": 0.20936535461021902,
+          "testMae": 0.20289914313076535,
           "archiveInjections": 2,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 2.106216011335794,
+      "liftVsSingle": 1.8641082558581108,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -2348,43 +2348,43 @@
         }
       },
       "nn": {
-        "samples": 96,
-        "positives": 40,
-        "trainingAccuracy": 0.7916666666666666,
-        "holdoutSamples": 19,
-        "holdoutAccuracy": 0.21052631578947367,
-        "holdoutBrier": 0.29142832190279233,
-        "holdoutAuc": 0.2857142857142857
+        "samples": 95,
+        "positives": 45,
+        "trainingAccuracy": 0.8421052631578947,
+        "holdoutSamples": 18,
+        "holdoutAccuracy": 0.7222222222222222,
+        "holdoutBrier": 0.16623081544898632,
+        "holdoutAuc": 0.5
       },
       "policy": {
-        "islandId": 2,
-        "probability": 0.7063815661841675,
+        "islandId": 0,
+        "probability": 0.9253206264698909,
         "nnTopIslandId": 0,
-        "nnTopProbability": 0.8021165378335101,
-        "validationBestIslandId": 2,
-        "validationBestMae": 0.01921192451682821,
-        "hybridScore": 0.7179815661841674,
+        "nnTopProbability": 0.9253206264698909,
+        "validationBestIslandId": 0,
+        "validationBestMae": 0.0022718127023123535,
+        "hybridScore": 0.9357206264698908,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.01921192451682821,
-        "guardMae": 0.024210179144576346,
-        "regretVsOracle": 0.02043617081226912,
+        "validationMae": 0.0022718127023123535,
+        "guardMae": 0.05799047892732154,
+        "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.02310453960266678,
-          "rmse": 0.03126888435466048,
-          "r2": 0.9997602832608689,
-          "maxAbsError": 0.09286291219652476
+          "mae": 0.002668368790397661,
+          "rmse": 0.005381786990943865,
+          "r2": 0.9999928988841505,
+          "maxAbsError": 0.029149157766799938
         }
       },
       "validationOnly": {
-        "islandId": 2,
-        "validationMae": 0.01921192451682821,
-        "guardMae": 0.024210179144576346,
+        "islandId": 0,
+        "validationMae": 0.0022718127023123535,
+        "guardMae": 0.05799047892732154,
         "metrics": {
-          "mae": 0.02310453960266678,
-          "rmse": 0.03126888435466048,
-          "r2": 0.9997602832608689,
-          "maxAbsError": 0.09286291219652476
+          "mae": 0.002668368790397661,
+          "rmse": 0.005381786990943865,
+          "r2": 0.9999928988841505,
+          "maxAbsError": 0.029149157766799938
         }
       },
       "oracle": {
@@ -2405,19 +2405,11 @@
       },
       "candidates": [
         {
-          "islandId": 1,
-          "validationMae": 0.31470251084759165,
-          "guardMae": 0.3259313497606779,
-          "testMae": 0.2876647285584139,
-          "archiveInjections": 1,
-          "archiveSize": 256
-        },
-        {
           "islandId": 3,
-          "validationMae": 0.06170548811394495,
-          "guardMae": 0.06732160054420441,
-          "testMae": 0.06719027663674863,
-          "archiveInjections": 3,
+          "validationMae": 0.09715975537259884,
+          "guardMae": 0.09947424232046854,
+          "testMae": 0.09778533580742436,
+          "archiveInjections": 1,
           "archiveSize": 256
         },
         {
@@ -2429,15 +2421,23 @@
           "archiveSize": 256
         },
         {
-          "islandId": 2,
-          "validationMae": 0.01921192451682821,
-          "guardMae": 0.024210179144576346,
-          "testMae": 0.02310453960266678,
+          "islandId": 1,
+          "validationMae": 0.1424876046830247,
+          "guardMae": 0.39669140497465033,
+          "testMae": 0.3153418540469886,
           "archiveInjections": 0,
+          "archiveSize": 256
+        },
+        {
+          "islandId": 2,
+          "validationMae": 0.07542085759295726,
+          "guardMae": 0.08259121302069534,
+          "testMae": 0.0801247627968348,
+          "archiveInjections": 6,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 3.921161023177967,
+      "liftVsSingle": 33.95206107733981,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -2466,22 +2466,22 @@
         }
       },
       "nn": {
-        "samples": 74,
-        "positives": 35,
-        "trainingAccuracy": 1,
-        "holdoutSamples": 15,
-        "holdoutAccuracy": 0.8,
-        "holdoutBrier": 0.0886679469120117,
-        "holdoutAuc": 0.5
+        "samples": 72,
+        "positives": 29,
+        "trainingAccuracy": 0.9166666666666666,
+        "holdoutSamples": 13,
+        "holdoutAccuracy": 1,
+        "holdoutBrier": 0.07791789532352317,
+        "holdoutAuc": 1
       },
       "policy": {
         "islandId": 2,
-        "probability": 0.8527091761630835,
-        "nnTopIslandId": 0,
-        "nnTopProbability": 0.961214633897365,
+        "probability": 0.8945065909641224,
+        "nnTopIslandId": 3,
+        "nnTopProbability": 0.903492254135184,
         "validationBestIslandId": 2,
         "validationBestMae": 2.632824315705408e-11,
-        "hybridScore": 0.8504091761630834,
+        "hybridScore": 0.8947065909641224,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
         "validationMae": 2.632824315705408e-11,
@@ -2531,26 +2531,26 @@
           "archiveSize": 54
         },
         {
-          "islandId": 3,
-          "validationMae": 0.14803516493627616,
-          "guardMae": 0.15577484022310964,
-          "testMae": 0.1564424746299149,
+          "islandId": 1,
+          "validationMae": 0.1571041551376978,
+          "guardMae": 0.16648947546250442,
+          "testMae": 0.16419170481467402,
           "archiveInjections": 5,
-          "archiveSize": 84
+          "archiveSize": 163
         },
         {
-          "islandId": 1,
-          "validationMae": 0.1597731135450946,
-          "guardMae": 0.17018458374348033,
-          "testMae": 0.16560753323808158,
-          "archiveInjections": 5,
-          "archiveSize": 206
+          "islandId": 3,
+          "validationMae": 0.09606663592470718,
+          "guardMae": 0.10473596195948537,
+          "testMae": 0.10317795997040417,
+          "archiveInjections": 3,
+          "archiveSize": 171
         },
         {
           "islandId": 0,
-          "validationMae": 0.09616600924603803,
-          "guardMae": 0.14513888686386428,
-          "testMae": 0.10647518956488795,
+          "validationMae": 1.206967885694372,
+          "guardMae": 1.1160844414219009,
+          "testMae": 1.3415654849936638,
           "archiveInjections": 2,
           "archiveSize": 256
         }
@@ -2584,54 +2584,54 @@
         }
       },
       "nn": {
-        "samples": 94,
-        "positives": 33,
-        "trainingAccuracy": 0.8191489361702128,
-        "holdoutSamples": 19,
-        "holdoutAccuracy": 0.8947368421052632,
-        "holdoutBrier": 0.15659795759276002,
-        "holdoutAuc": 0.75
+        "samples": 90,
+        "positives": 37,
+        "trainingAccuracy": 0.6444444444444445,
+        "holdoutSamples": 18,
+        "holdoutAccuracy": 0.7222222222222222,
+        "holdoutBrier": 0.24035733956593036,
+        "holdoutAuc": 0.7530864197530864
       },
       "policy": {
         "islandId": 0,
-        "probability": 0.7599512665523477,
+        "probability": 0.6604850398378765,
         "nnTopIslandId": 0,
-        "nnTopProbability": 0.7599512665523477,
+        "nnTopProbability": 0.6604850398378765,
         "validationBestIslandId": 0,
-        "validationBestMae": 0.049481923621421835,
-        "hybridScore": 0.7710512665523477,
+        "validationBestMae": 0.03215857671729586,
+        "hybridScore": 0.6756850398378765,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.049481923621421835,
-        "guardMae": 0.10251480682735425,
+        "validationMae": 0.03215857671729586,
+        "guardMae": 0.09276810303305058,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.05273222878785358,
-          "rmse": 0.09383780645925058,
-          "r2": 0.9978411161216815,
-          "maxAbsError": 0.3890031636201092
+          "mae": 0.035437547203572964,
+          "rmse": 0.06075707523124117,
+          "r2": 0.9990949609726231,
+          "maxAbsError": 0.23542327560275744
         }
       },
       "validationOnly": {
         "islandId": 0,
-        "validationMae": 0.049481923621421835,
-        "guardMae": 0.10251480682735425,
+        "validationMae": 0.03215857671729586,
+        "guardMae": 0.09276810303305058,
         "metrics": {
-          "mae": 0.05273222878785358,
-          "rmse": 0.09383780645925058,
-          "r2": 0.9978411161216815,
-          "maxAbsError": 0.3890031636201092
+          "mae": 0.035437547203572964,
+          "rmse": 0.06075707523124117,
+          "r2": 0.9990949609726231,
+          "maxAbsError": 0.23542327560275744
         }
       },
       "oracle": {
         "islandId": 0,
-        "validationMae": 0.049481923621421835,
-        "guardMae": 0.10251480682735425,
+        "validationMae": 0.03215857671729586,
+        "guardMae": 0.09276810303305058,
         "metrics": {
-          "mae": 0.05273222878785358,
-          "rmse": 0.09383780645925058,
-          "r2": 0.9978411161216815,
-          "maxAbsError": 0.3890031636201092
+          "mae": 0.035437547203572964,
+          "rmse": 0.06075707523124117,
+          "r2": 0.9990949609726231,
+          "maxAbsError": 0.23542327560275744
         }
       },
       "hub": {
@@ -2641,39 +2641,39 @@
       },
       "candidates": [
         {
-          "islandId": 3,
-          "validationMae": 0.19926585314299777,
-          "guardMae": 0.2600868453082178,
-          "testMae": 0.23243552463509984,
+          "islandId": 1,
+          "validationMae": 642.0048018954448,
+          "guardMae": 386.1485375360029,
+          "testMae": 464.2422293463084,
           "archiveInjections": 12,
-          "archiveSize": 201
+          "archiveSize": 147
         },
         {
-          "islandId": 1,
-          "validationMae": 8.701111835615806e+26,
-          "guardMae": 0.36393705917989866,
-          "testMae": 0.30159148806906483,
+          "islandId": 3,
+          "validationMae": 0.21800367497103013,
+          "guardMae": 0.2606464606653448,
+          "testMae": 0.23088628808052228,
           "archiveInjections": 12,
-          "archiveSize": 256
+          "archiveSize": 157
         },
         {
           "islandId": 0,
-          "validationMae": 0.049481923621421835,
-          "guardMae": 0.10251480682735425,
-          "testMae": 0.05273222878785358,
-          "archiveInjections": 2,
+          "validationMae": 0.03215857671729586,
+          "guardMae": 0.09276810303305058,
+          "testMae": 0.035437547203572964,
+          "archiveInjections": 1,
           "archiveSize": 256
         },
         {
           "islandId": 2,
-          "validationMae": 0.33430661769666115,
-          "guardMae": 0.36275038666927617,
-          "testMae": 0.35606297006635745,
+          "validationMae": 0.3328639127147396,
+          "guardMae": 0.36164561197920225,
+          "testMae": 0.3557413376596584,
           "archiveInjections": 2,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 2.8189933733623223,
+      "liftVsSingle": 4.19475430005487,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -2702,96 +2702,96 @@
         }
       },
       "nn": {
-        "samples": 95,
-        "positives": 40,
-        "trainingAccuracy": 0.8315789473684211,
-        "holdoutSamples": 18,
-        "holdoutAccuracy": 1,
-        "holdoutBrier": 0.12370766303336674,
-        "holdoutAuc": 1
+        "samples": 91,
+        "positives": 41,
+        "trainingAccuracy": 0.8351648351648352,
+        "holdoutSamples": 15,
+        "holdoutAccuracy": 0.6666666666666666,
+        "holdoutBrier": 0.20101422169140398,
+        "holdoutAuc": 0.5
       },
       "policy": {
-        "islandId": 1,
-        "probability": 0.8645042520717569,
+        "islandId": 0,
+        "probability": 0.8516374169975474,
         "nnTopIslandId": 0,
-        "nnTopProbability": 0.9038406490358394,
-        "validationBestIslandId": 1,
-        "validationBestMae": 0.009492844286899544,
-        "hybridScore": 0.8762042520717569,
+        "nnTopProbability": 0.8516374169975474,
+        "validationBestIslandId": 0,
+        "validationBestMae": 1.367781379229311e-10,
+        "hybridScore": 0.8617374169975474,
         "fallbackUsed": false,
         "fallbackReason": "accepted-hybrid",
-        "validationMae": 0.009492844286899544,
-        "guardMae": 0.013486165829725753,
+        "validationMae": 1.367781379229311e-10,
+        "guardMae": 1.3847324847128238e-10,
         "regretVsOracle": 0,
         "metrics": {
-          "mae": 0.013467530875215886,
-          "rmse": 0.019350777062752508,
-          "r2": 0.9999081941390331,
-          "maxAbsError": 0.04442798170628226
+          "mae": 1.3676336043000622e-10,
+          "rmse": 2.1247154209353077e-10,
+          "r2": 1,
+          "maxAbsError": 9.302221215534701e-10
         }
       },
       "validationOnly": {
-        "islandId": 1,
-        "validationMae": 0.009492844286899544,
-        "guardMae": 0.013486165829725753,
+        "islandId": 0,
+        "validationMae": 1.367781379229311e-10,
+        "guardMae": 1.3847324847128238e-10,
         "metrics": {
-          "mae": 0.013467530875215886,
-          "rmse": 0.019350777062752508,
-          "r2": 0.9999081941390331,
-          "maxAbsError": 0.04442798170628226
+          "mae": 1.3676336043000622e-10,
+          "rmse": 2.1247154209353077e-10,
+          "r2": 1,
+          "maxAbsError": 9.302221215534701e-10
         }
       },
       "oracle": {
-        "islandId": 1,
-        "validationMae": 0.009492844286899544,
-        "guardMae": 0.013486165829725753,
+        "islandId": 0,
+        "validationMae": 1.367781379229311e-10,
+        "guardMae": 1.3847324847128238e-10,
         "metrics": {
-          "mae": 0.013467530875215886,
-          "rmse": 0.019350777062752508,
-          "r2": 0.9999081941390331,
-          "maxAbsError": 0.04442798170628226
+          "mae": 1.3676336043000622e-10,
+          "rmse": 2.1247154209353077e-10,
+          "r2": 1,
+          "maxAbsError": 9.302221215534701e-10
         }
       },
       "hub": {
-        "drops": 16,
-        "pullAttempts": 16,
-        "pullSuccesses": 10
+        "drops": 15,
+        "pullAttempts": 15,
+        "pullSuccesses": 13
       },
       "candidates": [
         {
           "islandId": 0,
-          "validationMae": 0.08922634072392463,
-          "guardMae": 0.09292514912127277,
-          "testMae": 0.09150103710390949,
-          "archiveInjections": 1,
-          "archiveSize": 256
-        },
-        {
-          "islandId": 3,
-          "validationMae": 0.20852444753211755,
-          "guardMae": 0.2153487219415952,
-          "testMae": 0.211304324264053,
-          "archiveInjections": 1,
-          "archiveSize": 256
-        },
-        {
-          "islandId": 1,
-          "validationMae": 0.009492844286899544,
-          "guardMae": 0.013486165829725753,
-          "testMae": 0.013467530875215886,
+          "validationMae": 1.367781379229311e-10,
+          "guardMae": 1.3847324847128238e-10,
+          "testMae": 1.3676336043000622e-10,
           "archiveInjections": 2,
           "archiveSize": 256
         },
         {
+          "islandId": 1,
+          "validationMae": 0.009492128673426161,
+          "guardMae": 0.013485275895219806,
+          "testMae": 0.013466556047080839,
+          "archiveInjections": 2,
+          "archiveSize": 256
+        },
+        {
+          "islandId": 3,
+          "validationMae": 0.1345256770528433,
+          "guardMae": 0.13400764843996552,
+          "testMae": 0.13279139675595403,
+          "archiveInjections": 1,
+          "archiveSize": 256
+        },
+        {
           "islandId": 2,
-          "validationMae": 0.18237225081304906,
-          "guardMae": 0.20355242831698586,
-          "testMae": 0.19383749595773225,
+          "validationMae": 0.1812440791494426,
+          "guardMae": 0.20323482461301917,
+          "testMae": 0.19348969302654104,
           "archiveInjections": 1,
           "archiveSize": 256
         }
       ],
-      "liftVsSingle": 9.772387143339616,
+      "liftVsSingle": 962318600.27193,
       "singleSolved": false,
       "outcome": "distributed-lift",
       "success": true,
@@ -2820,24 +2820,24 @@
         }
       },
       "nn": {
-        "samples": 75,
-        "positives": 28,
-        "trainingAccuracy": 0.8666666666666667,
-        "holdoutSamples": 13,
-        "holdoutAccuracy": 0.46153846153846156,
-        "holdoutBrier": 0.2448579749404053,
-        "holdoutAuc": 0.6428571428571429
+        "samples": 74,
+        "positives": 36,
+        "trainingAccuracy": 0.9324324324324325,
+        "holdoutSamples": 14,
+        "holdoutAccuracy": 0.8571428571428571,
+        "holdoutBrier": 0.14886423605931592,
+        "holdoutAuc": 0.5833333333333334
       },
       "policy": {
         "islandId": 3,
-        "probability": 0.3279827836564863,
-        "nnTopIslandId": 2,
-        "nnTopProbability": 0.7007710674919374,
+        "probability": 0.7881041116064257,
+        "nnTopIslandId": 1,
+        "nnTopProbability": 0.9235013882494228,
         "validationBestIslandId": 3,
         "validationBestMae": 1.1357160301491857e-10,
-        "hybridScore": 0.3118827836564863,
-        "fallbackUsed": true,
-        "fallbackReason": "low-nn-confidence",
+        "hybridScore": 0.7720041116064257,
+        "fallbackUsed": false,
+        "fallbackReason": "accepted-hybrid",
         "validationMae": 1.1357160301491857e-10,
         "guardMae": 1.1732831938630497e-10,
         "regretVsOracle": 0,
@@ -2886,25 +2886,25 @@
         },
         {
           "islandId": 0,
-          "validationMae": 0.1445456473210595,
-          "guardMae": 0.16192375032734074,
-          "testMae": 0.15345842952013417,
-          "archiveInjections": 2,
-          "archiveSize": 176
+          "validationMae": 0.09346011913316632,
+          "guardMae": 0.10198705972930117,
+          "testMae": 0.10055866744665722,
+          "archiveInjections": 3,
+          "archiveSize": 145
         },
         {
           "islandId": 2,
-          "validationMae": 0.029495661377636245,
-          "guardMae": 0.051415437911707274,
-          "testMae": 0.04875296119273304,
-          "archiveInjections": 3,
+          "validationMae": 0.023140430373911836,
+          "guardMae": 0.045398067558335704,
+          "testMae": 0.04453714153136033,
+          "archiveInjections": 2,
           "archiveSize": 256
         },
         {
           "islandId": 1,
-          "validationMae": 0.4328043909056354,
-          "guardMae": 0.4373370962842662,
-          "testMae": 0.4320668429605156,
+          "validationMae": 0.1452337871974138,
+          "guardMae": 0.16742500886619427,
+          "testMae": 0.15771622129048038,
           "archiveInjections": 1,
           "archiveSize": 256
         }

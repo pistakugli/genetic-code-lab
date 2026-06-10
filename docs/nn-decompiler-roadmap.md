@@ -721,14 +721,19 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     original-neuron identity.
 - Stage K3: ordered residual path recovery.
   - Current status: first CUDA GPT-2 gate implemented and first second-adapter
-    Pythia/GPT-NeoX preview gate implemented.
+    Pythia/GPT-NeoX preview gate implemented. The first real LLaMA-family
+    SwiGLU preview gate is also implemented.
   - Current command: `npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu`.
   - Second-adapter command:
     `npm run benchmark:nn-live-pythia-ordered-residual-path-circuit-finder:gpu`.
+  - LLaMA-family SwiGLU command:
+    `npm run benchmark:nn-live-llama-swiglu-ordered-residual-path-circuit-finder:gpu`.
   - Current artifact:
     `benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json`.
   - Second-adapter artifact:
     `benchmarks/release/nn-live-pythia-ordered-residual-path-circuit-finder/pythia-70m-20-facts-ordered-residual-path/report.json`.
+  - LLaMA-family SwiGLU artifact:
+    `benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/llama-3.2-3b-20-facts-ordered-residual-path/report.json`.
   - Current result: pass `true`, 50 valid facts, 50 passed cases, pass rate
     `1.0`, combined graph pass rate `1.0`, median selected path activation
     delta `0.16316372156143188`, p10 selected path activation delta
@@ -743,16 +748,29 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     activation delta `0.045970916748046875`, median ordered path lift
     `9.395348837209303`, median combined target-logit drop `2`, failed
     subjects `Ireland, Israel`, `adapter = gpt-neox`, `model.device = cuda`.
+  - LLaMA-family SwiGLU result: pass `true`, real
+    `unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit`,
+    `LlamaForCausalLM`, 28 layers, hidden size `3072`, intermediate size
+    `8192`, 20 valid facts, 20 passed cases, pass rate `1.0`, combined graph
+    pass rate `1.0`, median selected path activation delta `0.046875`, p10
+    selected path activation delta `0.01953125`, median full-control path p95
+    activation delta `0.00006748735904693604`, median combined target-logit
+    drop `1`, failed subjects `[]`, skipped cases `1`,
+    `adapter = llama-swiglu`, `activationFamily = swiglu`,
+    `model.device = cuda`, `synthetic = false`, and `surrogate = false`.
+    The addressable MLP unit is the real
+    `SiLU(gate_proj(x))*up_proj(x)` pair before `down_proj`, not a GELU-style
+    compatibility fiction.
   - Output: attention->residual->MLP->target path records with selected
     attention heads, selected MLP nodes, path activation deltas, full-control
     path deltas, combined target-logit evidence, and order-aware rescue
     attempts when a causal union graph is not a valid attention-before-MLP
     path.
-  - Claim boundary: this proves benchmark-scoped ordered residual path evidence
-    for the configured GPT-2 factual prompt set. It is not exhaustive residual
-    patching for every edge, not full GPT-2 circuit recovery, not full FFN
-    extraction, not arbitrary LLM understanding, and not output-only
-    original-neuron identity.
+  - Claim boundary: these gates prove benchmark-scoped ordered residual path
+    evidence across real GPT-2, GPT-NeoX/Pythia, and LLaMA-family SwiGLU
+    runtimes. They do not prove Mistral runtime parity, exhaustive residual
+    patching for every edge, full-model circuit recovery, full FFN extraction,
+    arbitrary LLM understanding, or output-only original-neuron identity.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from .base import LLMOracleAdapter
 from .gpt2 import GPT2OracleAdapter
 from .gpt_neox import GPTNeoXOracleAdapter
+from .llama_swiglu import LlamaSwiGLUOracleAdapter
 
 
 def create_adapter(adapter_id: str) -> LLMOracleAdapter:
@@ -11,8 +12,10 @@ def create_adapter(adapter_id: str) -> LLMOracleAdapter:
         return GPT2OracleAdapter()
     if normalized in {"gpt-neox", "neox", "pythia"}:
         return GPTNeoXOracleAdapter()
+    if normalized in {"llama-swiglu", "llama", "mistral", "mistral-swiglu"}:
+        return LlamaSwiGLUOracleAdapter()
     raise RuntimeError(f"Unknown LLM oracle adapter: {adapter_id}")
 
 
 def adapter_choices() -> list[str]:
-    return ["gpt2", "gpt-neox"]
+    return ["gpt2", "gpt-neox", "llama-swiglu"]

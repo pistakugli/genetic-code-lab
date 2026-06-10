@@ -152,6 +152,7 @@ function main(): void {
     runStep('NN real GPT-2 GELU FFN source-extractor benchmark', 'npm', ['run', 'benchmark:nn-gpt2-gelu-ffn-source-extractor'], { timeoutMs: 2 * 60 * 1000 });
     runStep('NN live GPT-2 ordered residual path circuit finder benchmark', 'npm', ['run', 'benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu'], { timeoutMs: 12 * 60 * 1000 });
     runStep('NN live Pythia ordered residual path circuit finder benchmark', 'npm', ['run', 'benchmark:nn-live-pythia-ordered-residual-path-circuit-finder:gpu'], { timeoutMs: 15 * 60 * 1000 });
+    runStep('NN live Llama SwiGLU ordered residual path circuit finder benchmark', 'npm', ['run', 'benchmark:nn-live-llama-swiglu-ordered-residual-path-circuit-finder:gpu'], { timeoutMs: 30 * 60 * 1000 });
     runStep('NN 2D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu2d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN randomized 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-randomized'], { timeoutMs: 3 * 60 * 1000 });

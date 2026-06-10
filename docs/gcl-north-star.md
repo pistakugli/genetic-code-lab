@@ -214,7 +214,13 @@ The next development must stay on this order:
    real EleutherAI/pythia-70m-deduped / GPT-NeoX, 20 valid facts, 18 passed
    ordered path cases, pass rate `0.9`, median selected path activation delta
    `0.421875`, and failed subjects `Ireland, Israel`. The next move is a
-   LLaMA/Mistral-style SwiGLU adapter, not more GPT-2-only special cases.
+   DONE for the first real LLaMA-family SwiGLU adapter gate: the real
+   quantized Llama-3.2-3B-Instruct benchmark addresses
+   `SiLU(gate_proj(x))*up_proj(x)` pair channels before `down_proj` and passes
+   20/20 valid factual ordered-path cases on CUDA. Mistral runtime parity is
+   still a separate required witness; the next move is cross-prompt/cross-layer
+   SwiGLU path stability and a real Mistral-family gate, not more GPT-2-only
+   special cases.
 3. Keep the current live-reader/fact-finder runtime behind that adapter:
    prompt/token/layer/component/intervention -> logits, activations, logit
    deltas, controls, cache keys, runtime warnings, model/tokenizer identities,

@@ -897,6 +897,8 @@ def main() -> None:
             "torch": live.package_version("torch"),
             "transformers": live.package_version("transformers"),
             "numpy": live.package_version("numpy"),
+            "accelerate": live.package_version("accelerate"),
+            "bitsandbytes": live.package_version("bitsandbytes"),
         },
         "config": {
             "mlpLayers": mlp_layers,
@@ -932,8 +934,8 @@ def main() -> None:
         },
         "cases": cases,
         "claimBoundary": {
-            "provesIfPasses": "Benchmark-scoped evidence that the real GPT-2 live pipeline can discover selected attention heads and MLP nodes for factual prompts, then validate an ordered attention->residual->MLP->target path by showing selected attention interventions change selected MLP activations above full-control path interventions while the combined circuit remains causally effective on the target logit.",
-            "doesNotProve": "This is not full GPT-2 circuit recovery, not exhaustive residual-stream patching for every edge, not full GPT-2 FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not a broad SOTA claim.",
+            "provesIfPasses": f"Benchmark-scoped evidence that the real {live.adapter_id} pipeline can discover selected attention heads and MLP units for factual prompts, then validate an ordered attention->residual->MLP->target path by showing selected attention interventions change selected MLP activations above full-control path interventions while the combined circuit remains causally effective on the target logit.",
+            "doesNotProve": "This is not full-model circuit recovery, not exhaustive residual-stream patching for every edge, not full FFN extraction, not arbitrary LLM understanding, not output-only original-neuron identity, and not a broad SOTA claim.",
         },
     }
     output_json = Path(args.output_json)
