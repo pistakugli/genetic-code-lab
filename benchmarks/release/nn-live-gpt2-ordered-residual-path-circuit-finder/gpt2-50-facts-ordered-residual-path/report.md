@@ -9,10 +9,10 @@ This benchmark uses a real causal-LM model, real attention-path hooks, real MLP 
 - Passed cases: `50`
 - Pass rate: `1.0`
 - Combined graph pass rate: `1.0`
-- Median selected path activation delta: `0.1944112479686737`
-- Median control path p95 activation delta: `0.023056864738464355`
-- Median ordered path lift over control p95: `6.872610381015411`
-- Median combined target-logit drop: `1.9851608276367188`
+- Median selected path activation delta: `0.19325748085975647`
+- Median control path p95 activation delta: `0.03085190749261527`
+- Median ordered path lift over control p95: `5.357243298305573`
+- Median combined target-logit drop: `1.9847869873046875`
 
 ## Claim Boundary
 
@@ -24,53 +24,53 @@ This is not full-model circuit recovery, not exhaustive residual-stream patching
 
 | subject | status | combined | path delta | control p95 | margin | lift |
 |---|---:|---:|---:|---:|---:|---:|
-| France | passed | passed | 0.163164 | 0.020911 | 0.142252 | 7.802608 |
-| Germany | passed | passed | 0.228542 | 0.038098 | 0.190444 | 5.998799 |
-| Italy | passed | passed | 0.072791 | 0.041088 | 0.031703 | 1.771583 |
-| Spain | passed | passed | 0.443959 | 0.027669 | 0.416290 | 16.045132 |
-| Portugal | passed | passed | 0.190367 | 0.023057 | 0.167310 | 8.256394 |
-| Greece | passed | passed | 0.126589 | 0.047023 | 0.079567 | 2.692089 |
-| Egypt | passed | passed | 0.200507 | 0.035177 | 0.165330 | 5.699918 |
-| Japan | passed | passed | 0.105458 | 0.034708 | 0.070751 | 3.038475 |
+| France | passed | passed | 0.163164 | 0.024565 | 0.138598 | 6.642033 |
+| Germany | passed | passed | 0.228542 | 0.042318 | 0.186224 | 5.400621 |
+| Italy | passed | passed | 0.072791 | 0.047551 | 0.025239 | 1.530779 |
+| Spain | passed | passed | 0.443959 | 0.042211 | 0.401749 | 10.517716 |
+| Portugal | passed | passed | 0.162924 | 0.027424 | 0.135500 | 5.940989 |
+| Greece | passed | passed | 0.126589 | 0.050127 | 0.076462 | 2.525358 |
+| Egypt | passed | passed | 0.200507 | 0.042376 | 0.158131 | 4.731574 |
+| Japan | passed | passed | 0.105458 | 0.044501 | 0.060958 | 2.369815 |
 | China | passed | passed | 0.188483 | 0.069547 | 0.118936 | 2.710141 |
-| Russia | passed | passed | 0.637345 | 0.024587 | 0.612757 | 25.921533 |
-| Canada | passed | passed | 0.167997 | 0.028324 | 0.139672 | 5.931210 |
-| Australia | passed | passed | 0.194316 | 0.038166 | 0.156151 | 5.091412 |
-| Sweden | passed | passed | 0.065967 | 0.017495 | 0.048472 | 3.770661 |
-| Norway | passed | passed | 0.211211 | 0.008299 | 0.202912 | 25.451219 |
-| Denmark | passed | passed | 0.174739 | 0.007005 | 0.167734 | 24.943424 |
-| Finland | passed | passed | 0.250630 | 0.056270 | 0.194360 | 4.454030 |
-| Poland | passed | passed | 0.140418 | 0.002005 | 0.138413 | 70.024775 |
-| Hungary | passed | passed | 0.132298 | 0.001797 | 0.130501 | 73.620954 |
-| Austria | passed | passed | 0.129983 | 0.018913 | 0.111070 | 6.872610 |
-| Belgium | passed | passed | 0.190701 | 0.024104 | 0.166597 | 7.911634 |
-| Netherlands | passed | passed | 0.212615 | 0.012355 | 0.200260 | 17.208315 |
-| Ireland | passed | passed | 0.044628 | 0.011131 | 0.033497 | 4.009486 |
-| Turkey | passed | passed | 0.197924 | 0.019740 | 0.178184 | 10.026447 |
-| Iran | passed | passed | 0.194411 | 0.032178 | 0.162233 | 6.041791 |
-| Iraq | passed | passed | 0.286964 | 0.005557 | 0.281406 | 51.635443 |
-| Syria | passed | passed | 0.245497 | 0.009175 | 0.236322 | 26.757866 |
-| Israel | passed | passed | 0.357032 | 0.035871 | 0.321161 | 9.953179 |
-| Saudi Arabia | passed | passed | 0.228038 | 0.038278 | 0.189760 | 5.957471 |
-| Pakistan | passed | passed | 0.331118 | 0.021525 | 0.309593 | 15.383128 |
-| Thailand | passed | passed | 0.078623 | 0.032340 | 0.046282 | 2.431101 |
-| Indonesia | passed | passed | 0.239742 | 0.012790 | 0.226951 | 18.744302 |
-| Philippines | passed | passed | 0.210300 | 0.037195 | 0.173105 | 5.654045 |
-| South Korea | passed | passed | 0.067461 | 0.051618 | 0.015843 | 1.306933 |
-| Czech Republic | passed | passed | 0.126951 | 0.026269 | 0.100683 | 4.832798 |
-| Tunisia | passed | passed | 0.435673 | 0.013854 | 0.421819 | 31.448439 |
-| Chile | passed | passed | 0.193968 | 0.002326 | 0.191643 | 83.401689 |
-| Peru | passed | passed | 0.171942 | 0.025193 | 0.146749 | 6.825063 |
-| Cuba | passed | passed | 0.211102 | 0.041408 | 0.169694 | 5.098073 |
-| Jamaica | passed | passed | 0.148421 | 0.036107 | 0.112314 | 4.110618 |
-| largest planet | passed | passed | 0.273457 | 0.024183 | 0.249274 | 11.307935 |
-| smallest planet | passed | passed | 0.346902 | 0.020878 | 0.326024 | 16.615778 |
-| nearest star | passed | passed | 0.368653 | 0.097619 | 0.271033 | 3.776436 |
-| grass color | passed | passed | 0.041309 | 0.027599 | 0.013711 | 1.496791 |
+| Russia | passed | passed | 0.637345 | 0.037275 | 0.600070 | 17.098567 |
+| Canada | passed | passed | 0.167997 | 0.041900 | 0.126097 | 4.009498 |
+| Australia | passed | passed | 0.194316 | 0.044361 | 0.149955 | 4.380328 |
+| Sweden | passed | passed | 0.065967 | 0.030815 | 0.035152 | 2.140725 |
+| Norway | passed | passed | 0.192199 | 0.027171 | 0.165028 | 7.073656 |
+| Denmark | passed | passed | 0.145940 | 0.025135 | 0.120805 | 5.806276 |
+| Finland | passed | passed | 0.250630 | 0.056442 | 0.194188 | 4.440487 |
+| Poland | passed | passed | 0.140418 | 0.005451 | 0.134968 | 25.762306 |
+| Hungary | passed | passed | 0.132298 | 0.014211 | 0.118087 | 9.309487 |
+| Austria | passed | passed | 0.129983 | 0.022505 | 0.107478 | 5.775725 |
+| Belgium | passed | passed | 0.190701 | 0.028634 | 0.162067 | 6.659902 |
+| Netherlands | passed | passed | 0.212615 | 0.019993 | 0.192622 | 10.634304 |
+| Ireland | passed | passed | 0.044628 | 0.030685 | 0.013943 | 1.454373 |
+| Turkey | passed | passed | 0.197924 | 0.020475 | 0.177448 | 9.666437 |
+| Iran | passed | passed | 0.194411 | 0.037001 | 0.157411 | 5.254269 |
+| Iraq | passed | passed | 0.231618 | 0.016492 | 0.215126 | 14.044108 |
+| Syria | passed | passed | 0.245497 | 0.046199 | 0.199298 | 5.313866 |
+| Israel | passed | passed | 0.357032 | 0.037624 | 0.319407 | 9.489355 |
+| Saudi Arabia | passed | passed | 0.228038 | 0.052570 | 0.175468 | 4.337817 |
+| Pakistan | passed | passed | 0.101133 | 0.045441 | 0.055692 | 2.225571 |
+| Thailand | passed | passed | 0.078623 | 0.075937 | 0.002685 | 1.035363 |
+| Indonesia | passed | passed | 0.239742 | 0.045832 | 0.193909 | 5.230854 |
+| Philippines | passed | passed | 0.190537 | 0.028378 | 0.162159 | 6.714170 |
+| South Korea | passed | passed | 0.067461 | 0.024804 | 0.042657 | 2.719732 |
+| Czech Republic | passed | passed | 0.112674 | 0.027196 | 0.085478 | 4.143045 |
+| Tunisia | passed | passed | 0.290091 | 0.019932 | 0.270158 | 14.553800 |
+| Chile | passed | passed | 0.157887 | 0.028355 | 0.129532 | 5.568295 |
+| Peru | passed | passed | 0.171942 | 0.017721 | 0.154221 | 9.702914 |
+| Cuba | passed | passed | 0.211102 | 0.048364 | 0.162738 | 4.364849 |
+| Jamaica | passed | passed | 0.148421 | 0.059555 | 0.088865 | 2.492146 |
+| largest planet | passed | passed | 0.335151 | 0.074764 | 0.260387 | 4.482774 |
+| smallest planet | passed | passed | 0.416453 | 0.120764 | 0.295689 | 3.448484 |
+| nearest star | passed | passed | 0.214884 | 0.115262 | 0.099622 | 1.864308 |
+| grass color | passed | passed | 0.222204 | 0.024579 | 0.197626 | 9.040557 |
 | opposite of hot | passed | passed | 0.239127 | 0.000000 | 0.239127 | 239127159.118652 |
-| frozen water | passed | passed | 0.111161 | 0.020563 | 0.090598 | 5.405904 |
-| baby dog | passed | passed | 0.411957 | 0.011079 | 0.400877 | 37.181966 |
-| female parent | passed | passed | 0.215482 | 0.007282 | 0.208200 | 29.592666 |
-| male parent | passed | passed | 0.250469 | 0.000000 | 0.250469 | 250468730.926514 |
-| medical profession | passed | passed | 0.021875 | 0.004505 | 0.017371 | 4.856311 |
-| school profession | passed | passed | 0.488796 | 0.012399 | 0.476397 | 39.423064 |
+| frozen water | passed | passed | 0.111161 | 0.030889 | 0.080272 | 3.598762 |
+| baby dog | passed | passed | 0.411957 | 0.033438 | 0.378519 | 12.320193 |
+| female parent | passed | passed | 0.215482 | 0.017495 | 0.197987 | 12.316514 |
+| male parent | passed | passed | 0.222198 | 0.011724 | 0.210474 | 18.952346 |
+| medical profession | passed | passed | 0.021875 | 0.018661 | 0.003214 | 1.172243 |
+| school profession | passed | passed | 0.488796 | 0.016667 | 0.472128 | 29.326583 |

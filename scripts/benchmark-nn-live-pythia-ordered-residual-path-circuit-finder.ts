@@ -56,6 +56,7 @@ const args = [
   '--min-margin-over-control-p95', envValue('GCL_LIVE_PYTHIA_COMBINED_MIN_MARGIN_OVER_CONTROL_P95', '0.02'),
   '--min-path-activation-delta', envValue('GCL_LIVE_PYTHIA_ORDERED_MIN_PATH_ACTIVATION_DELTA', '0.005'),
   '--min-path-margin-over-control-p95', envValue('GCL_LIVE_PYTHIA_ORDERED_MIN_PATH_MARGIN_OVER_CONTROL_P95', '0.001'),
+  '--ordered-rescue-candidate-count', envValue('GCL_LIVE_PYTHIA_ORDERED_RESCUE_CANDIDATE_COUNT', '24'),
   '--wrong-answer-count', envValue('GCL_LIVE_PYTHIA_WRONG_ANSWER_COUNT', '3'),
   '--attention-max-target-rank', envValue('GCL_LIVE_PYTHIA_ATTENTION_MAX_TARGET_RANK', '200'),
   '--paraphrase-count', envValue('GCL_LIVE_PYTHIA_PARAPHRASE_COUNT', '2'),
@@ -73,7 +74,7 @@ const result = spawnSync(resolveGclPython(), args, {
   cwd: repoRoot,
   stdio: 'inherit',
   env: process.env,
-  timeout: Number(envValue('GCL_LIVE_PYTHIA_ORDERED_TIMEOUT_MS', '900000')),
+  timeout: Number(envValue('GCL_LIVE_PYTHIA_ORDERED_TIMEOUT_MS', '1800000')),
   maxBuffer: 128 * 1024 * 1024
 });
 

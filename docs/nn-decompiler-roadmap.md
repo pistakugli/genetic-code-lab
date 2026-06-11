@@ -736,26 +736,29 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/llama-3.2-3b-20-facts-ordered-residual-path/report.json`.
   - Current result: pass `true`, 50 valid facts, 50 passed cases, pass rate
     `1.0`, combined graph pass rate `1.0`, median selected path activation
-    delta `0.16316372156143188`, p10 selected path activation delta
-    `0.07098615169525146`, median full-control path p95 activation delta
-    `0.02243638038635254`, median ordered path lift over full-control p95
-    `6.071965452028251`, median combined target-logit drop
-    `1.9691314697265625`, skipped rows `33`, `model.device = cuda`.
+    delta `0.19325748085975647`, p10 selected path activation delta
+    `0.07803934812545776`, median full-control path p95 activation delta
+    `0.03085190749261527`, median ordered path lift over full-control p95
+    `5.357243298305573`, median combined target-logit drop
+    `1.9847869873046875`, skipped rows `33`, `model.device = cuda`.
   - Second-adapter result: pass `true`, real EleutherAI/pythia-70m-deduped /
     GPT-NeoX, 20 valid facts, 18 passed cases, pass rate `0.9`, combined graph
-    pass rate `0.9`, median selected path activation delta `0.421875`, p10
-    selected path activation delta `0.076171875`, median full-control path p95
-    activation delta `0.045970916748046875`, median ordered path lift
-    `9.395348837209303`, median combined target-logit drop `2`, failed
-    subjects `Ireland, Israel`, `adapter = gpt-neox`, `model.device = cuda`.
+    pass rate `0.9`, median selected path activation delta `0.51171875`, p10
+    selected path activation delta `0.3204345703125`, median full-control path
+    p95 activation delta `0.09458007812499991`, median ordered path lift
+    `6.051611430866259`, median combined target-logit drop `2`, failed
+    subjects `Japan, Israel`, `adapter = gpt-neox`, `model.device = cuda`.
+    The rescue pool is layer-balanced so global early-layer rank cannot hide
+    later ordered-path candidates.
   - LLaMA-family SwiGLU result: pass `true`, real
     `unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit`,
     `LlamaForCausalLM`, 28 layers, hidden size `3072`, intermediate size
     `8192`, 20 valid facts, 20 passed cases, pass rate `1.0`, combined graph
     pass rate `1.0`, median selected path activation delta `0.046875`, p10
-    selected path activation delta `0.01953125`, median full-control path p95
-    activation delta `0.00006748735904693604`, median combined target-logit
-    drop `1`, failed subjects `[]`, skipped cases `1`,
+    selected path activation delta `0.023046875`, median full-control path p95
+    activation delta `0.0014201669022440894`, median ordered path lift
+    `55.04681300180998`, median combined target-logit drop `0.9375`, failed
+    subjects `[]`, skipped cases `1`,
     `adapter = llama-swiglu`, `activationFamily = swiglu`,
     `model.device = cuda`, `synthetic = false`, and `surrogate = false`.
     The addressable MLP unit is the real

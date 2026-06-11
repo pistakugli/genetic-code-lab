@@ -175,8 +175,11 @@ def percentile(values: List[float], q: float) -> float:
     if not values:
         return 0.0
     ordered = sorted(values)
-    index = min(len(ordered) - 1, max(0, int(round((len(ordered) - 1) * q))))
-    return float(ordered[index])
+    position = min(len(ordered) - 1, max(0.0, (len(ordered) - 1) * q))
+    lower = int(position)
+    upper = min(len(ordered) - 1, lower + 1)
+    fraction = position - lower
+    return float(ordered[lower] + (ordered[upper] - ordered[lower]) * fraction)
 
 
 def summarize_drops(items: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -1752,6 +1755,7 @@ def run_case(
         "bestCandidate": best,
         "candidateCount": len(candidates),
         "topCandidates": candidates[:12],
+        "orderedRescueCandidates": candidates,
         "controls": controls,
         "circuitGraph": circuit_graph,
         "hardening": hardening,

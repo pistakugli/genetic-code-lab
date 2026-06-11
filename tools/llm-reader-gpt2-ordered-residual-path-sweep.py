@@ -359,6 +359,28 @@ def attention_intervention_from_candidate(candidate: Dict[str, Any], read_token_
     }
 
 
+def layer_balanced_candidates(candidates: List[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
+    by_layer: Dict[int, List[Dict[str, Any]]] = {}
+    for candidate in candidates:
+        by_layer.setdefault(int(candidate["layer"]), []).append(candidate)
+    selected: List[Dict[str, Any]] = []
+    depth = 0
+    ordered_layers = sorted(by_layer)
+    while len(selected) < limit:
+        added = False
+        for layer in ordered_layers:
+            layer_candidates = by_layer[layer]
+            if depth < len(layer_candidates):
+                selected.append(layer_candidates[depth])
+                added = True
+                if len(selected) >= limit:
+                    break
+        if not added:
+            break
+        depth += 1
+    return selected
+
+
 def compact_combined_attempt(
     *,
     component_pass: bool,
@@ -421,8 +443,15 @@ def select_ordered_rescue_attempt(
     if mlp_row.get("status") == "skipped" or attention_row.get("status") == "skipped":
         return None
     component_pass = mlp_row.get("status") == "passed" and attention_row.get("status") == "passed"
-    mlp_candidates = mlp_row.get("topCandidates", [])[:max(1, int(args.ordered_rescue_candidate_count))]
-    attention_candidates = attention_row.get("candidateHeads", [])[:max(1, int(args.ordered_rescue_candidate_count))]
+    rescue_candidate_count = max(1, int(args.ordered_rescue_candidate_count))
+    mlp_candidates = layer_balanced_candidates(
+        mlp_row.get("orderedRescueCandidates", mlp_row.get("topCandidates", [])),
+        rescue_candidate_count,
+    )
+    attention_candidates = layer_balanced_candidates(
+        attention_row.get("orderedRescueCandidates", attention_row.get("candidateHeads", [])),
+        rescue_candidate_count,
+    )
     attempts: List[Dict[str, Any]] = []
     for mlp_candidate in mlp_candidates:
         mlp_intervention = mlp_intervention_from_candidate(mlp_candidate, read_token_index)
@@ -530,10 +559,24 @@ def select_ordered_rescue_attempt(
             ),
         )
         mode = "ordered-rescue-best-margin-pair"
+    ranked_for_audit = sorted(
+        [attempt for attempt in attempts if bool(attempt.get("orderValid"))],
+        key=lambda item: (
+            not bool(item.get("pass")),
+            -float(item.get("pathMargin", -1e9)),
+            -float(item.get("combined", {}).get("combinedDrop", 0.0)),
+        ),
+    )
+    recorded_attempts = ranked_for_audit[:24]
+    if chosen not in recorded_attempts:
+        recorded_attempts.append(chosen)
     return {
         "mode": mode,
         "componentPass": component_pass,
         "chosen": chosen,
+        "attemptCount": len(attempts),
+        "passingAttemptCount": len(passing),
+        "recordedAttemptCount": len(recorded_attempts),
         "attempts": [
             {
                 "mlp": attempt.get("mlp"),
@@ -550,7 +593,7 @@ def select_ordered_rescue_attempt(
                 "pass": bool(attempt.get("pass")),
                 "failureReason": attempt.get("failureReason"),
             }
-            for attempt in attempts
+            for attempt in recorded_attempts
         ],
     }
 
@@ -747,6 +790,9 @@ def run_ordered_case(
             "selection": {
                 "mode": selection_mode,
                 "rescueAttempted": ordered_rescue is not None,
+                "rescueAttemptCount": ordered_rescue.get("attemptCount", 0) if ordered_rescue is not None else 0,
+                "rescuePassingAttemptCount": ordered_rescue.get("passingAttemptCount", 0) if ordered_rescue is not None else 0,
+                "rescueRecordedAttemptCount": ordered_rescue.get("recordedAttemptCount", 0) if ordered_rescue is not None else 0,
                 "rescueAttempts": ordered_rescue.get("attempts", []) if ordered_rescue is not None else [],
             },
             "gate": {

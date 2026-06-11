@@ -634,6 +634,7 @@ def run_case(
         "readToken": live.clean_token(tokenizer, int(token_ids[read_token_index])),
         "topLogits": factual.top_logit_tokens(tokenizer, baseline_logits, 8),
         "candidateHeads": candidates[:12],
+        "orderedRescueCandidates": candidates,
         "selectedHeads": selected,
         "attentionGraph": {
             "kind": "gpt2-live-factual-attention-path-graph",

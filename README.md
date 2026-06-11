@@ -276,11 +276,11 @@ What these gates currently support:
 - Live GPT-2 ordered residual path circuit finding for the configured factual
   prompt set: `50` valid facts, `50` passed cases, pass rate `1.0`, combined
   graph pass rate `1.0`, median selected attention-to-MLP activation delta
-  `0.16316372156143188`, p10 selected path activation delta
-  `0.07098615169525146`, median full-control path p95 activation delta
-  `0.02243638038635254`, median ordered path lift over full-control p95
-  `6.071965452028251`, and median combined target-logit drop
-  `1.9691314697265625`. The current artifact was generated with the GPU
+  `0.19325748085975647`, p10 selected path activation delta
+  `0.07803934812545776`, median full-control path p95 activation delta
+  `0.03085190749261527`, median ordered path lift over full-control p95
+  `5.357243298305573`, and median combined target-logit drop
+  `1.9847869873046875`. The current artifact was generated with the GPU
   command and records `model.device = cuda`, `torch = 2.10.0+cu128`,
   `synthetic = false`, and `surrogate = false`. The gate uses an order-aware
   rescue selector when the union graph is causal but not a valid
@@ -306,11 +306,10 @@ What they do not support yet:
   interventions. These gates still do not prove full GPT-2 FFN extraction,
   arbitrary LLM understanding, exhaustive residual-stream patching for every
   edge, or output-only original-neuron identity.
-- Treating the current GPT-2-specific implementation as proof that the circuit
-  finder already scales to GPT-Neo, Pythia, LLaMA, Mistral, or arbitrary LLM
-  architectures. The live reader now has a model-agnostic `LLMOracleAdapter`
-  boundary with GPT-2 as adapter #1 and fast proof gate; GPT-Neo/Pythia and
-  LLaMA/Mistral still require separate gates.
+- Treating the current three verified adapters as proof that the circuit finder
+  already scales to Mistral or arbitrary LLM architectures. The live reader has
+  a model-agnostic `LLMOracleAdapter` boundary with real GPT-2, GPT-NeoX/Pythia,
+  and LLaMA/SwiGLU gates; Mistral still requires its own runtime artifact.
 - Arbitrary noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs beyond the
   controlled release-gated noisy mixed GELU, noisy mixed SwiGLU, and shared-gate
   SwiGLU canonicalization families.

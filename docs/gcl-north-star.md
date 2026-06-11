@@ -206,18 +206,23 @@ The next development must stay on this order:
    the first ordered attention->residual->MLP->target gate is now present via
    `npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu`.
    The current artifact passed 50 valid GPT-2 factual prompts with median
-   selected path activation delta `0.16316372156143188`, median full-control
-   path p95 activation delta `0.02243638038635254`, and median ordered path
-   lift `6.071965452028251`. The same protocol now has a second real-model
+   selected path activation delta `0.19325748085975647`, median full-control
+   path p95 activation delta `0.03085190749261527`, and median ordered path
+   lift `5.357243298305573`. The same protocol now has a second real-model
    adapter preview via
    `npm run benchmark:nn-live-pythia-ordered-residual-path-circuit-finder:gpu`:
    real EleutherAI/pythia-70m-deduped / GPT-NeoX, 20 valid facts, 18 passed
    ordered path cases, pass rate `0.9`, median selected path activation delta
-   `0.421875`, and failed subjects `Ireland, Israel`. The next move is a
+   `0.51171875`, and failed subjects `Japan, Israel`. Its rescue search is
+   layer-balanced so later-layer candidates are not hidden by a global
+   early-layer top list. The next move is a
    DONE for the first real LLaMA-family SwiGLU adapter gate: the real
    quantized Llama-3.2-3B-Instruct benchmark addresses
    `SiLU(gate_proj(x))*up_proj(x)` pair channels before `down_proj` and passes
-   20/20 valid factual ordered-path cases on CUDA. Mistral runtime parity is
+   20/20 valid factual ordered-path cases on CUDA. Its fresh interpolated
+   summary reports p10 selected path delta `0.023046875`, median control-path
+   p95 delta `0.0014201669022440894`, and median combined target-logit drop
+   `0.9375`. Mistral runtime parity is
    still a separate required witness; the next move is cross-prompt/cross-layer
    SwiGLU path stability and a real Mistral-family gate, not more GPT-2-only
    special cases.
