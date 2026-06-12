@@ -307,10 +307,14 @@ What these gates currently support:
   `model.device = cuda`, `adapter = mistral-swiglu`, `synthetic = false`, and
   `surrogate = false`.
 - Live ordered-path stability replay across GPT-2, Pythia/GPT-NeoX,
-  Llama/SwiGLU, and Mistral/SwiGLU: `4/4` model reports pass. Each subreport
-  checks 3 replay cases with original replay pass rate `1.0`, paraphrase pass
-  rate `1.0`, neighboring-layer specificity rate `1.0`, max replay error `0`,
-  and failed subjects `[]`.
+  Llama/SwiGLU, and Mistral/SwiGLU: `4/4` model reports pass. GPT-2 and
+  Pythia/GPT-NeoX each check 5 replay cases; Llama/SwiGLU and Mistral/SwiGLU
+  each check 4 replay cases. Each case probes 3 paraphrase prompts and layer
+  shifts `[-2,-1,1,2]` with at least 2 valid layer controls. Original replay
+  pass rate is `1.0` for every model report; paraphrase pass rates are GPT-2
+  `1.0`, Pythia/GPT-NeoX `0.9333333333333333`, Llama/SwiGLU `1.0`, and
+  Mistral/SwiGLU `1.0`; neighboring-layer specificity rate is `1.0`, max
+  replay error is `0`, and failed subjects are `[]`.
 
 What they do not support yet:
 

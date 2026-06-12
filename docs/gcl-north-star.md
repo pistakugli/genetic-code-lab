@@ -227,11 +227,13 @@ The next development must stay on this order:
    quantized Mistral-7B-Instruct benchmark addresses the same real
    `SiLU(gate_proj(x))*up_proj(x)` unit, passes 10/10 valid factual
    ordered-path cases, and records median selected path delta `0.203125`.
-   DONE for the first ordered-path stability replay across GPT-2, Pythia,
-   Llama, and Mistral: 4/4 model reports pass original replay, paraphrase, and
-   neighboring-layer specificity checks. The next move is broader
-   paraphrase/layer stability and another real adapter family, not GPT-2-only
-   special cases.
+   DONE for the broadened ordered-path stability replay across GPT-2, Pythia,
+   Llama, and Mistral: 4/4 model reports pass, with GPT-2/Pythia checking 5
+   cases each, Llama/Mistral checking 4 cases each, 3 paraphrase probes per
+   case, and layer shifts `[-2,-1,1,2]` with at least 2 valid layer controls.
+   The next move is an explicit OOD paraphrase stress lane plus cleaner
+   extraction of model-agnostic circuit-finder logic, not GPT-2-only special
+   cases.
 3. Keep the current live-reader/fact-finder runtime behind that adapter:
    prompt/token/layer/component/intervention -> logits, activations, logit
    deltas, controls, cache keys, runtime warnings, model/tokenizer identities,

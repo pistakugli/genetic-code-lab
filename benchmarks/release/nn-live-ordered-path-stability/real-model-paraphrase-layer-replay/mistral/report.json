@@ -3,7 +3,7 @@
   "kind": "mistral-swiglu-live-ordered-path-stability",
   "synthetic": false,
   "surrogate": false,
-  "generatedAt": "2026-06-11T21:22:35.036526Z",
+  "generatedAt": "2026-06-12T05:11:19.032940Z",
   "model": {
     "id": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
     "class": "MistralForCausalLM",
@@ -25,21 +25,29 @@
     "subjects": [
       "France",
       "Germany",
-      "Italy"
+      "Japan",
+      "Spain"
     ],
-    "caseCount": 3,
-    "paraphraseCount": 1,
+    "caseCount": 4,
+    "paraphraseCount": 3,
+    "layerShifts": [
+      -2,
+      -1,
+      1,
+      2
+    ],
+    "minLayerControlCount": 2,
     "minOriginalDrop": 0.005,
     "minParaphraseDropRatio": 0.05,
     "minParaphrasePassRate": 0.66,
     "minLayerMargin": 0.0001,
-    "minLayerSpecificityRate": 0.66,
+    "minLayerSpecificityRate": 0.75,
     "maxReplayError": 1e-05
   },
   "summary": {
     "pass": true,
-    "caseCount": 3,
-    "passedCases": 3,
+    "caseCount": 4,
+    "passedCases": 4,
     "originalReplayPassRate": 1.0,
     "paraphrasePassRate": 1.0,
     "layerSpecificityRate": 1.0,
@@ -92,20 +100,44 @@
           "targetLogitDrop": 0.5,
           "ratioToOriginal": 1.0,
           "pass": true
+        },
+        {
+          "prompt": "In France, the capital is",
+          "targetLogitDrop": 0.5,
+          "ratioToOriginal": 1.0,
+          "pass": true
+        },
+        {
+          "prompt": "In France, the capital city is",
+          "targetLogitDrop": 0.375,
+          "ratioToOriginal": 0.75,
+          "pass": true
         }
       ],
       "paraphraseSummary": {
-        "count": 1,
-        "passed": 1,
+        "count": 3,
+        "passed": 3,
         "passRate": 1.0
       },
       "layerControls": {
         "items": [
           {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
             "shift": -1,
             "targetLogitDrop": 0.0
           }
         ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
         "bestPositiveNeighborTargetLogitDrop": 0.0,
         "marginOverBestPositiveNeighbor": 0.5,
         "pass": true
@@ -156,31 +188,151 @@
           "targetLogitDrop": 0.4375,
           "ratioToOriginal": 0.875,
           "pass": true
+        },
+        {
+          "prompt": "In Germany, the capital is",
+          "targetLogitDrop": 0.4375,
+          "ratioToOriginal": 0.875,
+          "pass": true
+        },
+        {
+          "prompt": "In Germany, the capital city is",
+          "targetLogitDrop": 0.375,
+          "ratioToOriginal": 0.75,
+          "pass": true
         }
       ],
       "paraphraseSummary": {
-        "count": 1,
-        "passed": 1,
+        "count": 3,
+        "passed": 3,
         "passRate": 1.0
       },
       "layerControls": {
         "items": [
           {
+            "shift": -2,
+            "targetLogitDrop": 0.0625
+          },
+          {
             "shift": -1,
             "targetLogitDrop": 0.0625
           }
         ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
         "bestPositiveNeighborTargetLogitDrop": 0.0625,
         "marginOverBestPositiveNeighbor": 0.4375,
         "pass": true
       }
     },
     {
-      "subject": "Italy",
-      "answer": "Rome",
+      "subject": "Spain",
+      "answer": "Madrid",
       "target": {
-        "tokenId": 11595,
-        "token": "Rome"
+        "tokenId": 15102,
+        "token": "Madrid"
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 20,
+            "head": 21,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 24,
+            "neuron": 8600,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 15102,
+          "token": "Madrid"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 0.1875,
+        "reportedTargetLogitDrop": 0.1875,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "prompt": "The capital city of Spain is",
+          "targetLogitDrop": 0.25,
+          "ratioToOriginal": 1.3333333333333333,
+          "pass": true
+        },
+        {
+          "prompt": "In Spain, the capital is",
+          "targetLogitDrop": 0.125,
+          "ratioToOriginal": 0.6666666666666666,
+          "pass": true
+        },
+        {
+          "prompt": "In Spain, the capital city is",
+          "targetLogitDrop": 0.125,
+          "ratioToOriginal": 0.6666666666666666,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 3,
+        "passed": 3,
+        "passRate": 1.0
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.0625
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": 0.0
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.0625,
+        "marginOverBestPositiveNeighbor": 0.125,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Japan",
+      "answer": "Tokyo",
+      "target": {
+        "tokenId": 20655,
+        "token": "Tokyo"
       },
       "status": "passed",
       "sourceCircuit": {
@@ -196,15 +348,15 @@
         "mlp": [
           {
             "layer": 20,
-            "neuron": 2215,
+            "neuron": 7999,
             "ablateTokenPositions": [
               5
             ]
           }
         ],
         "target": {
-          "tokenId": 11595,
-          "token": "Rome"
+          "tokenId": 20655,
+          "token": "Tokyo"
         }
       },
       "originalReplay": {
@@ -216,30 +368,58 @@
       },
       "paraphrases": [
         {
-          "prompt": "The capital city of Italy is",
-          "targetLogitDrop": 0.125,
-          "ratioToOriginal": 1.0,
+          "prompt": "The capital city of Japan is",
+          "targetLogitDrop": 0.1875,
+          "ratioToOriginal": 1.5,
+          "pass": true
+        },
+        {
+          "prompt": "In Japan, the capital is",
+          "targetLogitDrop": 0.1875,
+          "ratioToOriginal": 1.5,
+          "pass": true
+        },
+        {
+          "prompt": "In Japan, the capital city is",
+          "targetLogitDrop": 0.1875,
+          "ratioToOriginal": 1.5,
           "pass": true
         }
       ],
       "paraphraseSummary": {
-        "count": 1,
-        "passed": 1,
+        "count": 3,
+        "passed": 3,
         "passRate": 1.0
       },
       "layerControls": {
         "items": [
           {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
             "shift": -1,
-            "targetLogitDrop": 0.0625
+            "targetLogitDrop": 0.0
           },
           {
             "shift": 1,
+            "targetLogitDrop": -0.0625
+          },
+          {
+            "shift": 2,
             "targetLogitDrop": 0.0
           }
         ],
-        "bestPositiveNeighborTargetLogitDrop": 0.0625,
-        "marginOverBestPositiveNeighbor": 0.0625,
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.0,
+        "marginOverBestPositiveNeighbor": 0.125,
         "pass": true
       }
     }

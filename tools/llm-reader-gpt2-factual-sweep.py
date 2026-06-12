@@ -224,6 +224,9 @@ def paraphrase_prompts_for_fact(fact: Dict[str, str], count: int) -> List[str]:
         f"The capital city of {subject} is",
         f"In {subject}, the capital is",
         f"In {subject}, the capital city is",
+        f"The capital of the country {subject} is",
+        f"{subject}'s capital is",
+        f"For {subject}, the capital is",
     ]
     return candidates[:count]
 

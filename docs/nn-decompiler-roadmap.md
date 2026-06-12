@@ -786,10 +786,14 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     and `surrogate = false`. The addressable MLP unit is the real
     `SiLU(gate_proj(x))*up_proj(x)` pair before `down_proj`.
   - Ordered-path stability result: suite pass `true`, 4/4 model reports pass
-    across GPT-2, Pythia/GPT-NeoX, Llama/SwiGLU, and Mistral/SwiGLU. Each
-    subreport checks 3 cases with original replay pass rate `1.0`, paraphrase
-    pass rate `1.0`, neighboring-layer specificity rate `1.0`, max replay
-    error `0`, and failed subjects `[]`.
+    across GPT-2, Pythia/GPT-NeoX, Llama/SwiGLU, and Mistral/SwiGLU. GPT-2 and
+    Pythia/GPT-NeoX each check 5 cases; Llama/SwiGLU and Mistral/SwiGLU each
+    check 4 cases. Each case probes 3 paraphrase prompts and layer shifts
+    `[-2,-1,1,2]` with at least 2 valid layer controls. Original replay pass
+    rate is `1.0` for all model reports; paraphrase pass rates are GPT-2
+    `1.0`, Pythia/GPT-NeoX `0.9333333333333333`, Llama/SwiGLU `1.0`, and
+    Mistral/SwiGLU `1.0`; neighboring-layer specificity rate is `1.0`, max
+    replay error is `0`, and failed subjects are `[]`.
   - Output: attention->residual->MLP->target path records with selected
     attention heads, selected MLP nodes, path activation deltas, full-control
     path deltas, combined target-logit evidence, and order-aware rescue
@@ -800,8 +804,8 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     Mistral-family SwiGLU runtimes, plus replay/paraphrase/layer-control
     stability for configured cases. They do not prove exhaustive residual
     patching for every edge, full-model circuit recovery, full FFN extraction,
-    arbitrary LLM understanding, semantic original-neuron identity, or
-    output-only original-neuron identity.
+    arbitrary LLM understanding, arbitrary OOD paraphrase robustness, semantic
+    original-neuron identity, or output-only original-neuron identity.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

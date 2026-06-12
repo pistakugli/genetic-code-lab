@@ -43,6 +43,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-original-drop", type=float, default=0.001)
     parser.add_argument("--min-paraphrase-drop-ratio", type=float, default=0.20)
     parser.add_argument("--min-paraphrase-pass-rate", type=float, default=0.66)
+    parser.add_argument("--layer-shifts", default="-1,1")
+    parser.add_argument("--min-layer-control-count", type=int, default=1)
     parser.add_argument("--min-layer-margin", type=float, default=0.0001)
     parser.add_argument("--min-layer-specificity-rate", type=float, default=0.66)
     parser.add_argument("--max-replay-error", type=float, default=1e-5)
@@ -78,6 +80,23 @@ def remap_positions(
             "ablateTokenPositions": sorted(set(positions)),
         })
     return remapped
+
+
+def parse_layer_shifts(value: str) -> List[int]:
+    shifts = []
+    seen = set()
+    for raw in value.split(","):
+        item = raw.strip()
+        if not item:
+            continue
+        shift = int(item)
+        if shift == 0 or shift in seen:
+            continue
+        seen.add(shift)
+        shifts.append(shift)
+    if not shifts:
+        raise ValueError("--layer-shifts must include at least one non-zero integer shift")
+    return shifts
 
 
 def shift_layers(
@@ -170,6 +189,7 @@ def main() -> None:
     device = "cuda" if args.device == "auto" and torch.cuda.is_available() else args.device
     if device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but unavailable.")
+    layer_shifts = parse_layer_shifts(args.layer_shifts)
     tokenizer, model = adapter.load_model_and_tokenizer(
         args.model,
         local_files_only=args.local_files_only,
@@ -181,7 +201,7 @@ def main() -> None:
         nodes = case["orderedResidualPath"]["nodes"]
         all_layers.update(int(item["layer"]) for item in nodes["mlp"])
         all_layers.update(int(item["layer"]) for item in nodes["attention"])
-        for shift in (-1, 1):
+        for shift in layer_shifts:
             all_layers.update(
                 layer
                 for item in nodes["mlp"] + nodes["attention"]
@@ -246,7 +266,7 @@ def main() -> None:
         paraphrase_pass_rate = sum(bool(item["pass"]) for item in paraphrase_items) / max(1, len(paraphrase_items))
 
         layer_items = []
-        for shift in (-1, 1):
+        for shift in layer_shifts:
             shifted_mlp = shift_layers(selected_mlp, shift, layer_count)
             shifted_attention = shift_layers(selected_attention, shift, layer_count)
             if shifted_mlp is None or shifted_attention is None:
@@ -265,7 +285,10 @@ def main() -> None:
         positive_neighbors = [max(0.0, float(item["targetLogitDrop"])) for item in layer_items]
         best_neighbor = max(positive_neighbors) if positive_neighbors else 0.0
         layer_margin = float(original["targetLogitDrop"]) - best_neighbor
-        layer_pass = layer_margin >= float(args.min_layer_margin)
+        layer_pass = (
+            len(layer_items) >= int(args.min_layer_control_count)
+            and layer_margin >= float(args.min_layer_margin)
+        )
         case_pass = (
             original_pass
             and paraphrase_pass_rate >= float(args.min_paraphrase_pass_rate)
@@ -291,6 +314,9 @@ def main() -> None:
             },
             "layerControls": {
                 "items": layer_items,
+                "requestedShifts": layer_shifts,
+                "validControlCount": len(layer_items),
+                "minLayerControlCount": int(args.min_layer_control_count),
                 "bestPositiveNeighborTargetLogitDrop": best_neighbor,
                 "marginOverBestPositiveNeighbor": layer_margin,
                 "pass": layer_pass,
@@ -302,8 +328,10 @@ def main() -> None:
     paraphrase_rate = sum(bool(item["pass"]) for item in paraphrase_items) / max(1, len(paraphrase_items))
     layer_rate = sum(bool(case["layerControls"]["pass"]) for case in cases) / len(cases)
     max_replay_error = max(float(case["originalReplay"]["absoluteReplayError"]) for case in cases)
+    all_cases_pass = all(case["status"] == "passed" for case in cases)
     pass_summary = (
-        original_rate == 1.0
+        all_cases_pass
+        and original_rate == 1.0
         and paraphrase_rate >= float(args.min_paraphrase_pass_rate)
         and layer_rate >= float(args.min_layer_specificity_rate)
     )
@@ -319,6 +347,8 @@ def main() -> None:
             "subjects": sorted(selected_subjects),
             "caseCount": int(args.case_count),
             "paraphraseCount": int(args.paraphrase_count),
+            "layerShifts": layer_shifts,
+            "minLayerControlCount": int(args.min_layer_control_count),
             "minOriginalDrop": float(args.min_original_drop),
             "minParaphraseDropRatio": float(args.min_paraphrase_drop_ratio),
             "minParaphrasePassRate": float(args.min_paraphrase_pass_rate),
