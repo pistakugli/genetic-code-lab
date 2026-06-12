@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "kind": "llama-swiglu-live-ordered-path-stability",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-06-11T21:22:28.911732Z",
+  "model": {
+    "id": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "class": "LlamaForCausalLM",
+    "modelType": "llama",
+    "layers": 28,
+    "heads": 24,
+    "keyValueHeads": 8,
+    "hiddenSize": 3072,
+    "intermediateSize": 8192,
+    "device": "cuda",
+    "localFilesOnly": true,
+    "quantized": true,
+    "adapter": "llama-swiglu",
+    "activationFamily": "swiglu",
+    "addressedMlpUnit": "silu(gate_proj(x))*up_proj(x) pair before down_proj"
+  },
+  "sourceReport": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/llama-3.2-3b-20-facts-ordered-residual-path/report.json",
+  "config": {
+    "subjects": [
+      "France",
+      "Germany",
+      "Italy"
+    ],
+    "caseCount": 3,
+    "paraphraseCount": 1,
+    "minOriginalDrop": 0.005,
+    "minParaphraseDropRatio": 0.05,
+    "minParaphrasePassRate": 0.66,
+    "minLayerMargin": 0.0001,
+    "minLayerSpecificityRate": 0.66,
+    "maxReplayError": 1e-05
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 3,
+    "passedCases": 3,
+    "originalReplayPassRate": 1.0,
+    "paraphrasePassRate": 1.0,
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0,
+    "failedSubjects": []
+  },
+  "cases": [
+    {
+      "subject": "France",
+      "answer": "Paris",
+      "target": {
+        "tokenId": 12366,
+        "token": " Paris"
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 27,
+            "head": 5,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 27,
+            "neuron": 1184,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 12366,
+          "token": " Paris"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 0.625,
+        "reportedTargetLogitDrop": 0.625,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "prompt": "The capital city of France is",
+          "targetLogitDrop": 0.75,
+          "ratioToOriginal": 1.2,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.125
+          }
+        ],
+        "bestPositiveNeighborTargetLogitDrop": 0.125,
+        "marginOverBestPositiveNeighbor": 0.5,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Germany",
+      "answer": "Berlin",
+      "target": {
+        "tokenId": 20437,
+        "token": " Berlin"
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 27,
+            "head": 5,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 27,
+            "neuron": 4993,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 20437,
+          "token": " Berlin"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 0.875,
+        "reportedTargetLogitDrop": 0.875,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "prompt": "The capital city of Germany is",
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 1.1428571428571428,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.125
+          }
+        ],
+        "bestPositiveNeighborTargetLogitDrop": 0.125,
+        "marginOverBestPositiveNeighbor": 0.75,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Italy",
+      "answer": "Rome",
+      "target": {
+        "tokenId": 22463,
+        "token": " Rome"
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 27,
+            "head": 5,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 27,
+            "neuron": 5089,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 22463,
+          "token": " Rome"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 0.875,
+        "reportedTargetLogitDrop": 0.875,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "prompt": "The capital city of Italy is",
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 1.1428571428571428,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.125
+          }
+        ],
+        "bestPositiveNeighborTargetLogitDrop": 0.125,
+        "marginOverBestPositiveNeighbor": 0.75,
+        "pass": true
+      }
+    }
+  ],
+  "claimBoundary": {
+    "provesIfPasses": "The exact discovered circuit interventions replay on the source prompts, preserve target-causal effects across configured paraphrases, and outperform neighboring-layer shifted controls for the configured real-model cases.",
+    "doesNotProve": "This does not prove neuron identity across model families, semantic equivalence of internal circuits, full-model circuit recovery, or arbitrary prompt stability."
+  }
+}

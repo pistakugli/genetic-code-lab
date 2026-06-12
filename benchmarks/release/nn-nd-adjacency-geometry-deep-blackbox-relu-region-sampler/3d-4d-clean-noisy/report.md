@@ -1,6 +1,6 @@
 # ND Recovered-Adjacency Geometry for Deep Black-Box ReLU Region Samplers
 
-Generated: 2026-06-10T19:19:35.593Z
+Generated: 2026-06-11T20:08:32.768Z
 
 ## Claim Scope
 

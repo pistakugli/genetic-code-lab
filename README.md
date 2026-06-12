@@ -276,16 +276,41 @@ What these gates currently support:
 - Live GPT-2 ordered residual path circuit finding for the configured factual
   prompt set: `50` valid facts, `50` passed cases, pass rate `1.0`, combined
   graph pass rate `1.0`, median selected attention-to-MLP activation delta
-  `0.19325748085975647`, p10 selected path activation delta
-  `0.07803934812545776`, median full-control path p95 activation delta
-  `0.03085190749261527`, median ordered path lift over full-control p95
-  `5.357243298305573`, and median combined target-logit drop
-  `1.9847869873046875`. The current artifact was generated with the GPU
+  `0.18021255731582642`, p10 selected path activation delta
+  `0.09223440289497375`, median full-control path p95 activation delta
+  `0.0318724343786016`, median ordered path lift over full-control p95
+  `5.259007093850701`, and median combined target-logit drop
+  `1.9063301086425781`. The current artifact was generated with the GPU
   command and records `model.device = cuda`, `torch = 2.10.0+cu128`,
   `synthetic = false`, and `surrogate = false`. The gate uses an order-aware
   rescue selector when the union graph is causal but not a valid
   attention->residual->MLP ordering. The artifact is
   `benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json`.
+- Live Pythia/GPT-NeoX ordered residual path circuit finding for the configured
+  factual prompt set: `20` valid facts, `20` passed cases, pass rate `1.0`,
+  combined graph pass rate `1.0`, median selected attention-to-MLP activation
+  delta `0.51171875`, p10 selected path activation delta
+  `0.3111328125`, median full-control path p95 activation delta
+  `0.06836662292480464`, median ordered path lift over full-control p95
+  `10.015731969055064`, and failed subjects `[]`. The artifact records
+  `model.device = cuda`, `adapter = gpt-neox`, `synthetic = false`, and
+  `surrogate = false`. Deterministic per-subject controls and multi-component
+  ordered rescue close the previous Japan/Israel hard cases without lowering
+  thresholds.
+- Live Mistral/SwiGLU ordered residual path circuit finding for a real
+  quantized Mistral-7B-Instruct model: `10` valid facts, `10` passed cases,
+  pass rate `1.0`, combined graph pass rate `1.0`, median selected path
+  activation delta `0.203125`, p10 delta `0.0921875`, median full-control path
+  p95 delta `0.04531249999999998`, median ordered path lift over full-control
+  p95 `5.104890772220551`, and failed subjects `[]`. The artifact records
+  32 layers, hidden size `4096`, intermediate size `14336`, 8 key/value heads,
+  `model.device = cuda`, `adapter = mistral-swiglu`, `synthetic = false`, and
+  `surrogate = false`.
+- Live ordered-path stability replay across GPT-2, Pythia/GPT-NeoX,
+  Llama/SwiGLU, and Mistral/SwiGLU: `4/4` model reports pass. Each subreport
+  checks 3 replay cases with original replay pass rate `1.0`, paraphrase pass
+  rate `1.0`, neighboring-layer specificity rate `1.0`, max replay error `0`,
+  and failed subjects `[]`.
 
 What they do not support yet:
 
@@ -306,10 +331,12 @@ What they do not support yet:
   interventions. These gates still do not prove full GPT-2 FFN extraction,
   arbitrary LLM understanding, exhaustive residual-stream patching for every
   edge, or output-only original-neuron identity.
-- Treating the current three verified adapters as proof that the circuit finder
-  already scales to Mistral or arbitrary LLM architectures. The live reader has
-  a model-agnostic `LLMOracleAdapter` boundary with real GPT-2, GPT-NeoX/Pythia,
-  and LLaMA/SwiGLU gates; Mistral still requires its own runtime artifact.
+- Treating the current verified adapters as proof that the circuit finder
+  already scales to arbitrary LLM architectures. The live reader has a
+  model-agnostic `LLMOracleAdapter` boundary with real GPT-2, GPT-NeoX/Pythia,
+  LLaMA/SwiGLU, and Mistral/SwiGLU gates, but arbitrary tokenizer/runtime
+  stacks, full FFN extraction, semantic original-neuron identity, and
+  exhaustive circuit completeness are still outside the verified claim.
 - Arbitrary noisy mixed-block/cancellation-heavy GELU or SwiGLU APIs beyond the
   controlled release-gated noisy mixed GELU, noisy mixed SwiGLU, and shared-gate
   SwiGLU canonicalization families.

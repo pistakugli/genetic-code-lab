@@ -1,6 +1,6 @@
 # Closed-loop archive emergence benchmark
 
-Generated: 2026-06-10T19:15:54.738Z
+Generated: 2026-06-11T20:04:49.512Z
 
 ## Scope
 

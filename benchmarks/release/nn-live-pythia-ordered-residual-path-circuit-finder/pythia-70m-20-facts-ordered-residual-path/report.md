@@ -6,12 +6,12 @@ This benchmark uses a real causal-LM model, real attention-path hooks, real MLP 
 
 - Pass: `True`
 - Valid cases: `20`
-- Passed cases: `18`
-- Pass rate: `0.9`
-- Combined graph pass rate: `0.9`
+- Passed cases: `20`
+- Pass rate: `1.0`
+- Combined graph pass rate: `1.0`
 - Median selected path activation delta: `0.51171875`
-- Median control path p95 activation delta: `0.09458007812499991`
-- Median ordered path lift over control p95: `6.051611430866259`
+- Median control path p95 activation delta: `0.06836662292480464`
+- Median ordered path lift over control p95: `10.015731969055064`
 - Median combined target-logit drop: `2.0`
 
 ## Claim Boundary
@@ -24,23 +24,23 @@ This is not full-model circuit recovery, not exhaustive residual-stream patching
 
 | subject | status | combined | path delta | control p95 | margin | lift |
 |---|---:|---:|---:|---:|---:|---:|
-| France | passed | passed | 0.371704 | 0.071971 | 0.299733 | 5.164628 |
-| Germany | passed | passed | 0.543457 | 0.185797 | 0.357660 | 2.925002 |
-| Italy | passed | passed | 0.357178 | 0.052869 | 0.304309 | 6.755946 |
-| Spain | passed | passed | 1.122559 | 0.838814 | 0.283744 | 1.338268 |
-| Egypt | passed | passed | 0.648438 | 0.090771 | 0.557666 | 7.143626 |
-| Japan | failed | failed | 1.527344 | 1.242603 | 0.284741 | 1.229149 |
-| China | passed | passed | 0.303955 | 0.000000 | 0.303955 | 303955078.125000 |
-| Russia | passed | passed | 1.968750 | 1.876440 | 0.092310 | 1.049194 |
-| Sweden | passed | passed | 0.408447 | 0.055114 | 0.353333 | 7.410955 |
-| Norway | passed | passed | 0.377808 | 0.125110 | 0.252698 | 3.019807 |
-| Hungary | passed | passed | 0.322266 | 0.105995 | 0.216270 | 3.040380 |
-| Austria | passed | passed | 0.392914 | 0.178920 | 0.213994 | 2.196031 |
-| Belgium | passed | passed | 0.076782 | 0.054880 | 0.021902 | 1.399099 |
-| Netherlands | passed | passed | 0.867188 | 0.162174 | 0.705014 | 5.347277 |
+| France | passed | passed | 0.371704 | 0.046970 | 0.324734 | 7.913716 |
+| Germany | passed | passed | 0.543457 | 0.136890 | 0.406567 | 3.970037 |
+| Italy | passed | passed | 0.357178 | 0.008020 | 0.349158 | 44.535769 |
+| Spain | passed | passed | 1.122559 | 0.893530 | 0.229028 | 1.256318 |
+| Egypt | passed | passed | 0.648438 | 0.044885 | 0.603552 | 14.446560 |
+| Japan | passed | passed | 0.882324 | 0.688794 | 0.193530 | 1.280970 |
+| China | passed | passed | 0.047729 | 0.000000 | 0.047729 | 47729492.187500 |
+| Russia | passed | passed | 1.968750 | 1.818500 | 0.150250 | 1.082623 |
+| Sweden | passed | passed | 0.408447 | 0.079563 | 0.328884 | 5.133624 |
+| Norway | passed | passed | 0.377808 | 0.078381 | 0.299426 | 4.820121 |
+| Hungary | passed | passed | 0.322266 | 0.092152 | 0.230113 | 3.497094 |
+| Austria | passed | passed | 0.392914 | 0.000110 | 0.392804 | 3576.388889 |
+| Belgium | passed | passed | 0.613281 | 0.154825 | 0.458456 | 3.961130 |
+| Netherlands | passed | passed | 0.867188 | 0.058352 | 0.808836 | 14.861342 |
 | Ireland | passed | passed | 0.392090 | 0.000000 | 0.392090 | 392089843.750000 |
-| Iran | passed | passed | 1.531006 | 0.109290 | 1.421716 | 14.008712 |
+| Iran | passed | passed | 1.531006 | 0.108752 | 1.422253 | 14.077899 |
 | Iraq | passed | passed | 1.505859 | 0.000000 | 1.505859 | 1505859375.000000 |
-| Syria | passed | passed | 0.843750 | 0.098389 | 0.745361 | 8.575682 |
-| Israel | failed | failed | 1.822266 | 0.000000 | 1.822266 | 1822265625.000000 |
-| Thailand | passed | passed | 0.479980 | 0.000000 | 0.479980 | 479980468.750000 |
+| Syria | passed | passed | 0.843750 | 0.089636 | 0.754114 | 9.413046 |
+| Israel | passed | passed | 0.210938 | 0.000000 | 0.210938 | 210937500.000000 |
+| Thailand | passed | passed | 0.479980 | 0.045203 | 0.434778 | 10.618417 |

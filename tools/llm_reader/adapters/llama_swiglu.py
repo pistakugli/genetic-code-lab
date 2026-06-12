@@ -80,6 +80,7 @@ class LlamaSwiGLUOracleAdapter(LLMOracleAdapter):
 
     adapter_id = "llama-swiglu"
     activation_family = "swiglu"
+    supported_model_types = {"llama"}
 
     def load_model_and_tokenizer(
         self,
@@ -91,9 +92,10 @@ class LlamaSwiGLUOracleAdapter(LLMOracleAdapter):
         tokenizer = AutoTokenizer.from_pretrained(model_id, local_files_only=local_files_only)
         config = AutoConfig.from_pretrained(model_id, local_files_only=local_files_only)
         model_type = str(getattr(config, "model_type", ""))
-        if model_type not in {"llama", "mistral"}:
+        if model_type not in self.supported_model_types:
             raise RuntimeError(
-                f"LLaMA/Mistral SwiGLU adapter does not support model_type={model_type!r}."
+                f"{self.adapter_id} adapter does not support model_type={model_type!r}; "
+                f"expected one of {sorted(self.supported_model_types)}."
             )
         if getattr(config, "quantization_config", None):
             model = AutoModelForCausalLM.from_pretrained(
@@ -349,3 +351,10 @@ class LlamaSwiGLUOracleAdapter(LLMOracleAdapter):
             [{"neuron": int(index), "activationAbs": float(value)} for value, index in candidates[:count]],
             threshold,
         )
+
+
+class MistralSwiGLUOracleAdapter(LlamaSwiGLUOracleAdapter):
+    """Strict Mistral-family SwiGLU adapter using the shared pair-channel mechanics."""
+
+    adapter_id = "mistral-swiglu"
+    supported_model_types = {"mistral"}

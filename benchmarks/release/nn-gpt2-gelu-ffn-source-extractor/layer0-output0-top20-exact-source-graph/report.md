@@ -1,6 +1,6 @@
 # Real GPT-2 GELU FFN Source Extractor Benchmark
 
-Generated: 2026-06-10T19:51:09.396Z
+Generated: 2026-06-11T20:40:17.211Z
 
 ## Claim Scope
 

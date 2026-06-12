@@ -795,6 +795,21 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-live-mistral-swiglu-ordered-residual-path-circuit-finder',
+    name: 'NN live Mistral SwiGLU ordered residual path circuit finder',
+    status: 'preview',
+    summary: 'Loads a real quantized Mistral-7B model through a strict Mistral adapter, addresses real SwiGLU pair channels, and validates ordered attention->residual->SwiGLU->target path evidence.',
+    scope: 'Live real-model benchmark; proves benchmark-scoped ordered residual path evidence for a real Mistral-7B-Instruct model using the actual SiLU(gate_proj(x))*up_proj(x) pair before down_proj, real attention output-path hooks, CUDA interventions, graph/path controls, and explicit skipped/failed case reporting. This does not claim full Mistral circuit recovery, exhaustive residual-stream patching, full FFN extraction, arbitrary LLM understanding, output-only original-neuron identity, or broad SOTA status.',
+    run: { label: 'NN live Mistral SwiGLU ordered residual path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-mistral-swiglu-ordered-residual-path-circuit-finder:gpu'] },
+    proofs: [
+      { label: 'NN live Mistral SwiGLU ordered residual path circuit finder benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-mistral-swiglu-ordered-residual-path-circuit-finder:gpu'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-mistral-swiglu-ordered-residual-path-circuit-finder/mistral-7b-instruct-v0.3-10-facts-ordered-residual-path/report.json',
+      'benchmarks/release/nn-live-mistral-swiglu-ordered-residual-path-circuit-finder/mistral-7b-instruct-v0.3-10-facts-ordered-residual-path/report.md'
+    ]
+  },
+  {
     id: 'nn-blackbox-relu2d-decompile',
     name: 'NN 2D black-box ReLU decompile',
     status: 'production',

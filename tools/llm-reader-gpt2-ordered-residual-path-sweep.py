@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
+import itertools
 import json
 import random
 import sys
@@ -72,6 +74,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-path-margin-over-control-p95", type=float, default=0.001)
     parser.add_argument("--require-component-hardening", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--ordered-rescue-candidate-count", type=int, default=10)
+    parser.add_argument("--ordered-rescue-max-pair-attempts", type=int, default=32)
+    parser.add_argument("--ordered-rescue-set-candidate-count", type=int, default=10)
+    parser.add_argument("--ordered-rescue-max-set-attempts", type=int, default=64)
     parser.add_argument("--wrong-answer-count", type=int, default=3)
     parser.add_argument("--attention-max-target-rank", type=int, default=100)
     parser.add_argument("--paraphrase-count", type=int, default=2)
@@ -99,6 +104,11 @@ def parse_args() -> argparse.Namespace:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def stable_subject_seed(base_seed: int, subject: str) -> int:
+    digest = hashlib.sha256(f"{int(base_seed)}:{subject}".encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big")
 
 
 def namespace_for_combined(args: argparse.Namespace) -> argparse.Namespace:
@@ -381,6 +391,243 @@ def layer_balanced_candidates(candidates: List[Dict[str, Any]], limit: int) -> L
     return selected
 
 
+def intervention_key(intervention: Dict[str, Any], unit_key: str) -> Tuple[int, int, Tuple[int, ...]]:
+    return (
+        int(intervention["layer"]),
+        int(intervention[unit_key]),
+        tuple(int(position) for position in intervention.get("ablateTokenPositions", [])),
+    )
+
+
+def ranked_unique_interventions(
+    attempts: List[Dict[str, Any]],
+    field: str,
+    unit_key: str,
+    limit: int,
+) -> List[Dict[str, Any]]:
+    ranked = sorted(
+        [attempt for attempt in attempts if bool(attempt.get("orderValid"))],
+        key=lambda item: (
+            -float(item.get("combined", {}).get("combinedDrop", 0.0)),
+            -float(item.get("pathMargin", -1e9)),
+            -float(item.get("pathDelta", 0.0)),
+        ),
+    )
+    selected: List[Dict[str, Any]] = []
+    seen = set()
+    for attempt in ranked:
+        intervention = attempt[field]
+        key = intervention_key(intervention, unit_key)
+        if key in seen:
+            continue
+        seen.add(key)
+        selected.append(intervention)
+        if len(selected) >= limit:
+            break
+    return selected
+
+
+def raw_combined_drop(
+    *,
+    model: Any,
+    mlps: Dict[int, Any],
+    attentions: Dict[int, Any],
+    encoded: Dict[str, torch.Tensor],
+    baseline_logits: torch.Tensor,
+    selected_mlp: List[Dict[str, Any]],
+    selected_attention: List[Dict[str, Any]],
+    read_token_index: int,
+    target_token_id: int,
+) -> float:
+    ablated_logits = combined.run_combined_ablation_logits(
+        model=model,
+        mlps=mlps,
+        attentions=attentions,
+        encoded=encoded,
+        mlp_interventions=selected_mlp,
+        attention_interventions=selected_attention,
+        read_token_index=read_token_index,
+    )
+    return combined.target_drop_from_logits(baseline_logits, ablated_logits, target_token_id)
+
+
+def candidate_set_key(candidate_set: Dict[str, Any]) -> Tuple[Any, ...]:
+    return (
+        candidate_set["topology"],
+        tuple(sorted(intervention_key(item, "neuron") for item in candidate_set["mlps"])),
+        tuple(sorted(intervention_key(item, "head") for item in candidate_set["attentions"])),
+    )
+
+
+def pareto_shortlist(candidate_sets: List[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
+    if limit <= 0:
+        return []
+    raw_quota = (limit + 1) // 2
+    path_quota = limit - raw_quota
+    ranked_raw = sorted(candidate_sets, key=lambda item: -float(item["rawCombinedDrop"]))
+    ranked_path = sorted(
+        candidate_sets,
+        key=lambda item: (
+            -float(item["estimatedPathDelta"]),
+            -float(item["rawCombinedDrop"]),
+        ),
+    )
+    selected: List[Dict[str, Any]] = []
+    seen = set()
+    for ranked, quota in ((ranked_raw, raw_quota), (ranked_path, path_quota)):
+        added = 0
+        for item in ranked:
+            key = candidate_set_key(item)
+            if key in seen:
+                continue
+            selected.append(item)
+            seen.add(key)
+            added += 1
+            if added >= quota:
+                break
+    if len(selected) < limit:
+        for item in ranked_raw:
+            key = candidate_set_key(item)
+            if key in seen:
+                continue
+            selected.append(item)
+            seen.add(key)
+            if len(selected) >= limit:
+                break
+    return selected
+
+
+def evaluate_ordered_attempt(
+    *,
+    model: Any,
+    mlps: Dict[int, Any],
+    attentions: Dict[int, Any],
+    encoded: Dict[str, torch.Tensor],
+    baseline_logits: torch.Tensor,
+    baseline_captures: Dict[int, torch.Tensor],
+    mlp_row: Dict[str, Any],
+    attention_row: Dict[str, Any],
+    selected_mlp: List[Dict[str, Any]],
+    selected_attention: List[Dict[str, Any]],
+    read_token_index: int,
+    target_token_id: int,
+    component_pass: bool,
+    args: argparse.Namespace,
+) -> Dict[str, Any]:
+    combined_attempt = combined.evaluate_combined_attempt(
+        model=model,
+        mlps=mlps,
+        attentions=attentions,
+        encoded=encoded,
+        baseline_logits=baseline_logits,
+        mlp_row=mlp_row,
+        attention_row=attention_row,
+        selected_mlp=selected_mlp,
+        selected_attention=selected_attention,
+        read_token_index=read_token_index,
+        target_token_id=target_token_id,
+        min_target_drop=float(args.min_target_drop),
+        min_margin_over_control_p95=float(args.min_margin_over_control_p95),
+    )
+    _, patched_captures = run_mlp_captures_with_attention_patch(
+        model=model,
+        mlps=mlps,
+        attentions=attentions,
+        encoded=encoded,
+        attention_interventions=selected_attention,
+        read_token_index=read_token_index,
+    )
+    path_score = score_path_activation(
+        baseline_captures=baseline_captures,
+        patched_captures=patched_captures,
+        mlp_interventions=selected_mlp,
+        path_positions=attention_path_positions(selected_attention, read_token_index),
+    )
+    path_controls = evaluate_path_controls(
+        model=model,
+        mlps=mlps,
+        attentions=attentions,
+        encoded=encoded,
+        baseline_captures=baseline_captures,
+        combined_controls=combined_attempt["controls"],
+        read_token_index=read_token_index,
+    )
+    path_control_p95 = float(path_controls["gateSummary"]["p95PathActivationDelta"])
+    path_delta = float(path_score["pathActivationDelta"])
+    path_margin = path_delta - path_control_p95
+    component_gate = component_pass or not bool(args.require_component_hardening)
+    return {
+        "mlp": selected_mlp[0],
+        "attention": selected_attention[0],
+        "mlps": selected_mlp,
+        "attentions": selected_attention,
+        "orderValid": True,
+        "componentPass": component_pass,
+        "componentHardeningRequired": bool(args.require_component_hardening),
+        "componentGatePass": component_gate,
+        "combined": combined_attempt,
+        "pathScore": path_score,
+        "pathControls": path_controls,
+        "pathControlP95": path_control_p95,
+        "pathDelta": path_delta,
+        "pathMargin": path_margin,
+        "pass": (
+            component_gate
+            and bool(combined_attempt.get("pass"))
+            and path_delta >= float(args.min_path_activation_delta)
+            and path_margin >= float(args.min_path_margin_over_control_p95)
+        ),
+    }
+
+
+def scan_ordered_pair(
+    *,
+    model: Any,
+    mlps: Dict[int, Any],
+    attentions: Dict[int, Any],
+    encoded: Dict[str, torch.Tensor],
+    baseline_logits: torch.Tensor,
+    baseline_captures: Dict[int, torch.Tensor],
+    mlp_intervention: Dict[str, Any],
+    attention_intervention: Dict[str, Any],
+    read_token_index: int,
+    target_token_id: int,
+) -> Dict[str, Any]:
+    raw_drop = raw_combined_drop(
+        model=model,
+        mlps=mlps,
+        attentions=attentions,
+        encoded=encoded,
+        baseline_logits=baseline_logits,
+        selected_mlp=[mlp_intervention],
+        selected_attention=[attention_intervention],
+        read_token_index=read_token_index,
+        target_token_id=target_token_id,
+    )
+    _, patched_captures = run_mlp_captures_with_attention_patch(
+        model=model,
+        mlps=mlps,
+        attentions=attentions,
+        encoded=encoded,
+        attention_interventions=[attention_intervention],
+        read_token_index=read_token_index,
+    )
+    path_score = score_path_activation(
+        baseline_captures=baseline_captures,
+        patched_captures=patched_captures,
+        mlp_interventions=[mlp_intervention],
+        path_positions=attention_path_positions([attention_intervention], read_token_index),
+    )
+    path_delta = float(path_score["pathActivationDelta"])
+    return {
+        "topology": "one-attention-one-mlp",
+        "mlps": [mlp_intervention],
+        "attentions": [attention_intervention],
+        "rawCombinedDrop": raw_drop,
+        "estimatedPathDelta": path_delta,
+    }
+
+
 def compact_combined_attempt(
     *,
     component_pass: bool,
@@ -452,7 +699,7 @@ def select_ordered_rescue_attempt(
         attention_row.get("orderedRescueCandidates", attention_row.get("candidateHeads", [])),
         rescue_candidate_count,
     )
-    attempts: List[Dict[str, Any]] = []
+    pair_candidates: List[Dict[str, Any]] = []
     for mlp_candidate in mlp_candidates:
         mlp_intervention = mlp_intervention_from_candidate(mlp_candidate, read_token_index)
         mlp_layer = int(mlp_intervention["layer"])
@@ -461,91 +708,194 @@ def select_ordered_rescue_attempt(
             attention_layer = int(attention_intervention["layer"])
             order_valid = attention_layer <= mlp_layer
             if not order_valid:
-                attempts.append({
-                    "mlp": mlp_intervention,
-                    "attention": attention_intervention,
-                    "orderValid": False,
-                    "pass": False,
-                    "failureReason": "attention layer is after MLP layer",
-                })
                 continue
-            combined_attempt = combined.evaluate_combined_attempt(
+            pair_candidates.append(scan_ordered_pair(
                 model=model,
                 mlps=mlps,
                 attentions=attentions,
                 encoded=encoded,
                 baseline_logits=baseline_logits,
-                mlp_row=mlp_row,
-                attention_row=attention_row,
-                selected_mlp=[mlp_intervention],
-                selected_attention=[attention_intervention],
+                baseline_captures=baseline_captures,
+                mlp_intervention=mlp_intervention,
+                attention_intervention=attention_intervention,
                 read_token_index=read_token_index,
                 target_token_id=target_token_id,
-                min_target_drop=float(args.min_target_drop),
-                min_margin_over_control_p95=float(args.min_margin_over_control_p95),
-            )
-            _, patched_captures = run_mlp_captures_with_attention_patch(
-                model=model,
-                mlps=mlps,
-                attentions=attentions,
-                encoded=encoded,
-                attention_interventions=[attention_intervention],
-                read_token_index=read_token_index,
-            )
-            path_score = score_path_activation(
-                baseline_captures=baseline_captures,
-                patched_captures=patched_captures,
-                mlp_interventions=[mlp_intervention],
-                path_positions=attention_path_positions([attention_intervention], read_token_index),
-            )
-            path_controls = evaluate_path_controls(
-                model=model,
-                mlps=mlps,
-                attentions=attentions,
-                encoded=encoded,
-                baseline_captures=baseline_captures,
-                combined_controls=combined_attempt["controls"],
-                read_token_index=read_token_index,
-            )
-            path_control_p95 = float(path_controls["gateSummary"]["p95PathActivationDelta"])
-            path_delta = float(path_score["pathActivationDelta"])
-            path_margin = path_delta - path_control_p95
-            component_gate = component_pass or not bool(args.require_component_hardening)
-            pass_attempt = (
-                component_gate
-                and bool(combined_attempt.get("pass"))
-                and path_delta >= float(args.min_path_activation_delta)
-                and path_margin >= float(args.min_path_margin_over_control_p95)
-            )
-            attempts.append({
-                "mlp": mlp_intervention,
-                "attention": attention_intervention,
-                "orderValid": True,
-                "componentPass": component_pass,
-                "componentHardeningRequired": bool(args.require_component_hardening),
-                "componentGatePass": component_gate,
-                "combined": combined_attempt,
-                "pathScore": path_score,
-                "pathControls": path_controls,
-                "pathControlP95": path_control_p95,
-                "pathDelta": path_delta,
-                "pathMargin": path_margin,
-                "pass": pass_attempt,
-            })
-    if not attempts:
+            ))
+    if not pair_candidates:
         return None
+    max_pair_attempts = max(1, int(args.ordered_rescue_max_pair_attempts))
+    pair_finalists = pareto_shortlist(pair_candidates, max_pair_attempts)
+    attempts: List[Dict[str, Any]] = []
+    for pair_candidate in pair_finalists:
+        attempt = evaluate_ordered_attempt(
+            model=model,
+            mlps=mlps,
+            attentions=attentions,
+            encoded=encoded,
+            baseline_logits=baseline_logits,
+            baseline_captures=baseline_captures,
+            mlp_row=mlp_row,
+            attention_row=attention_row,
+            selected_mlp=pair_candidate["mlps"],
+            selected_attention=pair_candidate["attentions"],
+            read_token_index=read_token_index,
+            target_token_id=target_token_id,
+            component_pass=component_pass,
+            args=args,
+        )
+        attempt["topology"] = pair_candidate["topology"]
+        attempt["estimatedPathDelta"] = float(pair_candidate["estimatedPathDelta"])
+        attempt["rawCombinedDrop"] = float(pair_candidate["rawCombinedDrop"])
+        attempts.append(attempt)
     passing = [attempt for attempt in attempts if bool(attempt.get("pass"))]
+    if not passing:
+        set_candidate_count = max(2, int(args.ordered_rescue_set_candidate_count))
+        ranked_mlps = ranked_unique_interventions(attempts, "mlp", "neuron", set_candidate_count)
+        ranked_attentions = ranked_unique_interventions(attempts, "attention", "head", set_candidate_count)
+        pair_path_deltas = {
+            (
+                intervention_key(attempt["mlp"], "neuron"),
+                intervention_key(attempt["attention"], "head"),
+            ): float(attempt.get("pathDelta", 0.0))
+            for attempt in attempts
+            if bool(attempt.get("orderValid")) and attempt.get("mlp") and attempt.get("attention")
+        }
+        set_candidates: List[Dict[str, Any]] = []
+        for attention_intervention in ranked_attentions:
+            for mlp_pair in itertools.combinations(ranked_mlps, 2):
+                if int(attention_intervention["layer"]) > min(int(item["layer"]) for item in mlp_pair):
+                    continue
+                selected_mlp = list(mlp_pair)
+                selected_attention = [attention_intervention]
+                set_candidates.append({
+                    "topology": "one-attention-two-mlp",
+                    "mlps": selected_mlp,
+                    "attentions": selected_attention,
+                    "estimatedPathDelta": sum(
+                        pair_path_deltas.get((
+                            intervention_key(item, "neuron"),
+                            intervention_key(attention_intervention, "head"),
+                        ), 0.0)
+                        for item in selected_mlp
+                    ) / len(selected_mlp),
+                    "rawCombinedDrop": raw_combined_drop(
+                        model=model,
+                        mlps=mlps,
+                        attentions=attentions,
+                        encoded=encoded,
+                        baseline_logits=baseline_logits,
+                        selected_mlp=selected_mlp,
+                        selected_attention=selected_attention,
+                        read_token_index=read_token_index,
+                        target_token_id=target_token_id,
+                    ),
+                })
+        for mlp_intervention in ranked_mlps:
+            for attention_pair in itertools.combinations(ranked_attentions, 2):
+                if max(int(item["layer"]) for item in attention_pair) > int(mlp_intervention["layer"]):
+                    continue
+                selected_mlp = [mlp_intervention]
+                selected_attention = list(attention_pair)
+                set_candidates.append({
+                    "topology": "two-attention-one-mlp",
+                    "mlps": selected_mlp,
+                    "attentions": selected_attention,
+                    "estimatedPathDelta": sum(
+                        pair_path_deltas.get((
+                            intervention_key(mlp_intervention, "neuron"),
+                            intervention_key(item, "head"),
+                        ), 0.0)
+                        for item in selected_attention
+                    ) / len(selected_attention),
+                    "rawCombinedDrop": raw_combined_drop(
+                        model=model,
+                        mlps=mlps,
+                        attentions=attentions,
+                        encoded=encoded,
+                        baseline_logits=baseline_logits,
+                        selected_mlp=selected_mlp,
+                        selected_attention=selected_attention,
+                        read_token_index=read_token_index,
+                        target_token_id=target_token_id,
+                    ),
+                })
+        joint_mlps = ranked_mlps[:min(8, len(ranked_mlps))]
+        joint_attentions = ranked_attentions[:min(8, len(ranked_attentions))]
+        for mlp_pair in itertools.combinations(joint_mlps, 2):
+            for attention_pair in itertools.combinations(joint_attentions, 2):
+                if max(int(item["layer"]) for item in attention_pair) > min(int(item["layer"]) for item in mlp_pair):
+                    continue
+                selected_mlp = list(mlp_pair)
+                selected_attention = list(attention_pair)
+                pair_scores = [
+                    pair_path_deltas.get((
+                        intervention_key(mlp_item, "neuron"),
+                        intervention_key(attention_item, "head"),
+                    ), 0.0)
+                    for mlp_item in selected_mlp
+                    for attention_item in selected_attention
+                ]
+                set_candidates.append({
+                    "topology": "two-attention-two-mlp",
+                    "mlps": selected_mlp,
+                    "attentions": selected_attention,
+                    "estimatedPathDelta": sum(pair_scores) / max(1, len(pair_scores)),
+                    "rawCombinedDrop": raw_combined_drop(
+                        model=model,
+                        mlps=mlps,
+                        attentions=attentions,
+                        encoded=encoded,
+                        baseline_logits=baseline_logits,
+                        selected_mlp=selected_mlp,
+                        selected_attention=selected_attention,
+                        read_token_index=read_token_index,
+                        target_token_id=target_token_id,
+                    ),
+                })
+        max_set_attempts = max(2, int(args.ordered_rescue_max_set_attempts))
+        ranked_sets: List[Dict[str, Any]] = []
+        topology_names = ("one-attention-two-mlp", "two-attention-one-mlp", "two-attention-two-mlp")
+        base_quota = max_set_attempts // len(topology_names)
+        remainder = max_set_attempts % len(topology_names)
+        for topology_index, topology in enumerate(topology_names):
+            topology_quota = base_quota + (1 if topology_index < remainder else 0)
+            topology_candidates = [item for item in set_candidates if item["topology"] == topology]
+            ranked_sets.extend(pareto_shortlist(topology_candidates, topology_quota))
+        for candidate_set in ranked_sets:
+            attempt = evaluate_ordered_attempt(
+                model=model,
+                mlps=mlps,
+                attentions=attentions,
+                encoded=encoded,
+                baseline_logits=baseline_logits,
+                baseline_captures=baseline_captures,
+                mlp_row=mlp_row,
+                attention_row=attention_row,
+                selected_mlp=candidate_set["mlps"],
+                selected_attention=candidate_set["attentions"],
+                read_token_index=read_token_index,
+                target_token_id=target_token_id,
+                component_pass=component_pass,
+                args=args,
+            )
+            attempt["topology"] = candidate_set["topology"]
+            attempt["estimatedPathDelta"] = float(candidate_set["estimatedPathDelta"])
+            attempt["rawCombinedDrop"] = float(candidate_set["rawCombinedDrop"])
+            attempts.append(attempt)
+        passing = [attempt for attempt in attempts if bool(attempt.get("pass"))]
     if passing:
         chosen = sorted(
             passing,
             key=lambda item: (
-                int(item["attention"]["layer"]),
-                int(item["mlp"]["layer"]),
+                len(item.get("mlps", [item["mlp"]])) + len(item.get("attentions", [item["attention"]])),
+                max(int(entry["layer"]) for entry in item.get("attentions", [item["attention"]])),
+                max(int(entry["layer"]) for entry in item.get("mlps", [item["mlp"]])),
                 -float(item["pathMargin"]),
                 -float(item["combined"]["combinedDrop"]),
             ),
         )[0]
-        mode = "ordered-rescue-minimal-layer-passing-pair"
+        component_count = len(chosen.get("mlps", [chosen["mlp"]])) + len(chosen.get("attentions", [chosen["attention"]]))
+        mode = "ordered-rescue-minimal-layer-passing-pair" if component_count == 2 else "ordered-rescue-minimal-passing-set"
     else:
         scored = [attempt for attempt in attempts if bool(attempt.get("orderValid"))]
         if not scored:
@@ -567,13 +917,28 @@ def select_ordered_rescue_attempt(
             -float(item.get("combined", {}).get("combinedDrop", 0.0)),
         ),
     )
-    recorded_attempts = ranked_for_audit[:24]
+    recorded_attempts = ranked_for_audit[:16]
+    for topology in (
+        "one-attention-one-mlp",
+        "one-attention-two-mlp",
+        "two-attention-one-mlp",
+        "two-attention-two-mlp",
+    ):
+        topology_attempts = [
+            attempt
+            for attempt in ranked_for_audit
+            if attempt.get("topology", "one-attention-one-mlp") == topology
+        ]
+        for attempt in topology_attempts[:8]:
+            if attempt not in recorded_attempts:
+                recorded_attempts.append(attempt)
     if chosen not in recorded_attempts:
         recorded_attempts.append(chosen)
     return {
         "mode": mode,
         "componentPass": component_pass,
         "chosen": chosen,
+        "candidateCount": len(pair_candidates) + len(set_candidates) if not passing else len(pair_candidates),
         "attemptCount": len(attempts),
         "passingAttemptCount": len(passing),
         "recordedAttemptCount": len(recorded_attempts),
@@ -581,7 +946,12 @@ def select_ordered_rescue_attempt(
             {
                 "mlp": attempt.get("mlp"),
                 "attention": attempt.get("attention"),
+                "mlps": attempt.get("mlps", [attempt.get("mlp")] if attempt.get("mlp") else []),
+                "attentions": attempt.get("attentions", [attempt.get("attention")] if attempt.get("attention") else []),
                 "orderValid": bool(attempt.get("orderValid")),
+                "topology": attempt.get("topology", "one-attention-one-mlp"),
+                "estimatedPathDelta": float(attempt.get("estimatedPathDelta", attempt.get("pathDelta", 0.0))),
+                "rawCombinedDrop": float(attempt.get("rawCombinedDrop", attempt.get("combined", {}).get("combinedDrop", 0.0))),
                 "combinedDrop": float(attempt.get("combined", {}).get("combinedDrop", 0.0)),
                 "combinedMargin": float(attempt.get("combined", {}).get("margin", 0.0)),
                 "pathDelta": float(attempt.get("pathDelta", 0.0)),
@@ -790,6 +1160,7 @@ def run_ordered_case(
             "selection": {
                 "mode": selection_mode,
                 "rescueAttempted": ordered_rescue is not None,
+                "rescueCandidateCount": ordered_rescue.get("candidateCount", 0) if ordered_rescue is not None else 0,
                 "rescueAttemptCount": ordered_rescue.get("attemptCount", 0) if ordered_rescue is not None else 0,
                 "rescuePassingAttemptCount": ordered_rescue.get("passingAttemptCount", 0) if ordered_rescue is not None else 0,
                 "rescueRecordedAttemptCount": ordered_rescue.get("recordedAttemptCount", 0) if ordered_rescue is not None else 0,
@@ -874,8 +1245,6 @@ def main() -> None:
     primary_attentions = {layer: attentions[layer] for layer in attention_layers}
     fallback_attentions = {layer: attentions[layer] for layer in attention_fallback_layers} if attention_fallback_layers else {}
     answer_pool = factual.build_answer_pool(tokenizer)
-    rng = random.Random(args.control_seed)
-
     cases = []
     valid_seen = 0
     for fact in factual.FACTS:
@@ -883,6 +1252,7 @@ def main() -> None:
             continue
         if valid_seen >= args.case_count:
             break
+        case_rng = random.Random(stable_subject_seed(args.control_seed, fact["subject"]))
         row = run_ordered_case(
             model=model,
             tokenizer=tokenizer,
@@ -895,7 +1265,7 @@ def main() -> None:
             fact=fact,
             answer_pool=answer_pool,
             args=args,
-            rng=rng,
+            rng=case_rng,
         )
         if row.get("status") != "skipped":
             valid_seen += 1
@@ -960,6 +1330,11 @@ def main() -> None:
             "minPathActivationDelta": args.min_path_activation_delta,
             "minPathMarginOverControlP95": args.min_path_margin_over_control_p95,
             "requireComponentHardening": bool(args.require_component_hardening),
+            "orderedRescueCandidateCount": int(args.ordered_rescue_candidate_count),
+            "orderedRescueMaxPairAttempts": int(args.ordered_rescue_max_pair_attempts),
+            "orderedRescueSetCandidateCount": int(args.ordered_rescue_set_candidate_count),
+            "orderedRescueMaxSetAttempts": int(args.ordered_rescue_max_set_attempts),
+            "controlSeedMode": "sha256-subject-derived",
             "device": device,
             "adapter": args.adapter,
         },

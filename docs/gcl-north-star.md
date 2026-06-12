@@ -194,8 +194,9 @@ The next development must stay on this order:
    but model loading, tokenizer/model identity, block/MLP lookup,
    activation-family metadata, activation ablation, and negative-control
    selection now go through a typed adapter boundary. The circuit finder must
-   not hard-code GPT-2. The next adapter targets are GPT-Neo/Pythia-style
-   HuggingFace models and then LLaMA/Mistral-style SwiGLU models.
+   not hard-code GPT-2. The adapter boundary now has targeted real-model
+   witnesses for GPT-2, GPT-NeoX/Pythia, LLaMA-family SwiGLU, and
+   Mistral-family SwiGLU.
    Runtime acceleration is explicit and hardware-gated: CPU remains the default
    release path, while NVIDIA CUDA runs use `.gcl-python-gpu`,
    `npm run python:setup:gpu`, and
@@ -206,25 +207,30 @@ The next development must stay on this order:
    the first ordered attention->residual->MLP->target gate is now present via
    `npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu`.
    The current artifact passed 50 valid GPT-2 factual prompts with median
-   selected path activation delta `0.19325748085975647`, median full-control
-   path p95 activation delta `0.03085190749261527`, and median ordered path
-   lift `5.357243298305573`. The same protocol now has a second real-model
+   selected path activation delta `0.18021255731582642`, median full-control
+   path p95 activation delta `0.0318724343786016`, and median ordered path
+   lift `5.259007093850701`. The same protocol now has a second real-model
    adapter preview via
    `npm run benchmark:nn-live-pythia-ordered-residual-path-circuit-finder:gpu`:
-   real EleutherAI/pythia-70m-deduped / GPT-NeoX, 20 valid facts, 18 passed
-   ordered path cases, pass rate `0.9`, median selected path activation delta
-   `0.51171875`, and failed subjects `Japan, Israel`. Its rescue search is
-   layer-balanced so later-layer candidates are not hidden by a global
-   early-layer top list. The next move is a
-   DONE for the first real LLaMA-family SwiGLU adapter gate: the real
+   real EleutherAI/pythia-70m-deduped / GPT-NeoX, 20 valid facts, 20 passed
+   ordered path cases, pass rate `1.0`, median selected path activation delta
+   `0.51171875`, and failed subjects `[]`. Deterministic per-subject
+   controls and multi-component ordered rescue close the previous Japan/Israel
+   hard cases without threshold weakening. DONE for the first real
+   LLaMA-family SwiGLU adapter gate: the real
    quantized Llama-3.2-3B-Instruct benchmark addresses
    `SiLU(gate_proj(x))*up_proj(x)` pair channels before `down_proj` and passes
    20/20 valid factual ordered-path cases on CUDA. Its fresh interpolated
    summary reports p10 selected path delta `0.023046875`, median control-path
-   p95 delta `0.0014201669022440894`, and median combined target-logit drop
-   `0.9375`. Mistral runtime parity is
-   still a separate required witness; the next move is cross-prompt/cross-layer
-   SwiGLU path stability and a real Mistral-family gate, not more GPT-2-only
+   p95 delta `0.0017847249284386607`, and median combined target-logit drop
+   `0.9375`. DONE for the first real Mistral-family SwiGLU adapter gate: the
+   quantized Mistral-7B-Instruct benchmark addresses the same real
+   `SiLU(gate_proj(x))*up_proj(x)` unit, passes 10/10 valid factual
+   ordered-path cases, and records median selected path delta `0.203125`.
+   DONE for the first ordered-path stability replay across GPT-2, Pythia,
+   Llama, and Mistral: 4/4 model reports pass original replay, paraphrase, and
+   neighboring-layer specificity checks. The next move is broader
+   paraphrase/layer stability and another real adapter family, not GPT-2-only
    special cases.
 3. Keep the current live-reader/fact-finder runtime behind that adapter:
    prompt/token/layer/component/intervention -> logits, activations, logit
