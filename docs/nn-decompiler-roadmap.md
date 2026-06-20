@@ -996,17 +996,30 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     min principal cosine `0.9999999945348134`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current randomized 4-unit block gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-4unit-randomized`.
+    The gate uses two deterministic-random real local Mistral-family scalar
+    oracles; each oracle returns the sum of four same-layer SwiGLU unit
+    outputs. The solver receives only batch `f(x)` outputs, recovers rank-8
+    active subspaces, and fits explicit 4-atom SwiGLU sums. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-4unit-sweep-oracle-only/report.json`.
+    Result: pass `true`, cases `2/2`, max unitCount `4`, max atomCount `4`,
+    total raw oracle calls `159616`, max raw oracle calls per case `79808`, min
+    validation R2 `0.995727068595925`, max validation MAE
+    `0.0006359374939938832`, max worst error `0.008566143276326953`,
+    subspace min principal cosine `0.9999999725417702`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
     blocks, first selected and randomized 3-unit scalar blocks, and a first
-    selected 4-unit scalar block. It does not prove full Mistral FFN extraction,
+    selected and randomized 4-unit scalar block. It does not prove full Mistral FFN extraction,
     all-channel 4096D block decompilation, exhaustive circuit recovery, or
     semantic original-neuron identity from output-only access.
   - Next K5 hardening:
-    1. widen randomized multi-unit block gates beyond 2 Mistral 2-unit and
-       2 Mistral 3-unit cases;
-    2. add randomized 4-unit block recovery with active rank `8`;
+    1. widen randomized multi-unit block gates beyond 2 cases per unit-count;
+    2. add selected 5-unit block recovery with active rank `10`;
     3. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
        units;
     4. add another LLaMA-family dimension where local model dimensions allow;

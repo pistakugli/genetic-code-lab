@@ -1,0 +1,165 @@
+{
+  "summary": {
+    "pass": true,
+    "caseCount": 2,
+    "passedCases": 2,
+    "failedCases": 0,
+    "minR2": 0.995727068595925,
+    "maxMae": 0.0006359374939938832,
+    "maxWorstError": 0.008566143276326953,
+    "minSubspacePrincipalCosine": 0.9999999725417702,
+    "maxRawOracleCallsPerCase": 79808,
+    "totalRawOracleCalls": 159616,
+    "maxUnitCount": 4,
+    "maxAtomCount": 4,
+    "accessInvariant": true
+  },
+  "cases": [
+    {
+      "case": {
+        "id": "random0-layer1-units4733-7309-8811-12272",
+        "layer": 1,
+        "unit": 4733,
+        "units": [
+          4733,
+          7309,
+          8811,
+          12272
+        ],
+        "activeRank": 8,
+        "atomCount": 4,
+        "minR2": 0.995,
+        "maxMae": 0.003,
+        "maxWorstError": 0.03,
+        "minSubspaceCosine": 0.98
+      },
+      "variant": "mistral-4096d-layer1-units4733-7309-8811-12272-4atom-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units4733-7309-8811-12272-4atom-oracle-only/report.json",
+      "pass": true,
+      "failures": [],
+      "summary": {
+        "pass": true,
+        "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+        "modelType": "mistral",
+        "dimension": 4096,
+        "layer": 1,
+        "unit": 4733,
+        "units": [
+          4733,
+          7309,
+          8811,
+          12272
+        ],
+        "unitCount": 4,
+        "activeRank": 8,
+        "atomCount": 4,
+        "rawOracleCalls": 79808,
+        "metrics": {
+          "mae": 0.0005458994858978024,
+          "mse": 8.293729538276618e-7,
+          "r2": 0.9967551564914866,
+          "worstError": 0.006635771371544929
+        },
+        "sourceAlignment": {
+          "gateMaxAbsCosine": 0.9430903983105493,
+          "upMaxAbsCosine": 0.9145887542247644,
+          "subspaceMinPrincipalCosine": 0.999999978214083,
+          "subspaceCosines": [
+            0.9999999999603486,
+            0.9999999999072346,
+            0.9999999998937159,
+            0.9999999998832186,
+            0.9999999996642316,
+            0.9999999995033314,
+            0.9999999988834183,
+            0.999999978214083
+          ]
+        },
+        "selectedGradientEnergyRatio": 0.9999999999999973
+      }
+    },
+    {
+      "case": {
+        "id": "random1-layer11-units5754-8561-11682-13025",
+        "layer": 11,
+        "unit": 5754,
+        "units": [
+          5754,
+          8561,
+          11682,
+          13025
+        ],
+        "activeRank": 8,
+        "atomCount": 4,
+        "minR2": 0.995,
+        "maxMae": 0.003,
+        "maxWorstError": 0.03,
+        "minSubspaceCosine": 0.98
+      },
+      "variant": "mistral-4096d-layer11-units5754-8561-11682-13025-4atom-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer11-units5754-8561-11682-13025-4atom-oracle-only/report.json",
+      "pass": true,
+      "failures": [],
+      "summary": {
+        "pass": true,
+        "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+        "modelType": "mistral",
+        "dimension": 4096,
+        "layer": 11,
+        "unit": 5754,
+        "units": [
+          5754,
+          8561,
+          11682,
+          13025
+        ],
+        "unitCount": 4,
+        "activeRank": 8,
+        "atomCount": 4,
+        "rawOracleCalls": 79808,
+        "metrics": {
+          "mae": 0.0006359374939938832,
+          "mse": 0.0000010895435428845784,
+          "r2": 0.995727068595925,
+          "worstError": 0.008566143276326953
+        },
+        "sourceAlignment": {
+          "gateMaxAbsCosine": 0.98400706217978,
+          "upMaxAbsCosine": 0.9220030293048336,
+          "subspaceMinPrincipalCosine": 0.9999999725417702,
+          "subspaceCosines": [
+            0.9999999999398643,
+            0.9999999999293974,
+            0.9999999998896631,
+            0.9999999998226605,
+            0.9999999997721158,
+            0.9999999994820946,
+            0.9999999993144953,
+            0.9999999725417702
+          ]
+        },
+        "selectedGradientEnergyRatio": 0.9999999999999971
+      }
+    }
+  ],
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "perCaseReportsEnforceInvariant": true
+  },
+  "selection": {
+    "kind": "deterministic-random",
+    "seed": 260621,
+    "count": 2,
+    "unitCount": 4,
+    "layerCount": 32,
+    "intermediateSize": 14336
+  },
+  "claimBoundary": [
+    "This sweep proves selected real local Mistral-family 4096D SwiGLU unit or small-unit-block outputs can be recovered as blind oracle-only explicit SwiGLU atoms under the recorded case budgets.",
+    "It does not prove full Mistral-family FFN extraction, all-channel 4096D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}
