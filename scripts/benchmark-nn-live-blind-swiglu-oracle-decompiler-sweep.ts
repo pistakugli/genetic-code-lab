@@ -14,6 +14,7 @@ type SweepCase = {
   atomCount: number;
   minR2: number;
   maxMae: number;
+  maxWorstError: number;
   minSubspaceCosine: number;
 };
 
@@ -95,7 +96,7 @@ function parseCases(raw: string): SweepCase[] {
     .map(item => item.trim())
     .filter(Boolean)
     .map(item => {
-      const [layerRaw, unitRaw, minR2Raw, maxMaeRaw, minSubspaceRaw] = item.split(':');
+      const [layerRaw, unitRaw, minR2Raw, maxMaeRaw, minSubspaceRaw, maxWorstRaw] = item.split(':');
       const layer = Number(layerRaw);
       const units = unitRaw
         .split(/[+|]/)
@@ -103,7 +104,7 @@ function parseCases(raw: string): SweepCase[] {
         .filter(value => Number.isInteger(value));
       const unit = units[0];
       if (!Number.isInteger(layer) || !Number.isInteger(unit) || units.length === 0) {
-        throw new Error(`Invalid blind SwiGLU sweep case ${item}; expected layer:unit or layer:unit+unit[:minR2[:maxMae[:minSubspaceCosine]]]`);
+        throw new Error(`Invalid blind SwiGLU sweep case ${item}; expected layer:unit or layer:unit+unit[:minR2[:maxMae[:minSubspaceCosine[:maxWorstError]]]]`);
       }
       return {
         id: units.length === 1 ? `layer${layer}-unit${unit}` : `layer${layer}-units${units.join('-')}`,
@@ -114,6 +115,7 @@ function parseCases(raw: string): SweepCase[] {
         atomCount: units.length,
         minR2: minR2Raw ? Number(minR2Raw) : Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_R2', '0.995')),
         maxMae: maxMaeRaw ? Number(maxMaeRaw) : Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MAX_MAE', '0.002')),
+        maxWorstError: maxWorstRaw ? Number(maxWorstRaw) : Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR', '1e30')),
         minSubspaceCosine: minSubspaceRaw
           ? Number(minSubspaceRaw)
           : Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE', '0.99'))
@@ -127,6 +129,7 @@ function generateRandomCases(count: number): SweepCase[] {
   const intermediateSize = Number(envValue('GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE', modelLabel.startsWith('llama') ? '8192' : '14336'));
   const minR2 = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_R2', '0.995'));
   const maxMae = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MAX_MAE', '0.002'));
+  const maxWorstError = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR', '1e30'));
   const minSubspaceCosine = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE', '0.99'));
   const unitCount = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT', '1'));
   const activeRank = Number(envValue('GCL_BLIND_SWIGLU_ACTIVE_RANK', String(unitCount * 2)));
@@ -159,6 +162,7 @@ function generateRandomCases(count: number): SweepCase[] {
       atomCount: unitCount,
       minR2,
       maxMae,
+      maxWorstError,
       minSubspaceCosine
     });
   }
@@ -217,6 +221,9 @@ function assertCaseReport(report: CaseReport, testCase: SweepCase): string[] {
   if (report.summary.activeRank !== testCase.activeRank) failures.push(`activeRank=${report.summary.activeRank}`);
   if (report.summary.metrics.r2 < testCase.minR2) failures.push(`r2=${report.summary.metrics.r2}<${testCase.minR2}`);
   if (report.summary.metrics.mae > testCase.maxMae) failures.push(`mae=${report.summary.metrics.mae}>${testCase.maxMae}`);
+  if (report.summary.metrics.worstError > testCase.maxWorstError) {
+    failures.push(`worstError=${report.summary.metrics.worstError}>${testCase.maxWorstError}`);
+  }
   if (report.summary.sourceAlignment.subspaceMinPrincipalCosine < testCase.minSubspaceCosine) {
     failures.push(`subspace=${report.summary.sourceAlignment.subspaceMinPrincipalCosine}<${testCase.minSubspaceCosine}`);
   }
@@ -265,6 +272,7 @@ for (const testCase of sweepCases) {
     '--fit-steps', envValue('GCL_BLIND_SWIGLU_FIT_STEPS', '1200'),
     '--min-r2', String(testCase.minR2),
     '--max-mae', String(testCase.maxMae),
+    '--max-worst-error', String(testCase.maxWorstError),
     '--min-subspace-cosine', String(testCase.minSubspaceCosine),
     '--max-oracle-calls', envValue('GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS', '20000'),
     '--local-files-only',

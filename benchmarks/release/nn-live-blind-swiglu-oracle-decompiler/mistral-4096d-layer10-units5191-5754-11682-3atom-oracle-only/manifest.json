@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-20T08:03:14.759Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "mistral-4096d-layer10-units5191-5754-11682-3atom-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-3unit-randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "6",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "2000",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "70000",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "7",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.003",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR": "0.02",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.98",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "2",
+    "GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT": "3",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "mistral-4096d-randomized-2block-3unit-sweep-oracle-only",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "3600",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "1024",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "ddef74b485cef1db6b9999c5d5716ebf2188d22b",
+    "statusShort": "M package.json\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler.ts\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units7309-8811-12272-3atom-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer10-units5191-5754-11682-3atom-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-3unit-sweep-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer10-units5191-5754-11682-3atom-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer10-units5191-5754-11682-3atom-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer10-units5191-5754-11682-3atom-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+    "modelType": "mistral",
+    "dimension": 4096,
+    "layer": 10,
+    "unit": 5191,
+    "units": [
+      5191,
+      5754,
+      11682
+    ],
+    "unitCount": 3,
+    "activeRank": 6,
+    "atomCount": 3,
+    "rawOracleCalls": 61968,
+    "metrics": {
+      "mae": 0.0005119471166077025,
+      "mse": 8.865236031342559e-7,
+      "r2": 0.9962941439080226,
+      "worstError": 0.010120884383530829
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.9974438505024557,
+      "upMaxAbsCosine": 0.9878381981374171,
+      "subspaceMinPrincipalCosine": 0.9999999878109772,
+      "subspaceCosines": [
+        0.9999999999816568,
+        0.999999999948723,
+        0.9999999999290112,
+        0.9999999999095678,
+        0.9999999998597223,
+        0.9999999878109772
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9999999999999968
+  },
+  "notes": [
+    "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
+  ]
+}

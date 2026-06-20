@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-20T08:03:14.770Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "mistral-4096d-randomized-2block-3unit-sweep-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-3unit-randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "6",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "2000",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "70000",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "7",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.003",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR": "0.02",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.98",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "2",
+    "GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT": "3",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "mistral-4096d-randomized-2block-3unit-sweep-oracle-only",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "3600",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "1024",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "ddef74b485cef1db6b9999c5d5716ebf2188d22b",
+    "statusShort": "M package.json\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler.ts\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units7309-8811-12272-3atom-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer10-units5191-5754-11682-3atom-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-3unit-sweep-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-3unit-sweep-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-3unit-sweep-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-3unit-sweep-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 2,
+    "passedCases": 2,
+    "failedCases": 0,
+    "minR2": 0.9962650545162728,
+    "maxMae": 0.0005119471166077025,
+    "maxWorstError": 0.010120884383530829,
+    "minSubspacePrincipalCosine": 0.9999999878109772,
+    "maxRawOracleCallsPerCase": 61968,
+    "totalRawOracleCalls": 123936,
+    "maxUnitCount": 3,
+    "maxAtomCount": 3,
+    "accessInvariant": true
+  },
+  "notes": [
+    "This sweep proves selected real local Mistral-family 4096D SwiGLU unit or small-unit-block outputs can be recovered as blind oracle-only explicit SwiGLU atoms under the recorded case budgets.",
+    "It does not prove full Mistral-family FFN extraction, all-channel 4096D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}

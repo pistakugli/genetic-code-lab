@@ -532,6 +532,7 @@ def run_solver(args: argparse.Namespace) -> int:
             pass_gate = (
                 metrics["r2"] >= args.min_r2
                 and metrics["mae"] <= args.max_mae
+                and metrics["worstError"] <= args.max_worst_error
                 and source_alignment["subspaceMinPrincipalCosine"] >= args.min_subspace_cosine
                 and oracle.query_count <= args.max_oracle_calls
                 and args.atom_count == unit_count
@@ -640,6 +641,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=260620)
     parser.add_argument("--min-r2", type=float, default=0.985)
     parser.add_argument("--max-mae", type=float, default=0.015)
+    parser.add_argument("--max-worst-error", type=float, default=1e30)
     parser.add_argument("--min-subspace-cosine", type=float, default=0.93)
     parser.add_argument("--max-oracle-calls", type=int, default=20000)
     parser.add_argument("--output-json", required=False)

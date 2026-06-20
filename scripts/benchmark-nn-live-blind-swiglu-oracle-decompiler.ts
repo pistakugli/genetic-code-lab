@@ -48,6 +48,7 @@ const args = [
   '--fit-steps', envValue('GCL_BLIND_SWIGLU_FIT_STEPS', '1200'),
   '--min-r2', envValue('GCL_BLIND_SWIGLU_MIN_R2', '0.985'),
   '--max-mae', envValue('GCL_BLIND_SWIGLU_MAX_MAE', '0.015'),
+  '--max-worst-error', envValue('GCL_BLIND_SWIGLU_MAX_WORST_ERROR', '1e30'),
   '--min-subspace-cosine', envValue('GCL_BLIND_SWIGLU_MIN_SUBSPACE_COSINE', '0.93'),
   '--max-oracle-calls', envValue('GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS', '20000'),
   '--local-files-only',
