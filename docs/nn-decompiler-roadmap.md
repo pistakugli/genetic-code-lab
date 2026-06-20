@@ -1050,18 +1050,34 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     min principal cosine `0.9999999544565973`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current randomized 6-unit block gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-6unit-randomized`.
+    The gate uses two deterministic-random real local Mistral-family scalar
+    oracles; each oracle returns the sum of six same-layer SwiGLU unit outputs.
+    The solver receives only batch `f(x)` outputs, recovers rank-12 active
+    subspaces, and fits explicit 6-atom SwiGLU sums. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-6unit-sweep-oracle-only/report.json`.
+    Result: pass `true`, cases `2/2`, max unitCount `6`, max atomCount `6`,
+    total raw oracle calls `230976`, max raw oracle calls per case `115488`,
+    min validation R2 `0.9952423306790068`, max validation MAE
+    `0.0009230608551877102`, max worst error `0.012063083889497478`,
+    subspace min principal cosine `0.9999999518366974`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
     blocks, first selected and randomized 3-unit scalar blocks, and a first
     selected and randomized 4-unit scalar block plus first selected and
-    randomized 5-unit scalar blocks plus first selected 6-unit scalar block. It
-    does not prove full Mistral FFN extraction, all-channel 4096D block
-    decompilation, exhaustive circuit recovery, randomized 6-unit coverage yet,
-    or semantic original-neuron identity from output-only access.
+    randomized 5-unit scalar blocks plus first selected and randomized 6-unit
+    scalar blocks. It does not prove full Mistral FFN extraction, all-channel
+    4096D block decompilation, exhaustive circuit recovery, arbitrary
+    high-count mixtures, or semantic original-neuron identity from output-only
+    access.
   - Next K5 hardening:
-    1. add a randomized 6-unit block sweep with active rank `12`;
-    2. widen randomized multi-unit block gates beyond 2 cases per unit-count;
+    1. widen randomized multi-unit block gates beyond 2 cases per unit-count;
+    2. add a second model-family multi-unit block parity gate where local
+       dimensions and VRAM allow;
     3. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
        units;
     4. add another LLaMA-family dimension where local model dimensions allow;
