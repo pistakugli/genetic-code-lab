@@ -897,14 +897,29 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace principal cosine `0.9999999957944806`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current LLaMA parity gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama`.
+    The gate uses the same oracle-only solver against real local
+    `unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit` SwiGLU units, with
+    expected hidden dimension `3072` and intermediate size `8192`. Aggregate
+    artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-4unit-layer-sweep-2probe-oracle-only/report.json`.
+    Result: pass `true`, cases `4/4`, dimension `3072`, active rank `2`, total
+    raw oracle calls `57600`, max raw oracle calls per case `14400`, min
+    validation R2 `0.9999999964505302`, max validation MAE
+    `1.0737975340964412e-05`, max worst error `0.00011067984901980132`, min
+    subspace principal cosine `0.9999999979627894`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the
     recorded budgets. It does not prove full Mistral FFN extraction,
     all-channel 4096D block decompilation, exhaustive circuit recovery, or
     semantic original-neuron identity from output-only access.
   - Next K5 hardening:
-    1. widen the randomized unit/layer sweep beyond 8 selected units;
-    2. add LLaMA-family 3072D/4096D parity where local model dimensions allow;
+    1. widen the randomized unit/layer sweep beyond 8 Mistral units and add a
+       randomized LLaMA-family parity sweep;
+    2. add another LLaMA-family dimension where local model dimensions allow;
     3. add noisy/quantized oracle response stress;
     4. replace the coordinate-gradient probe with a lower-query adaptive
        directional probe before calling this scalable;

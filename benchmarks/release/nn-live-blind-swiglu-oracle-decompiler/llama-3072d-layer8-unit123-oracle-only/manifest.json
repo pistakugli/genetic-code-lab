@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-20T07:26:12.647Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "llama-3072d-layer8-unit123-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-oracle-decompiler:llama",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_EXPECTED_DIMENSION": "3072",
+    "GCL_BLIND_SWIGLU_FAMILY_LABEL": "LLaMA-family",
+    "GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE": "8192",
+    "GCL_BLIND_SWIGLU_LAYER_COUNT": "28",
+    "GCL_BLIND_SWIGLU_MODEL": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "GCL_BLIND_SWIGLU_MODEL_LABEL": "llama-3072d",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "llama-3072d-4unit-layer-sweep-2probe-oracle-only",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "7e58df9ccd96f2f29b4737f7d15df79e7e002d0b",
+    "statusShort": "M package.json\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer8-unit123-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer8-unit123-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer8-unit123-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer8-unit123-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "modelType": "llama",
+    "dimension": 3072,
+    "layer": 8,
+    "unit": 123,
+    "activeRank": 2,
+    "rawOracleCalls": 14400,
+    "metrics": {
+      "mae": 0.00000298526629046283,
+      "mse": 2.2010112693593138e-11,
+      "r2": 0.9999999996513584,
+      "worstError": 0.0000264147343163601
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 1.0000005209098295,
+      "upMaxAbsCosine": 1.000000551995524,
+      "subspaceMinPrincipalCosine": 0.9999999998405132,
+      "subspaceCosines": [
+        0.999999999969172,
+        0.9999999998405132
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9999999999999938
+  },
+  "notes": [
+    "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
+  ]
+}

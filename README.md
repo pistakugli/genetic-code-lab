@@ -354,6 +354,13 @@ What these gates currently support:
   `0.9999999957944806`, and total raw oracle calls `147968`. Aggregate
   artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-8unit-layer-sweep-2probe-oracle-only/report.json`.
+- Blind 3072D LLaMA-family SwiGLU parity sweep: `4/4` selected real
+  LLaMA-family layer/unit pairs passed with the same oracle-only access
+  invariant. Result: min R2 `0.9999999964505302`, max MAE
+  `1.0737975340964412e-05`, max worst error `0.00011067984901980132`, min
+  subspace principal cosine `0.9999999979627894`, max raw oracle calls per
+  case `14400`, and total raw oracle calls `57600`. Aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-4unit-layer-sweep-2probe-oracle-only/report.json`.
 
 What they do not support yet:
 

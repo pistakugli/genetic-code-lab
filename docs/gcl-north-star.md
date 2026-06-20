@@ -166,6 +166,14 @@ Current status: release-gated for:
   max raw oracle calls per case `18496`, min validation R2
   `0.9999570341720895`, max validation MAE `2.4326629529818456e-05`, and min
   subspace principal cosine `0.9999999957944806`.
+- blind oracle-only parity recovery across selected real local LLaMA-family
+  3072D SwiGLU units using the same solver boundary. Current parity aggregate
+  artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-4unit-layer-sweep-2probe-oracle-only/report.json`,
+  pass `true`, cases `4/4`, dimension `3072`, total raw oracle calls `57600`,
+  max raw oracle calls per case `14400`, min validation R2
+  `0.9999999964505302`, max validation MAE `1.0737975340964412e-05`, and min
+  subspace principal cosine `0.9999999979627894`.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block

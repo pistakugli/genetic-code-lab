@@ -57,6 +57,10 @@ function envValue(name: string, fallback: string): string {
   return value && value.trim() ? value.trim() : fallback;
 }
 
+const modelLabel = envValue('GCL_BLIND_SWIGLU_MODEL_LABEL', 'mistral-4096d');
+const expectedDimension = Number(envValue('GCL_BLIND_SWIGLU_EXPECTED_DIMENSION', '4096'));
+const familyLabel = envValue('GCL_BLIND_SWIGLU_FAMILY_LABEL', 'Mistral-family');
+
 function resolveGclPython(): string {
   if (process.env.GCL_PYTHON) return process.env.GCL_PYTHON;
   if (process.env.GCL_LLM_READER_PYTHON) return process.env.GCL_LLM_READER_PYTHON;
@@ -66,7 +70,7 @@ function resolveGclPython(): string {
 }
 
 function caseVariant(testCase: SweepCase): string {
-  return `mistral-4096d-layer${testCase.layer}-unit${testCase.unit}-oracle-only`;
+  return `${modelLabel}-layer${testCase.layer}-unit${testCase.unit}-oracle-only`;
 }
 
 function makeRandom(seed: number): () => number {
@@ -105,8 +109,8 @@ function parseCases(raw: string): SweepCase[] {
 
 function generateRandomCases(count: number): SweepCase[] {
   const random = makeRandom(Number(envValue('GCL_BLIND_SWIGLU_SWEEP_RANDOM_SEED', '260621')));
-  const layerCount = Number(envValue('GCL_BLIND_SWIGLU_LAYER_COUNT', '32'));
-  const intermediateSize = Number(envValue('GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE', '14336'));
+  const layerCount = Number(envValue('GCL_BLIND_SWIGLU_LAYER_COUNT', modelLabel.startsWith('llama') ? '28' : '32'));
+  const intermediateSize = Number(envValue('GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE', modelLabel.startsWith('llama') ? '8192' : '14336'));
   const minR2 = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_R2', '0.995'));
   const maxMae = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MAX_MAE', '0.002'));
   const minSubspaceCosine = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE', '0.99'));
@@ -152,8 +156,8 @@ function resolveSweepCases(): { cases: SweepCase[]; selection: Record<string, un
         kind: 'deterministic-random',
         seed: Number(envValue('GCL_BLIND_SWIGLU_SWEEP_RANDOM_SEED', '260621')),
         count: randomCount,
-        layerCount: Number(envValue('GCL_BLIND_SWIGLU_LAYER_COUNT', '32')),
-        intermediateSize: Number(envValue('GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE', '14336'))
+        layerCount: Number(envValue('GCL_BLIND_SWIGLU_LAYER_COUNT', modelLabel.startsWith('llama') ? '28' : '32')),
+        intermediateSize: Number(envValue('GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE', modelLabel.startsWith('llama') ? '8192' : '14336'))
       }
     };
   }
@@ -177,7 +181,7 @@ function resolveOutputForVariant(variant: string) {
 function assertCaseReport(report: CaseReport, testCase: SweepCase): string[] {
   const failures: string[] = [];
   if (!report.summary.pass) failures.push('summary.pass=false');
-  if (report.summary.dimension !== 4096) failures.push(`dimension=${report.summary.dimension}`);
+  if (report.summary.dimension !== expectedDimension) failures.push(`dimension=${report.summary.dimension}`);
   if (report.summary.layer !== testCase.layer) failures.push(`layer=${report.summary.layer}`);
   if (report.summary.unit !== testCase.unit) failures.push(`unit=${report.summary.unit}`);
   if (report.summary.metrics.r2 < testCase.minR2) failures.push(`r2=${report.summary.metrics.r2}<${testCase.minR2}`);
@@ -271,7 +275,7 @@ for (const testCase of sweepCases) {
   });
 }
 
-const aggregateVariant = envValue('GCL_BLIND_SWIGLU_SWEEP_VARIANT', 'mistral-4096d-4unit-layer-sweep-2probe-oracle-only');
+const aggregateVariant = envValue('GCL_BLIND_SWIGLU_SWEEP_VARIANT', `${modelLabel}-4unit-layer-sweep-2probe-oracle-only`);
 const aggregateOutput = resolveOutputForVariant(aggregateVariant);
 fs.mkdirSync(aggregateOutput.outputDir, { recursive: true });
 
@@ -301,8 +305,8 @@ const aggregate = {
   },
   selection: resolvedSweep.selection,
   claimBoundary: [
-    'This sweep proves selected real local Mistral-family 4096D SwiGLU units can be recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the recorded case budgets.',
-    'It does not prove full Mistral FFN extraction, all-channel 4096D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.'
+    `This sweep proves selected real local ${familyLabel} ${expectedDimension}D SwiGLU units can be recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the recorded case budgets.`,
+    `It does not prove full ${familyLabel} FFN extraction, all-channel ${expectedDimension}D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.`
   ]
 };
 
@@ -310,7 +314,7 @@ fs.writeFileSync(aggregateOutput.jsonOutputPath, `${JSON.stringify(aggregate, nu
 fs.writeFileSync(
   aggregateOutput.markdownOutputPath,
   [
-    '# Blind 4096D SwiGLU Oracle Decompiler Sweep',
+    `# Blind ${expectedDimension}D SwiGLU Oracle Decompiler Sweep`,
     '',
     `- pass: \`${String(aggregate.summary.pass)}\``,
     `- cases: \`${aggregate.summary.passedCases}/${aggregate.summary.caseCount}\``,
