@@ -395,19 +395,61 @@ def fit_swiglu_sum(
     import torch
 
     torch.manual_seed(seed)
-    x = torch.tensor(coords, dtype=torch.float32)
-    y = torch.tensor(targets, dtype=torch.float32)
+    fit_dtype = torch.float64 if atom_count >= 4 else torch.float32
+    x = torch.tensor(coords, dtype=fit_dtype)
+    y = torch.tensor(targets, dtype=fit_dtype)
     rank = coords.shape[1]
     target_scale = float(np.std(targets)) or 1.0
     restart_count = max(64, atom_count * 32)
+    if atom_count >= 4:
+        restart_count = max(restart_count, atom_count * 48)
     best: dict[str, Any] | None = None
+    structured_starts: list[tuple[np.ndarray, np.ndarray, np.ndarray, float]] = []
+    if atom_count > 1:
+        residual = targets.astype(np.float64).copy()
+        residual_bias = float(np.mean(residual))
+        residual -= residual_bias
+        residual_gates: list[np.ndarray] = []
+        residual_ups: list[np.ndarray] = []
+        residual_scales: list[float] = []
+        residual_steps = max(240, min(700, steps // 4))
+        try:
+            for atom_index in range(atom_count):
+                single = fit_swiglu_atom(
+                    coords,
+                    residual,
+                    seed + 1009 + atom_index * 131,
+                    residual_steps,
+                    learning_rate,
+                )
+                component = predict_swiglu(coords, single)
+                residual_bias += float(single["bias"])
+                residual_gates.append(single["gate"])
+                residual_ups.append(single["up"])
+                residual_scales.append(float(single["scale"]))
+                residual -= component
+            structured_starts.append((
+                np.vstack(residual_gates),
+                np.vstack(residual_ups),
+                np.array(residual_scales, dtype=np.float64),
+                residual_bias,
+            ))
+        except Exception:
+            structured_starts = []
 
     for restart in range(restart_count):
         torch.manual_seed(seed + restart)
-        gates = torch.nn.Parameter(torch.randn(atom_count, rank) * 0.6)
-        ups = torch.nn.Parameter(torch.randn(atom_count, rank) * 0.6)
-        scales = torch.nn.Parameter(torch.ones(atom_count) * max(0.1, target_scale / max(1, atom_count)))
-        bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets))))
+        if restart < len(structured_starts):
+            gate_init, up_init, scale_init, bias_init = structured_starts[restart]
+            gates = torch.nn.Parameter(torch.tensor(gate_init, dtype=fit_dtype))
+            ups = torch.nn.Parameter(torch.tensor(up_init, dtype=fit_dtype))
+            scales = torch.nn.Parameter(torch.tensor(scale_init, dtype=fit_dtype))
+            bias = torch.nn.Parameter(torch.tensor(bias_init, dtype=fit_dtype))
+        else:
+            gates = torch.nn.Parameter(torch.randn(atom_count, rank, dtype=fit_dtype) * 0.6)
+            ups = torch.nn.Parameter(torch.randn(atom_count, rank, dtype=fit_dtype) * 0.6)
+            scales = torch.nn.Parameter(torch.ones(atom_count, dtype=fit_dtype) * max(0.1, target_scale / max(1, atom_count)))
+            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets)), dtype=fit_dtype))
         optimizer = torch.optim.Adam([gates, ups, scales, bias], lr=learning_rate)
         for _ in range(steps):
             optimizer.zero_grad()
@@ -417,7 +459,12 @@ def fit_swiglu_sum(
             loss.backward()
             optimizer.step()
 
-        lbfgs = torch.optim.LBFGS([gates, ups, scales, bias], lr=0.7, max_iter=260, line_search_fn="strong_wolfe")
+        lbfgs = torch.optim.LBFGS(
+            [gates, ups, scales, bias],
+            lr=0.7,
+            max_iter=420 if atom_count >= 4 else 260,
+            line_search_fn="strong_wolfe"
+        )
 
         def closure() -> torch.Tensor:
             lbfgs.zero_grad()
@@ -436,9 +483,11 @@ def fit_swiglu_sum(
             activations = torch.nn.functional.silu(x @ gates.T) * (x @ ups.T)
             prediction = activations @ scales + bias
             mae = torch.mean(torch.abs(prediction - y)).item()
+            mse = torch.mean((prediction - y) ** 2).item()
             candidate = {
                 "restart": restart,
                 "mae": mae,
+                "mse": mse,
                 "gates": gates.detach().cpu().numpy().astype(np.float64),
                 "ups": ups.detach().cpu().numpy().astype(np.float64),
                 "scales": scales.detach().cpu().numpy().astype(np.float64),

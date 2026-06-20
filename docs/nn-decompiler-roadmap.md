@@ -980,17 +980,33 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.9999999878109772`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current first 4-unit block gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-4unit`.
+    The gate uses a real local Mistral-family scalar oracle that returns the
+    sum of four layer-20 SwiGLU unit outputs, units `[0,17,123,456]`. The
+    solver receives only batch `f(x)` outputs, recovers a rank-8 active
+    subspace, and fits an explicit 4-atom SwiGLU sum. This case failed before
+    hardening at R2 `< 0.995`; it passed after the 4+ atom fit path switched to
+    float64 fitting, residual-start search, and slower fit settings
+    (`fitLearningRate = 0.01`, `fitSteps = 3200`). Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-123-456-4atom-oracle-only/report.json`.
+    Result: pass `true`, dimension `4096`, unitCount `4`, atomCount `4`, raw
+    oracle calls `79808`, validation R2 `0.9996964505713657`, validation MAE
+    `0.0001659790529608388`, max worst error `0.002872809058861975`, subspace
+    min principal cosine `0.9999999945348134`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
-    blocks plus first selected and randomized 3-unit scalar blocks. It does
-    not prove full Mistral FFN extraction,
+    blocks, first selected and randomized 3-unit scalar blocks, and a first
+    selected 4-unit scalar block. It does not prove full Mistral FFN extraction,
     all-channel 4096D block decompilation, exhaustive circuit recovery, or
     semantic original-neuron identity from output-only access.
   - Next K5 hardening:
     1. widen randomized multi-unit block gates beyond 2 Mistral 2-unit and
        2 Mistral 3-unit cases;
-    2. add 4-unit block recovery with active rank `8`;
+    2. add randomized 4-unit block recovery with active rank `8`;
     3. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
        units;
     4. add another LLaMA-family dimension where local model dimensions allow;

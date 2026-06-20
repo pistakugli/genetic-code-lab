@@ -401,6 +401,16 @@ What these gates currently support:
   subspace principal cosine `0.9999999878109772`, total raw oracle calls
   `123936`, max unit count `3`, and max atom count `3`. Aggregate artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-3unit-sweep-oracle-only/report.json`.
+- Blind 4096D Mistral 4-unit SwiGLU block recovery: a scalar oracle returns
+  the sum of four real layer-20 units `[0,17,123,456]`; the solver receives
+  only `f(x)` batches and recovers an explicit 4-atom SwiGLU sum in a rank-8
+  active subspace. This gate required slower 4-atom fit settings
+  (`fitLearningRate = 0.01`, `fitSteps = 3200`) rather than a lowered
+  accuracy threshold. Result: pass `true`, R2 `0.9996964505713657`, MAE
+  `0.0001659790529608388`, worst error `0.002872809058861975`, subspace min
+  principal cosine `0.9999999945348134`, and raw oracle calls `79808`.
+  Artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-123-456-4atom-oracle-only/report.json`.
 
 What they do not support yet:
 

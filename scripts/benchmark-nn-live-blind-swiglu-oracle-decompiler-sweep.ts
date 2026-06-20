@@ -270,6 +270,7 @@ for (const testCase of sweepCases) {
     '--train-count', envValue('GCL_BLIND_SWIGLU_TRAIN_COUNT', '1600'),
     '--validation-count', envValue('GCL_BLIND_SWIGLU_VALIDATION_COUNT', '512'),
     '--fit-steps', envValue('GCL_BLIND_SWIGLU_FIT_STEPS', '1200'),
+    '--fit-learning-rate', envValue('GCL_BLIND_SWIGLU_FIT_LEARNING_RATE', '0.025'),
     '--min-r2', String(testCase.minR2),
     '--max-mae', String(testCase.maxMae),
     '--max-worst-error', String(testCase.maxWorstError),
