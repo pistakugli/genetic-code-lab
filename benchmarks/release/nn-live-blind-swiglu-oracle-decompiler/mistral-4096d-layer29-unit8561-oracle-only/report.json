@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "pass": true,
+    "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+    "modelType": "mistral",
+    "dimension": 4096,
+    "layer": 29,
+    "unit": 8561,
+    "activeRank": 2,
+    "rawOracleCalls": 18496,
+    "metrics": {
+      "mae": 1.3637489816799884e-05,
+      "mse": 9.109589631376876e-10,
+      "r2": 0.9999877842354408,
+      "worstError": 0.0003315196433984341
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 1.0000006330976965,
+      "upMaxAbsCosine": 1.0000004479793714,
+      "subspaceMinPrincipalCosine": 0.9999999957944806,
+      "subspaceCosines": [
+        0.9999999999760069,
+        0.9999999957944806
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9999999999999947
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "oracleOwnsWeights": true,
+    "postHocWitnessOnly": true,
+    "processBoundary": "solver parent communicates with oracle subprocess via npy batch files and JSONL commands"
+  },
+  "solver": {
+    "kind": "blind-active-subspace-explicit-swiglu-atom",
+    "probePoints": 2,
+    "gradientMode": "coordinate",
+    "directionCount": 384,
+    "finiteDifferenceStep": 0.08,
+    "trainCount": 1600,
+    "validationCount": 512,
+    "validationScale": 0.65,
+    "gradientEigenvalues": [
+      0.00018025392371683234,
+      1.5797971738268186e-06
+    ],
+    "fitTrainMae": 4.69351107312832e-06,
+    "fitScale": 0.23340196907520294,
+    "fitBias": 9.525989952408054e-08
+  },
+  "claimBoundary": [
+    "This gate proves one real local SwiGLU unit can be queried as a black-box oracle and recovered as a rank-2 explicit SwiGLU atom under the recorded budget.",
+    "It does not prove full Mistral FFN extraction, all-channel 4096D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}

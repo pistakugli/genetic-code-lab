@@ -69,6 +69,15 @@ function caseVariant(testCase: SweepCase): string {
   return `mistral-4096d-layer${testCase.layer}-unit${testCase.unit}-oracle-only`;
 }
 
+function makeRandom(seed: number): () => number {
+  let state = Math.floor(seed) % 2147483647;
+  if (state <= 0) state += 2147483646;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return (state - 1) / 2147483646;
+  };
+}
+
 function parseCases(raw: string): SweepCase[] {
   return raw
     .split(',')
@@ -92,6 +101,66 @@ function parseCases(raw: string): SweepCase[] {
           : Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE', '0.99'))
       };
     });
+}
+
+function generateRandomCases(count: number): SweepCase[] {
+  const random = makeRandom(Number(envValue('GCL_BLIND_SWIGLU_SWEEP_RANDOM_SEED', '260621')));
+  const layerCount = Number(envValue('GCL_BLIND_SWIGLU_LAYER_COUNT', '32'));
+  const intermediateSize = Number(envValue('GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE', '14336'));
+  const minR2 = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_R2', '0.995'));
+  const maxMae = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MAX_MAE', '0.002'));
+  const minSubspaceCosine = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE', '0.99'));
+  if (!Number.isInteger(count) || count <= 0) throw new Error(`Invalid random sweep count ${count}`);
+  if (!Number.isInteger(layerCount) || layerCount <= 0) throw new Error(`Invalid layer count ${layerCount}`);
+  if (!Number.isInteger(intermediateSize) || intermediateSize <= 0) {
+    throw new Error(`Invalid intermediate size ${intermediateSize}`);
+  }
+
+  const cases: SweepCase[] = [];
+  const seen = new Set<string>();
+  while (cases.length < count) {
+    const layer = Math.floor(random() * layerCount);
+    const unit = Math.floor(random() * intermediateSize);
+    const key = `${layer}:${unit}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cases.push({
+      id: `random${cases.length}-layer${layer}-unit${unit}`,
+      layer,
+      unit,
+      minR2,
+      maxMae,
+      minSubspaceCosine
+    });
+  }
+  return cases;
+}
+
+function resolveSweepCases(): { cases: SweepCase[]; selection: Record<string, unknown> } {
+  const explicit = process.env.GCL_BLIND_SWIGLU_SWEEP_CASES;
+  if (explicit && explicit.trim()) {
+    return {
+      cases: parseCases(explicit),
+      selection: { kind: 'explicit', source: 'GCL_BLIND_SWIGLU_SWEEP_CASES' }
+    };
+  }
+  const randomCount = Number(process.env.GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT ?? '0');
+  if (randomCount > 0) {
+    return {
+      cases: generateRandomCases(randomCount),
+      selection: {
+        kind: 'deterministic-random',
+        seed: Number(envValue('GCL_BLIND_SWIGLU_SWEEP_RANDOM_SEED', '260621')),
+        count: randomCount,
+        layerCount: Number(envValue('GCL_BLIND_SWIGLU_LAYER_COUNT', '32')),
+        intermediateSize: Number(envValue('GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE', '14336'))
+      }
+    };
+  }
+  return {
+    cases: parseCases('8:123:0.995:0.002:0.99,16:2048:0.995:0.002:0.99,20:0:0.995:0.002:0.99,24:17:0.995:0.002:0.99'),
+    selection: { kind: 'fixed-canonical' }
+  };
 }
 
 function resolveOutputForVariant(variant: string) {
@@ -127,10 +196,8 @@ function assertCaseReport(report: CaseReport, testCase: SweepCase): string[] {
 const toolPath = path.join(repoRoot, 'tools', 'llm_reader', 'blind_swiglu_oracle_decompiler.py');
 if (!fs.existsSync(toolPath)) throw new Error(`Missing blind SwiGLU oracle decompiler: ${toolPath}`);
 
-const sweepCases = parseCases(envValue(
-  'GCL_BLIND_SWIGLU_SWEEP_CASES',
-  '8:123:0.995:0.002:0.99,16:2048:0.995:0.002:0.99,20:0:0.995:0.002:0.99,24:17:0.995:0.002:0.99'
-));
+const resolvedSweep = resolveSweepCases();
+const sweepCases = resolvedSweep.cases;
 if (!sweepCases.length) throw new Error('Blind SwiGLU sweep requires at least one case');
 
 const caseResults: Array<{
@@ -232,6 +299,7 @@ const aggregate = {
     postHocWitnessOnly: true,
     perCaseReportsEnforceInvariant: true
   },
+  selection: resolvedSweep.selection,
   claimBoundary: [
     'This sweep proves selected real local Mistral-family 4096D SwiGLU units can be recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the recorded case budgets.',
     'It does not prove full Mistral FFN extraction, all-channel 4096D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.'

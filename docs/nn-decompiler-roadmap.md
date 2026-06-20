@@ -884,14 +884,26 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     2-probe failure exposed a solver bug: centered covariance collapses rank
     when gradient witness count equals active rank. The fix uses raw second
     moments in that regime instead of hiding the failure or raising the budget.
+  - Current randomized hardening gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:randomized`.
+    The gate uses deterministic-random real Mistral-family layer/unit selection
+    with the same oracle-only access invariant and the same 2-probe query
+    budget. Aggregate artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-8unit-layer-sweep-2probe-oracle-only/report.json`.
+    Result: pass `true`, cases `8/8`, dimension `4096`, active rank `2`, total
+    raw oracle calls `147968`, max raw oracle calls per case `18496`, min
+    validation R2 `0.9999570341720895`, max validation MAE
+    `2.4326629529818456e-05`, max worst error `0.00044138616892425153`, min
+    subspace principal cosine `0.9999999957944806`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the
     recorded budgets. It does not prove full Mistral FFN extraction,
     all-channel 4096D block decompilation, exhaustive circuit recovery, or
     semantic original-neuron identity from output-only access.
   - Next K5 hardening:
-    1. widen the unit/layer sweep beyond four selected units with randomized
-       layer/unit selection;
+    1. widen the randomized unit/layer sweep beyond 8 selected units;
     2. add LLaMA-family 3072D/4096D parity where local model dimensions allow;
     3. add noisy/quantized oracle response stress;
     4. replace the coordinate-gradient probe with a lower-query adaptive

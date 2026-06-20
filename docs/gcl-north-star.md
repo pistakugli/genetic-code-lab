@@ -159,6 +159,13 @@ Current status: release-gated for:
   max raw oracle calls per case `18496`, min validation R2
   `0.9999845855712838`, max validation MAE `1.5160815735029332e-05`, and min
   subspace principal cosine `0.9999997892743723`.
+- deterministic-random blind oracle-only recovery across selected real local
+  Mistral-family 4096D SwiGLU units. Current randomized aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-8unit-layer-sweep-2probe-oracle-only/report.json`,
+  pass `true`, cases `8/8`, dimension `4096`, total raw oracle calls `147968`,
+  max raw oracle calls per case `18496`, min validation R2
+  `0.9999570341720895`, max validation MAE `2.4326629529818456e-05`, and min
+  subspace principal cosine `0.9999999957944806`.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block
