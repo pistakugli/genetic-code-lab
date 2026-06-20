@@ -426,6 +426,13 @@ What these gates currently support:
   principal cosine `0.9999999795104269`, and raw oracle calls `97648`.
   Artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-123-456-789-5atom-oracle-only/report.json`.
+- Blind 4096D randomized Mistral 5-unit SwiGLU block recovery: `2/2`
+  deterministic-random five-unit blocks passed with active rank `10`.
+  Result: min R2 `0.9951436177161573`, max MAE
+  `0.0008022104114991162`, max worst error `0.010051115148071464`, min
+  subspace principal cosine `0.9999997906113538`, max raw oracle calls per
+  case `97648`, and total raw oracle calls `195296`. Aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-5unit-sweep-oracle-only/report.json`.
 
 What they do not support yet:
 
