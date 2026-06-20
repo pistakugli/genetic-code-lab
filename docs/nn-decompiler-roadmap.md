@@ -806,6 +806,97 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     patching for every edge, full-model circuit recovery, full FFN extraction,
     arbitrary LLM understanding, arbitrary OOD paraphrase robustness, semantic
     original-neuron identity, or output-only original-neuron identity.
+- Stage K4: graph-level adaptive LLM circuit reader.
+  - Target: turn benchmark-scoped path evidence into a real reader workflow
+    that takes a prompt/target and returns a circuit family with stable edges,
+    prompt-specific edges, alternate paths, controls, and why-reacts evidence.
+  - Non-negotiable mode split: if this stage uses weights, hooks, cached
+    activations, or source manifests to choose the circuit, it is an
+    instrumented reader/witness gate, not a black-box decompiler gate. A
+    black-box 4096D/LLM claim requires a blind solver path that receives only
+    oracle calls/logits/channels and uses weights/hooks only after recovery for
+    evaluation or provenance.
+  - Required behavior:
+    1. run real model runtimes only through adapters with model/tokenizer/
+       component identity recorded;
+    2. scan candidate attention heads, MLP units, residual positions, layers,
+       and token positions without hard-coding GPT-2-only assumptions into the
+       circuit-finder core;
+    3. build a graph containing token, head, neuron/MLP-unit, residual, and
+       target-logit nodes;
+    4. validate graph edges with causal ablation, ordered replay, negative
+       controls, neighboring-layer controls, random active/inactive controls,
+       off-prompt controls, and same-component other-position controls;
+    5. run paraphrase and OOD paraphrase probes as first-class gates;
+    6. when a paraphrase breaks the selected path, search for an alternate path
+       and report the circuit change instead of hiding the failure or calling
+       the original path universal;
+    7. emit why-reacts traces: trigger probes, preactivation, activation,
+       contribution, residual-path delta, and target-logit effect;
+    8. record query/runtime budgets, skipped cases, failed probes, runtime
+       warnings, and control-family overlap audits.
+  - First gate: OOD paraphrase stress for ordered paths. The current stability
+    gate covers configured paraphrase families; the next gate must include
+    harder prompt transforms and require alternate-path discovery when the
+    original path no longer carries the evidence.
+  - Claim boundary: this stage is still a reader for selected prompts/targets
+    and configured model families. Passing it would not prove full LLM
+    understanding, semantic original-neuron identity from output-only access,
+    complete circuit enumeration, or arbitrary production-model decompilation.
+- Stage K5: blind 4096D LLM-channel decompiler gate.
+  - Target: use a real local transformer block only as an oracle provider,
+    then hide weights, hooks, layer internals, and source neuron ids from the
+    solver while it recovers active subspace and functional structure for a
+    selected 4096D channel/logit/block output.
+  - Required behavior:
+    1. construct an oracle from a real local HF transformer component;
+    2. expose to the solver only `f(x)` calls and budget metadata;
+    3. forbid direct reads of weights, hidden activations, manifests, or source
+       ids in the solver process;
+    4. recover active subspace, candidate atoms/gates, and held-out functional
+       fidelity;
+    5. run post-hoc witness comparison against hooks/weights only after blind
+       recovery has produced its structure;
+    6. report `solverAccess = oracle-only` and fail the gate if that invariant
+       is violated.
+  - First gate: single selected 4096D MLP channel or target-logit projection
+    from a local HF transformer, with the solver run in oracle-only mode and
+    witness comparison separated into a post-recovery audit file.
+  - Current first sweep gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:sweep`.
+    The gate builds real local
+    `unsloth/mistral-7b-instruct-v0.3-bnb-4bit` SwiGLU oracles for selected
+    layer/unit pairs, then runs the solver in a separate parent process that
+    receives only batch `f(x)` outputs. The post-hoc witness is requested only
+    after recovery. Aggregate artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-4unit-layer-sweep-2probe-oracle-only/report.json`.
+    Result: pass `true`, cases `4/4`, dimension `4096`, active rank `2`, total
+    raw oracle calls `73984`, max raw oracle calls per case `18496`, min
+    validation R2 `0.9999845855712838`, max validation MAE
+    `1.5160815735029332e-05`, max worst error `0.00017546677141010852`, min
+    subspace principal cosine `0.9999997892743723`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+    Per-case artifacts include layer `8`/unit `123`, layer `16`/unit `2048`,
+    layer `20`/unit `0`, and the harder layer `24`/unit `17`, where the
+    stricter case passed with R2 `0.9999985693061243` and MAE
+    `4.612942860071953e-6` under the lower-query 2-probe budget. The earlier
+    2-probe failure exposed a solver bug: centered covariance collapses rank
+    when gradient witness count equals active rank. The fix uses raw second
+    moments in that regime instead of hiding the failure or raising the budget.
+  - Boundary: this proves selected real Mistral-family SwiGLU units can be
+    recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the
+    recorded budgets. It does not prove full Mistral FFN extraction,
+    all-channel 4096D block decompilation, exhaustive circuit recovery, or
+    semantic original-neuron identity from output-only access.
+  - Next K5 hardening:
+    1. widen the unit/layer sweep beyond four selected units with randomized
+       layer/unit selection;
+    2. add LLaMA-family 3072D/4096D parity where local model dimensions allow;
+    3. add noisy/quantized oracle response stress;
+    4. replace the coordinate-gradient probe with a lower-query adaptive
+       directional probe before calling this scalable;
+    5. only then promote K5 into full `release:gate`.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

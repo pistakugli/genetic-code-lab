@@ -16,9 +16,24 @@ GELU/SwiGLU/ReLU-style structure when identifiable, validate the recovered
 structure against held-out oracle probes, and attach exact source-neuron
 provenance when source manifests or hooks are available.
 
-The current mainline is smooth FFN structure recovery and provenance. ReLU
-geometry, archive, and symbolic-regression lanes remain important foundations,
-but they are not the center of the neural-decompiler roadmap.
+Black-box and instrumented modes are separate. A black-box claim means the
+solver consumed only oracle calls such as `f(x) -> y`, logits, or selected
+output channels. Local model weights, hooks, activations, and source manifests
+may be used to create a real oracle or to verify/label a recovered structure
+afterward, but they are not allowed to be the solver input for a black-box
+4096D/LLM decompilation claim.
+
+The concrete live-model product target is a graph-level adaptive LLM circuit
+reader: given a real local model, prompt/target, and adapter, GCL should find
+causal attention/MLP/residual paths, validate them against controls and
+paraphrases, search alternate paths when prompt shifts break the original path,
+and explain why selected components react. GPT-2 is only a fast proof model;
+the framework target is adapter-backed portability across transformer families.
+
+The current mainline is smooth FFN structure recovery, provenance, and
+adapter-backed LLM circuit reading. ReLU geometry, archive, and
+symbolic-regression lanes remain important foundations, but they are not the
+center of the neural-decompiler roadmap.
 
 ## What Is Stable
 
@@ -32,6 +47,8 @@ but they are not the center of the neural-decompiler roadmap.
 
 - Research scripts under `scripts/` are for calibration, diagnosis, and proof runs, not public API stability.
 - Claims of outperforming existing open-source tools are not made by default. That requires a positive benchmark gate, not only passing tests.
+- A graph-level adaptive LLM reader that discovers alternate circuits when OOD
+  paraphrases or prompt shifts break the selected path.
 
 ## Install
 
@@ -167,6 +184,13 @@ npm run benchmark:nn-live-gpt2-fact-circuit-finder:gpu
 npm run benchmark:nn-live-gpt2-attention-path-circuit-finder:gpu
 npm run benchmark:nn-live-gpt2-combined-circuit-finder:gpu
 npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder:gpu
+```
+
+Targeted blind real-SwiGLU oracle gate:
+
+```bash
+npm run benchmark:nn-live-blind-swiglu-oracle-decompiler
+npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:sweep
 ```
 
 The CPU environment remains the default reproducible release path. The GPU
@@ -315,11 +339,20 @@ What these gates currently support:
   `1.0`, Pythia/GPT-NeoX `0.9333333333333333`, Llama/SwiGLU `1.0`, and
   Mistral/SwiGLU `1.0`; neighboring-layer specificity rate is `1.0`, max
   replay error is `0`, and failed subjects are `[]`.
+- Blind 4096D real SwiGLU unit/layer sweep: `4/4` selected Mistral-family
+  units passed with the same oracle-only access invariant, min R2
+  `0.9999845855712838`, max MAE `1.5160815735029332e-05`, max worst error
+  `0.00017546677141010852`, min subspace principal cosine
+  `0.9999997892743723`, max raw oracle calls per case `18496`, and total raw
+  oracle calls `73984`. Aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-4unit-layer-sweep-2probe-oracle-only/report.json`.
 
 What they do not support yet:
 
 - Full GPT-2 FFN extraction as a release claim.
 - Arbitrary 3072-channel or 4096D production LLM block decompilation.
+- Full Mistral/LLaMA FFN extraction or all-channel 4096D decompilation from
+  the selected-unit blind SwiGLU oracle gates.
 - Semantic identity of the original hidden neurons from output-only access
   without a source manifest, weight hook, activation hook, or equivalent
   provenance instrumentation.

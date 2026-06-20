@@ -27,6 +27,70 @@ The product is not "a better random symbolic regression toy". The product is a
 structure-aware neural decomposition system with explicit evidence, query
 budgets, and failure accounting.
 
+## Access Modes Are Not Interchangeable
+
+GCL must not blur these modes:
+
+1. **Black-box decompiler mode**: the solver receives only oracle calls such as
+   `f(x) -> y`, logits, or selected output channels. It does not read model
+   weights, hidden activations, source manifests, layer widths, or original
+   neuron ids. This is the mode required for a real 4096D black-box claim.
+2. **Instrumented witness mode**: the system may use local model weights,
+   hooks, hidden activations, or source manifests only to create a real oracle,
+   validate a recovered structure after the blind recovery step, or explain
+   provenance when observability is explicitly available.
+3. **White-box/source-mapping mode**: the system uses weights/hooks/manifests to
+   map recovered atoms to known source components. This is useful engineering,
+   but it is not proof that GCL solved a black-box decompilation problem.
+
+Any claim that says "GCL reads a black-box LLM/4096D block" must be backed by a
+blind/oracle-only recovery artifact. A local model can provide the oracle and
+the post-hoc witness, but the solver path being evaluated must not consume the
+weights or hooks as its solution.
+
+## LLM Reader Target
+
+The user-facing product target is a real LLM reader, not a benchmark
+collection, not a generic surrogate fitter, and not a weight-inspection trick
+being mislabeled as black-box reading.
+
+GCL should make selected LLM/NN behavior less black-box through two explicitly
+separated rails:
+
+- **Blind recovery rail**: recover active subspaces, functional atoms, and
+  circuit/path structure from oracle access only.
+- **Witness/provenance rail**: use local weights, hooks, activation traces, and
+  source manifests after recovery to verify and label what the blind solver
+  found.
+
+For real local LLMs, the reader should do all of the following through model
+adapters and measured interventions:
+
+1. load a real local model runtime, tokenizer, and component map;
+2. select a prompt/target, neuron/channel, or local block;
+3. scan layers, attention heads, MLP units, residual positions, and token
+   positions for causal components;
+4. build a graph-level circuit family, not only a single lucky path;
+5. validate selected edges with causal ablation, path replay, negative
+   controls, neighboring-layer controls, paraphrases, OOD paraphrases, and
+   budget accounting;
+6. when a paraphrase or prompt shift breaks the current path, search for the
+   replacement path and record the circuit change instead of promoting the old
+   path as universal;
+7. explain why selected atoms react using trigger probes, preactivation,
+   activation, contribution, residual-path deltas, and target-logit effects;
+8. report failures, skipped cases, runtime warnings, query/runtime budgets, and
+   claim boundaries in the artifact.
+
+Current verified status: benchmark-scoped real-model graph/path readers exist
+for GPT-2, Pythia/GPT-NeoX, LLaMA-family SwiGLU, and Mistral-family SwiGLU
+lanes. These gates prove configured graph/path evidence, not full arbitrary LLM
+understanding and not pure black-box 4096D LLM decompilation unless the
+specific artifact states that the solver consumed oracle calls only. They do
+not yet prove full GPT-2 FFN extraction, arbitrary 3072-channel or 4096D LLM
+block decompilation, semantic original-neuron identity, exhaustive circuit
+completeness, or universal removal of black-box behavior.
+
 ## Current Capability Surface
 
 GCL now has four working rails.
@@ -86,10 +150,19 @@ Current status: release-gated for:
   fixture to verify that top-20 coverage is not a full-3072 extraction claim;
 - compact real GPT-2 layer-0 top-20 instrumented source-graph extraction with
   strict provenance and exact IID/OOD held-out agreement.
+- blind oracle-only recovery of selected real local Mistral-family 4096D SwiGLU
+  units as explicit rank-2 SwiGLU atoms. The solver receives only batch `f(x)`
+  oracle outputs from a separate oracle process; source weights are used only
+  after recovery for witness alignment. Current aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-4unit-layer-sweep-2probe-oracle-only/report.json`,
+  pass `true`, cases `4/4`, dimension `4096`, total raw oracle calls `73984`,
+  max raw oracle calls per case `18496`, min validation R2
+  `0.9999845855712838`, max validation MAE `1.5160815735029332e-05`, and min
+  subspace principal cosine `0.9999997892743723`.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
-blind decompilation, arbitrary 4096D production block decompilation, or a
-universal SOTA claim.
+blind decompilation, arbitrary all-channel 4096D production block
+decompilation, or a universal SOTA claim.
 
 ### 3. Provenance Rail
 
