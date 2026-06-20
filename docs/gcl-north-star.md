@@ -190,6 +190,14 @@ Current status: release-gated for:
   pass `true`, raw oracle calls `44128`, R2 `0.9998005671654032`, MAE
   `9.702990494674492e-05`, and subspace min principal cosine
   `0.9999999793123026`.
+- first randomized blind oracle-only small-block SwiGLU sweep on real local
+  Mistral-family 4096D units. Two deterministic-random same-layer 2-unit
+  scalar oracles passed: layer `1` units `[7309,8811]` and layer `27` units
+  `[4733,5191]`. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-2unit-sweep-oracle-only/report.json`,
+  pass `true`, cases `2/2`, total raw oracle calls `88256`, min R2
+  `0.9994744138350042`, max MAE `0.00014261562921587213`, and min subspace
+  principal cosine `0.9999999823144813`.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block

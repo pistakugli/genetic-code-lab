@@ -378,6 +378,14 @@ What these gates currently support:
   `0.9999999793123026`, raw oracle calls `44128`, and access invariant
   `solverAccess = oracle-only`. Artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-2atom-oracle-only/report.json`.
+- Blind 4096D randomized Mistral small-block SwiGLU recovery: `2/2`
+  deterministic-random two-unit blocks passed under the same oracle-only
+  invariant. Result: min R2 `0.9994744138350042`, max MAE
+  `0.00014261562921587213`, max worst error `0.0027002211714715688`, min
+  subspace principal cosine `0.9999999823144813`, max raw oracle calls per
+  case `44128`, total raw oracle calls `88256`, max unit count `2`, and max
+  atom count `2`. Aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-2unit-sweep-oracle-only/report.json`.
 
 What they do not support yet:
 

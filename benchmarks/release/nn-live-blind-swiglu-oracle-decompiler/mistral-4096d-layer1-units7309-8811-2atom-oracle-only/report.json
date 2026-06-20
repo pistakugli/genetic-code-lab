@@ -1,0 +1,71 @@
+{
+  "summary": {
+    "pass": true,
+    "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+    "modelType": "mistral",
+    "dimension": 4096,
+    "layer": 1,
+    "unit": 7309,
+    "units": [
+      7309,
+      8811
+    ],
+    "unitCount": 2,
+    "activeRank": 4,
+    "atomCount": 2,
+    "rawOracleCalls": 44128,
+    "metrics": {
+      "mae": 0.00014261562921587213,
+      "mse": 7.540033717816118e-08,
+      "r2": 0.9994744138350042,
+      "worstError": 0.0027002211714715688
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.9998022228818887,
+      "upMaxAbsCosine": 0.9985243527761649,
+      "subspaceMinPrincipalCosine": 0.9999999981583662,
+      "subspaceCosines": [
+        0.999999999975112,
+        0.9999999999406011,
+        0.9999999997105904,
+        0.9999999981583662
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9999999999999963
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "oracleOwnsWeights": true,
+    "postHocWitnessOnly": true,
+    "processBoundary": "solver parent communicates with oracle subprocess via npy batch files and JSONL commands"
+  },
+  "solver": {
+    "kind": "blind-active-subspace-explicit-swiglu-sum",
+    "probePoints": 5,
+    "gradientMode": "coordinate",
+    "directionCount": 384,
+    "finiteDifferenceStep": 0.08,
+    "trainCount": 2400,
+    "validationCount": 768,
+    "validationScale": 0.65,
+    "gradientEigenvalues": [
+      0.00017311255753664736,
+      7.647883743471369e-05,
+      2.7388252753334012e-05,
+      3.6220689561248625e-06
+    ],
+    "fitTrainMae": 4.166069265920669e-05,
+    "fitScales": [
+      0.08626618981361389,
+      -0.15833720564842224
+    ],
+    "fitBias": -1.8333187199459644e-06
+  },
+  "claimBoundary": [
+    "This gate proves selected real local SwiGLU unit outputs can be queried as a black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under the recorded budget.",
+    "It does not prove full FFN extraction, all-channel decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}

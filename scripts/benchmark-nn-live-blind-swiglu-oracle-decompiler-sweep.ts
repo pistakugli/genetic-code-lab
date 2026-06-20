@@ -9,6 +9,9 @@ type SweepCase = {
   id: string;
   layer: number;
   unit: number;
+  units: number[];
+  activeRank: number;
+  atomCount: number;
   minR2: number;
   maxMae: number;
   minSubspaceCosine: number;
@@ -22,7 +25,10 @@ type CaseReport = {
     dimension: number;
     layer: number;
     unit: number;
+    units?: number[];
+    unitCount?: number;
     activeRank: number;
+    atomCount?: number;
     rawOracleCalls: number;
     metrics: {
       mae: number;
@@ -70,7 +76,8 @@ function resolveGclPython(): string {
 }
 
 function caseVariant(testCase: SweepCase): string {
-  return `${modelLabel}-layer${testCase.layer}-unit${testCase.unit}-oracle-only`;
+  if (testCase.units.length === 1) return `${modelLabel}-layer${testCase.layer}-unit${testCase.unit}-oracle-only`;
+  return `${modelLabel}-layer${testCase.layer}-units${testCase.units.join('-')}-${testCase.atomCount}atom-oracle-only`;
 }
 
 function makeRandom(seed: number): () => number {
@@ -90,14 +97,21 @@ function parseCases(raw: string): SweepCase[] {
     .map(item => {
       const [layerRaw, unitRaw, minR2Raw, maxMaeRaw, minSubspaceRaw] = item.split(':');
       const layer = Number(layerRaw);
-      const unit = Number(unitRaw);
-      if (!Number.isInteger(layer) || !Number.isInteger(unit)) {
-        throw new Error(`Invalid blind SwiGLU sweep case ${item}; expected layer:unit[:minR2[:maxMae[:minSubspaceCosine]]]`);
+      const units = unitRaw
+        .split(/[+|]/)
+        .map(value => Number(value))
+        .filter(value => Number.isInteger(value));
+      const unit = units[0];
+      if (!Number.isInteger(layer) || !Number.isInteger(unit) || units.length === 0) {
+        throw new Error(`Invalid blind SwiGLU sweep case ${item}; expected layer:unit or layer:unit+unit[:minR2[:maxMae[:minSubspaceCosine]]]`);
       }
       return {
-        id: `layer${layer}-unit${unit}`,
+        id: units.length === 1 ? `layer${layer}-unit${unit}` : `layer${layer}-units${units.join('-')}`,
         layer,
         unit,
+        units,
+        activeRank: Number(envValue('GCL_BLIND_SWIGLU_ACTIVE_RANK', String(units.length * 2))),
+        atomCount: units.length,
         minR2: minR2Raw ? Number(minR2Raw) : Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_R2', '0.995')),
         maxMae: maxMaeRaw ? Number(maxMaeRaw) : Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MAX_MAE', '0.002')),
         minSubspaceCosine: minSubspaceRaw
@@ -114,7 +128,10 @@ function generateRandomCases(count: number): SweepCase[] {
   const minR2 = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_R2', '0.995'));
   const maxMae = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MAX_MAE', '0.002'));
   const minSubspaceCosine = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE', '0.99'));
+  const unitCount = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT', '1'));
+  const activeRank = Number(envValue('GCL_BLIND_SWIGLU_ACTIVE_RANK', String(unitCount * 2)));
   if (!Number.isInteger(count) || count <= 0) throw new Error(`Invalid random sweep count ${count}`);
+  if (!Number.isInteger(unitCount) || unitCount <= 0) throw new Error(`Invalid random sweep unit count ${unitCount}`);
   if (!Number.isInteger(layerCount) || layerCount <= 0) throw new Error(`Invalid layer count ${layerCount}`);
   if (!Number.isInteger(intermediateSize) || intermediateSize <= 0) {
     throw new Error(`Invalid intermediate size ${intermediateSize}`);
@@ -124,14 +141,22 @@ function generateRandomCases(count: number): SweepCase[] {
   const seen = new Set<string>();
   while (cases.length < count) {
     const layer = Math.floor(random() * layerCount);
-    const unit = Math.floor(random() * intermediateSize);
-    const key = `${layer}:${unit}`;
+    const unitSet = new Set<number>();
+    while (unitSet.size < unitCount) unitSet.add(Math.floor(random() * intermediateSize));
+    const units = [...unitSet].sort((a, b) => a - b);
+    const unit = units[0];
+    const key = `${layer}:${units.join('+')}`;
     if (seen.has(key)) continue;
     seen.add(key);
     cases.push({
-      id: `random${cases.length}-layer${layer}-unit${unit}`,
+      id: unitCount === 1
+        ? `random${cases.length}-layer${layer}-unit${unit}`
+        : `random${cases.length}-layer${layer}-units${units.join('-')}`,
       layer,
       unit,
+      units,
+      activeRank,
+      atomCount: unitCount,
       minR2,
       maxMae,
       minSubspaceCosine
@@ -156,6 +181,7 @@ function resolveSweepCases(): { cases: SweepCase[]; selection: Record<string, un
         kind: 'deterministic-random',
         seed: Number(envValue('GCL_BLIND_SWIGLU_SWEEP_RANDOM_SEED', '260621')),
         count: randomCount,
+        unitCount: Number(envValue('GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT', '1')),
         layerCount: Number(envValue('GCL_BLIND_SWIGLU_LAYER_COUNT', modelLabel.startsWith('llama') ? '28' : '32')),
         intermediateSize: Number(envValue('GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE', modelLabel.startsWith('llama') ? '8192' : '14336'))
       }
@@ -184,6 +210,11 @@ function assertCaseReport(report: CaseReport, testCase: SweepCase): string[] {
   if (report.summary.dimension !== expectedDimension) failures.push(`dimension=${report.summary.dimension}`);
   if (report.summary.layer !== testCase.layer) failures.push(`layer=${report.summary.layer}`);
   if (report.summary.unit !== testCase.unit) failures.push(`unit=${report.summary.unit}`);
+  const reportUnits = report.summary.units ?? [report.summary.unit];
+  if (JSON.stringify(reportUnits) !== JSON.stringify(testCase.units)) failures.push(`units=${reportUnits.join(',')}`);
+  if ((report.summary.unitCount ?? 1) !== testCase.units.length) failures.push(`unitCount=${report.summary.unitCount}`);
+  if ((report.summary.atomCount ?? 1) !== testCase.atomCount) failures.push(`atomCount=${report.summary.atomCount}`);
+  if (report.summary.activeRank !== testCase.activeRank) failures.push(`activeRank=${report.summary.activeRank}`);
   if (report.summary.metrics.r2 < testCase.minR2) failures.push(`r2=${report.summary.metrics.r2}<${testCase.minR2}`);
   if (report.summary.metrics.mae > testCase.maxMae) failures.push(`mae=${report.summary.metrics.mae}>${testCase.maxMae}`);
   if (report.summary.sourceAlignment.subspaceMinPrincipalCosine < testCase.minSubspaceCosine) {
@@ -222,7 +253,10 @@ for (const testCase of sweepCases) {
     '--model', envValue('GCL_BLIND_SWIGLU_MODEL', 'unsloth/mistral-7b-instruct-v0.3-bnb-4bit'),
     '--layer', String(testCase.layer),
     '--unit', String(testCase.unit),
+    ...(testCase.units.length > 1 ? ['--units', testCase.units.join(',')] : []),
     '--device', envValue('GCL_BLIND_SWIGLU_DEVICE', 'cuda'),
+    '--active-rank', String(testCase.activeRank),
+    ...(testCase.atomCount > 1 ? ['--atom-count', String(testCase.atomCount)] : []),
     '--gradient-mode', envValue('GCL_BLIND_SWIGLU_GRADIENT_MODE', 'coordinate'),
     '--probe-points', envValue('GCL_BLIND_SWIGLU_PROBE_POINTS', '2'),
     '--direction-count', envValue('GCL_BLIND_SWIGLU_DIRECTION_COUNT', '384'),
@@ -292,6 +326,8 @@ const aggregate = {
     minSubspacePrincipalCosine: Math.min(...summaries.map(summary => summary.sourceAlignment.subspaceMinPrincipalCosine)),
     maxRawOracleCallsPerCase: Math.max(...summaries.map(summary => summary.rawOracleCalls)),
     totalRawOracleCalls: summaries.reduce((sum, summary) => sum + summary.rawOracleCalls, 0),
+    maxUnitCount: Math.max(...summaries.map(summary => summary.unitCount ?? 1)),
+    maxAtomCount: Math.max(...summaries.map(summary => summary.atomCount ?? 1)),
     accessInvariant: caseResults.every(result => !result.failures.some(failure => /solverAccess|weightsUsed|hooksUsed|sourceIds|postHoc/.test(failure)))
   },
   cases: caseResults,
@@ -305,7 +341,7 @@ const aggregate = {
   },
   selection: resolvedSweep.selection,
   claimBoundary: [
-    `This sweep proves selected real local ${familyLabel} ${expectedDimension}D SwiGLU units can be recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the recorded case budgets.`,
+    `This sweep proves selected real local ${familyLabel} ${expectedDimension}D SwiGLU unit or small-unit-block outputs can be recovered as blind oracle-only explicit SwiGLU atoms under the recorded case budgets.`,
     `It does not prove full ${familyLabel} FFN extraction, all-channel ${expectedDimension}D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.`
   ]
 };
@@ -322,6 +358,8 @@ fs.writeFileSync(
     `- max MAE: \`${aggregate.summary.maxMae}\``,
     `- max worst error: \`${aggregate.summary.maxWorstError}\``,
     `- min subspace principal cosine: \`${aggregate.summary.minSubspacePrincipalCosine}\``,
+    `- max unit count: \`${aggregate.summary.maxUnitCount}\``,
+    `- max atom count: \`${aggregate.summary.maxAtomCount}\``,
     `- total raw oracle calls: \`${aggregate.summary.totalRawOracleCalls}\``,
     '',
     'Access audit:',

@@ -937,21 +937,36 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     min principal cosine `0.9999999793123026`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current randomized small-block gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-randomized`.
+    The gate uses two deterministic-random real local Mistral-family scalar
+    oracles; each oracle returns the sum of two same-layer SwiGLU unit outputs.
+    The solver receives only batch `f(x)` outputs, recovers rank-4 active
+    subspaces, and fits explicit 2-atom SwiGLU sums. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-2unit-sweep-oracle-only/report.json`.
+    Result: pass `true`, cases `2/2`, max unitCount `2`, max atomCount `2`,
+    total raw oracle calls `88256`, max raw oracle calls per case `44128`, min
+    validation R2 `0.9994744138350042`, max validation MAE
+    `0.00014261562921587213`, max worst error `0.0027002211714715688`,
+    subspace min principal cosine `0.9999999823144813`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
-    recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the
-    recorded budgets. It does not prove full Mistral FFN extraction,
+    recovered as blind oracle-only explicit SwiGLU atoms under the recorded
+    budgets, including first selected and first randomized 2-unit scalar
+    blocks. It does not prove full Mistral FFN extraction,
     all-channel 4096D block decompilation, exhaustive circuit recovery, or
     semantic original-neuron identity from output-only access.
   - Next K5 hardening:
-    1. add randomized multi-unit block gates beyond the selected `[0,17]`
-       Mistral pair;
-    2. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
+    1. widen randomized multi-unit block gates beyond 2 Mistral 2-unit cases;
+    2. add 3-unit block recovery with active rank `6`;
+    3. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
        units;
-    3. add another LLaMA-family dimension where local model dimensions allow;
-    4. add noisy/quantized oracle response stress;
-    5. replace the coordinate-gradient probe with a lower-query adaptive
+    4. add another LLaMA-family dimension where local model dimensions allow;
+    5. add noisy/quantized oracle response stress;
+    6. replace the coordinate-gradient probe with a lower-query adaptive
        directional probe before calling this scalable;
-    6. only then promote K5 into full `release:gate`.
+    7. only then promote K5 into full `release:gate`.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

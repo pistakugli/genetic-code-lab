@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-20T07:49:48.455Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "mistral-4096d-layer1-units7309-8811-2atom-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "4",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "1600",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "50000",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "5",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.003",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.98",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "2",
+    "GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT": "2",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "mistral-4096d-randomized-2block-2unit-sweep-oracle-only",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "2400",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "768",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "2abb0d20f3e0362e4ee8006e75542844a0a2b186",
+    "statusShort": "M package.json\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units7309-8811-2atom-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units7309-8811-2atom-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units7309-8811-2atom-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units7309-8811-2atom-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+    "modelType": "mistral",
+    "dimension": 4096,
+    "layer": 1,
+    "unit": 7309,
+    "units": [
+      7309,
+      8811
+    ],
+    "unitCount": 2,
+    "activeRank": 4,
+    "atomCount": 2,
+    "rawOracleCalls": 44128,
+    "metrics": {
+      "mae": 0.00014261562921587213,
+      "mse": 7.540033717816118e-8,
+      "r2": 0.9994744138350042,
+      "worstError": 0.0027002211714715688
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.9998022228818887,
+      "upMaxAbsCosine": 0.9985243527761649,
+      "subspaceMinPrincipalCosine": 0.9999999981583662,
+      "subspaceCosines": [
+        0.999999999975112,
+        0.9999999999406011,
+        0.9999999997105904,
+        0.9999999981583662
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9999999999999963
+  },
+  "notes": [
+    "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
+  ]
+}
