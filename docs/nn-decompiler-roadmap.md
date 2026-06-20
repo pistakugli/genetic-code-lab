@@ -1064,20 +1064,33 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.9999999518366974`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current LLaMA-family 6-unit parity block gate: DONE as a targeted benchmark
+    with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-multi-6unit`.
+    The gate uses a real local LLaMA-family scalar oracle that returns the sum
+    of six layer-20 SwiGLU unit outputs, units `[0,17,123,456,789,1024]`.
+    The solver receives only batch `f(x)` outputs, recovers a rank-12 active
+    subspace, and fits an explicit 6-atom SwiGLU sum. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-1024-6atom-oracle-only/report.json`.
+    Result: pass `true`, dimension `3072`, unitCount `6`, atomCount `6`, raw
+    oracle calls `88864`, validation R2 `0.9999999971996777`, validation MAE
+    `2.8572995724253928e-05`, max worst error `0.00021262079246214816`,
+    subspace min principal cosine `0.9999999938218761`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
     blocks, first selected and randomized 3-unit scalar blocks, and a first
     selected and randomized 4-unit scalar block plus first selected and
     randomized 5-unit scalar blocks plus first selected and randomized 6-unit
-    scalar blocks. It does not prove full Mistral FFN extraction, all-channel
-    4096D block decompilation, exhaustive circuit recovery, arbitrary
-    high-count mixtures, or semantic original-neuron identity from output-only
-    access.
+    scalar blocks, plus first selected LLaMA-family 6-unit scalar block. It
+    does not prove full Mistral/LLaMA FFN extraction, all-channel 3072D/4096D
+    block decompilation, exhaustive circuit recovery, arbitrary high-count
+    mixtures, or semantic original-neuron identity from output-only access.
   - Next K5 hardening:
     1. widen randomized multi-unit block gates beyond 2 cases per unit-count;
-    2. add a second model-family multi-unit block parity gate where local
-       dimensions and VRAM allow;
+    2. add LLaMA-family randomized 6-unit block parity coverage;
     3. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
        units;
     4. add another LLaMA-family dimension where local model dimensions allow;

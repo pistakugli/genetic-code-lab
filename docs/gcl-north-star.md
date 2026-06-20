@@ -182,6 +182,14 @@ Current status: release-gated for:
   max raw oracle calls per case `14400`, min validation R2
   `0.9999981324158254`, max validation MAE `0.00016030715095856503`, and min
   subspace principal cosine `0.9999994111232651`.
+- first blind oracle-only 6-unit SwiGLU block recovery on real local
+  LLaMA-family 3072D units. The scalar oracle returns the sum of layer-20
+  units `[0,17,123,456,789,1024]`; the solver recovers a rank-12 active
+  subspace and an explicit 6-atom SwiGLU sum. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-1024-6atom-oracle-only/report.json`,
+  pass `true`, raw oracle calls `88864`, R2 `0.9999999971996777`, MAE
+  `2.8572995724253928e-05`, worst error `0.00021262079246214816`, and
+  subspace min principal cosine `0.9999999938218761`.
 - first blind oracle-only small multi-unit SwiGLU block recovery on real local
   Mistral-family 4096D units. The scalar oracle returns the sum of layer-20
   units `[0,17]`; the solver recovers a rank-4 active subspace and an explicit
