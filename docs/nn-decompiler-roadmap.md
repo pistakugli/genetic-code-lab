@@ -911,14 +911,27 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace principal cosine `0.9999999979627894`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current randomized LLaMA parity gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-randomized`.
+    The gate uses deterministic-random real LLaMA-family layer/unit selection
+    with the same oracle-only access invariant and the same 2-probe query
+    budget. Aggregate artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only/report.json`.
+    Result: pass `true`, cases `8/8`, dimension `3072`, active rank `2`, total
+    raw oracle calls `115200`, max raw oracle calls per case `14400`, min
+    validation R2 `0.9999981324158254`, max validation MAE
+    `0.00016030715095856503`, max worst error `0.001568794345920943`, min
+    subspace principal cosine `0.9999994111232651`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the
     recorded budgets. It does not prove full Mistral FFN extraction,
     all-channel 4096D block decompilation, exhaustive circuit recovery, or
     semantic original-neuron identity from output-only access.
   - Next K5 hardening:
-    1. widen the randomized unit/layer sweep beyond 8 Mistral units and add a
-       randomized LLaMA-family parity sweep;
+    1. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
+       units;
     2. add another LLaMA-family dimension where local model dimensions allow;
     3. add noisy/quantized oracle response stress;
     4. replace the coordinate-gradient probe with a lower-query adaptive

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-20T07:30:22.266Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "llama-3072d-layer22-unit3288-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_EXPECTED_DIMENSION": "3072",
+    "GCL_BLIND_SWIGLU_FAMILY_LABEL": "LLaMA-family",
+    "GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE": "8192",
+    "GCL_BLIND_SWIGLU_LAYER_COUNT": "28",
+    "GCL_BLIND_SWIGLU_MODEL": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "GCL_BLIND_SWIGLU_MODEL_LABEL": "llama-3072d",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "8",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "6e217142c21a00904199309ef321d0110549e167",
+    "statusShort": "M package.json\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-unit4176-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer17-unit7012-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer22-unit3288-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer9-unit2966-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer22-unit3288-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer22-unit3288-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer22-unit3288-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "modelType": "llama",
+    "dimension": 3072,
+    "layer": 22,
+    "unit": 3288,
+    "activeRank": 2,
+    "rawOracleCalls": 14400,
+    "metrics": {
+      "mae": 0.00007126130865303855,
+      "mse": 1.355224738935898e-8,
+      "r2": 0.9999997673097294,
+      "worstError": 0.0006267916203726576
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 1.0000004164159684,
+      "upMaxAbsCosine": 1.0000004091451202,
+      "subspaceMinPrincipalCosine": 0.9999998862745907,
+      "subspaceCosines": [
+        0.9999999999497554,
+        0.9999998862745907
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9999999999999939
+  },
+  "notes": [
+    "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
+  ]
+}

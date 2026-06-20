@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-20T07:31:18.993Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_EXPECTED_DIMENSION": "3072",
+    "GCL_BLIND_SWIGLU_FAMILY_LABEL": "LLaMA-family",
+    "GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE": "8192",
+    "GCL_BLIND_SWIGLU_LAYER_COUNT": "28",
+    "GCL_BLIND_SWIGLU_MODEL": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "GCL_BLIND_SWIGLU_MODEL_LABEL": "llama-3072d",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "8",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "6e217142c21a00904199309ef321d0110549e167",
+    "statusShort": "M package.json\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer0-unit1786-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-unit4176-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer17-unit7012-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer19-unit6670-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer22-unit3288-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer25-unit4892-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer6-unit8143-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer9-unit2966-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 8,
+    "passedCases": 8,
+    "failedCases": 0,
+    "minR2": 0.9999981324158254,
+    "maxMae": 0.00016030715095856503,
+    "maxWorstError": 0.001568794345920943,
+    "minSubspacePrincipalCosine": 0.9999994111232651,
+    "maxRawOracleCallsPerCase": 14400,
+    "totalRawOracleCalls": 115200,
+    "accessInvariant": true
+  },
+  "notes": [
+    "This sweep proves selected real local LLaMA-family 3072D SwiGLU units can be recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the recorded case budgets.",
+    "It does not prove full LLaMA-family FFN extraction, all-channel 3072D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}

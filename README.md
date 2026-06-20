@@ -361,6 +361,14 @@ What these gates currently support:
   subspace principal cosine `0.9999999979627894`, max raw oracle calls per
   case `14400`, and total raw oracle calls `57600`. Aggregate artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-4unit-layer-sweep-2probe-oracle-only/report.json`.
+- Blind 3072D randomized LLaMA-family SwiGLU sweep: `8/8`
+  deterministic-random real LLaMA-family layer/unit pairs passed with the same
+  oracle-only access invariant and max raw oracle calls per case `14400`.
+  Result: min R2 `0.9999981324158254`, max MAE `0.00016030715095856503`, max
+  worst error `0.001568794345920943`, min subspace principal cosine
+  `0.9999994111232651`, and total raw oracle calls `115200`. Aggregate
+  artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-8unit-layer-sweep-2probe-oracle-only/report.json`.
 
 What they do not support yet:
 
