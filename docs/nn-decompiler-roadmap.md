@@ -951,15 +951,29 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.9999999823144813`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current first 3-unit block gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-3unit`.
+    The gate uses a real local Mistral-family scalar oracle that returns the
+    sum of three layer-20 SwiGLU unit outputs, units `[0,17,123]`. The solver
+    receives only batch `f(x)` outputs, recovers a rank-6 active subspace, and
+    fits an explicit 3-atom SwiGLU sum. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-123-3atom-oracle-only/report.json`.
+    Result: pass `true`, dimension `4096`, unitCount `3`, atomCount `3`, raw
+    oracle calls `61968`, validation R2 `0.9992245717327005`, validation MAE
+    `0.0002548553473914666`, max worst error `0.0029161037108420967`, subspace
+    min principal cosine `0.9999999974474356`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
-    blocks. It does not prove full Mistral FFN extraction,
+    blocks plus a first selected 3-unit scalar block. It does not prove full
+    Mistral FFN extraction,
     all-channel 4096D block decompilation, exhaustive circuit recovery, or
     semantic original-neuron identity from output-only access.
   - Next K5 hardening:
     1. widen randomized multi-unit block gates beyond 2 Mistral 2-unit cases;
-    2. add 3-unit block recovery with active rank `6`;
+    2. add randomized 3-unit block recovery with active rank `6`;
     3. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
        units;
     4. add another LLaMA-family dimension where local model dimensions allow;
