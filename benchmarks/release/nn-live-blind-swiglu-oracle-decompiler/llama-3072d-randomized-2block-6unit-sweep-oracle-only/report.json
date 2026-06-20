@@ -1,0 +1,181 @@
+{
+  "summary": {
+    "pass": true,
+    "caseCount": 2,
+    "passedCases": 2,
+    "failedCases": 0,
+    "minR2": 0.9999999419380987,
+    "maxMae": 0.00008572753027982732,
+    "maxWorstError": 0.0008619591998977327,
+    "minSubspacePrincipalCosine": 0.9999998049413197,
+    "maxRawOracleCallsPerCase": 88864,
+    "totalRawOracleCalls": 177728,
+    "maxUnitCount": 6,
+    "maxAtomCount": 6,
+    "accessInvariant": true
+  },
+  "cases": [
+    {
+      "case": {
+        "id": "random0-layer1-units2704-2966-4176-5035-6675-7012",
+        "layer": 1,
+        "unit": 2704,
+        "units": [
+          2704,
+          2966,
+          4176,
+          5035,
+          6675,
+          7012
+        ],
+        "activeRank": 12,
+        "atomCount": 6,
+        "minR2": 0.995,
+        "maxMae": 0.003,
+        "maxWorstError": 0.05,
+        "minSubspaceCosine": 0.98
+      },
+      "variant": "llama-3072d-layer1-units2704-2966-4176-5035-6675-7012-6atom-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units2704-2966-4176-5035-6675-7012-6atom-oracle-only/report.json",
+      "pass": true,
+      "failures": [],
+      "summary": {
+        "pass": true,
+        "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+        "modelType": "llama",
+        "dimension": 3072,
+        "layer": 1,
+        "unit": 2704,
+        "units": [
+          2704,
+          2966,
+          4176,
+          5035,
+          6675,
+          7012
+        ],
+        "unitCount": 6,
+        "activeRank": 12,
+        "atomCount": 6,
+        "rawOracleCalls": 88864,
+        "metrics": {
+          "mae": 0.00006078547077844751,
+          "mse": 8.991659556604276e-9,
+          "r2": 0.9999999730266301,
+          "worstError": 0.0005903633586725743
+        },
+        "sourceAlignment": {
+          "gateMaxAbsCosine": 0.999999999174784,
+          "upMaxAbsCosine": 0.9999999991522277,
+          "subspaceMinPrincipalCosine": 0.9999999238264758,
+          "subspaceCosines": [
+            0.9999999999767364,
+            0.999999999968483,
+            0.9999999999539173,
+            0.999999999897287,
+            0.9999999998916433,
+            0.9999999998238702,
+            0.9999999997504757,
+            0.9999999996791541,
+            0.9999999995450765,
+            0.9999999992105203,
+            0.999999997595346,
+            0.9999999238264758
+          ]
+        },
+        "selectedGradientEnergyRatio": 0.9999999999999974
+      }
+    },
+    {
+      "case": {
+        "id": "random1-layer11-units159-1786-4892-5692-6670-7443",
+        "layer": 11,
+        "unit": 159,
+        "units": [
+          159,
+          1786,
+          4892,
+          5692,
+          6670,
+          7443
+        ],
+        "activeRank": 12,
+        "atomCount": 6,
+        "minR2": 0.995,
+        "maxMae": 0.003,
+        "maxWorstError": 0.05,
+        "minSubspaceCosine": 0.98
+      },
+      "variant": "llama-3072d-layer11-units159-1786-4892-5692-6670-7443-6atom-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer11-units159-1786-4892-5692-6670-7443-6atom-oracle-only/report.json",
+      "pass": true,
+      "failures": [],
+      "summary": {
+        "pass": true,
+        "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+        "modelType": "llama",
+        "dimension": 3072,
+        "layer": 11,
+        "unit": 159,
+        "units": [
+          159,
+          1786,
+          4892,
+          5692,
+          6670,
+          7443
+        ],
+        "unitCount": 6,
+        "activeRank": 12,
+        "atomCount": 6,
+        "rawOracleCalls": 88864,
+        "metrics": {
+          "mae": 0.00008572753027982732,
+          "mse": 1.7783056745397863e-8,
+          "r2": 0.9999999419380987,
+          "worstError": 0.0008619591998977327
+        },
+        "sourceAlignment": {
+          "gateMaxAbsCosine": 0.9999999962384694,
+          "upMaxAbsCosine": 0.9999999975676794,
+          "subspaceMinPrincipalCosine": 0.9999998049413197,
+          "subspaceCosines": [
+            0.9999999999764759,
+            0.9999999999642102,
+            0.9999999999524074,
+            0.9999999999181869,
+            0.9999999998885815,
+            0.9999999998277471,
+            0.999999999781073,
+            0.9999999997148983,
+            0.9999999989225231,
+            0.9999999983169615,
+            0.9999999943385743,
+            0.9999998049413197
+          ]
+        },
+        "selectedGradientEnergyRatio": 0.9999999999999972
+      }
+    }
+  ],
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "perCaseReportsEnforceInvariant": true
+  },
+  "selection": {
+    "kind": "deterministic-random",
+    "seed": 260621,
+    "count": 2,
+    "unitCount": 6,
+    "layerCount": 28,
+    "intermediateSize": 8192
+  },
+  "claimBoundary": [
+    "This sweep proves selected real local LLaMA-family 3072D SwiGLU unit or small-unit-block outputs can be recovered as blind oracle-only explicit SwiGLU atoms under the recorded case budgets.",
+    "It does not prove full LLaMA-family FFN extraction, all-channel 3072D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}

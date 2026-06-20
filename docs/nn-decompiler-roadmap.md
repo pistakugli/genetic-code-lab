@@ -1078,26 +1078,41 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.9999999938218761`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current randomized LLaMA-family 6-unit parity block gate: DONE as a
+    targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-multi-6unit-randomized`.
+    The gate uses two deterministic-random real local LLaMA-family scalar
+    oracles; each oracle returns the sum of six same-layer SwiGLU unit outputs.
+    The solver receives only batch `f(x)` outputs, recovers rank-12 active
+    subspaces, and fits explicit 6-atom SwiGLU sums. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-2block-6unit-sweep-oracle-only/report.json`.
+    Result: pass `true`, cases `2/2`, max unitCount `6`, max atomCount `6`,
+    total raw oracle calls `177728`, max raw oracle calls per case `88864`, min
+    validation R2 `0.9999999419380987`, max validation MAE
+    `0.00008572753027982732`, max worst error `0.0008619591998977327`,
+    subspace min principal cosine `0.9999998049413197`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
     blocks, first selected and randomized 3-unit scalar blocks, and a first
     selected and randomized 4-unit scalar block plus first selected and
     randomized 5-unit scalar blocks plus first selected and randomized 6-unit
-    scalar blocks, plus first selected LLaMA-family 6-unit scalar block. It
-    does not prove full Mistral/LLaMA FFN extraction, all-channel 3072D/4096D
-    block decompilation, exhaustive circuit recovery, arbitrary high-count
-    mixtures, or semantic original-neuron identity from output-only access.
+    scalar blocks, plus first selected and randomized LLaMA-family 6-unit
+    scalar blocks. It does not prove full Mistral/LLaMA FFN extraction,
+    all-channel 3072D/4096D block decompilation, exhaustive circuit recovery,
+    arbitrary high-count mixtures, or semantic original-neuron identity from
+    output-only access.
   - Next K5 hardening:
     1. widen randomized multi-unit block gates beyond 2 cases per unit-count;
-    2. add LLaMA-family randomized 6-unit block parity coverage;
-    3. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
+    2. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
        units;
-    4. add another LLaMA-family dimension where local model dimensions allow;
-    5. add noisy/quantized oracle response stress;
-    6. replace the coordinate-gradient probe with a lower-query adaptive
+    3. add another LLaMA-family dimension where local model dimensions allow;
+    4. add noisy/quantized oracle response stress;
+    5. replace the coordinate-gradient probe with a lower-query adaptive
        directional probe before calling this scalable;
-    7. only then promote K5 into full `release:gate`.
+    6. only then promote K5 into full `release:gate`.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

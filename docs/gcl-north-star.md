@@ -190,6 +190,14 @@ Current status: release-gated for:
   pass `true`, raw oracle calls `88864`, R2 `0.9999999971996777`, MAE
   `2.8572995724253928e-05`, worst error `0.00021262079246214816`, and
   subspace min principal cosine `0.9999999938218761`.
+- first randomized blind oracle-only 6-unit SwiGLU block sweep on real local
+  LLaMA-family 3072D units. Two deterministic-random same-layer 6-unit scalar
+  oracles passed with active rank `12`. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-2block-6unit-sweep-oracle-only/report.json`,
+  pass `true`, cases `2/2`, total raw oracle calls `177728`, min R2
+  `0.9999999419380987`, max MAE `0.00008572753027982732`, max worst error
+  `0.0008619591998977327`, and min subspace principal cosine
+  `0.9999998049413197`.
 - first blind oracle-only small multi-unit SwiGLU block recovery on real local
   Mistral-family 4096D units. The scalar oracle returns the sum of layer-20
   units `[0,17]`; the solver recovers a rank-4 active subspace and an explicit
