@@ -249,6 +249,14 @@ Current status: release-gated for:
   `0.9951436177161573`, max MAE `0.0008022104114991162`, max worst error
   `0.010051115148071464`, and min subspace principal cosine
   `0.9999997906113538`.
+- first blind oracle-only 6-unit SwiGLU block recovery on real local
+  Mistral-family 4096D units. The scalar oracle returns the sum of layer-20
+  units `[0,17,123,456,789,1024]`; the solver recovers a rank-12 active
+  subspace and an explicit 6-atom SwiGLU sum. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-123-456-789-1024-6atom-oracle-only/report.json`,
+  pass `true`, raw oracle calls `115488`, R2 `0.9970869523285548`, MAE
+  `0.0007282176910088243`, worst error `0.008779981374470364`, and subspace
+  min principal cosine `0.9999999544565973`.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block

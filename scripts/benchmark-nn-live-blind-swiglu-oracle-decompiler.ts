@@ -27,6 +27,9 @@ function resolveGclPython(): string {
 }
 
 fs.mkdirSync(output.outputDir, { recursive: true });
+for (const staleOutput of [output.jsonOutputPath, output.markdownOutputPath, output.manifestOutputPath]) {
+  fs.rmSync(staleOutput, { force: true });
+}
 
 const toolPath = path.join(repoRoot, 'tools', 'llm_reader', 'blind_swiglu_oracle_decompiler.py');
 if (!fs.existsSync(toolPath)) throw new Error(`Missing blind SwiGLU oracle decompiler: ${toolPath}`);

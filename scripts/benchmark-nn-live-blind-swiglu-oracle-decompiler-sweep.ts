@@ -255,6 +255,9 @@ for (const testCase of sweepCases) {
   const variant = caseVariant(testCase);
   const output = resolveOutputForVariant(variant);
   fs.mkdirSync(output.outputDir, { recursive: true });
+  for (const staleOutput of [output.jsonOutputPath, output.markdownOutputPath, output.manifestOutputPath]) {
+    fs.rmSync(staleOutput, { force: true });
+  }
   const args = [
     toolPath,
     '--model', envValue('GCL_BLIND_SWIGLU_MODEL', 'unsloth/mistral-7b-instruct-v0.3-bnb-4bit'),
@@ -321,6 +324,9 @@ for (const testCase of sweepCases) {
 const aggregateVariant = envValue('GCL_BLIND_SWIGLU_SWEEP_VARIANT', `${modelLabel}-4unit-layer-sweep-2probe-oracle-only`);
 const aggregateOutput = resolveOutputForVariant(aggregateVariant);
 fs.mkdirSync(aggregateOutput.outputDir, { recursive: true });
+for (const staleOutput of [aggregateOutput.jsonOutputPath, aggregateOutput.markdownOutputPath, aggregateOutput.manifestOutputPath]) {
+  fs.rmSync(staleOutput, { force: true });
+}
 
 const summaries = caseResults.map(result => result.summary).filter((summary): summary is CaseReport['summary'] => Boolean(summary));
 const aggregate = {
