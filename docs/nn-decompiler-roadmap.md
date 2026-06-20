@@ -924,19 +924,34 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace principal cosine `0.9999994111232651`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current small multi-unit block gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi`.
+    The gate uses a real local Mistral-family scalar oracle that returns the
+    sum of two layer-20 SwiGLU unit outputs, units `[0,17]`. The solver receives
+    only batch `f(x)` outputs, recovers a rank-4 active subspace, and fits an
+    explicit 2-atom SwiGLU sum. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-2atom-oracle-only/report.json`.
+    Result: pass `true`, dimension `4096`, unitCount `2`, atomCount `2`, raw
+    oracle calls `44128`, validation R2 `0.9998005671654032`, validation MAE
+    `9.702990494674492e-05`, max worst error `0.0012327953741858785`, subspace
+    min principal cosine `0.9999999793123026`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit rank-2 SwiGLU atoms under the
     recorded budgets. It does not prove full Mistral FFN extraction,
     all-channel 4096D block decompilation, exhaustive circuit recovery, or
     semantic original-neuron identity from output-only access.
   - Next K5 hardening:
-    1. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
+    1. add randomized multi-unit block gates beyond the selected `[0,17]`
+       Mistral pair;
+    2. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
        units;
-    2. add another LLaMA-family dimension where local model dimensions allow;
-    3. add noisy/quantized oracle response stress;
-    4. replace the coordinate-gradient probe with a lower-query adaptive
+    3. add another LLaMA-family dimension where local model dimensions allow;
+    4. add noisy/quantized oracle response stress;
+    5. replace the coordinate-gradient probe with a lower-query adaptive
        directional probe before calling this scalable;
-    5. only then promote K5 into full `release:gate`.
+    6. only then promote K5 into full `release:gate`.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

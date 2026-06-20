@@ -25,6 +25,15 @@ def normalize(vector: np.ndarray) -> np.ndarray:
     return vector / norm
 
 
+def parse_units(unit: int, units: str | None) -> list[int]:
+    if units is None or not units.strip():
+        return [unit]
+    parsed = [int(item.strip()) for item in units.split(",") if item.strip()]
+    if not parsed:
+        raise RuntimeError("--units did not contain any unit ids")
+    return parsed
+
+
 def dequantized_weight(module: Any) -> Any:
     weight = module.weight
     quant_state = getattr(weight, "quant_state", None)
@@ -68,15 +77,17 @@ def oracle_server(args: argparse.Namespace) -> int:
     mlp = layers[args.layer].mlp
     gate_weight = dequantized_weight(mlp.gate_proj).detach().float().cpu()
     up_weight = dequantized_weight(mlp.up_proj).detach().float().cpu()
-    if args.unit < 0 or args.unit >= gate_weight.shape[0]:
-        raise RuntimeError(f"unit {args.unit} outside SwiGLU intermediate range 0..{gate_weight.shape[0] - 1}")
-    gate = gate_weight[args.unit].contiguous()
-    up = up_weight[args.unit].contiguous()
-    hidden_size = int(gate.numel())
-    gate_norm = torch.linalg.vector_norm(gate).item()
-    up_norm = torch.linalg.vector_norm(up).item()
-    gate_unit = (gate / max(gate_norm, 1e-12)).numpy().astype(np.float32)
-    up_unit = (up / max(up_norm, 1e-12)).numpy().astype(np.float32)
+    units = parse_units(args.unit, args.units)
+    for unit in units:
+        if unit < 0 or unit >= gate_weight.shape[0]:
+            raise RuntimeError(f"unit {unit} outside SwiGLU intermediate range 0..{gate_weight.shape[0] - 1}")
+    gate = gate_weight[units].contiguous()
+    up = up_weight[units].contiguous()
+    hidden_size = int(gate.shape[1])
+    gate_norm = torch.linalg.vector_norm(gate, dim=1, keepdim=True).clamp_min(1e-12)
+    up_norm = torch.linalg.vector_norm(up, dim=1, keepdim=True).clamp_min(1e-12)
+    gate_unit = (gate / gate_norm).numpy().astype(np.float32)
+    up_unit = (up / up_norm).numpy().astype(np.float32)
 
     print(json.dumps({
         "type": "ready",
@@ -84,6 +95,8 @@ def oracle_server(args: argparse.Namespace) -> int:
         "modelType": model_type,
         "layer": args.layer,
         "unit": args.unit,
+        "units": units,
+        "unitCount": len(units),
         "hiddenSize": hidden_size,
         "intermediateSize": int(gate_weight.shape[0]),
         "device": args.device,
@@ -107,9 +120,9 @@ def oracle_server(args: argparse.Namespace) -> int:
             with torch.no_grad():
                 for start in range(0, values.shape[0], batch_size):
                     batch = torch.from_numpy(values[start:start + batch_size])
-                    gate_projection = batch @ gate
-                    up_projection = batch @ up
-                    outputs.append((torch.nn.functional.silu(gate_projection) * up_projection).cpu().numpy())
+                    gate_projection = batch @ gate.T
+                    up_projection = batch @ up.T
+                    outputs.append((torch.nn.functional.silu(gate_projection) * up_projection).sum(dim=1).cpu().numpy())
             np.save(output_path, np.concatenate(outputs).astype(np.float32))
             print(json.dumps({"type": "ok", "count": int(values.shape[0])}), flush=True)
         elif command == "truth_npy":
@@ -143,6 +156,8 @@ class OracleClient:
             "--batch-size",
             str(args.oracle_batch_size),
         ]
+        if args.units:
+            command.extend(["--units", args.units])
         if args.local_files_only:
             command.append("--local-files-only")
         self.process = subprocess.Popen(
@@ -358,7 +373,87 @@ def fit_swiglu_atom(
     return best
 
 
+def fit_swiglu_sum(
+    coords: np.ndarray,
+    targets: np.ndarray,
+    atom_count: int,
+    seed: int,
+    steps: int,
+    learning_rate: float,
+) -> dict[str, Any]:
+    if atom_count == 1:
+        single = fit_swiglu_atom(coords, targets, seed, steps, learning_rate)
+        return {
+            "mae": single["mae"],
+            "restart": single["restart"],
+            "gates": np.expand_dims(single["gate"], axis=0),
+            "ups": np.expand_dims(single["up"], axis=0),
+            "scales": np.array([single["scale"]], dtype=np.float64),
+            "bias": single["bias"],
+        }
+
+    import torch
+
+    torch.manual_seed(seed)
+    x = torch.tensor(coords, dtype=torch.float32)
+    y = torch.tensor(targets, dtype=torch.float32)
+    rank = coords.shape[1]
+    target_scale = float(np.std(targets)) or 1.0
+    restart_count = max(64, atom_count * 32)
+    best: dict[str, Any] | None = None
+
+    for restart in range(restart_count):
+        torch.manual_seed(seed + restart)
+        gates = torch.nn.Parameter(torch.randn(atom_count, rank) * 0.6)
+        ups = torch.nn.Parameter(torch.randn(atom_count, rank) * 0.6)
+        scales = torch.nn.Parameter(torch.ones(atom_count) * max(0.1, target_scale / max(1, atom_count)))
+        bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets))))
+        optimizer = torch.optim.Adam([gates, ups, scales, bias], lr=learning_rate)
+        for _ in range(steps):
+            optimizer.zero_grad()
+            activations = torch.nn.functional.silu(x @ gates.T) * (x @ ups.T)
+            prediction = activations @ scales + bias
+            loss = torch.mean((prediction - y) ** 2)
+            loss.backward()
+            optimizer.step()
+
+        lbfgs = torch.optim.LBFGS([gates, ups, scales, bias], lr=0.7, max_iter=260, line_search_fn="strong_wolfe")
+
+        def closure() -> torch.Tensor:
+            lbfgs.zero_grad()
+            activations = torch.nn.functional.silu(x @ gates.T) * (x @ ups.T)
+            prediction = activations @ scales + bias
+            loss = torch.mean((prediction - y) ** 2)
+            loss.backward()
+            return loss
+
+        try:
+            lbfgs.step(closure)
+        except RuntimeError:
+            pass
+
+        with torch.no_grad():
+            activations = torch.nn.functional.silu(x @ gates.T) * (x @ ups.T)
+            prediction = activations @ scales + bias
+            mae = torch.mean(torch.abs(prediction - y)).item()
+            candidate = {
+                "restart": restart,
+                "mae": mae,
+                "gates": gates.detach().cpu().numpy().astype(np.float64),
+                "ups": ups.detach().cpu().numpy().astype(np.float64),
+                "scales": scales.detach().cpu().numpy().astype(np.float64),
+                "bias": float(bias.detach().cpu().item()),
+            }
+            if best is None or candidate["mae"] < best["mae"]:
+                best = candidate
+    assert best is not None
+    return best
+
+
 def predict_swiglu(coords: np.ndarray, fit: dict[str, Any]) -> np.ndarray:
+    if "gates" in fit:
+        activations = silu_np(coords @ fit["gates"].T) * (coords @ fit["ups"].T)
+        return activations @ fit["scales"] + fit["bias"]
     return fit["scale"] * silu_np(coords @ fit["gate"]) * (coords @ fit["up"]) + fit["bias"]
 
 
@@ -391,6 +486,11 @@ def run_solver(args: argparse.Namespace) -> int:
         oracle = OracleClient(args, work_dir)
         try:
             dimension = int(oracle.meta["hiddenSize"])
+            unit_count = int(oracle.meta.get("unitCount", 1))
+            if args.atom_count is None:
+                args.atom_count = unit_count
+            if args.atom_count != unit_count:
+                raise RuntimeError(f"atom_count={args.atom_count} does not match oracle unit_count={unit_count}")
             rng = np.random.default_rng(args.seed)
             gradients = []
             for _ in range(args.probe_points):
@@ -405,7 +505,7 @@ def run_solver(args: argparse.Namespace) -> int:
             train_inputs = rng.normal(0.0, args.input_scale, size=(args.train_count, dimension)).astype(np.float32)
             train_targets = oracle.eval(train_inputs)
             train_coords = train_inputs @ basis.T
-            fit = fit_swiglu_atom(train_coords, train_targets, args.seed + 17, args.fit_steps, args.fit_learning_rate)
+            fit = fit_swiglu_sum(train_coords, train_targets, args.atom_count, args.seed + 17, args.fit_steps, args.fit_learning_rate)
 
             validation_inputs = rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
             validation_targets = oracle.eval(validation_inputs)
@@ -414,13 +514,17 @@ def run_solver(args: argparse.Namespace) -> int:
             metrics = regression_metrics(validation_targets, validation_prediction)
 
             truth_gate, truth_up = oracle.truth()
-            truth_basis = np.vstack([normalize(truth_gate), normalize(truth_up)])
+            if truth_gate.ndim == 1:
+                truth_gate = np.expand_dims(truth_gate, axis=0)
+            if truth_up.ndim == 1:
+                truth_up = np.expand_dims(truth_up, axis=0)
+            truth_basis = np.vstack([normalize(row) for row in truth_gate] + [normalize(row) for row in truth_up])
             cosines = principal_cosines(basis, truth_basis)
-            recovered_gate = normalize(fit["gate"] @ basis)
-            recovered_up = normalize(fit["up"] @ basis)
+            recovered_gates = np.vstack([normalize(row @ basis) for row in fit["gates"]])
+            recovered_ups = np.vstack([normalize(row @ basis) for row in fit["ups"]])
             source_alignment = {
-                "gateMaxAbsCosine": float(max(abs(np.dot(recovered_gate, truth_gate)), abs(np.dot(recovered_gate, truth_up)))),
-                "upMaxAbsCosine": float(max(abs(np.dot(recovered_up, truth_gate)), abs(np.dot(recovered_up, truth_up)))),
+                "gateMaxAbsCosine": float(max(abs(float(np.dot(recovered, truth))) for recovered in recovered_gates for truth in truth_basis)),
+                "upMaxAbsCosine": float(max(abs(float(np.dot(recovered, truth))) for recovered in recovered_ups for truth in truth_basis)),
                 "subspaceMinPrincipalCosine": float(np.min(cosines)),
                 "subspaceCosines": [float(value) for value in cosines],
             }
@@ -430,6 +534,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 and metrics["mae"] <= args.max_mae
                 and source_alignment["subspaceMinPrincipalCosine"] >= args.min_subspace_cosine
                 and oracle.query_count <= args.max_oracle_calls
+                and args.atom_count == unit_count
                 and oracle.meta.get("solverAccess") == "oracle-only"
             )
             report = {
@@ -440,7 +545,10 @@ def run_solver(args: argparse.Namespace) -> int:
                     "dimension": dimension,
                     "layer": oracle.meta["layer"],
                     "unit": oracle.meta["unit"],
+                    "units": oracle.meta.get("units", [oracle.meta["unit"]]),
+                    "unitCount": unit_count,
                     "activeRank": args.active_rank,
+                    "atomCount": args.atom_count,
                     "rawOracleCalls": oracle.query_count,
                     "metrics": metrics,
                     "sourceAlignment": source_alignment,
@@ -456,7 +564,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "processBoundary": "solver parent communicates with oracle subprocess via npy batch files and JSONL commands",
                 },
                 "solver": {
-                    "kind": "blind-active-subspace-explicit-swiglu-atom",
+                    "kind": "blind-active-subspace-explicit-swiglu-sum",
                     "probePoints": args.probe_points,
                     "gradientMode": args.gradient_mode,
                     "directionCount": args.direction_count,
@@ -466,12 +574,12 @@ def run_solver(args: argparse.Namespace) -> int:
                     "validationScale": args.validation_scale,
                     "gradientEigenvalues": [float(value) for value in eigenvalues],
                     "fitTrainMae": float(fit["mae"]),
-                    "fitScale": float(fit["scale"]),
+                    "fitScales": [float(value) for value in fit["scales"]],
                     "fitBias": float(fit["bias"]),
                 },
                 "claimBoundary": [
-                    "This gate proves one real local SwiGLU unit can be queried as a black-box oracle and recovered as a rank-2 explicit SwiGLU atom under the recorded budget.",
-                    "It does not prove full Mistral FFN extraction, all-channel 4096D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.",
+                    "This gate proves selected real local SwiGLU unit outputs can be queried as a black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under the recorded budget.",
+                    "It does not prove full FFN extraction, all-channel decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.",
                 ],
             }
             output_json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -482,7 +590,7 @@ def run_solver(args: argparse.Namespace) -> int:
                         "",
                         f"- pass: `{str(pass_gate).lower()}`",
                         f"- model: `{oracle.meta['model']}`",
-                        f"- layer/unit: `{oracle.meta['layer']}/{oracle.meta['unit']}`",
+                        f"- layer/unit: `{oracle.meta['layer']}/{oracle.meta.get('units', [oracle.meta['unit']])}`",
                         f"- raw oracle calls: `{oracle.query_count}`",
                         f"- validation R2: `{metrics['r2']}`",
                         f"- validation MAE: `{metrics['mae']}`",
@@ -495,7 +603,7 @@ def run_solver(args: argparse.Namespace) -> int:
                         "- hooksUsedBySolver: `false`",
                         "- postHocWitnessOnly: `true`",
                         "",
-                        "Boundary: this is a single real SwiGLU-unit black-box gate, not full LLM decompilation.",
+                        "Boundary: this is a selected real SwiGLU-unit black-box gate, not full LLM decompilation.",
                         "",
                     ]),
                     encoding="utf-8",
@@ -512,11 +620,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", default="unsloth/mistral-7b-instruct-v0.3-bnb-4bit")
     parser.add_argument("--layer", type=int, default=20)
     parser.add_argument("--unit", type=int, default=0)
+    parser.add_argument("--units", default=None)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--batch-size", type=int, default=2048)
     parser.add_argument("--oracle-batch-size", type=int, default=2048)
     parser.add_argument("--active-rank", type=int, default=2)
+    parser.add_argument("--atom-count", type=int, default=None)
     parser.add_argument("--gradient-mode", choices=["coordinate", "random-direction"], default="coordinate")
     parser.add_argument("--probe-points", type=int, default=2)
     parser.add_argument("--direction-count", type=int, default=384)
