@@ -1103,6 +1103,18 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.9999999938218761`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current query-budget LLaMA-family 6-unit parity block gate: DONE as a
+    targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-multi-6unit-forward-coordinate`.
+    This keeps the same real local LLaMA-family scalar oracle and six units,
+    but uses forward-coordinate active-subspace witnesses. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-1024-6atom-forward-coordinate-oracle-only/report.json`.
+    Result: pass `true`, dimension `3072`, unitCount `6`, atomCount `6`, raw
+    oracle calls `48941`, validation R2 `0.9999975420086665`, validation MAE
+    `0.0008233366167048662`, max worst error `0.006377951229655121`,
+    subspace min principal cosine `0.9999960757027645`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Current randomized LLaMA-family 6-unit parity block gate: DONE as a
     targeted benchmark with
     `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-multi-6unit-randomized`.
@@ -1118,14 +1130,28 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.9999998049413197`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current query-budget randomized LLaMA-family 6-unit parity block gate:
+    DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-multi-6unit-forward-coordinate-randomized`.
+    The gate uses two deterministic-random real local LLaMA-family scalar
+    oracles and forward-coordinate active-subspace witnesses. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-2block-6unit-forward-coordinate-sweep-oracle-only/report.json`.
+    Result: pass `true`, cases `2/2`, max unitCount `6`, max atomCount `6`,
+    total raw oracle calls `97882`, max raw oracle calls per case `48941`, min
+    validation R2 `0.9999880522847288`, max validation MAE
+    `0.0012813828353731324`, max worst error `0.012340230224598514`,
+    subspace min principal cosine `0.9999574008675185`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
     blocks, first selected and randomized 3-unit scalar blocks, and a first
     selected and randomized 4-unit scalar block plus first selected and
     randomized 5-unit scalar blocks plus first selected and randomized 6-unit
-    scalar blocks, plus first selected and randomized LLaMA-family 6-unit
-    scalar blocks. It does not prove full Mistral/LLaMA FFN extraction,
+    scalar blocks, plus first selected/randomized LLaMA-family 6-unit scalar
+    blocks and forward-coordinate query-budget parity for selected/randomized
+    Mistral/LLaMA 6-unit blocks. It does not prove full Mistral/LLaMA FFN extraction,
     all-channel 3072D/4096D block decompilation, exhaustive circuit recovery,
     arbitrary high-count mixtures, or semantic original-neuron identity from
     output-only access.
@@ -1135,8 +1161,9 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        units;
     3. add another LLaMA-family dimension where local model dimensions allow;
     4. add noisy/quantized oracle response stress;
-    5. replace the coordinate-gradient probe with a lower-query adaptive
-       directional probe before calling this scalable;
+    5. reduce the remaining coordinate-family query cost further with a
+       validated adaptive directional or block-coordinate probe before calling
+       this scalable to larger blocks;
     6. only then promote K5 into full `release:gate`.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
