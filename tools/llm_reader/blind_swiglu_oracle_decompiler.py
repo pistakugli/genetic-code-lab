@@ -100,6 +100,7 @@ def oracle_server(args: argparse.Namespace) -> int:
         "hiddenSize": hidden_size,
         "intermediateSize": int(gate_weight.shape[0]),
         "device": args.device,
+        "oracleQuantizationStep": args.oracle_quantization_step,
         "oracleOwnsWeights": True,
         "solverAccess": "oracle-only"
     }), flush=True)
@@ -123,7 +124,10 @@ def oracle_server(args: argparse.Namespace) -> int:
                     gate_projection = batch @ gate.T
                     up_projection = batch @ up.T
                     outputs.append((torch.nn.functional.silu(gate_projection) * up_projection).sum(dim=1).cpu().numpy())
-            np.save(output_path, np.concatenate(outputs).astype(np.float32))
+            result = np.concatenate(outputs).astype(np.float64)
+            if args.oracle_quantization_step > 0.0:
+                result = np.round(result / args.oracle_quantization_step) * args.oracle_quantization_step
+            np.save(output_path, result.astype(np.float32))
             print(json.dumps({"type": "ok", "count": int(values.shape[0])}), flush=True)
         elif command == "truth_npy":
             gate_path = Path(request["gatePath"])
@@ -160,6 +164,8 @@ class OracleClient:
         ]
         if args.units:
             command.extend(["--units", args.units])
+        if args.oracle_quantization_step > 0.0:
+            command.extend(["--oracle-quantization-step", str(args.oracle_quantization_step)])
         if args.local_files_only:
             command.append("--local-files-only")
         self.process = subprocess.Popen(
@@ -933,6 +939,9 @@ def run_solver(args: argparse.Namespace) -> int:
                     "fitScales": [float(value) for value in fit["scales"]],
                     "fitBias": float(fit["bias"]),
                 },
+                "oracleResponse": {
+                    "quantizationStep": float(args.oracle_quantization_step),
+                },
                 "claimBoundary": [
                     "This gate proves selected real local SwiGLU unit outputs can be queried as a black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under the recorded budget.",
                     "It does not prove full FFN extraction, all-channel decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.",
@@ -981,6 +990,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--batch-size", type=int, default=2048)
     parser.add_argument("--oracle-batch-size", type=int, default=2048)
+    parser.add_argument("--oracle-quantization-step", type=float, default=0.0)
     parser.add_argument("--active-rank", type=int, default=2)
     parser.add_argument("--atom-count", type=int, default=None)
     parser.add_argument("--gradient-mode", choices=["coordinate", "forward-coordinate", "random-direction"], default="coordinate")

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-21T21:01:23.504Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "llama-3072d-layer20-8atom-forward-q00025-nogradfit-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "llama-3072d-layer20-8atom-forward-q00025-nogradfit-oracle-only",
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "16",
+    "GCL_BLIND_SWIGLU_ATOM_COUNT": "8",
+    "GCL_BLIND_SWIGLU_BASIS_MOMENT": "raw",
+    "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP": "0.4",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT": "0",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT": "0",
+    "GCL_BLIND_SWIGLU_FIT_RESTARTS": "768",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "2400",
+    "GCL_BLIND_SWIGLU_GRADIENT_MODE": "forward-coordinate",
+    "GCL_BLIND_SWIGLU_LAYER": "20",
+    "GCL_BLIND_SWIGLU_MAX_MAE": "0.015",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "230000",
+    "GCL_BLIND_SWIGLU_MIN_R2": "0.999",
+    "GCL_BLIND_SWIGLU_MIN_SUBSPACE_COSINE": "0.999",
+    "GCL_BLIND_SWIGLU_MODEL": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP": "0.00025",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "65",
+    "GCL_BLIND_SWIGLU_TIMEOUT_MS": "1800000",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "12000",
+    "GCL_BLIND_SWIGLU_UNITS": "0,17,123,456,789,1024,2048,4096",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "2048"
+  },
+  "git": {
+    "commit": "ec44ddf080aef598cb289ebce3e2e153b6ea55e7",
+    "statusShort": "M docs/gcl-north-star.md\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler.ts\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-8atom-forward-q00025-nogradfit-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-8atom-forward-q00025-nogradfit-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-8atom-forward-q00025-nogradfit-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-8atom-forward-q00025-nogradfit-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "modelType": "llama",
+    "dimension": 3072,
+    "layer": 20,
+    "unit": 0,
+    "units": [
+      0,
+      17,
+      123,
+      456,
+      789,
+      1024,
+      2048,
+      4096
+    ],
+    "unitCount": 8,
+    "activeRank": 16,
+    "atomCount": 8,
+    "rawOracleCalls": 213793,
+    "metrics": {
+      "mae": 0.011652554395835905,
+      "mse": 0.0002780592477767816,
+      "r2": 0.9995976100281595,
+      "worstError": 0.12080532366266805
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.9999605410476834,
+      "upMaxAbsCosine": 0.9999325798132939,
+      "subspaceMinPrincipalCosine": 0.9994415739539657,
+      "subspaceCosines": [
+        0.9999840575391822,
+        0.9999829582436955,
+        0.9999796565582999,
+        0.9999783292336516,
+        0.9999769590490281,
+        0.9999747470640622,
+        0.9999715643470629,
+        0.9999673562568623,
+        0.9999655147849492,
+        0.9999601171441858,
+        0.9999566375556334,
+        0.999955071071421,
+        0.9999515250848978,
+        0.9999414273990834,
+        0.9995809552191872,
+        0.9994415739539657
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.999829286488791
+  },
+  "notes": [
+    "Real local Mistral/LLaMA-family SwiGLU unit used only as an oracle provider.",
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment.",
+    "This is a single-unit oracle-only K5 gate, not full FFN extraction or arbitrary LLM decompilation."
+  ]
+}

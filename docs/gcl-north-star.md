@@ -332,6 +332,15 @@ Current status: release-gated for:
   pass `true`, raw oracle calls `68241`, R2 `0.9999913818259203`, MAE
   `0.0017664391250281214`, worst error `0.016726727075836223`, and subspace min
   principal cosine `0.9999919539106246`.
+- first finite-precision selected 8-unit SwiGLU block recovery on real local
+  LLaMA-family 3072D units where the oracle deterministically quantizes every
+  scalar response to step `0.00025`. The solver stays oracle-only, uses
+  forward-coordinate witnesses with raw second-moment basis recovery, and fits
+  only the quantized function values after subspace recovery. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-8atom-forward-q00025-nogradfit-oracle-only/report.json`,
+  pass `true`, raw oracle calls `213793`, R2 `0.9995976100281595`, MAE
+  `0.011652554395835905`, worst error `0.12080532366266805`, and subspace min
+  principal cosine `0.9994415739539657`.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   LLaMA-family 3072D units using forward-coordinate witnesses, active-gradient
   fit witnesses, and batched CUDA multi-start fitting. Current artifact:
