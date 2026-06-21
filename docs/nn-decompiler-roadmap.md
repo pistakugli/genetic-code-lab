@@ -1175,6 +1175,39 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.9999574008675185`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current query-budget LLaMA-family selected 8-unit block gate: DONE as a
+    targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-multi-8unit-forward-coordinate`.
+    The gate uses a real local LLaMA-family scalar oracle that returns the sum
+    of eight layer-20 SwiGLU unit outputs, units
+    `[0,17,123,456,789,1024,2048,4096]`. The solver receives only batch `f(x)`
+    outputs, uses raw forward-coordinate active-subspace witnesses, active
+    oracle-gradient fit witnesses, and a batched CUDA multi-start explicit
+    8-atom SwiGLU fitter. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-1024-2048-4096-8atom-forward-coordinate-budgeted-oracle-only/report.json`.
+    Result: pass `true`, dimension `3072`, unitCount `8`, atomCount `8`, raw
+    oracle calls `68241`, validation R2 `0.9999913818259203`, validation MAE
+    `0.0017664391250281214`, max worst error `0.016726727075836223`,
+    subspace min principal cosine `0.9999919539106246`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current query-budget randomized LLaMA-family 8-unit block gate: DONE as a
+    targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-multi-8unit-forward-coordinate-randomized`.
+    The gate uses two deterministic-random real local LLaMA-family scalar
+    oracles; each oracle returns the sum of eight same-layer SwiGLU unit
+    outputs. The solver receives only batch `f(x)` outputs, uses raw
+    forward-coordinate active-subspace witnesses, active oracle-gradient fit
+    witnesses, and batched CUDA multi-start explicit 8-atom SwiGLU fitting.
+    Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only/report.json`.
+    Result: pass `true`, cases `2/2`, max unitCount `8`, max atomCount `8`,
+    total raw oracle calls `136482`, max raw oracle calls per case `68241`,
+    min validation R2 `0.9999781080257685`, max validation MAE
+    `0.002327151614302204`, max worst error `0.02565795362142126`,
+    subspace min principal cosine `0.999936352892748`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
@@ -1183,7 +1216,8 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     randomized 5-unit scalar blocks plus first selected and randomized 6-unit
     scalar blocks, plus first selected/randomized LLaMA-family 6-unit scalar
     blocks and forward-coordinate query-budget parity for selected/randomized
-    Mistral/LLaMA 6-unit blocks plus selected/randomized Mistral 8-unit blocks.
+    Mistral/LLaMA 6-unit blocks plus selected/randomized Mistral 8-unit blocks
+    and selected/randomized LLaMA-family 8-unit blocks.
     It does not prove full Mistral/LLaMA FFN extraction,
     all-channel 3072D/4096D block decompilation, exhaustive circuit recovery,
     arbitrary high-count mixtures, or semantic original-neuron identity from

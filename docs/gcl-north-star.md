@@ -325,6 +325,21 @@ Current status: release-gated for:
   calls per case `81297`, min R2 `0.9965490748792153`, max MAE
   `0.0008981839822401561`, max worst error `0.010140033299851102`, and min
   subspace principal cosine `0.9999975326762489`.
+- first query-budget selected 8-unit SwiGLU block recovery on real local
+  LLaMA-family 3072D units using forward-coordinate witnesses, active-gradient
+  fit witnesses, and batched CUDA multi-start fitting. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-1024-2048-4096-8atom-forward-coordinate-budgeted-oracle-only/report.json`,
+  pass `true`, raw oracle calls `68241`, R2 `0.9999913818259203`, MAE
+  `0.0017664391250281214`, worst error `0.016726727075836223`, and subspace min
+  principal cosine `0.9999919539106246`.
+- first query-budget randomized 8-unit SwiGLU block sweep on real local
+  LLaMA-family 3072D units using forward-coordinate witnesses, active-gradient
+  fit witnesses, and batched CUDA multi-start fitting. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only/report.json`,
+  pass `true`, cases `2/2`, total raw oracle calls `136482`, max raw oracle
+  calls per case `68241`, min R2 `0.9999781080257685`, max MAE
+  `0.002327151614302204`, max worst error `0.02565795362142126`, and min
+  subspace principal cosine `0.999936352892748`.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block

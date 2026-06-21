@@ -286,14 +286,16 @@ def estimate_forward_coordinate_gradient(
     return (values[1:] - values[0]) / step
 
 
-def recover_basis(gradients: np.ndarray, rank: int) -> tuple[np.ndarray, np.ndarray, float]:
+def recover_basis(gradients: np.ndarray, rank: int, moment: str = "auto") -> tuple[np.ndarray, np.ndarray, float]:
     # Centering n gradient witnesses caps the covariance rank at n - 1. For the
     # low-query path where n == rank, use raw second moments so a rank-2 SwiGLU
     # channel can still expose two independent active directions.
-    if gradients.shape[0] <= rank:
+    if moment == "raw" or (moment == "auto" and gradients.shape[0] <= rank):
         basis_source = gradients
-    else:
+    elif moment in {"auto", "centered"}:
         basis_source = gradients - np.mean(gradients, axis=0, keepdims=True)
+    else:
+        raise RuntimeError(f"unknown basis moment mode {moment!r}")
     matrix = basis_source.T @ basis_source / max(1, basis_source.shape[0])
     values, vectors = np.linalg.eigh(matrix)
     order = np.argsort(values)[::-1]
@@ -305,6 +307,30 @@ def recover_basis(gradients: np.ndarray, rank: int) -> tuple[np.ndarray, np.ndar
     total = float(np.sum(np.maximum(values, 0.0)))
     selected = float(np.sum(np.maximum(values[:rank], 0.0)))
     return basis, values[:rank], selected / max(total, 1e-12)
+
+
+def estimate_active_forward_gradients(
+    oracle: OracleClient,
+    rng: np.random.Generator,
+    basis: np.ndarray,
+    count: int,
+    input_scale: float,
+    step: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    rank = basis.shape[0]
+    if count <= 0:
+        return np.zeros((0, rank), dtype=np.float64), np.zeros((0, rank), dtype=np.float64)
+    coords = rng.normal(0.0, input_scale, size=(count, rank)).astype(np.float32)
+    base_inputs = coords @ basis
+    shifted_coords = np.repeat(coords[:, None, :], rank, axis=1)
+    for index in range(rank):
+        shifted_coords[:, index, index] += step
+    shifted_inputs = shifted_coords.reshape(count * rank, rank) @ basis
+    values = oracle.eval(np.vstack([base_inputs, shifted_inputs]).astype(np.float32))
+    base_values = values[:count]
+    shifted_values = values[count:].reshape(count, rank)
+    active_gradients = (shifted_values - base_values[:, None]) / step
+    return coords.astype(np.float64), active_gradients.astype(np.float64)
 
 
 def fit_swiglu_atom(
@@ -392,20 +418,149 @@ def fit_swiglu_atom(
         except RuntimeError:
             pass
         with torch.no_grad():
-            prediction = scale * torch.nn.functional.silu(x @ gate) * (x @ up) + bias
-            mae = torch.mean(torch.abs(prediction - y)).item()
+            feature = (torch.nn.functional.silu(x @ gate) * (x @ up)).detach().cpu().numpy().astype(np.float64)
+            design = np.column_stack([feature, np.ones(coords.shape[0], dtype=np.float64)])
+            try:
+                coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
+                if np.all(np.isfinite(coeffs)):
+                    scale_value = float(coeffs[0])
+                    bias_value = float(coeffs[1])
+                    prediction_np = design @ coeffs
+                    mae = float(np.mean(np.abs(prediction_np - targets)))
+                else:
+                    raise np.linalg.LinAlgError("non-finite least-squares coefficients")
+            except np.linalg.LinAlgError:
+                prediction = scale * torch.nn.functional.silu(x @ gate) * (x @ up) + bias
+                mae = torch.mean(torch.abs(prediction - y)).item()
+                scale_value = float(scale.detach().cpu().item())
+                bias_value = float(bias.detach().cpu().item())
             candidate = {
                 "restart": restart,
                 "mae": mae,
                 "gate": gate.detach().cpu().numpy().astype(np.float64),
                 "up": up.detach().cpu().numpy().astype(np.float64),
-                "scale": float(scale.detach().cpu().item()),
-                "bias": float(bias.detach().cpu().item()),
+                "scale": scale_value,
+                "bias": bias_value,
             }
             if best is None or candidate["mae"] < best["mae"]:
                 best = candidate
     assert best is not None
     best["restartCount"] = restart_count
+    return best
+
+
+def fit_swiglu_sum_batched(
+    coords: np.ndarray,
+    targets: np.ndarray,
+    atom_count: int,
+    seed: int,
+    steps: int,
+    learning_rate: float,
+    restart_count: int,
+    structured_starts: list[tuple[np.ndarray, np.ndarray, np.ndarray, float]],
+    gradient_coords: np.ndarray | None,
+    gradient_targets: np.ndarray | None,
+    gradient_weight: float,
+) -> dict[str, Any]:
+    import torch
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("batched SwiGLU fit requires CUDA")
+
+    torch.manual_seed(seed)
+    device = torch.device("cuda")
+    fit_dtype = torch.float32
+    x = torch.tensor(coords, dtype=fit_dtype, device=device)
+    y = torch.tensor(targets, dtype=fit_dtype, device=device)
+    rank = coords.shape[1]
+    target_scale = float(np.std(targets)) or 1.0
+    has_gradient_witness = (
+        gradient_coords is not None
+        and gradient_targets is not None
+        and gradient_weight > 0.0
+        and gradient_coords.shape[0] > 0
+    )
+    if has_gradient_witness:
+        gx = torch.tensor(gradient_coords, dtype=fit_dtype, device=device)
+        gy = torch.tensor(gradient_targets, dtype=fit_dtype, device=device)
+        target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(1e-12)
+    else:
+        gx = None
+        gy = None
+        target_grad_scale = None
+
+    generator = torch.Generator(device=device)
+    generator.manual_seed(seed)
+    gates_init = torch.randn(restart_count, atom_count, rank, dtype=fit_dtype, device=device, generator=generator) * 0.6
+    ups_init = torch.randn(restart_count, atom_count, rank, dtype=fit_dtype, device=device, generator=generator) * 0.6
+    scales_init = torch.ones(restart_count, atom_count, dtype=fit_dtype, device=device) * max(0.1, target_scale / max(1, atom_count))
+    bias_init = torch.ones(restart_count, dtype=fit_dtype, device=device) * float(np.mean(targets))
+    for index, (gate_start, up_start, scale_start, bias_start) in enumerate(structured_starts[:restart_count]):
+        gates_init[index] = torch.tensor(gate_start, dtype=fit_dtype, device=device)
+        ups_init[index] = torch.tensor(up_start, dtype=fit_dtype, device=device)
+        scales_init[index] = torch.tensor(scale_start, dtype=fit_dtype, device=device)
+        bias_init[index] = float(bias_start)
+
+    gates = torch.nn.Parameter(gates_init)
+    ups = torch.nn.Parameter(ups_init)
+    scales = torch.nn.Parameter(scales_init)
+    bias = torch.nn.Parameter(bias_init)
+    optimizer = torch.optim.Adam([gates, ups, scales, bias], lr=learning_rate)
+    for _ in range(steps):
+        optimizer.zero_grad()
+        gate_projection = torch.einsum("nr,bkr->bnk", x, gates)
+        up_projection = torch.einsum("nr,bkr->bnk", x, ups)
+        activations = torch.nn.functional.silu(gate_projection) * up_projection
+        prediction = torch.sum(activations * scales[:, None, :], dim=2) + bias[:, None]
+        per_restart_loss = torch.mean((prediction - y[None, :]) ** 2, dim=1)
+        if has_gradient_witness and gx is not None and gy is not None and target_grad_scale is not None:
+            grad_gate_projection = torch.einsum("mr,bkr->bmk", gx, gates)
+            grad_up_projection = torch.einsum("mr,bkr->bmk", gx, ups)
+            sigmoid = torch.sigmoid(grad_gate_projection)
+            silu_values = torch.nn.functional.silu(grad_gate_projection)
+            silu_prime = sigmoid * (1.0 + grad_gate_projection * (1.0 - sigmoid))
+            gradient_terms = scales[:, None, :, None] * (
+                silu_prime[:, :, :, None] * grad_up_projection[:, :, :, None] * gates[:, None, :, :]
+                + silu_values[:, :, :, None] * ups[:, None, :, :]
+            )
+            predicted_gradients = torch.sum(gradient_terms, dim=2)
+            gradient_loss = torch.mean((predicted_gradients - gy[None, :, :]) ** 2, dim=(1, 2)) / target_grad_scale
+            per_restart_loss = per_restart_loss + gradient_weight * gradient_loss
+        loss = torch.mean(per_restart_loss)
+        loss.backward()
+        optimizer.step()
+
+    gates_np = gates.detach().cpu().numpy().astype(np.float64)
+    ups_np = ups.detach().cpu().numpy().astype(np.float64)
+    best: dict[str, Any] | None = None
+    ones = np.ones(coords.shape[0], dtype=np.float64)
+    for restart in range(restart_count):
+        activation_np = silu_np(coords @ gates_np[restart].T) * (coords @ ups_np[restart].T)
+        design = np.column_stack([activation_np, ones])
+        try:
+            coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
+            if not np.all(np.isfinite(coeffs)):
+                continue
+        except np.linalg.LinAlgError:
+            continue
+        prediction_np = design @ coeffs
+        mae = float(np.mean(np.abs(prediction_np - targets)))
+        mse = float(np.mean((prediction_np - targets) ** 2))
+        candidate = {
+            "restart": restart,
+            "mae": mae,
+            "mse": mse,
+            "gates": gates_np[restart],
+            "ups": ups_np[restart],
+            "scales": coeffs[:-1].astype(np.float64),
+            "bias": float(coeffs[-1]),
+        }
+        if best is None or candidate["mae"] < best["mae"]:
+            best = candidate
+    if best is None:
+        raise RuntimeError("batched SwiGLU fit did not produce a finite candidate")
+    best["restartCount"] = restart_count
+    best["fitMode"] = "batched-cuda"
     return best
 
 
@@ -417,6 +572,10 @@ def fit_swiglu_sum(
     steps: int,
     learning_rate: float,
     restart_override: int | None = None,
+    gradient_coords: np.ndarray | None = None,
+    gradient_targets: np.ndarray | None = None,
+    gradient_weight: float = 0.0,
+    fit_mode: str = "auto",
 ) -> dict[str, Any]:
     if atom_count == 1:
         single = fit_swiglu_atom(coords, targets, seed, steps, learning_rate)
@@ -427,6 +586,7 @@ def fit_swiglu_sum(
             "ups": np.expand_dims(single["up"], axis=0),
             "scales": np.array([single["scale"]], dtype=np.float64),
             "bias": single["bias"],
+            "fitMode": "single-atom",
         }
 
     import torch
@@ -435,6 +595,18 @@ def fit_swiglu_sum(
     fit_dtype = torch.float64 if atom_count >= 4 else torch.float32
     x = torch.tensor(coords, dtype=fit_dtype)
     y = torch.tensor(targets, dtype=fit_dtype)
+    has_gradient_witness = (
+        gradient_coords is not None
+        and gradient_targets is not None
+        and gradient_weight > 0.0
+        and gradient_coords.shape[0] > 0
+    )
+    if has_gradient_witness:
+        gx = torch.tensor(gradient_coords, dtype=fit_dtype)
+        gy = torch.tensor(gradient_targets, dtype=fit_dtype)
+    else:
+        gx = None
+        gy = None
     rank = coords.shape[1]
     target_scale = float(np.std(targets)) or 1.0
     restart_count = max(64, atom_count * 32)
@@ -476,6 +648,25 @@ def fit_swiglu_sum(
         except Exception:
             structured_starts = []
 
+    if fit_mode in {"auto", "batched"} and atom_count >= 4:
+        try:
+            return fit_swiglu_sum_batched(
+                coords,
+                targets,
+                atom_count,
+                seed,
+                steps,
+                learning_rate,
+                restart_count,
+                structured_starts,
+                gradient_coords,
+                gradient_targets,
+                gradient_weight,
+            )
+        except Exception:
+            if fit_mode == "batched":
+                raise
+
     for restart in range(restart_count):
         torch.manual_seed(seed + restart)
         if restart < len(structured_starts):
@@ -495,6 +686,19 @@ def fit_swiglu_sum(
             activations = torch.nn.functional.silu(x @ gates.T) * (x @ ups.T)
             prediction = activations @ scales + bias
             loss = torch.mean((prediction - y) ** 2)
+            if has_gradient_witness and gx is not None and gy is not None:
+                gate_projection = gx @ gates.T
+                up_projection = gx @ ups.T
+                sigmoid = torch.sigmoid(gate_projection)
+                silu_values = torch.nn.functional.silu(gate_projection)
+                silu_prime = sigmoid * (1.0 + gate_projection * (1.0 - sigmoid))
+                gradient_terms = scales[None, :, None] * (
+                    silu_prime[:, :, None] * up_projection[:, :, None] * gates[None, :, :]
+                    + silu_values[:, :, None] * ups[None, :, :]
+                )
+                predicted_gradients = torch.sum(gradient_terms, dim=1)
+                target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(torch.tensor(1e-12, dtype=fit_dtype))
+                loss = loss + gradient_weight * torch.mean((predicted_gradients - gy) ** 2) / target_grad_scale
             loss.backward()
             optimizer.step()
 
@@ -510,6 +714,19 @@ def fit_swiglu_sum(
             activations = torch.nn.functional.silu(x @ gates.T) * (x @ ups.T)
             prediction = activations @ scales + bias
             loss = torch.mean((prediction - y) ** 2)
+            if has_gradient_witness and gx is not None and gy is not None:
+                gate_projection = gx @ gates.T
+                up_projection = gx @ ups.T
+                sigmoid = torch.sigmoid(gate_projection)
+                silu_values = torch.nn.functional.silu(gate_projection)
+                silu_prime = sigmoid * (1.0 + gate_projection * (1.0 - sigmoid))
+                gradient_terms = scales[None, :, None] * (
+                    silu_prime[:, :, None] * up_projection[:, :, None] * gates[None, :, :]
+                    + silu_values[:, :, None] * ups[None, :, :]
+                )
+                predicted_gradients = torch.sum(gradient_terms, dim=1)
+                target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(torch.tensor(1e-12, dtype=fit_dtype))
+                loss = loss + gradient_weight * torch.mean((predicted_gradients - gy) ** 2) / target_grad_scale
             loss.backward()
             return loss
 
@@ -520,22 +737,38 @@ def fit_swiglu_sum(
 
         with torch.no_grad():
             activations = torch.nn.functional.silu(x @ gates.T) * (x @ ups.T)
-            prediction = activations @ scales + bias
-            mae = torch.mean(torch.abs(prediction - y)).item()
-            mse = torch.mean((prediction - y) ** 2).item()
+            activation_np = activations.detach().cpu().numpy().astype(np.float64)
+            design = np.column_stack([activation_np, np.ones(coords.shape[0], dtype=np.float64)])
+            try:
+                coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
+                if np.all(np.isfinite(coeffs)):
+                    scale_values = coeffs[:-1].astype(np.float64)
+                    bias_value = float(coeffs[-1])
+                    prediction_np = design @ coeffs
+                    mae = float(np.mean(np.abs(prediction_np - targets)))
+                    mse = float(np.mean((prediction_np - targets) ** 2))
+                else:
+                    raise np.linalg.LinAlgError("non-finite least-squares coefficients")
+            except np.linalg.LinAlgError:
+                prediction = activations @ scales + bias
+                mae = torch.mean(torch.abs(prediction - y)).item()
+                mse = torch.mean((prediction - y) ** 2).item()
+                scale_values = scales.detach().cpu().numpy().astype(np.float64)
+                bias_value = float(bias.detach().cpu().item())
             candidate = {
                 "restart": restart,
                 "mae": mae,
                 "mse": mse,
                 "gates": gates.detach().cpu().numpy().astype(np.float64),
                 "ups": ups.detach().cpu().numpy().astype(np.float64),
-                "scales": scales.detach().cpu().numpy().astype(np.float64),
-                "bias": float(bias.detach().cpu().item()),
+                "scales": scale_values,
+                "bias": bias_value,
             }
             if best is None or candidate["mae"] < best["mae"]:
                 best = candidate
     assert best is not None
     best["restartCount"] = restart_count
+    best["fitMode"] = "sequential"
     return best
 
 
@@ -591,12 +824,23 @@ def run_solver(args: argparse.Namespace) -> int:
                 else:
                     gradients.append(estimate_gradient(oracle, rng, base, args.direction_count, args.finite_difference_step))
             gradient_matrix = np.vstack(gradients)
-            basis, eigenvalues, energy_ratio = recover_basis(gradient_matrix, args.active_rank)
+            basis_moment = args.basis_moment
+            if basis_moment == "auto" and args.gradient_mode == "forward-coordinate":
+                basis_moment = "raw"
+            basis, eigenvalues, energy_ratio = recover_basis(gradient_matrix, args.active_rank, basis_moment)
             gradient_witness_count = int(gradient_matrix.shape[0])
 
             train_inputs = rng.normal(0.0, args.input_scale, size=(args.train_count, dimension)).astype(np.float32)
             train_targets = oracle.eval(train_inputs)
             train_coords = train_inputs @ basis.T
+            fit_gradient_coords, fit_gradient_targets = estimate_active_forward_gradients(
+                oracle,
+                rng,
+                basis,
+                args.fit_gradient_count,
+                args.input_scale,
+                args.fit_gradient_step if args.fit_gradient_step > 0 else args.finite_difference_step,
+            )
             fit = fit_swiglu_sum(
                 train_coords,
                 train_targets,
@@ -605,6 +849,10 @@ def run_solver(args: argparse.Namespace) -> int:
                 args.fit_steps,
                 args.fit_learning_rate,
                 args.fit_restarts if args.fit_restarts > 0 else None,
+                fit_gradient_coords,
+                fit_gradient_targets,
+                args.fit_gradient_weight,
+                args.fit_mode,
             )
 
             validation_inputs = rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
@@ -668,6 +916,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "kind": "blind-active-subspace-explicit-swiglu-sum",
                     "probePoints": args.probe_points,
                     "gradientMode": args.gradient_mode,
+                    "basisMoment": basis_moment,
                     "directionCount": args.direction_count,
                     "gradientWitnessCount": gradient_witness_count,
                     "subspaceCount": args.subspace_count if args.subspace_count > 0 else None,
@@ -678,6 +927,9 @@ def run_solver(args: argparse.Namespace) -> int:
                     "gradientEigenvalues": [float(value) for value in eigenvalues],
                     "fitTrainMae": float(fit["mae"]),
                     "fitRestarts": int(fit["restartCount"]),
+                    "fitMode": str(fit.get("fitMode", "unknown")),
+                    "fitGradientCount": int(fit_gradient_coords.shape[0]),
+                    "fitGradientWeight": float(args.fit_gradient_weight),
                     "fitScales": [float(value) for value in fit["scales"]],
                     "fitBias": float(fit["bias"]),
                 },
@@ -732,6 +984,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--active-rank", type=int, default=2)
     parser.add_argument("--atom-count", type=int, default=None)
     parser.add_argument("--gradient-mode", choices=["coordinate", "forward-coordinate", "random-direction"], default="coordinate")
+    parser.add_argument("--basis-moment", choices=["auto", "centered", "raw"], default="auto")
     parser.add_argument("--probe-points", type=int, default=2)
     parser.add_argument("--direction-count", type=int, default=384)
     parser.add_argument("--subspace-count", type=int, default=0)
@@ -743,6 +996,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fit-steps", type=int, default=1200)
     parser.add_argument("--fit-learning-rate", type=float, default=0.025)
     parser.add_argument("--fit-restarts", type=int, default=0)
+    parser.add_argument("--fit-mode", choices=["auto", "sequential", "batched"], default="auto")
+    parser.add_argument("--fit-gradient-count", type=int, default=0)
+    parser.add_argument("--fit-gradient-step", type=float, default=0.0)
+    parser.add_argument("--fit-gradient-weight", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=260620)
     parser.add_argument("--min-r2", type=float, default=0.985)
     parser.add_argument("--max-mae", type=float, default=0.015)

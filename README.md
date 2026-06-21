@@ -386,6 +386,24 @@ What these gates currently support:
   subspace principal cosine `0.9999998049413197`, max raw oracle calls per
   case `88864`, and total raw oracle calls `177728`. Aggregate artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-2block-6unit-sweep-oracle-only/report.json`.
+- Blind 3072D LLaMA-family 8-unit forward-coordinate SwiGLU block recovery:
+  a scalar oracle returns the sum of eight real layer-20 units
+  `[0,17,123,456,789,1024,2048,4096]`; the solver receives only `f(x)` batches,
+  uses raw forward-coordinate active-subspace witnesses, active-gradient fit
+  witnesses, and a batched CUDA multi-start explicit 8-atom SwiGLU fitter.
+  Result: pass `true`, R2 `0.9999913818259203`, MAE
+  `0.0017664391250281214`, worst error `0.016726727075836223`, subspace min
+  principal cosine `0.9999919539106246`, and raw oracle calls `68241`.
+  Artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-1024-2048-4096-8atom-forward-coordinate-budgeted-oracle-only/report.json`.
+- Blind 3072D randomized LLaMA-family 8-unit forward-coordinate SwiGLU block
+  recovery: `2/2` deterministic-random eight-unit blocks passed under the same
+  oracle-only invariant with active-gradient fit witnesses and batched CUDA
+  fitting. Result: min R2 `0.9999781080257685`, max MAE
+  `0.002327151614302204`, max worst error `0.02565795362142126`, min subspace
+  principal cosine `0.999936352892748`, max raw oracle calls per case `68241`,
+  and total raw oracle calls `136482`. Aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only/report.json`.
 - Blind 4096D Mistral small multi-unit SwiGLU block recovery: a scalar oracle
   returns the sum of two real layer-20 SwiGLU unit outputs, while the solver
   receives only `f(x)` batches and recovers an explicit 2-atom SwiGLU sum in a
