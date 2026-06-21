@@ -77,8 +77,10 @@ function resolveGclPython(): string {
 }
 
 function caseVariant(testCase: SweepCase): string {
-  if (testCase.units.length === 1) return `${modelLabel}-layer${testCase.layer}-unit${testCase.unit}-oracle-only`;
-  return `${modelLabel}-layer${testCase.layer}-units${testCase.units.join('-')}-${testCase.atomCount}atom-oracle-only`;
+  const gradientMode = envValue('GCL_BLIND_SWIGLU_GRADIENT_MODE', 'coordinate');
+  const suffix = gradientMode === 'coordinate' ? 'oracle-only' : `${gradientMode}-oracle-only`;
+  if (testCase.units.length === 1) return `${modelLabel}-layer${testCase.layer}-unit${testCase.unit}-${suffix}`;
+  return `${modelLabel}-layer${testCase.layer}-units${testCase.units.join('-')}-${testCase.atomCount}atom-${suffix}`;
 }
 
 function makeRandom(seed: number): () => number {
@@ -270,6 +272,8 @@ for (const testCase of sweepCases) {
     '--gradient-mode', envValue('GCL_BLIND_SWIGLU_GRADIENT_MODE', 'coordinate'),
     '--probe-points', envValue('GCL_BLIND_SWIGLU_PROBE_POINTS', '2'),
     '--direction-count', envValue('GCL_BLIND_SWIGLU_DIRECTION_COUNT', '384'),
+    '--subspace-count', envValue('GCL_BLIND_SWIGLU_SUBSPACE_COUNT', '0'),
+    '--finite-difference-step', envValue('GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP', '0.08'),
     '--train-count', envValue('GCL_BLIND_SWIGLU_TRAIN_COUNT', '1600'),
     '--validation-count', envValue('GCL_BLIND_SWIGLU_VALIDATION_COUNT', '512'),
     '--fit-steps', envValue('GCL_BLIND_SWIGLU_FIT_STEPS', '1200'),

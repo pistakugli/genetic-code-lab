@@ -288,6 +288,14 @@ Current status: release-gated for:
   `0.9952423306790068`, max MAE `0.0009230608551877102`, max worst error
   `0.012063083889497478`, and min subspace principal cosine
   `0.9999999518366974`.
+- query-budget hardened randomized 6-unit SwiGLU block sweep on real local
+  Mistral-family 4096D units using forward-coordinate witnesses. Current
+  artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-6unit-forward-coordinate-sweep-oracle-only/report.json`,
+  pass `true`, cases `2/2`, total raw oracle calls `124506`, max raw oracle
+  calls per case `62253`, min R2 `0.9952220102880769`, max MAE
+  `0.0009253719069818783`, max worst error `0.012323574241066268`, and min
+  subspace principal cosine `0.9999991210977408`.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block
