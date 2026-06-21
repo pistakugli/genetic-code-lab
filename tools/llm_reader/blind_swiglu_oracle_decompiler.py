@@ -141,6 +141,8 @@ def oracle_server(args: argparse.Namespace) -> int:
 
 class OracleClient:
     def __init__(self, args: argparse.Namespace, work_dir: Path) -> None:
+        self.stderr_path = work_dir / "oracle-stderr.log"
+        self.stderr_file = self.stderr_path.open("w", encoding="utf-8", buffering=1)
         command = [
             sys.executable,
             __file__,
@@ -165,12 +167,15 @@ class OracleClient:
             cwd=Path(__file__).resolve().parents[2],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=sys.stderr,
+            stderr=self.stderr_file,
             text=True,
             bufsize=1,
         )
         assert self.process.stdout is not None
-        ready = json.loads(self.process.stdout.readline())
+        ready_line = self.process.stdout.readline()
+        if not ready_line:
+            raise RuntimeError(f"oracle did not become ready; exit={self.process.poll()} stderr={self.stderr_tail()}")
+        ready = json.loads(ready_line)
         if ready.get("type") != "ready":
             raise RuntimeError(f"oracle did not become ready: {ready}")
         self.meta = ready
@@ -178,12 +183,28 @@ class OracleClient:
         self.query_count = 0
         self._counter = 0
 
+    def stderr_tail(self, max_chars: int = 4000) -> str:
+        try:
+            self.stderr_file.flush()
+            text = self.stderr_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+        return text[-max_chars:]
+
     def request(self, payload: dict[str, Any]) -> dict[str, Any]:
         assert self.process.stdin is not None
         assert self.process.stdout is not None
-        self.process.stdin.write(json.dumps(payload) + "\n")
-        self.process.stdin.flush()
-        response = json.loads(self.process.stdout.readline())
+        if self.process.poll() is not None:
+            raise RuntimeError(f"oracle process exited before request {payload.get('cmd')!r}; exit={self.process.returncode} stderr={self.stderr_tail()}")
+        try:
+            self.process.stdin.write(json.dumps(payload) + "\n")
+            self.process.stdin.flush()
+        except (BrokenPipeError, OSError) as error:
+            raise RuntimeError(f"oracle pipe failed during request {payload.get('cmd')!r}; exit={self.process.poll()} stderr={self.stderr_tail()}") from error
+        response_line = self.process.stdout.readline()
+        if not response_line:
+            raise RuntimeError(f"oracle closed stdout during request {payload.get('cmd')!r}; exit={self.process.poll()} stderr={self.stderr_tail()}")
+        response = json.loads(response_line)
         if response.get("type") not in {"ok", "bye"}:
             raise RuntimeError(f"oracle request failed: {response}")
         return response
@@ -213,12 +234,14 @@ class OracleClient:
 
     def close(self) -> None:
         try:
-            self.request({"cmd": "stop"})
+            if self.process.poll() is None:
+                self.request({"cmd": "stop"})
         finally:
             try:
                 self.process.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 self.process.kill()
+            self.stderr_file.close()
 
 
 def estimate_gradient(
@@ -249,6 +272,18 @@ def estimate_coordinate_gradient(
     minus = base[None, :] - step * eye
     values = oracle.eval(np.vstack([plus, minus]))
     return (values[:dimension] - values[dimension:]) / (2.0 * step)
+
+
+def estimate_forward_coordinate_gradient(
+    oracle: OracleClient,
+    base: np.ndarray,
+    step: float,
+) -> np.ndarray:
+    dimension = base.shape[0]
+    eye = np.eye(dimension, dtype=np.float32)
+    shifted = base[None, :] + step * eye
+    values = oracle.eval(np.vstack([base[None, :], shifted]))
+    return (values[1:] - values[0]) / step
 
 
 def recover_basis(gradients: np.ndarray, rank: int) -> tuple[np.ndarray, np.ndarray, float]:
@@ -546,10 +581,13 @@ def run_solver(args: argparse.Namespace) -> int:
                 base = rng.normal(0.0, args.input_scale, size=dimension).astype(np.float32)
                 if args.gradient_mode == "coordinate":
                     gradients.append(estimate_coordinate_gradient(oracle, base, args.finite_difference_step))
+                elif args.gradient_mode == "forward-coordinate":
+                    gradients.append(estimate_forward_coordinate_gradient(oracle, base, args.finite_difference_step))
                 else:
                     gradients.append(estimate_gradient(oracle, rng, base, args.direction_count, args.finite_difference_step))
             gradient_matrix = np.vstack(gradients)
             basis, eigenvalues, energy_ratio = recover_basis(gradient_matrix, args.active_rank)
+            gradient_witness_count = int(gradient_matrix.shape[0])
 
             train_inputs = rng.normal(0.0, args.input_scale, size=(args.train_count, dimension)).astype(np.float32)
             train_targets = oracle.eval(train_inputs)
@@ -618,6 +656,8 @@ def run_solver(args: argparse.Namespace) -> int:
                     "probePoints": args.probe_points,
                     "gradientMode": args.gradient_mode,
                     "directionCount": args.direction_count,
+                    "gradientWitnessCount": gradient_witness_count,
+                    "subspaceCount": args.subspace_count if args.subspace_count > 0 else None,
                     "finiteDifferenceStep": args.finite_difference_step,
                     "trainCount": args.train_count,
                     "validationCount": args.validation_count,
@@ -677,9 +717,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--oracle-batch-size", type=int, default=2048)
     parser.add_argument("--active-rank", type=int, default=2)
     parser.add_argument("--atom-count", type=int, default=None)
-    parser.add_argument("--gradient-mode", choices=["coordinate", "random-direction"], default="coordinate")
+    parser.add_argument("--gradient-mode", choices=["coordinate", "forward-coordinate", "random-direction"], default="coordinate")
     parser.add_argument("--probe-points", type=int, default=2)
     parser.add_argument("--direction-count", type=int, default=384)
+    parser.add_argument("--subspace-count", type=int, default=0)
     parser.add_argument("--finite-difference-step", type=float, default=0.08)
     parser.add_argument("--input-scale", type=float, default=0.45)
     parser.add_argument("--validation-scale", type=float, default=0.65)

@@ -273,6 +273,13 @@ Current status: release-gated for:
   pass `true`, raw oracle calls `115488`, R2 `0.9970869523285548`, MAE
   `0.0007282176910088243`, worst error `0.008779981374470364`, and subspace
   min principal cosine `0.9999999544565973`.
+- query-budget hardened 6-unit SwiGLU block recovery on the same real local
+  Mistral-family 4096D oracle using forward-coordinate active-subspace
+  witnesses. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-123-456-789-1024-6atom-forward-coordinate-oracle-only/report.json`,
+  pass `true`, raw oracle calls `62253`, R2 `0.9970121491993152`, MAE
+  `0.0007410395113780754`, worst error `0.00931293073078479`, and subspace
+  min principal cosine `0.9999994812351087`.
 - first randomized blind oracle-only 6-unit SwiGLU block sweep on real local
   Mistral-family 4096D units. Two deterministic-random same-layer 6-unit
   scalar oracles passed with active rank `12`. Current artifact:

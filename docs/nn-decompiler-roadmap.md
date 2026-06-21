@@ -1050,6 +1050,18 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     min principal cosine `0.9999999544565973`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current query-budget 6-unit block gate: DONE as a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-6unit-forward-coordinate`.
+    This keeps the same real local Mistral-family scalar oracle and the same
+    six units, but uses forward-coordinate active-subspace witnesses instead
+    of central-coordinate witnesses. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-123-456-789-1024-6atom-forward-coordinate-oracle-only/report.json`.
+    Result: pass `true`, dimension `4096`, unitCount `6`, atomCount `6`, raw
+    oracle calls `62253`, validation R2 `0.9970121491993152`, validation MAE
+    `0.0007410395113780754`, max worst error `0.00931293073078479`, subspace
+    min principal cosine `0.9999994812351087`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Current randomized 6-unit block gate: DONE as a targeted benchmark with
     `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-6unit-randomized`.
     The gate uses two deterministic-random real local Mistral-family scalar
