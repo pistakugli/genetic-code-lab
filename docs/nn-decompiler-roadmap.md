@@ -1105,6 +1105,22 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.9999966163799717`, fit restarts `160`,
     and access audit `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current query-budget randomized 8-unit block gate: DONE as a targeted
+    benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:multi-8unit-forward-coordinate-randomized`.
+    The gate uses two deterministic-random real local Mistral-family scalar
+    oracles; each oracle returns the sum of eight same-layer SwiGLU unit
+    outputs. The solver receives only batch `f(x)` outputs, recovers rank-16
+    active subspaces, and fits explicit 8-atom SwiGLU sums using
+    forward-coordinate witnesses and explicit fit restart budgeting. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only/report.json`.
+    Result: pass `true`, cases `2/2`, max unitCount `8`, max atomCount `8`,
+    total raw oracle calls `162594`, max raw oracle calls per case `81297`,
+    min validation R2 `0.9965490748792153`, max validation MAE
+    `0.0008981839822401561`, max worst error `0.010140033299851102`,
+    subspace min principal cosine `0.9999975326762489`, and access audit
+    `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+    `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
   - Current LLaMA-family 6-unit parity block gate: DONE as a targeted benchmark
     with
     `npm run benchmark:nn-live-blind-swiglu-oracle-decompiler:llama-multi-6unit`.
@@ -1167,7 +1183,7 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     randomized 5-unit scalar blocks plus first selected and randomized 6-unit
     scalar blocks, plus first selected/randomized LLaMA-family 6-unit scalar
     blocks and forward-coordinate query-budget parity for selected/randomized
-    Mistral/LLaMA 6-unit blocks plus the first selected Mistral 8-unit block.
+    Mistral/LLaMA 6-unit blocks plus selected/randomized Mistral 8-unit blocks.
     It does not prove full Mistral/LLaMA FFN extraction,
     all-channel 3072D/4096D block decompilation, exhaustive circuit recovery,
     arbitrary high-count mixtures, or semantic original-neuron identity from
