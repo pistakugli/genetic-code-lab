@@ -78,7 +78,11 @@ function resolveGclPython(): string {
 
 function caseVariant(testCase: SweepCase): string {
   const gradientMode = envValue('GCL_BLIND_SWIGLU_GRADIENT_MODE', 'coordinate');
-  const suffix = gradientMode === 'coordinate' ? 'oracle-only' : `${gradientMode}-oracle-only`;
+  const quantizationStep = Number(envValue('GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP', '0'));
+  const variantTags = [];
+  if (quantizationStep > 0) variantTags.push(`q${String(quantizationStep).replace(/^0\./, '').replace(/\./g, '')}`);
+  const variantTag = variantTags.length ? `${variantTags.join('-')}-` : '';
+  const suffix = gradientMode === 'coordinate' ? `${variantTag}oracle-only` : `${variantTag}${gradientMode}-oracle-only`;
   if (testCase.units.length === 1) return `${modelLabel}-layer${testCase.layer}-unit${testCase.unit}-${suffix}`;
   return `${modelLabel}-layer${testCase.layer}-units${testCase.units.join('-')}-${testCase.atomCount}atom-${suffix}`;
 }
