@@ -52,6 +52,7 @@ const args = [
   '--validation-count', envValue('GCL_BLIND_SWIGLU_VALIDATION_COUNT', '512'),
   '--fit-steps', envValue('GCL_BLIND_SWIGLU_FIT_STEPS', '1200'),
   '--fit-learning-rate', envValue('GCL_BLIND_SWIGLU_FIT_LEARNING_RATE', '0.025'),
+  '--fit-restarts', envValue('GCL_BLIND_SWIGLU_FIT_RESTARTS', '0'),
   '--min-r2', envValue('GCL_BLIND_SWIGLU_MIN_R2', '0.985'),
   '--max-mae', envValue('GCL_BLIND_SWIGLU_MAX_MAE', '0.015'),
   '--max-worst-error', envValue('GCL_BLIND_SWIGLU_MAX_WORST_ERROR', '1e30'),

@@ -405,6 +405,7 @@ def fit_swiglu_atom(
             if best is None or candidate["mae"] < best["mae"]:
                 best = candidate
     assert best is not None
+    best["restartCount"] = restart_count
     return best
 
 
@@ -415,6 +416,7 @@ def fit_swiglu_sum(
     seed: int,
     steps: int,
     learning_rate: float,
+    restart_override: int | None = None,
 ) -> dict[str, Any]:
     if atom_count == 1:
         single = fit_swiglu_atom(coords, targets, seed, steps, learning_rate)
@@ -438,6 +440,8 @@ def fit_swiglu_sum(
     restart_count = max(64, atom_count * 32)
     if atom_count >= 4:
         restart_count = max(restart_count, atom_count * 48)
+    if restart_override is not None:
+        restart_count = max(1, restart_override)
     best: dict[str, Any] | None = None
     structured_starts: list[tuple[np.ndarray, np.ndarray, np.ndarray, float]] = []
     if atom_count > 1:
@@ -531,6 +535,7 @@ def fit_swiglu_sum(
             if best is None or candidate["mae"] < best["mae"]:
                 best = candidate
     assert best is not None
+    best["restartCount"] = restart_count
     return best
 
 
@@ -592,7 +597,15 @@ def run_solver(args: argparse.Namespace) -> int:
             train_inputs = rng.normal(0.0, args.input_scale, size=(args.train_count, dimension)).astype(np.float32)
             train_targets = oracle.eval(train_inputs)
             train_coords = train_inputs @ basis.T
-            fit = fit_swiglu_sum(train_coords, train_targets, args.atom_count, args.seed + 17, args.fit_steps, args.fit_learning_rate)
+            fit = fit_swiglu_sum(
+                train_coords,
+                train_targets,
+                args.atom_count,
+                args.seed + 17,
+                args.fit_steps,
+                args.fit_learning_rate,
+                args.fit_restarts if args.fit_restarts > 0 else None,
+            )
 
             validation_inputs = rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
             validation_targets = oracle.eval(validation_inputs)
@@ -664,6 +677,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "validationScale": args.validation_scale,
                     "gradientEigenvalues": [float(value) for value in eigenvalues],
                     "fitTrainMae": float(fit["mae"]),
+                    "fitRestarts": int(fit["restartCount"]),
                     "fitScales": [float(value) for value in fit["scales"]],
                     "fitBias": float(fit["bias"]),
                 },
@@ -728,6 +742,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--validation-count", type=int, default=512)
     parser.add_argument("--fit-steps", type=int, default=1200)
     parser.add_argument("--fit-learning-rate", type=float, default=0.025)
+    parser.add_argument("--fit-restarts", type=int, default=0)
     parser.add_argument("--seed", type=int, default=260620)
     parser.add_argument("--min-r2", type=float, default=0.985)
     parser.add_argument("--max-mae", type=float, default=0.015)
