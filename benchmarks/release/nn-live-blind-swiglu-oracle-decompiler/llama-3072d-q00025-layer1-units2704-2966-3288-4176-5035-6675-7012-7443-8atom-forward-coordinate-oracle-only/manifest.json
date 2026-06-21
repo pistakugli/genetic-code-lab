@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-21T21:04:16.216Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "llama-3072d-q00025-layer1-units2704-2966-3288-4176-5035-6675-7012-7443-8atom-forward-coordinate-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "16",
+    "GCL_BLIND_SWIGLU_BASIS_MOMENT": "raw",
+    "GCL_BLIND_SWIGLU_EXPECTED_DIMENSION": "3072",
+    "GCL_BLIND_SWIGLU_FAMILY_LABEL": "LLaMA-family",
+    "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP": "0.4",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT": "0",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT": "0",
+    "GCL_BLIND_SWIGLU_FIT_RESTARTS": "768",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "2400",
+    "GCL_BLIND_SWIGLU_GRADIENT_MODE": "forward-coordinate",
+    "GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE": "8192",
+    "GCL_BLIND_SWIGLU_LAYER_COUNT": "28",
+    "GCL_BLIND_SWIGLU_MAX_MAE": "0.015",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "230000",
+    "GCL_BLIND_SWIGLU_MAX_R2": "0.999",
+    "GCL_BLIND_SWIGLU_MIN_R2": "0.999",
+    "GCL_BLIND_SWIGLU_MIN_SUBSPACE_COSINE": "0.999",
+    "GCL_BLIND_SWIGLU_MODEL": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "GCL_BLIND_SWIGLU_MODEL_LABEL": "llama-3072d",
+    "GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP": "0.00025",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "65",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.015",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.999",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.999",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "2",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_SEED": "260621",
+    "GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT": "8",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "llama-3072d-randomized-2block-8unit-q00025-forward-sweep-oracle-only",
+    "GCL_BLIND_SWIGLU_TIMEOUT_MS": "1800000",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "12000",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "2048"
+  },
+  "git": {
+    "commit": "31b2a3f2ddf39ef479be63cb39f27ceb68edcc6d",
+    "statusShort": "D benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units2704-2966-3288-4176-5035-6675-7012-7443-8atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units2704-2966-3288-4176-5035-6675-7012-7443-8atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units2704-2966-3288-4176-5035-6675-7012-7443-8atom-forward-coordinate-oracle-only/report.md"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-q00025-layer1-units2704-2966-3288-4176-5035-6675-7012-7443-8atom-forward-coordinate-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-q00025-layer1-units2704-2966-3288-4176-5035-6675-7012-7443-8atom-forward-coordinate-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-q00025-layer1-units2704-2966-3288-4176-5035-6675-7012-7443-8atom-forward-coordinate-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "modelType": "llama",
+    "dimension": 3072,
+    "layer": 1,
+    "unit": 2704,
+    "units": [
+      2704,
+      2966,
+      3288,
+      4176,
+      5035,
+      6675,
+      7012,
+      7443
+    ],
+    "unitCount": 8,
+    "activeRank": 16,
+    "atomCount": 8,
+    "rawOracleCalls": 213793,
+    "metrics": {
+      "mae": 0.009205129181165679,
+      "mse": 0.0001547586362907888,
+      "r2": 0.9996458860257502,
+      "worstError": 0.07539645058978484
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.9999599283834114,
+      "upMaxAbsCosine": 0.9999456169310978,
+      "subspaceMinPrincipalCosine": 0.9995635612093632,
+      "subspaceCosines": [
+        0.9999838791733154,
+        0.9999830683758285,
+        0.9999797512430122,
+        0.9999763681275594,
+        0.9999728004002468,
+        0.9999722484261007,
+        0.9999680389532958,
+        0.9999621456683354,
+        0.9999602718696852,
+        0.9999574805789148,
+        0.9999492608684825,
+        0.9999464467938842,
+        0.999938488133555,
+        0.9999227681394172,
+        0.9997552794463958,
+        0.9995635612093632
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9997706363948502
+  },
+  "notes": [
+    "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
+  ]
+}

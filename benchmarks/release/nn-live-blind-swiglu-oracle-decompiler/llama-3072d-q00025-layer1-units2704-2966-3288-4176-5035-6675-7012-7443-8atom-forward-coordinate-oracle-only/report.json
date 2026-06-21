@@ -1,0 +1,117 @@
+{
+  "summary": {
+    "pass": true,
+    "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "modelType": "llama",
+    "dimension": 3072,
+    "layer": 1,
+    "unit": 2704,
+    "units": [
+      2704,
+      2966,
+      3288,
+      4176,
+      5035,
+      6675,
+      7012,
+      7443
+    ],
+    "unitCount": 8,
+    "activeRank": 16,
+    "atomCount": 8,
+    "rawOracleCalls": 213793,
+    "metrics": {
+      "mae": 0.009205129181165679,
+      "mse": 0.0001547586362907888,
+      "r2": 0.9996458860257502,
+      "worstError": 0.07539645058978484
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.9999599283834114,
+      "upMaxAbsCosine": 0.9999456169310978,
+      "subspaceMinPrincipalCosine": 0.9995635612093632,
+      "subspaceCosines": [
+        0.9999838791733154,
+        0.9999830683758285,
+        0.9999797512430122,
+        0.9999763681275594,
+        0.9999728004002468,
+        0.9999722484261007,
+        0.9999680389532958,
+        0.9999621456683354,
+        0.9999602718696852,
+        0.9999574805789148,
+        0.9999492608684825,
+        0.9999464467938842,
+        0.999938488133555,
+        0.9999227681394172,
+        0.9997552794463958,
+        0.9995635612093632
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9997706363948502
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "oracleOwnsWeights": true,
+    "postHocWitnessOnly": true,
+    "processBoundary": "solver parent communicates with oracle subprocess via npy batch files and JSONL commands"
+  },
+  "solver": {
+    "kind": "blind-active-subspace-explicit-swiglu-sum",
+    "probePoints": 65,
+    "gradientMode": "forward-coordinate",
+    "basisMoment": "raw",
+    "directionCount": 384,
+    "gradientWitnessCount": 65,
+    "subspaceCount": null,
+    "finiteDifferenceStep": 0.4,
+    "trainCount": 12000,
+    "validationCount": 2048,
+    "validationScale": 0.65,
+    "gradientEigenvalues": [
+      0.1400027835786731,
+      0.11258218969015872,
+      0.10558306389272723,
+      0.08401999471297092,
+      0.07195599297027104,
+      0.06909203647891447,
+      0.06277164915920394,
+      0.055400277984721295,
+      0.05321203024696798,
+      0.04174198146401067,
+      0.0377312368851673,
+      0.026522534128403486,
+      0.02136151392744495,
+      0.020954488917594723,
+      0.01866307473796298,
+      0.012940234861991388
+    ],
+    "fitTrainMae": 0.0040861105138951465,
+    "fitRestarts": 768,
+    "fitMode": "batched-cuda",
+    "fitGradientCount": 0,
+    "fitGradientWeight": 0.0,
+    "fitScales": [
+      -0.3032063952587618,
+      0.3210755896437815,
+      -0.2568944745784634,
+      0.3209532154842981,
+      -0.32207969234402595,
+      0.30416402719194724,
+      -0.3235748692394499,
+      0.3023491869225126
+    ],
+    "fitBias": -0.0001388186237781917
+  },
+  "oracleResponse": {
+    "quantizationStep": 0.00025
+  },
+  "claimBoundary": [
+    "This gate proves selected real local SwiGLU unit outputs can be queried as a black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under the recorded budget.",
+    "It does not prove full FFN extraction, all-channel decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}

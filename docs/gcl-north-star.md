@@ -341,6 +341,14 @@ Current status: release-gated for:
   pass `true`, raw oracle calls `213793`, R2 `0.9995976100281595`, MAE
   `0.011652554395835905`, worst error `0.12080532366266805`, and subspace min
   principal cosine `0.9994415739539657`.
+- first deterministic-random finite-precision 8-unit SwiGLU block sweep on real
+  local LLaMA-family 3072D units with the same scalar response quantization step
+  `0.00025` and oracle-only access invariant. Current aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-randomized-2block-8unit-q00025-forward-sweep-oracle-only/report.json`,
+  pass `true`, cases `2/2`, total raw oracle calls `427586`, max raw oracle
+  calls per case `213793`, min R2 `0.9995742116828891`, max MAE
+  `0.010256079823764875`, max worst error `0.07837874541579404`, and min
+  subspace principal cosine `0.9992840966989263`.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   LLaMA-family 3072D units using forward-coordinate witnesses, active-gradient
   fit witnesses, and batched CUDA multi-start fitting. Current artifact:
