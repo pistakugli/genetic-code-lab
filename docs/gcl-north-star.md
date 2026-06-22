@@ -317,6 +317,29 @@ Current status: release-gated for:
   pass `true`, raw oracle calls `81297`, R2 `0.9956625486864737`, MAE
   `0.0010698511933124055`, worst error `0.010449555792974501`, subspace min
   principal cosine `0.9999966163799717`, and fit restarts `160`.
+- centered-basis, active-gradient-fit replay of the selected 8-unit
+  Mistral-family 4096D block. This is the current strongest selected Mistral
+  8-unit clean witness: the solver receives only scalar oracle batches from a
+  separate process; source weights remain post-hoc witness material. Current
+  artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-clean-centered-gradfit-oracle-only/report.json`,
+  pass `true`, raw oracle calls `85649`, R2 `0.9953413995342039`, MAE
+  `0.0011220708891648541`, worst error `0.01246827271765028`, subspace min
+  principal cosine `0.9999966163799717`, basis moment `centered`, fit mode
+  `batched-cuda`, active-gradient fit count `256`, and access audit
+  `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+  `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+- first finite-precision selected 8-unit SwiGLU block recovery on real local
+  Mistral-family 4096D units. The oracle deterministically quantizes every
+  scalar response to step `1e-8`; the solver still receives only quantized
+  scalar `f(x)` batches and uses centered forward-coordinate subspace recovery
+  plus active-gradient fit witnesses. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q00000001-centered-gradfit-oracle-only/report.json`,
+  pass `true`, raw oracle calls `85649`, R2 `0.9954504023764993`, MAE
+  `0.0011104610821356987`, worst error `0.012667784692725533`, subspace min
+  principal cosine `0.9999724425295571`, quantization step `1e-8`, basis
+  moment `centered`, fit mode `batched-cuda`, and active-gradient fit count
+  `256`. Coarser Mistral quantization is not promoted by this artifact.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:

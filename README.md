@@ -484,6 +484,23 @@ What these gates currently support:
   subspace principal cosine `0.9999999518366974`, max raw oracle calls per
   case `115488`, and total raw oracle calls `230976`. Aggregate artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-6unit-sweep-oracle-only/report.json`.
+- Blind 4096D Mistral selected 8-unit SwiGLU block recovery with centered
+  basis and active-gradient fit witnesses: a scalar oracle returns the sum of
+  eight real layer-20 units `[0,17,123,456,789,1024,2048,4096]`; the solver
+  receives only `f(x)` batches and recovers an explicit 8-atom SwiGLU sum in a
+  rank-16 active subspace. Result: pass `true`, R2 `0.9953413995342039`, MAE
+  `0.0011220708891648541`, worst error `0.01246827271765028`, subspace min
+  principal cosine `0.9999966163799717`, raw oracle calls `85649`, and access
+  audit `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
+  `hooksUsedBySolver = false`, `postHocWitnessOnly = true`. Artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-clean-centered-gradfit-oracle-only/report.json`.
+- Blind 4096D Mistral selected 8-unit finite-precision SwiGLU block recovery:
+  the same scalar oracle deterministically quantizes every response to step
+  `1e-8`. Result: pass `true`, R2 `0.9954504023764993`, MAE
+  `0.0011104610821356987`, worst error `0.012667784692725533`, subspace min
+  principal cosine `0.9999724425295571`, and raw oracle calls `85649`.
+  Coarser Mistral quantization is not promoted by this artifact. Artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q00000001-centered-gradfit-oracle-only/report.json`.
 
 What they do not support yet:
 
