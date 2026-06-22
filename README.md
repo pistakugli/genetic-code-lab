@@ -540,11 +540,12 @@ What these gates currently support:
   sweep: `2/2` deterministic-random eight-unit blocks passed at response
   quantization step `1e-6` after increasing the basis witness budget to `33`
   probe points while keeping the multi-step finite-difference estimator
-  `0.08,0.12`. Result: min R2 `0.9957418602955875`, max MAE
-  `0.0009929048009931932`, max worst error `0.014018241921693056`, min
+  `0.08,0.12` and reducing noisy gradient-fit weight to `0.075`. Result:
+  min R2 `0.9958676370633143`, max MAE `0.0009856537193232476`, max worst
+  error `0.014497109404921407`, min
   subspace principal cosine `0.9994407684636628`, max raw oracle calls per
   case `290754`, and total raw oracle calls `581508`. Aggregate artifact:
-  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-sweep-oracle-only/report.json`.
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-grad0075-sweep-oracle-only/report.json`.
 
 Finite-precision boundary:
 
@@ -557,7 +558,7 @@ Finite-precision boundary:
 - The finite-precision lane shows graceful benchmark-scoped degradation, not a
   universal API guarantee: randomized `q=1e-8` min R2 `0.9957594628054579`,
   randomized `q=1e-7` min R2 `0.995860081804988`, and randomized `q=1e-6`
-  min R2 `0.9957418602955875`.
+  min R2 `0.9958676370633143`.
 
 What they do not support yet:
 

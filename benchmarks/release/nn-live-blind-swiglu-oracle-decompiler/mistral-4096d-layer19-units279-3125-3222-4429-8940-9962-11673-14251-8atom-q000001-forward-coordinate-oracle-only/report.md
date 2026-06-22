@@ -4,8 +4,8 @@
 - model: `unsloth/mistral-7b-instruct-v0.3-bnb-4bit`
 - layer/unit: `19/[279, 3125, 3222, 4429, 8940, 9962, 11673, 14251]`
 - raw oracle calls: `290754`
-- validation R2: `0.9958118485505202`
-- validation MAE: `0.0009929048009931932`
+- validation R2: `0.9958676370633143`
+- validation MAE: `0.0009856537193232476`
 - subspace min principal cosine: `0.9994407684636628`
 
 Access audit:

@@ -381,12 +381,13 @@ Current status: release-gated for:
 - first deterministic-random multi-step finite-precision 8-unit SwiGLU block
   sweep on real local Mistral-family 4096D units at scalar response
   quantization step `1e-6`. This uses multi-step finite differences
-  `0.08,0.12` and increases the basis witness budget to `33` probe points.
+  `0.08,0.12`, increases the basis witness budget to `33` probe points, and
+  reduces noisy gradient-fit weight to `0.075`.
   Current aggregate artifact:
-  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-sweep-oracle-only/report.json`,
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-grad0075-sweep-oracle-only/report.json`,
   pass `true`, cases `2/2`, total raw oracle calls `581508`, max raw oracle
-  calls per case `290754`, min R2 `0.9957418602955875`, max MAE
-  `0.0009929048009931932`, max worst error `0.014018241921693056`, and min
+  calls per case `290754`, min R2 `0.9958676370633143`, max MAE
+  `0.0009856537193232476`, max worst error `0.014497109404921407`, and min
   subspace principal cosine `0.9994407684636628`.
 
 Finite-precision interpretation and boundaries:
@@ -400,7 +401,7 @@ Finite-precision interpretation and boundaries:
 - The observed finite-precision ladder degrades gracefully rather than
   cliff-failing under the gated cases: randomized `1e-8` min R2
   `0.9957594628054579`, randomized `1e-7` min R2 `0.995860081804988`, and
-  randomized `1e-6` min R2 `0.9957418602955875`. This is benchmark-scoped evidence
+  randomized `1e-6` min R2 `0.9958676370633143`. This is benchmark-scoped evidence
   of noise-tolerant oracle-only recovery, not a universal API guarantee.
 - The `1e-6` result required the multi-step finite-difference estimator; naive
   single-step `1e-6` attempts are not promoted by the release evidence.

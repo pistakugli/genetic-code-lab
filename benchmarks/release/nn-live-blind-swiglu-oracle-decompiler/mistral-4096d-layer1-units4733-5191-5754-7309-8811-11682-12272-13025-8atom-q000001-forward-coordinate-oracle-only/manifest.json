@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-22T16:51:20.312Z",
+  "generatedAt": "2026-06-22T17:12:21.098Z",
   "lane": "nn-live-blind-swiglu-oracle-decompiler",
   "variant": "mistral-4096d-layer1-units4733-5191-5754-7309-8811-11682-12272-13025-8atom-q000001-forward-coordinate-oracle-only",
   "status": "pass",
@@ -21,7 +21,7 @@
     "GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT": "256",
     "GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP": "0.12",
     "GCL_BLIND_SWIGLU_FIT_GRADIENT_STEPS": "0.08,0.12",
-    "GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT": "0.2",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT": "0.075",
     "GCL_BLIND_SWIGLU_FIT_MODE": "batched",
     "GCL_BLIND_SWIGLU_FIT_RESTARTS": "384",
     "GCL_BLIND_SWIGLU_FIT_STEPS": "1800",
@@ -35,15 +35,15 @@
     "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.999",
     "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "2",
     "GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT": "8",
-    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-sweep-oracle-only",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-grad0075-sweep-oracle-only",
     "GCL_BLIND_SWIGLU_TIMEOUT_MS": "1800000",
     "GCL_BLIND_SWIGLU_TRAIN_COUNT": "9600",
     "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "2048",
     "GCL_PYTHON": ".gcl-python-gpu/bin/python"
   },
   "git": {
-    "commit": "20065747a4dba06ece379b5dcd151739f9631597",
-    "statusShort": "M README.md\n M docs/gcl-north-star.md\n M docs/release-lane-status.md\n M package.json\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler.ts\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units4733-5191-5754-7309-8811-11682-12272-13025-8atom-q000001-forward-coordinate-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q000001-forward-coordinate-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-sweep-oracle-only/"
+    "commit": "4361ac456065817ed582f04722d12731040ca594",
+    "statusShort": "M README.md\n D benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units4733-5191-5754-7309-8811-11682-12272-13025-8atom-q000001-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units4733-5191-5754-7309-8811-11682-12272-13025-8atom-q000001-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units4733-5191-5754-7309-8811-11682-12272-13025-8atom-q000001-forward-coordinate-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q000001-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q000001-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q000001-forward-coordinate-oracle-only/report.md\n M docs/gcl-north-star.md\n M docs/release-lane-status.md\n M package.json\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-grad0075-sweep-oracle-only/"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units4733-5191-5754-7309-8811-11682-12272-13025-8atom-q000001-forward-coordinate-oracle-only/report.json",
@@ -72,14 +72,14 @@
     "atomCount": 8,
     "rawOracleCalls": 290754,
     "metrics": {
-      "mae": 0.0009919984371019835,
-      "mse": 0.0000021649019393678695,
-      "r2": 0.9957418602955875,
-      "worstError": 0.010324945567868431
+      "mae": 0.0009718480514099772,
+      "mse": 0.0000020516760153171496,
+      "r2": 0.9959645640559759,
+      "worstError": 0.009593243657228905
     },
     "sourceAlignment": {
-      "gateMaxAbsCosine": 0.9974356204471441,
-      "upMaxAbsCosine": 0.981052636742967,
+      "gateMaxAbsCosine": 0.99796254613184,
+      "upMaxAbsCosine": 0.9792861705067527,
       "subspaceMinPrincipalCosine": 0.9996066410222786,
       "subspaceCosines": [
         0.9999982523158011,
