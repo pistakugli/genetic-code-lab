@@ -376,22 +376,31 @@ Current status: release-gated for:
   pass `true`, raw oracle calls `220850`, R2 `0.9952414211113175`, MAE
   `0.0011636592796313008`, worst error `0.009295537729115112`, subspace min
   principal cosine `0.9993536447338561`, quantization step `1e-6`, and
-  finite-difference steps `0.08,0.12`. This is selected evidence, not yet
-  randomized `1e-6` robustness.
+  finite-difference steps `0.08,0.12`. This artifact alone is selected
+  evidence; randomized `1e-6` robustness is reported separately below.
+- first deterministic-random multi-step finite-precision 8-unit SwiGLU block
+  sweep on real local Mistral-family 4096D units at scalar response
+  quantization step `1e-6`. This uses multi-step finite differences
+  `0.08,0.12` and increases the basis witness budget to `33` probe points.
+  Current aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-sweep-oracle-only/report.json`,
+  pass `true`, cases `2/2`, total raw oracle calls `581508`, max raw oracle
+  calls per case `290754`, min R2 `0.9957418602955875`, max MAE
+  `0.0009929048009931932`, max worst error `0.014018241921693056`, and min
+  subspace principal cosine `0.9994407684636628`.
 
 Finite-precision interpretation and boundaries:
 
 - These gates scale the input/oracle dimension to real Mistral-family 4096D
   hidden vectors, while the recovered block size is still a selected 8-unit
   SwiGLU scalar sum. They do not claim all-channel or full-FFN extraction.
-- The `1e-8` and `1e-7` finite-precision gates are deterministic-random
-  two-case sweeps; the current `1e-6` gate is selected only. A randomized
-  `1e-6` sweep is the next required witness before promoting robustness at
-  that noise level.
+- The `1e-8`, `1e-7`, and `1e-6` finite-precision gates are deterministic-random
+  two-case sweeps. The `1e-6` sweep requires the larger `33`-probe witness
+  budget; the lower `25`-probe setting is only selected-pass evidence.
 - The observed finite-precision ladder degrades gracefully rather than
   cliff-failing under the gated cases: randomized `1e-8` min R2
   `0.9957594628054579`, randomized `1e-7` min R2 `0.995860081804988`, and
-  selected `1e-6` R2 `0.9952414211113175`. This is benchmark-scoped evidence
+  randomized `1e-6` min R2 `0.9957418602955875`. This is benchmark-scoped evidence
   of noise-tolerant oracle-only recovery, not a universal API guarantee.
 - The `1e-6` result required the multi-step finite-difference estimator; naive
   single-step `1e-6` attempts are not promoted by the release evidence.

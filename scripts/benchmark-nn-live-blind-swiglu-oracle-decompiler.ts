@@ -58,6 +58,7 @@ const args = [
   '--fit-steps', envValue('GCL_BLIND_SWIGLU_FIT_STEPS', '1200'),
   '--fit-learning-rate', envValue('GCL_BLIND_SWIGLU_FIT_LEARNING_RATE', '0.025'),
   '--fit-restarts', envValue('GCL_BLIND_SWIGLU_FIT_RESTARTS', '0'),
+  '--fit-restart-chunk-size', envValue('GCL_BLIND_SWIGLU_FIT_RESTART_CHUNK_SIZE', '0'),
   '--fit-mode', envValue('GCL_BLIND_SWIGLU_FIT_MODE', 'auto'),
   '--fit-gradient-count', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT', '0'),
   '--fit-gradient-step', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP', '0'),

@@ -483,6 +483,7 @@ def fit_swiglu_sum_batched(
     gradient_coords: np.ndarray | None,
     gradient_targets: np.ndarray | None,
     gradient_weight: float,
+    restart_chunk_size: int,
 ) -> dict[str, Any]:
     import torch
 
@@ -511,78 +512,91 @@ def fit_swiglu_sum_batched(
         gy = None
         target_grad_scale = None
 
-    generator = torch.Generator(device=device)
-    generator.manual_seed(seed)
-    gates_init = torch.randn(restart_count, atom_count, rank, dtype=fit_dtype, device=device, generator=generator) * 0.6
-    ups_init = torch.randn(restart_count, atom_count, rank, dtype=fit_dtype, device=device, generator=generator) * 0.6
-    scales_init = torch.ones(restart_count, atom_count, dtype=fit_dtype, device=device) * max(0.1, target_scale / max(1, atom_count))
-    bias_init = torch.ones(restart_count, dtype=fit_dtype, device=device) * float(np.mean(targets))
-    for index, (gate_start, up_start, scale_start, bias_start) in enumerate(structured_starts[:restart_count]):
-        gates_init[index] = torch.tensor(gate_start, dtype=fit_dtype, device=device)
-        ups_init[index] = torch.tensor(up_start, dtype=fit_dtype, device=device)
-        scales_init[index] = torch.tensor(scale_start, dtype=fit_dtype, device=device)
-        bias_init[index] = float(bias_start)
-
-    gates = torch.nn.Parameter(gates_init)
-    ups = torch.nn.Parameter(ups_init)
-    scales = torch.nn.Parameter(scales_init)
-    bias = torch.nn.Parameter(bias_init)
-    optimizer = torch.optim.Adam([gates, ups, scales, bias], lr=learning_rate)
-    for _ in range(steps):
-        optimizer.zero_grad()
-        gate_projection = torch.einsum("nr,bkr->bnk", x, gates)
-        up_projection = torch.einsum("nr,bkr->bnk", x, ups)
-        activations = torch.nn.functional.silu(gate_projection) * up_projection
-        prediction = torch.sum(activations * scales[:, None, :], dim=2) + bias[:, None]
-        per_restart_loss = torch.mean((prediction - y[None, :]) ** 2, dim=1)
-        if has_gradient_witness and gx is not None and gy is not None and target_grad_scale is not None:
-            grad_gate_projection = torch.einsum("mr,bkr->bmk", gx, gates)
-            grad_up_projection = torch.einsum("mr,bkr->bmk", gx, ups)
-            sigmoid = torch.sigmoid(grad_gate_projection)
-            silu_values = torch.nn.functional.silu(grad_gate_projection)
-            silu_prime = sigmoid * (1.0 + grad_gate_projection * (1.0 - sigmoid))
-            gradient_terms = scales[:, None, :, None] * (
-                silu_prime[:, :, :, None] * grad_up_projection[:, :, :, None] * gates[:, None, :, :]
-                + silu_values[:, :, :, None] * ups[:, None, :, :]
-            )
-            predicted_gradients = torch.sum(gradient_terms, dim=2)
-            gradient_loss = torch.mean((predicted_gradients - gy[None, :, :]) ** 2, dim=(1, 2)) / target_grad_scale
-            per_restart_loss = per_restart_loss + gradient_weight * gradient_loss
-        loss = torch.mean(per_restart_loss)
-        loss.backward()
-        optimizer.step()
-
-    gates_np = gates.detach().cpu().numpy().astype(np.float64)
-    ups_np = ups.detach().cpu().numpy().astype(np.float64)
     best: dict[str, Any] | None = None
     ones = np.ones(coords.shape[0], dtype=np.float64)
-    for restart in range(restart_count):
-        activation_np = silu_np(coords @ gates_np[restart].T) * (coords @ ups_np[restart].T)
-        design = np.column_stack([activation_np, ones])
-        try:
-            coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
-            if not np.all(np.isfinite(coeffs)):
+    chunk_size = restart_count if restart_chunk_size <= 0 else max(1, min(restart_count, restart_chunk_size))
+    for chunk_start in range(0, restart_count, chunk_size):
+        current_count = min(chunk_size, restart_count - chunk_start)
+        generator = torch.Generator(device=device)
+        generator.manual_seed(seed + chunk_start)
+        gates_init = torch.randn(current_count, atom_count, rank, dtype=fit_dtype, device=device, generator=generator) * 0.6
+        ups_init = torch.randn(current_count, atom_count, rank, dtype=fit_dtype, device=device, generator=generator) * 0.6
+        scales_init = torch.ones(current_count, atom_count, dtype=fit_dtype, device=device) * max(0.1, target_scale / max(1, atom_count))
+        bias_init = torch.ones(current_count, dtype=fit_dtype, device=device) * float(np.mean(targets))
+        for local_index in range(current_count):
+            global_index = chunk_start + local_index
+            if global_index >= len(structured_starts):
                 continue
-        except np.linalg.LinAlgError:
-            continue
-        prediction_np = design @ coeffs
-        mae = float(np.mean(np.abs(prediction_np - targets)))
-        mse = float(np.mean((prediction_np - targets) ** 2))
-        candidate = {
-            "restart": restart,
-            "mae": mae,
-            "mse": mse,
-            "gates": gates_np[restart],
-            "ups": ups_np[restart],
-            "scales": coeffs[:-1].astype(np.float64),
-            "bias": float(coeffs[-1]),
-        }
-        if best is None or candidate["mae"] < best["mae"]:
-            best = candidate
+            gate_start, up_start, scale_start, bias_start = structured_starts[global_index]
+            gates_init[local_index] = torch.tensor(gate_start, dtype=fit_dtype, device=device)
+            ups_init[local_index] = torch.tensor(up_start, dtype=fit_dtype, device=device)
+            scales_init[local_index] = torch.tensor(scale_start, dtype=fit_dtype, device=device)
+            bias_init[local_index] = float(bias_start)
+
+        gates = torch.nn.Parameter(gates_init)
+        ups = torch.nn.Parameter(ups_init)
+        scales = torch.nn.Parameter(scales_init)
+        bias = torch.nn.Parameter(bias_init)
+        optimizer = torch.optim.Adam([gates, ups, scales, bias], lr=learning_rate)
+        for _ in range(steps):
+            optimizer.zero_grad()
+            gate_projection = torch.einsum("nr,bkr->bnk", x, gates)
+            up_projection = torch.einsum("nr,bkr->bnk", x, ups)
+            activations = torch.nn.functional.silu(gate_projection) * up_projection
+            prediction = torch.sum(activations * scales[:, None, :], dim=2) + bias[:, None]
+            per_restart_loss = torch.mean((prediction - y[None, :]) ** 2, dim=1)
+            if has_gradient_witness and gx is not None and gy is not None and target_grad_scale is not None:
+                grad_gate_projection = torch.einsum("mr,bkr->bmk", gx, gates)
+                grad_up_projection = torch.einsum("mr,bkr->bmk", gx, ups)
+                sigmoid = torch.sigmoid(grad_gate_projection)
+                silu_values = torch.nn.functional.silu(grad_gate_projection)
+                silu_prime = sigmoid * (1.0 + grad_gate_projection * (1.0 - sigmoid))
+                gradient_terms = scales[:, None, :, None] * (
+                    silu_prime[:, :, :, None] * grad_up_projection[:, :, :, None] * gates[:, None, :, :]
+                    + silu_values[:, :, :, None] * ups[:, None, :, :]
+                )
+                predicted_gradients = torch.sum(gradient_terms, dim=2)
+                gradient_loss = torch.mean((predicted_gradients - gy[None, :, :]) ** 2, dim=(1, 2)) / target_grad_scale
+                per_restart_loss = per_restart_loss + gradient_weight * gradient_loss
+            loss = torch.mean(per_restart_loss)
+            loss.backward()
+            optimizer.step()
+
+        gates_np = gates.detach().cpu().numpy().astype(np.float64)
+        ups_np = ups.detach().cpu().numpy().astype(np.float64)
+        for local_restart in range(current_count):
+            restart = chunk_start + local_restart
+            activation_np = silu_np(coords @ gates_np[local_restart].T) * (coords @ ups_np[local_restart].T)
+            design = np.column_stack([activation_np, ones])
+            try:
+                coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
+                if not np.all(np.isfinite(coeffs)):
+                    continue
+            except np.linalg.LinAlgError:
+                continue
+            prediction_np = design @ coeffs
+            mae = float(np.mean(np.abs(prediction_np - targets)))
+            mse = float(np.mean((prediction_np - targets) ** 2))
+            score = mae
+            candidate = {
+                "restart": restart,
+                "mae": mae,
+                "mse": mse,
+                "score": score,
+                "gates": gates_np[local_restart],
+                "ups": ups_np[local_restart],
+                "scales": coeffs[:-1].astype(np.float64),
+                "bias": float(coeffs[-1]),
+            }
+            if best is None or candidate["score"] < best["score"]:
+                best = candidate
+        del gates, ups, scales, bias, optimizer, gates_np, ups_np
+        torch.cuda.empty_cache()
     if best is None:
         raise RuntimeError("batched SwiGLU fit did not produce a finite candidate")
     best["restartCount"] = restart_count
-    best["fitMode"] = "batched-cuda"
+    best["restartChunkSize"] = chunk_size
+    best["fitMode"] = "batched-cuda" if chunk_size >= restart_count else "batched-cuda-chunked"
     return best
 
 
@@ -598,6 +612,7 @@ def fit_swiglu_sum(
     gradient_targets: np.ndarray | None = None,
     gradient_weight: float = 0.0,
     fit_mode: str = "auto",
+    restart_chunk_size: int = 0,
 ) -> dict[str, Any]:
     if atom_count == 1:
         single = fit_swiglu_atom(coords, targets, seed, steps, learning_rate)
@@ -684,6 +699,7 @@ def fit_swiglu_sum(
                 gradient_coords,
                 gradient_targets,
                 gradient_weight,
+                restart_chunk_size,
             )
         except Exception:
             if fit_mode == "batched":
@@ -777,16 +793,18 @@ def fit_swiglu_sum(
                 mse = torch.mean((prediction - y) ** 2).item()
                 scale_values = scales.detach().cpu().numpy().astype(np.float64)
                 bias_value = float(bias.detach().cpu().item())
+            score = mae
             candidate = {
                 "restart": restart,
                 "mae": mae,
                 "mse": mse,
+                "score": score,
                 "gates": gates.detach().cpu().numpy().astype(np.float64),
                 "ups": ups.detach().cpu().numpy().astype(np.float64),
                 "scales": scale_values,
                 "bias": bias_value,
             }
-            if best is None or candidate["mae"] < best["mae"]:
+            if best is None or candidate["score"] < best["score"]:
                 best = candidate
     assert best is not None
     best["restartCount"] = restart_count
@@ -881,6 +899,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 fit_gradient_targets,
                 args.fit_gradient_weight,
                 args.fit_mode,
+                args.fit_restart_chunk_size,
             )
 
             validation_inputs = rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
@@ -956,6 +975,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "gradientEigenvalues": [float(value) for value in eigenvalues],
                     "fitTrainMae": float(fit["mae"]),
                     "fitRestarts": int(fit["restartCount"]),
+                    "fitRestartChunkSize": None if fit.get("restartChunkSize") is None else int(fit["restartChunkSize"]),
                     "fitMode": str(fit.get("fitMode", "unknown")),
                     "fitGradientCount": int(fit_gradient_coords.shape[0]),
                     "fitGradientSteps": [float(step) for step in fit_gradient_steps],
@@ -1031,6 +1051,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fit-steps", type=int, default=1200)
     parser.add_argument("--fit-learning-rate", type=float, default=0.025)
     parser.add_argument("--fit-restarts", type=int, default=0)
+    parser.add_argument("--fit-restart-chunk-size", type=int, default=0)
     parser.add_argument("--fit-mode", choices=["auto", "sequential", "batched"], default="auto")
     parser.add_argument("--fit-gradient-count", type=int, default=0)
     parser.add_argument("--fit-gradient-step", type=float, default=0.0)

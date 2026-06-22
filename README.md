@@ -532,22 +532,32 @@ What these gates currently support:
   finite-difference steps `0.08,0.12`. Result: pass `true`, R2
   `0.9952414211113175`, MAE `0.0011636592796313008`, worst error
   `0.009295537729115112`, subspace min principal cosine
-  `0.9993536447338561`, and raw oracle calls `220850`. This is selected
-  evidence, not randomized `1e-6` robustness. Artifact:
+  `0.9993536447338561`, and raw oracle calls `220850`. This artifact alone is
+  selected evidence; randomized `1e-6` robustness is reported separately below.
+  Artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q000001-centered-gradfit-multistep0812-probe25-oracle-only/report.json`.
+- Blind 4096D randomized Mistral 8-unit multi-step finite-precision SwiGLU
+  sweep: `2/2` deterministic-random eight-unit blocks passed at response
+  quantization step `1e-6` after increasing the basis witness budget to `33`
+  probe points while keeping the multi-step finite-difference estimator
+  `0.08,0.12`. Result: min R2 `0.9957418602955875`, max MAE
+  `0.0009929048009931932`, max worst error `0.014018241921693056`, min
+  subspace principal cosine `0.9994407684636628`, max raw oracle calls per
+  case `290754`, and total raw oracle calls `581508`. Aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-sweep-oracle-only/report.json`.
 
 Finite-precision boundary:
 
 - `4096D` is the real Mistral hidden/input dimension seen by the oracle.
   `8-unit` is the selected recovered SwiGLU block size. These gates do not
   claim all-channel or full-FFN extraction.
-- `q=1e-8` and `q=1e-7` have deterministic-random two-case 8-unit sweeps.
-  `q=1e-6` is currently selected-only; randomized `q=1e-6` remains the next
-  required robustness witness.
+- `q=1e-8`, `q=1e-7`, and `q=1e-6` now have deterministic-random two-case
+  8-unit sweeps. The `q=1e-6` sweep requires the larger `33`-probe witness
+  budget; the lower `25`-probe setting is only selected-pass evidence.
 - The finite-precision lane shows graceful benchmark-scoped degradation, not a
   universal API guarantee: randomized `q=1e-8` min R2 `0.9957594628054579`,
-  randomized `q=1e-7` min R2 `0.995860081804988`, and selected `q=1e-6` R2
-  `0.9952414211113175`.
+  randomized `q=1e-7` min R2 `0.995860081804988`, and randomized `q=1e-6`
+  min R2 `0.9957418602955875`.
 
 What they do not support yet:
 
