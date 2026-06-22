@@ -536,6 +536,19 @@ What these gates currently support:
   evidence, not randomized `1e-6` robustness. Artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q000001-centered-gradfit-multistep0812-probe25-oracle-only/report.json`.
 
+Finite-precision boundary:
+
+- `4096D` is the real Mistral hidden/input dimension seen by the oracle.
+  `8-unit` is the selected recovered SwiGLU block size. These gates do not
+  claim all-channel or full-FFN extraction.
+- `q=1e-8` and `q=1e-7` have deterministic-random two-case 8-unit sweeps.
+  `q=1e-6` is currently selected-only; randomized `q=1e-6` remains the next
+  required robustness witness.
+- The finite-precision lane shows graceful benchmark-scoped degradation, not a
+  universal API guarantee: randomized `q=1e-8` min R2 `0.9957594628054579`,
+  randomized `q=1e-7` min R2 `0.995860081804988`, and selected `q=1e-6` R2
+  `0.9952414211113175`.
+
 What they do not support yet:
 
 - Full GPT-2 FFN extraction as a release claim.

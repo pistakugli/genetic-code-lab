@@ -158,6 +158,12 @@ calls. It passes with R2 `0.9952414211113175`, MAE
 principal cosine `0.9993536447338561`. This is selected `1e-6` evidence, not
 randomized `1e-6` robustness.
 
+Finite-precision lane scope: `4096D` names the real Mistral hidden/input
+dimension queried through the oracle, while `8-unit` names the selected
+SwiGLU block size being recovered. The current lane proves selected/randomized
+8-unit scalar-block recovery under recorded quantization budgets; it does not
+prove all-channel Mistral FFN extraction or arbitrary production API recovery.
+
 The randomized live blind Mistral 8-unit query-budget sweep applies the same
 forward-coordinate oracle-only solver to two deterministic-random eight-unit
 Mistral scalar oracles. The current aggregate passes 2/2 cases with max raw

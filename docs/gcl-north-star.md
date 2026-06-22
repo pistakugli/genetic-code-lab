@@ -378,6 +378,23 @@ Current status: release-gated for:
   principal cosine `0.9993536447338561`, quantization step `1e-6`, and
   finite-difference steps `0.08,0.12`. This is selected evidence, not yet
   randomized `1e-6` robustness.
+
+Finite-precision interpretation and boundaries:
+
+- These gates scale the input/oracle dimension to real Mistral-family 4096D
+  hidden vectors, while the recovered block size is still a selected 8-unit
+  SwiGLU scalar sum. They do not claim all-channel or full-FFN extraction.
+- The `1e-8` and `1e-7` finite-precision gates are deterministic-random
+  two-case sweeps; the current `1e-6` gate is selected only. A randomized
+  `1e-6` sweep is the next required witness before promoting robustness at
+  that noise level.
+- The observed finite-precision ladder degrades gracefully rather than
+  cliff-failing under the gated cases: randomized `1e-8` min R2
+  `0.9957594628054579`, randomized `1e-7` min R2 `0.995860081804988`, and
+  selected `1e-6` R2 `0.9952414211113175`. This is benchmark-scoped evidence
+  of noise-tolerant oracle-only recovery, not a universal API guarantee.
+- The `1e-6` result required the multi-step finite-difference estimator; naive
+  single-step `1e-6` attempts are not promoted by the release evidence.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:
