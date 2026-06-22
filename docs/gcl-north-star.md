@@ -340,6 +340,15 @@ Current status: release-gated for:
   principal cosine `0.9999724425295571`, quantization step `1e-8`, basis
   moment `centered`, fit mode `batched-cuda`, and active-gradient fit count
   `256`. Coarser Mistral quantization is not promoted by this artifact.
+- first deterministic-random finite-precision 8-unit SwiGLU block sweep on real
+  local Mistral-family 4096D units with the same scalar response quantization
+  step `1e-8`, centered basis recovery, active-gradient fit witnesses, and
+  oracle-only access invariant. Current aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q00000001-centered-gradfit-sweep-oracle-only/report.json`,
+  pass `true`, cases `2/2`, total raw oracle calls `171298`, max raw oracle
+  calls per case `85649`, min R2 `0.9957594628054579`, max MAE
+  `0.0010088005020659832`, max worst error `0.009621486908707531`, and min
+  subspace principal cosine `0.9999828597286717`.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:

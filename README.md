@@ -501,6 +501,14 @@ What these gates currently support:
   principal cosine `0.9999724425295571`, and raw oracle calls `85649`.
   Coarser Mistral quantization is not promoted by this artifact. Artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q00000001-centered-gradfit-oracle-only/report.json`.
+- Blind 4096D randomized Mistral 8-unit finite-precision SwiGLU sweep: `2/2`
+  deterministic-random eight-unit blocks passed with scalar response
+  quantization step `1e-8`, centered basis, active-gradient fit witnesses, and
+  the same oracle-only invariant. Result: min R2 `0.9957594628054579`, max MAE
+  `0.0010088005020659832`, max worst error `0.009621486908707531`, min
+  subspace principal cosine `0.9999828597286717`, max raw oracle calls per
+  case `85649`, and total raw oracle calls `171298`. Aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q00000001-centered-gradfit-sweep-oracle-only/report.json`.
 
 What they do not support yet:
 
