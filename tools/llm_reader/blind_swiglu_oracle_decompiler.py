@@ -292,6 +292,17 @@ def estimate_forward_coordinate_gradient(
     return (values[1:] - values[0]) / step
 
 
+def parse_step_list(raw: str | None, fallback: float) -> list[float]:
+    if raw is None or not raw.strip():
+        return [float(fallback)]
+    steps = [float(value.strip()) for value in raw.split(",") if value.strip()]
+    if not steps:
+        return [float(fallback)]
+    if any((not np.isfinite(step)) or step <= 0.0 for step in steps):
+        raise RuntimeError(f"finite-difference steps must be positive finite values: {raw!r}")
+    return steps
+
+
 def recover_basis(gradients: np.ndarray, rank: int, moment: str = "auto") -> tuple[np.ndarray, np.ndarray, float]:
     # Centering n gradient witnesses caps the covariance rank at n - 1. For the
     # low-query path where n == rank, use raw second moments so a rank-2 SwiGLU
@@ -321,21 +332,26 @@ def estimate_active_forward_gradients(
     basis: np.ndarray,
     count: int,
     input_scale: float,
-    step: float,
+    steps: list[float],
 ) -> tuple[np.ndarray, np.ndarray]:
     rank = basis.shape[0]
     if count <= 0:
         return np.zeros((0, rank), dtype=np.float64), np.zeros((0, rank), dtype=np.float64)
+    if not steps:
+        raise RuntimeError("active-gradient estimation requires at least one positive step")
     coords = rng.normal(0.0, input_scale, size=(count, rank)).astype(np.float32)
     base_inputs = coords @ basis
-    shifted_coords = np.repeat(coords[:, None, :], rank, axis=1)
-    for index in range(rank):
-        shifted_coords[:, index, index] += step
-    shifted_inputs = shifted_coords.reshape(count * rank, rank) @ basis
-    values = oracle.eval(np.vstack([base_inputs, shifted_inputs]).astype(np.float32))
-    base_values = values[:count]
-    shifted_values = values[count:].reshape(count, rank)
-    active_gradients = (shifted_values - base_values[:, None]) / step
+    step_gradients = []
+    for step in steps:
+        shifted_coords = np.repeat(coords[:, None, :], rank, axis=1)
+        for index in range(rank):
+            shifted_coords[:, index, index] += step
+        shifted_inputs = shifted_coords.reshape(count * rank, rank) @ basis
+        values = oracle.eval(np.vstack([base_inputs, shifted_inputs]).astype(np.float32))
+        base_values = values[:count]
+        shifted_values = values[count:].reshape(count, rank)
+        step_gradients.append((shifted_values - base_values[:, None]) / step)
+    active_gradients = np.mean(np.stack(step_gradients, axis=0), axis=0)
     return coords.astype(np.float64), active_gradients.astype(np.float64)
 
 
@@ -820,15 +836,21 @@ def run_solver(args: argparse.Namespace) -> int:
             if args.atom_count != unit_count:
                 raise RuntimeError(f"atom_count={args.atom_count} does not match oracle unit_count={unit_count}")
             rng = np.random.default_rng(args.seed)
+            finite_difference_steps = parse_step_list(args.finite_difference_steps, args.finite_difference_step)
+            fit_gradient_steps = parse_step_list(
+                args.fit_gradient_steps,
+                args.fit_gradient_step if args.fit_gradient_step > 0 else args.finite_difference_step,
+            )
             gradients = []
             for _ in range(args.probe_points):
                 base = rng.normal(0.0, args.input_scale, size=dimension).astype(np.float32)
-                if args.gradient_mode == "coordinate":
-                    gradients.append(estimate_coordinate_gradient(oracle, base, args.finite_difference_step))
-                elif args.gradient_mode == "forward-coordinate":
-                    gradients.append(estimate_forward_coordinate_gradient(oracle, base, args.finite_difference_step))
-                else:
-                    gradients.append(estimate_gradient(oracle, rng, base, args.direction_count, args.finite_difference_step))
+                for step in finite_difference_steps:
+                    if args.gradient_mode == "coordinate":
+                        gradients.append(estimate_coordinate_gradient(oracle, base, step))
+                    elif args.gradient_mode == "forward-coordinate":
+                        gradients.append(estimate_forward_coordinate_gradient(oracle, base, step))
+                    else:
+                        gradients.append(estimate_gradient(oracle, rng, base, args.direction_count, step))
             gradient_matrix = np.vstack(gradients)
             basis_moment = args.basis_moment
             if basis_moment == "auto" and args.gradient_mode == "forward-coordinate":
@@ -845,7 +867,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 basis,
                 args.fit_gradient_count,
                 args.input_scale,
-                args.fit_gradient_step if args.fit_gradient_step > 0 else args.finite_difference_step,
+                fit_gradient_steps,
             )
             fit = fit_swiglu_sum(
                 train_coords,
@@ -927,6 +949,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "gradientWitnessCount": gradient_witness_count,
                     "subspaceCount": args.subspace_count if args.subspace_count > 0 else None,
                     "finiteDifferenceStep": args.finite_difference_step,
+                    "finiteDifferenceSteps": [float(step) for step in finite_difference_steps],
                     "trainCount": args.train_count,
                     "validationCount": args.validation_count,
                     "validationScale": args.validation_scale,
@@ -935,6 +958,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "fitRestarts": int(fit["restartCount"]),
                     "fitMode": str(fit.get("fitMode", "unknown")),
                     "fitGradientCount": int(fit_gradient_coords.shape[0]),
+                    "fitGradientSteps": [float(step) for step in fit_gradient_steps],
                     "fitGradientWeight": float(args.fit_gradient_weight),
                     "fitScales": [float(value) for value in fit["scales"]],
                     "fitBias": float(fit["bias"]),
@@ -999,6 +1023,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--direction-count", type=int, default=384)
     parser.add_argument("--subspace-count", type=int, default=0)
     parser.add_argument("--finite-difference-step", type=float, default=0.08)
+    parser.add_argument("--finite-difference-steps", default="")
     parser.add_argument("--input-scale", type=float, default=0.45)
     parser.add_argument("--validation-scale", type=float, default=0.65)
     parser.add_argument("--train-count", type=int, default=1600)
@@ -1009,6 +1034,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fit-mode", choices=["auto", "sequential", "batched"], default="auto")
     parser.add_argument("--fit-gradient-count", type=int, default=0)
     parser.add_argument("--fit-gradient-step", type=float, default=0.0)
+    parser.add_argument("--fit-gradient-steps", default="")
     parser.add_argument("--fit-gradient-weight", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=260620)
     parser.add_argument("--min-r2", type=float, default=0.985)

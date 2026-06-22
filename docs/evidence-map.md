@@ -346,8 +346,10 @@ Forbidden:
    finite-precision witnesses at scalar quantization step `1e-8`; coarser
    selected Mistral quantization now has a higher-query `1e-7` witness with
    `25` probe points, max `118425` raw oracle calls per case, and total
-   randomized calls `236850`; the lower-query `17`-probe `1e-7` attempt is not
-   promoted by these artifacts.
+   randomized calls `236850`; the selected Mistral block now has a multi-step
+   `1e-6` witness with finite-difference steps `0.08,0.12` and `220850` raw
+   oracle calls. The lower-query `17`-probe `1e-7` attempt and naive `1e-6`
+   single-step attempts are not promoted by these artifacts.
    The next proof needs larger randomized multi-unit block sweeps, broader
    layer/unit coverage, stronger finite-precision/adaptive probing, and lower
    query cost before full `release:gate` integration.

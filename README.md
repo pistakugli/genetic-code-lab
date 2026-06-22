@@ -526,6 +526,15 @@ What these gates currently support:
   `0.9999857710403501`, max raw oracle calls per case `118425`, and total raw
   oracle calls `236850`. Aggregate artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q0000001-centered-gradfit-probe25-sweep-oracle-only/report.json`.
+- Blind 4096D Mistral selected 8-unit multi-step finite-precision SwiGLU
+  recovery: the selected eight-unit scalar oracle passes at response
+  quantization step `1e-6` when the new multi-step estimator uses
+  finite-difference steps `0.08,0.12`. Result: pass `true`, R2
+  `0.9952414211113175`, MAE `0.0011636592796313008`, worst error
+  `0.009295537729115112`, subspace min principal cosine
+  `0.9993536447338561`, and raw oracle calls `220850`. This is selected
+  evidence, not randomized `1e-6` robustness. Artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q000001-centered-gradfit-multistep0812-probe25-oracle-only/report.json`.
 
 What they do not support yet:
 

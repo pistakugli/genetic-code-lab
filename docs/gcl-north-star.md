@@ -368,6 +368,16 @@ Current status: release-gated for:
   calls per case `118425`, min R2 `0.995860081804988`, max MAE
   `0.0010036287991970745`, max worst error `0.010330999089242423`, and min
   subspace principal cosine `0.9999857710403501`.
+- first selected multi-step finite-precision 8-unit SwiGLU block recovery on
+  real local Mistral-family 4096D units at scalar response quantization step
+  `1e-6`. This uses the new multi-step finite-difference estimator with steps
+  `0.08,0.12`. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q000001-centered-gradfit-multistep0812-probe25-oracle-only/report.json`,
+  pass `true`, raw oracle calls `220850`, R2 `0.9952414211113175`, MAE
+  `0.0011636592796313008`, worst error `0.009295537729115112`, subspace min
+  principal cosine `0.9993536447338561`, quantization step `1e-6`, and
+  finite-difference steps `0.08,0.12`. This is selected evidence, not yet
+  randomized `1e-6` robustness.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:
