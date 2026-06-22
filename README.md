@@ -518,6 +518,14 @@ What these gates currently support:
   `0.9999930621807005`, and raw oracle calls `118425`. The lower-query
   `17`-probe `1e-7` attempt is not promoted. Artifact:
   `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q0000001-centered-gradfit-step008-probe25-oracle-only/report.json`.
+- Blind 4096D randomized Mistral 8-unit higher-query finite-precision SwiGLU
+  sweep: `2/2` deterministic-random eight-unit blocks passed at response
+  quantization step `1e-7` with `25` probe points. Result: min R2
+  `0.995860081804988`, max MAE `0.0010036287991970745`, max worst error
+  `0.010330999089242423`, min subspace principal cosine
+  `0.9999857710403501`, max raw oracle calls per case `118425`, and total raw
+  oracle calls `236850`. Aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q0000001-centered-gradfit-probe25-sweep-oracle-only/report.json`.
 
 What they do not support yet:
 

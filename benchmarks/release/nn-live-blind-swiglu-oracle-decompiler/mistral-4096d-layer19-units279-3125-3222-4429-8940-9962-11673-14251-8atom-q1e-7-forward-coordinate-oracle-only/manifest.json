@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-22T04:50:31.794Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q1e-7-forward-coordinate-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "16",
+    "GCL_BLIND_SWIGLU_BASIS_MOMENT": "centered",
+    "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP": "0.08",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT": "256",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP": "0.08",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT": "0.2",
+    "GCL_BLIND_SWIGLU_FIT_MODE": "batched",
+    "GCL_BLIND_SWIGLU_FIT_RESTARTS": "384",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "1600",
+    "GCL_BLIND_SWIGLU_GRADIENT_MODE": "forward-coordinate",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "150000",
+    "GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP": "0.0000001",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "25",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.015",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR": "0.08",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.999",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "2",
+    "GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT": "8",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "mistral-4096d-randomized-2block-8unit-q0000001-centered-gradfit-probe25-sweep-oracle-only",
+    "GCL_BLIND_SWIGLU_TIMEOUT_MS": "1800000",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "9600",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "2048",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "dd61a337da1fd08f00e7d6c9106761d532a64a50",
+    "statusShort": "?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units4733-5191-5754-7309-8811-11682-12272-13025-8atom-q1e-7-forward-coordinate-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q1e-7-forward-coordinate-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q1e-7-forward-coordinate-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q1e-7-forward-coordinate-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer19-units279-3125-3222-4429-8940-9962-11673-14251-8atom-q1e-7-forward-coordinate-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+    "modelType": "mistral",
+    "dimension": 4096,
+    "layer": 19,
+    "unit": 279,
+    "units": [
+      279,
+      3125,
+      3222,
+      4429,
+      8940,
+      9962,
+      11673,
+      14251
+    ],
+    "unitCount": 8,
+    "activeRank": 16,
+    "atomCount": 8,
+    "rawOracleCalls": 118425,
+    "metrics": {
+      "mae": 0.0008142016104527149,
+      "mse": 0.0000014820355989037534,
+      "r2": 0.9971029376419055,
+      "worstError": 0.010142822503532413
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.9949566126305944,
+      "upMaxAbsCosine": 0.9722310642197152,
+      "subspaceMinPrincipalCosine": 0.9999857710403501,
+      "subspaceCosines": [
+        0.9999999213078502,
+        0.9999999032112139,
+        0.999999892452256,
+        0.9999998781962703,
+        0.9999998400307126,
+        0.9999998285052432,
+        0.9999997755056291,
+        0.9999997718070128,
+        0.9999997101132383,
+        0.9999996491006702,
+        0.9999995485329602,
+        0.9999992083146824,
+        0.9999989824012392,
+        0.9999980219325314,
+        0.9999969978451803,
+        0.9999857710403501
+      ]
+    },
+    "selectedGradientEnergyRatio": 0.9999997090349926
+  },
+  "notes": [
+    "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
+  ]
+}

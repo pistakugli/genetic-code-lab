@@ -359,6 +359,15 @@ Current status: release-gated for:
   `0.0010131811501723571`, worst error `0.008584273469236195`, subspace min
   principal cosine `0.9999930621807005`, quantization step `1e-7`, basis
   moment `centered`, and active-gradient fit count `256`.
+- first deterministic-random higher-query finite-precision 8-unit SwiGLU block
+  sweep on real local Mistral-family 4096D units at scalar response
+  quantization step `1e-7`. It uses the same `25` probe points and `0.08`
+  finite-difference step. Current aggregate artifact:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q0000001-centered-gradfit-probe25-sweep-oracle-only/report.json`,
+  pass `true`, cases `2/2`, total raw oracle calls `236850`, max raw oracle
+  calls per case `118425`, min R2 `0.995860081804988`, max MAE
+  `0.0010036287991970745`, max worst error `0.010330999089242423`, and min
+  subspace principal cosine `0.9999857710403501`.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:
