@@ -559,6 +559,13 @@ Finite-precision boundary:
   universal API guarantee: randomized `q=1e-8` min R2 `0.9957594628054579`,
   randomized `q=1e-7` min R2 `0.995860081804988`, and randomized `q=1e-6`
   min R2 `0.9958676370633143`.
+- The finite-precision ladder is now centralized by
+  `npm run benchmark:nn-live-blind-swiglu-finite-precision-ladder`, which reads
+  the existing clean, `q=1e-8`, `q=1e-7`, and `q=1e-6` selected/randomized
+  real-Mistral oracle-only artifacts, reports R2/MAE/worst-error/subspace
+  cosine degradation, and writes
+  `benchmarks/release/nn-live-blind-swiglu-finite-precision-ladder/mistral-4096d-8unit-selected-randomized-ladder/report.json`.
+  This is an evidence ledger, not another hyperparameter-tuning milestone.
 
 What they do not support yet:
 

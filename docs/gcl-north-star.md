@@ -405,6 +405,13 @@ Finite-precision interpretation and boundaries:
   of noise-tolerant oracle-only recovery, not a universal API guarantee.
 - The `1e-6` result required the multi-step finite-difference estimator; naive
   single-step `1e-6` attempts are not promoted by the release evidence.
+- The finite-precision ladder now has a central audit command:
+  `npm run benchmark:nn-live-blind-swiglu-finite-precision-ladder`. It reads
+  existing clean, `1e-8`, `1e-7`, and `1e-6` selected/randomized Mistral
+  oracle-only artifacts and reports R2, MAE, worst-error, subspace-cosine, and
+  selected-vs-clean deltas in
+  `benchmarks/release/nn-live-blind-swiglu-finite-precision-ladder/mistral-4096d-8unit-selected-randomized-ladder/report.json`.
+  This is a measurement/ledger gate, not another hyperparameter-tuning claim.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:

@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-25T11:17:56.552Z",
+  "lane": "nn-live-blind-swiglu-finite-precision-ladder",
+  "sourceLane": "nn-live-blind-swiglu-oracle-decompiler",
+  "status": "pass",
+  "summary": {
+    "pass": true,
+    "rowCount": 7,
+    "selectedCount": 4,
+    "randomizedCount": 3,
+    "minR2": 0.9952414211113175,
+    "maxMae": 0.0011636592796313008,
+    "maxWorstError": 0.014497109404921407,
+    "minSubspacePrincipalCosine": 0.9993536447338561,
+    "maxTotalRawOracleCalls": 581508,
+    "selectedDegradationVsClean": [
+      {
+        "id": "q1e-8-selected",
+        "quantizationStep": 1e-8,
+        "deltaVsCleanSelected": {
+          "r2": 0.00010900284229542478,
+          "mae": -0.000011609807029155407,
+          "worstError": 0.00019951197507525262,
+          "subspaceMinPrincipalCosine": -0.000024173850414643816
+        }
+      },
+      {
+        "id": "q1e-7-selected",
+        "quantizationStep": 1e-7,
+        "deltaVsCleanSelected": {
+          "r2": 0.000992916879340222,
+          "mae": -0.000108889738992497,
+          "worstError": -0.0038839992484140853,
+          "subspaceMinPrincipalCosine": -0.000003554199271227354
+        }
+      },
+      {
+        "id": "q1e-6-selected",
+        "quantizationStep": 0.000001,
+        "deltaVsCleanSelected": {
+          "r2": -0.00009997842288633763,
+          "mae": 0.000041588390466446674,
+          "worstError": -0.0031727349885351686,
+          "subspaceMinPrincipalCosine": -0.0006429716461155977
+        }
+      }
+    ],
+    "randomizedNoiseLadder": [
+      {
+        "id": "q1e-8-randomized",
+        "quantizationStep": 1e-8,
+        "minR2": 0.9957594628054579,
+        "maxMae": 0.0010088005020659832,
+        "maxWorstError": 0.009621486908707531,
+        "minSubspacePrincipalCosine": 0.9999828597286717,
+        "totalRawOracleCalls": 171298
+      },
+      {
+        "id": "q1e-7-randomized",
+        "quantizationStep": 1e-7,
+        "minR2": 0.995860081804988,
+        "maxMae": 0.0010036287991970745,
+        "maxWorstError": 0.010330999089242423,
+        "minSubspacePrincipalCosine": 0.9999857710403501,
+        "totalRawOracleCalls": 236850
+      },
+      {
+        "id": "q1e-6-randomized",
+        "quantizationStep": 0.000001,
+        "minR2": 0.9958676370633143,
+        "maxMae": 0.0009856537193232476,
+        "maxWorstError": 0.014497109404921407,
+        "minSubspacePrincipalCosine": 0.9994407684636628,
+        "totalRawOracleCalls": 581508
+      }
+    ],
+    "accessInvariant": true,
+    "failures": []
+  },
+  "rows": [
+    {
+      "id": "clean-selected",
+      "label": "clean selected",
+      "caseType": "selected",
+      "quantizationStep": 0,
+      "variant": "mistral-4096d-layer20-8atom-forward-clean-centered-gradfit-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-clean-centered-gradfit-oracle-only/report.json",
+      "pass": true,
+      "caseCount": 1,
+      "passedCases": 1,
+      "r2": 0.9953413995342039,
+      "mae": 0.0011220708891648541,
+      "worstError": 0.01246827271765028,
+      "subspaceMinPrincipalCosine": 0.9999966163799717,
+      "rawOracleCallsPerCase": 85649,
+      "totalRawOracleCalls": 85649,
+      "unitCount": 8,
+      "atomCount": 8,
+      "accessInvariant": true,
+      "note": "clean selected 8-unit Mistral scalar oracle baseline"
+    },
+    {
+      "id": "q1e-8-selected",
+      "label": "q=1e-8 selected",
+      "caseType": "selected",
+      "quantizationStep": 1e-8,
+      "variant": "mistral-4096d-layer20-8atom-forward-q00000001-centered-gradfit-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q00000001-centered-gradfit-oracle-only/report.json",
+      "pass": true,
+      "caseCount": 1,
+      "passedCases": 1,
+      "r2": 0.9954504023764993,
+      "mae": 0.0011104610821356987,
+      "worstError": 0.012667784692725533,
+      "subspaceMinPrincipalCosine": 0.9999724425295571,
+      "rawOracleCallsPerCase": 85649,
+      "totalRawOracleCalls": 85649,
+      "unitCount": 8,
+      "atomCount": 8,
+      "accessInvariant": true,
+      "note": "selected 8-unit oracle with deterministic scalar response quantization step 1e-8",
+      "deltaVsCleanSelected": {
+        "r2": 0.00010900284229542478,
+        "mae": -0.000011609807029155407,
+        "worstError": 0.00019951197507525262,
+        "subspaceMinPrincipalCosine": -0.000024173850414643816
+      }
+    },
+    {
+      "id": "q1e-8-randomized",
+      "label": "q=1e-8 randomized",
+      "caseType": "randomized",
+      "quantizationStep": 1e-8,
+      "variant": "mistral-4096d-randomized-2block-8unit-q00000001-centered-gradfit-sweep-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q00000001-centered-gradfit-sweep-oracle-only/report.json",
+      "pass": true,
+      "caseCount": 2,
+      "passedCases": 2,
+      "r2": 0.9957594628054579,
+      "mae": 0.0010088005020659832,
+      "worstError": 0.009621486908707531,
+      "subspaceMinPrincipalCosine": 0.9999828597286717,
+      "rawOracleCallsPerCase": 85649,
+      "totalRawOracleCalls": 171298,
+      "unitCount": 8,
+      "atomCount": 8,
+      "accessInvariant": true,
+      "note": "two deterministic-random 8-unit Mistral scalar oracles with quantization step 1e-8"
+    },
+    {
+      "id": "q1e-7-selected",
+      "label": "q=1e-7 selected",
+      "caseType": "selected",
+      "quantizationStep": 1e-7,
+      "variant": "mistral-4096d-layer20-8atom-forward-q0000001-centered-gradfit-step008-probe25-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q0000001-centered-gradfit-step008-probe25-oracle-only/report.json",
+      "pass": true,
+      "caseCount": 1,
+      "passedCases": 1,
+      "r2": 0.9963343164135441,
+      "mae": 0.0010131811501723571,
+      "worstError": 0.008584273469236195,
+      "subspaceMinPrincipalCosine": 0.9999930621807005,
+      "rawOracleCallsPerCase": 118425,
+      "totalRawOracleCalls": 118425,
+      "unitCount": 8,
+      "atomCount": 8,
+      "accessInvariant": true,
+      "note": "selected 8-unit oracle with 25 probes and quantization step 1e-7",
+      "deltaVsCleanSelected": {
+        "r2": 0.000992916879340222,
+        "mae": -0.000108889738992497,
+        "worstError": -0.0038839992484140853,
+        "subspaceMinPrincipalCosine": -0.000003554199271227354
+      }
+    },
+    {
+      "id": "q1e-7-randomized",
+      "label": "q=1e-7 randomized",
+      "caseType": "randomized",
+      "quantizationStep": 1e-7,
+      "variant": "mistral-4096d-randomized-2block-8unit-q0000001-centered-gradfit-probe25-sweep-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q0000001-centered-gradfit-probe25-sweep-oracle-only/report.json",
+      "pass": true,
+      "caseCount": 2,
+      "passedCases": 2,
+      "r2": 0.995860081804988,
+      "mae": 0.0010036287991970745,
+      "worstError": 0.010330999089242423,
+      "subspaceMinPrincipalCosine": 0.9999857710403501,
+      "rawOracleCallsPerCase": 118425,
+      "totalRawOracleCalls": 236850,
+      "unitCount": 8,
+      "atomCount": 8,
+      "accessInvariant": true,
+      "note": "two deterministic-random 8-unit Mistral scalar oracles with 25 probes and quantization step 1e-7"
+    },
+    {
+      "id": "q1e-6-selected",
+      "label": "q=1e-6 selected",
+      "caseType": "selected",
+      "quantizationStep": 0.000001,
+      "variant": "mistral-4096d-layer20-8atom-forward-q000001-centered-gradfit-multistep0812-probe25-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8atom-forward-q000001-centered-gradfit-multistep0812-probe25-oracle-only/report.json",
+      "pass": true,
+      "caseCount": 1,
+      "passedCases": 1,
+      "r2": 0.9952414211113175,
+      "mae": 0.0011636592796313008,
+      "worstError": 0.009295537729115112,
+      "subspaceMinPrincipalCosine": 0.9993536447338561,
+      "rawOracleCallsPerCase": 220850,
+      "totalRawOracleCalls": 220850,
+      "unitCount": 8,
+      "atomCount": 8,
+      "accessInvariant": true,
+      "note": "selected 8-unit oracle with multi-step finite differences 0.08,0.12 and quantization step 1e-6",
+      "deltaVsCleanSelected": {
+        "r2": -0.00009997842288633763,
+        "mae": 0.000041588390466446674,
+        "worstError": -0.0031727349885351686,
+        "subspaceMinPrincipalCosine": -0.0006429716461155977
+      }
+    },
+    {
+      "id": "q1e-6-randomized",
+      "label": "q=1e-6 randomized",
+      "caseType": "randomized",
+      "quantizationStep": 0.000001,
+      "variant": "mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-grad0075-sweep-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-q000001-centered-gradfit-multistep0812-probe33-grad0075-sweep-oracle-only/report.json",
+      "pass": true,
+      "caseCount": 2,
+      "passedCases": 2,
+      "r2": 0.9958676370633143,
+      "mae": 0.0009856537193232476,
+      "worstError": 0.014497109404921407,
+      "subspaceMinPrincipalCosine": 0.9994407684636628,
+      "rawOracleCallsPerCase": 290754,
+      "totalRawOracleCalls": 581508,
+      "unitCount": 8,
+      "atomCount": 8,
+      "accessInvariant": true,
+      "note": "two deterministic-random 8-unit Mistral scalar oracles with 33 probes, multi-step finite differences, and quantization step 1e-6"
+    }
+  ],
+  "boundaries": [
+    "This is an artifact-backed finite-precision geometry audit, not a new solver tuning result.",
+    "4096D is the Mistral hidden/input dimension observed through scalar oracle calls.",
+    "8-unit is the recovered selected/randomized SwiGLU block size; this does not prove full-FFN or all-channel extraction.",
+    "The solver access invariant remains oracle-only for the source reports; weights/hooks are post-hoc witnesses only.",
+    "Randomized rows are deterministic two-case sweeps and are not directly delta-comparable to the selected clean baseline."
+  ]
+}
