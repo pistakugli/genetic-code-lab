@@ -412,6 +412,13 @@ Finite-precision interpretation and boundaries:
   selected-vs-clean deltas in
   `benchmarks/release/nn-live-blind-swiglu-finite-precision-ladder/mistral-4096d-8unit-selected-randomized-ladder/report.json`.
   This is a measurement/ledger gate, not another hyperparameter-tuning claim.
+- The live SwiGLU lane now has a real-model parity audit command:
+  `npm run benchmark:nn-live-blind-swiglu-real-model-parity`. It reads existing
+  Mistral-family 4096D and LLaMA-family 3072D selected/randomized 8-unit
+  oracle-only artifacts, including finite-precision rows, and writes
+  `benchmarks/release/nn-live-blind-swiglu-real-model-parity/mistral-4096d-llama-3072d-8unit-oracle-only/report.json`.
+  This keeps the roadmap honest: the lane is not merely synthetic, but it is
+  still selected-block recovery rather than full LLM FFN extraction.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:

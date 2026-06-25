@@ -566,6 +566,13 @@ Finite-precision boundary:
   cosine degradation, and writes
   `benchmarks/release/nn-live-blind-swiglu-finite-precision-ladder/mistral-4096d-8unit-selected-randomized-ladder/report.json`.
   This is an evidence ledger, not another hyperparameter-tuning milestone.
+- Real-model parity is now centralized by
+  `npm run benchmark:nn-live-blind-swiglu-real-model-parity`, which reads
+  existing Mistral-family 4096D and LLaMA-family 3072D 8-unit oracle-only
+  artifacts, including finite-precision rows, and writes
+  `benchmarks/release/nn-live-blind-swiglu-real-model-parity/mistral-4096d-llama-3072d-8unit-oracle-only/report.json`.
+  This prevents the live SwiGLU lane from being described as only synthetic,
+  while still not claiming full-FFN or all-channel recovery.
 
 What they do not support yet:
 

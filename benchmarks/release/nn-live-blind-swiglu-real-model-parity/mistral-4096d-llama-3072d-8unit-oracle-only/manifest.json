@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-25T11:21:18.417Z",
+  "lane": "nn-live-blind-swiglu-real-model-parity",
+  "variant": "mistral-4096d-llama-3072d-8unit-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-real-model-parity.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-real-model-parity",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {},
+  "git": {
+    "commit": "971840cbc7b8c93e5c79c877eeb4bf6c134add6d",
+    "statusShort": "M README.md\n M docs/gcl-north-star.md\n M docs/release-lane-status.md\n M package.json\n?? benchmarks/release/nn-live-blind-swiglu-real-model-parity/\n?? scripts/benchmark-nn-live-blind-swiglu-real-model-parity.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-real-model-parity/mistral-4096d-llama-3072d-8unit-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-real-model-parity/mistral-4096d-llama-3072d-8unit-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-real-model-parity/mistral-4096d-llama-3072d-8unit-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "rowCount": 7,
+    "modelFamilies": [
+      "LLaMA-family",
+      "Mistral-family"
+    ],
+    "dimensions": [
+      3072,
+      4096
+    ],
+    "selectedCount": 3,
+    "randomizedCount": 4,
+    "finitePrecisionCount": 3,
+    "minR2": 0.9953413995342039,
+    "maxMae": 0.011652554395835905,
+    "maxWorstError": 0.12080532366266805,
+    "minSubspacePrincipalCosine": 0.9992840966989263,
+    "maxTotalRawOracleCalls": 581508,
+    "accessInvariant": true,
+    "failures": []
+  },
+  "notes": [
+    "This is a real-model parity evidence ledger, not a new decompiler method.",
+    "Mistral-family rows use a local Mistral-family checkpoint artifact; LLaMA-family rows use unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit artifacts.",
+    "Rows prove selected/randomized scalar 8-unit SwiGLU block recovery only; they do not prove all-channel or full-FFN extraction.",
+    "Solver access remains oracle-only in the source reports; source weights/hooks are post-hoc witnesses only."
+  ]
+}
