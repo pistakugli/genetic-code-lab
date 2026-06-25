@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-25T11:33:42.670Z",
+  "lane": "nn-live-blind-swiglu-deep-atlas",
+  "variant": "mistral-llama-multilayer-swiglu-atlas",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-deep-atlas.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-deep-atlas",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {},
+  "git": {
+    "commit": "ce804afe6678318dfdab2a8a3fd4a3d610933336",
+    "statusShort": "M README.md\n M docs/evidence-map.md\n M docs/gcl-north-star.md\n M docs/release-lane-status.md\n M package.json\n?? benchmarks/release/nn-live-blind-swiglu-deep-atlas/\n?? scripts/benchmark-nn-live-blind-swiglu-deep-atlas.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "sourceReportCount": 86,
+    "atlasRowCount": 86,
+    "selectedRowCount": 67,
+    "aggregateRowCount": 19,
+    "layerAtlasRowCount": 28,
+    "familySummaries": [
+      {
+        "modelFamily": "LLaMA-family",
+        "layerCount": 28,
+        "artifactRows": 30,
+        "selectedRows": 24,
+        "aggregateRows": 6,
+        "multiUnitSelectedRows": 12,
+        "eightUnitSelectedRows": 6,
+        "finitePrecisionRows": 4,
+        "uniqueLayerCount": 13,
+        "uniqueLayers": [
+          0,
+          1,
+          6,
+          8,
+          9,
+          11,
+          16,
+          17,
+          19,
+          20,
+          22,
+          24,
+          25
+        ],
+        "coverageRatio": 0.4642857142857143,
+        "bucketCoverage": {
+          "early": [
+            0,
+            1,
+            6,
+            8
+          ],
+          "middle": [
+            9,
+            11,
+            16,
+            17
+          ],
+          "late": [
+            19,
+            20,
+            22,
+            24,
+            25
+          ]
+        },
+        "longestContiguousRun": 2,
+        "contiguousRuns": [
+          [
+            0,
+            1
+          ],
+          [
+            6
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            11
+          ],
+          [
+            16,
+            17
+          ],
+          [
+            19,
+            20
+          ],
+          [
+            22
+          ],
+          [
+            24,
+            25
+          ]
+        ],
+        "minR2": 0.9995742116828891,
+        "maxMae": 0.011652554395835905,
+        "maxWorstError": 0.12080532366266805,
+        "minSubspacePrincipalCosine": 0.9992840966989263,
+        "maxRawOracleCalls": 427586
+      },
+      {
+        "modelFamily": "Mistral-family",
+        "layerCount": 32,
+        "artifactRows": 56,
+        "selectedRows": 43,
+        "aggregateRows": 13,
+        "multiUnitSelectedRows": 31,
+        "eightUnitSelectedRows": 13,
+        "finitePrecisionRows": 13,
+        "uniqueLayerCount": 15,
+        "uniqueLayers": [
+          0,
+          1,
+          7,
+          8,
+          10,
+          11,
+          12,
+          16,
+          19,
+          20,
+          22,
+          24,
+          26,
+          27,
+          29
+        ],
+        "coverageRatio": 0.46875,
+        "bucketCoverage": {
+          "early": [
+            0,
+            1,
+            7,
+            8
+          ],
+          "middle": [
+            10,
+            11,
+            12,
+            16,
+            19,
+            20
+          ],
+          "late": [
+            22,
+            24,
+            26,
+            27,
+            29
+          ]
+        },
+        "longestContiguousRun": 3,
+        "contiguousRuns": [
+          [
+            0,
+            1
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            10,
+            11,
+            12
+          ],
+          [
+            16
+          ],
+          [
+            19,
+            20
+          ],
+          [
+            22
+          ],
+          [
+            24
+          ],
+          [
+            26,
+            27
+          ],
+          [
+            29
+          ]
+        ],
+        "minR2": 0.9951436177161573,
+        "maxMae": 0.0011636592796313008,
+        "maxWorstError": 0.014497109404921407,
+        "minSubspacePrincipalCosine": 0.9993536447338561,
+        "maxRawOracleCalls": 581508
+      }
+    ],
+    "global": {
+      "minR2": 0.9951436177161573,
+      "maxMae": 0.011652554395835905,
+      "maxWorstError": 0.12080532366266805,
+      "minSubspacePrincipalCosine": 0.9992840966989263,
+      "maxRawOracleCalls": 581508
+    },
+    "failures": []
+  },
+  "notes": [
+    "This is a deep multi-layer atlas over existing real-model oracle-only SwiGLU decompiler artifacts.",
+    "It is not a claim that the entire LLM brain, every channel, or semantic hidden-neuron identity has been recovered.",
+    "The atlas proves multi-layer selected-block recovery coverage for the covered real Mistral/LLaMA-family scalar SwiGLU oracle rows.",
+    "If coverage gates fail, the remedy is additional oracle-only recovery/backfill runs, not lowering thresholds or hiding the gap."
+  ]
+}

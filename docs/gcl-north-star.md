@@ -419,6 +419,17 @@ Finite-precision interpretation and boundaries:
   `benchmarks/release/nn-live-blind-swiglu-real-model-parity/mistral-4096d-llama-3072d-8unit-oracle-only/report.json`.
   This keeps the roadmap honest: the lane is not merely synthetic, but it is
   still selected-block recovery rather than full LLM FFN extraction.
+- The live SwiGLU lane now has a deep multi-layer atlas command:
+  `npm run benchmark:nn-live-blind-swiglu-deep-atlas`. It reads all current
+  real-model oracle-only Mistral/LLaMA-family SwiGLU decompiler artifacts and
+  builds a model/layer/unit/noise geometry atlas in
+  `benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/report.json`.
+  Current witness: `86` source reports, `67` selected rows, `19` aggregate rows,
+  `28` layer-atlas rows, LLaMA-family `13/28` layers, Mistral-family `15/32`
+  layers, early/middle/late buckets present for both families, global min R2
+  `0.9951436177161573`, and global min subspace cosine
+  `0.9992840966989263`. This is a real deep atlas of covered SwiGLU blocks, not
+  full-brain LLM extraction.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:
