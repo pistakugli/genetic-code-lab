@@ -583,7 +583,11 @@ Finite-precision boundary:
   `0.12080532366266805`, and global min subspace cosine
   `0.9992840966989263`. The companion backfill gate is
   `npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill`, which verifies
-  that no configured LLaMA/Mistral layer is still missing. Artifact:
+  that no configured LLaMA/Mistral layer is still missing. By default it is a
+  missing-layer gap-fill/audit, not a full regeneration of every historical
+  report. For a deterministic full layer rerun, use
+  `GCL_ATLAS_BACKFILL_MODE=all GCL_ATLAS_BACKFILL_FORCE=1 npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill`.
+  Artifact:
   `benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/report.json`.
   This is a full configured-layer atlas over real-model oracle-only selected
   SwiGLU recoveries, not a claim that every channel, full FFN, semantic hidden

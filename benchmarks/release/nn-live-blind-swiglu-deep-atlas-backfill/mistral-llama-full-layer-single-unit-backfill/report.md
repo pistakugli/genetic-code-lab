@@ -2,6 +2,7 @@
 
 Status: **PASS**
 
+Mode: missing
 Requested cases: 0
 Passed cases: 0
 Skipped existing cases: 0
@@ -61,5 +62,6 @@ Coverage complete: true
 ## Boundaries
 
 - This runner backfills missing deep-atlas layers with real-model oracle-only single-unit SwiGLU recoveries.
+- Default mode is missing-layer gap fill. Set GCL_ATLAS_BACKFILL_MODE=all with GCL_ATLAS_BACKFILL_FORCE=1 for a full deterministic layer rerun.
 - It expands layer coverage; it does not claim all-channel FFN extraction.
 - If a case fails, the required action is to repair that case or add a stronger oracle-only recovery configuration, not to hide the layer gap.

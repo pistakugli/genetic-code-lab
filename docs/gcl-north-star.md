@@ -430,9 +430,12 @@ Finite-precision interpretation and boundaries:
   R2 `0.9951436177161573`, global max worst error `0.12080532366266805`, and
   global min subspace cosine `0.9992840966989263`. Companion command
   `npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill` audits the
-  configured full-layer fill and refuses missing LLaMA/Mistral layers. This is
-  a real full configured-layer atlas of selected SwiGLU blocks, not all-channel
-  FFN extraction or full-brain LLM extraction.
+  configured full-layer fill and refuses missing LLaMA/Mistral layers. Its
+  default mode is missing-layer gap fill/audit; a same-code deterministic layer
+  rerun requires
+  `GCL_ATLAS_BACKFILL_MODE=all GCL_ATLAS_BACKFILL_FORCE=1 npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill`.
+  This is a real full configured-layer atlas of selected SwiGLU blocks, not
+  all-channel FFN extraction or full-brain LLM extraction.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:

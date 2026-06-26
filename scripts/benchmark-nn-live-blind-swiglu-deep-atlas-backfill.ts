@@ -42,6 +42,8 @@ type BackfillArtifactAudit = {
   rawOracleCalls?: number;
 };
 
+type BackfillMode = 'missing' | 'all';
+
 type FamilySpec = {
   family: ModelFamily;
   model: string;
@@ -114,15 +116,22 @@ function deterministicUnit(family: ModelFamily, layer: number): number {
   return (1786 + layer * 3571) % 8192;
 }
 
+function backfillMode(): BackfillMode {
+  const mode = envValue('GCL_ATLAS_BACKFILL_MODE', 'missing');
+  if (mode === 'missing' || mode === 'all') return mode;
+  throw new Error(`Unsupported GCL_ATLAS_BACKFILL_MODE=${mode}; expected missing or all`);
+}
+
 function buildCases(): BackfillCase[] {
   const present = existingLayersByFamily();
   const families = selectedFamilies();
+  const mode = backfillMode();
   const cases: BackfillCase[] = [];
   for (const spec of familySpecs) {
     if (!families.has(spec.family)) continue;
     const have = present.get(spec.family) ?? new Set<number>();
     for (let layer = 0; layer < spec.layerCount; layer++) {
-      if (have.has(layer)) continue;
+      if (mode === 'missing' && have.has(layer)) continue;
       const unit = deterministicUnit(spec.family, layer);
       const prefix = spec.family === 'Mistral-family' ? 'mistral-4096d' : 'llama-3072d';
       cases.push({
@@ -276,6 +285,7 @@ fs.mkdirSync(output.outputDir, { recursive: true });
 
 const cases = buildCases();
 const results: CaseResult[] = [];
+const mode = backfillMode();
 for (const testCase of cases) {
   console.log(`[BACKFILL] ${testCase.family} layer=${testCase.layer} unit=${testCase.unit} variant=${testCase.variant}`);
   results.push(runCase(testCase));
@@ -295,6 +305,7 @@ const backfillArtifacts = discoverBackfillArtifactAudits();
 const failedBackfillArtifacts = backfillArtifacts.filter(item => !item.pass);
 const summary = {
   pass: failed.length === 0 && failedBackfillArtifacts.length === 0 && coverageComplete && Boolean(refreshedAtlas?.pass),
+  mode,
   requestedCases: cases.length,
   passedCases: results.filter(result => result.pass).length,
   skippedExistingCases: results.filter(result => result.skippedExisting).length,
@@ -319,6 +330,7 @@ const report = {
   schemaVersion: 1,
   generatedAt: new Date().toISOString(),
   lane,
+  mode,
   status: summary.pass ? 'pass' : 'needs-fix',
   cases,
   results,
@@ -326,6 +338,7 @@ const report = {
   summary,
   boundaries: [
     'This runner backfills missing deep-atlas layers with real-model oracle-only single-unit SwiGLU recoveries.',
+    'Default mode is missing-layer gap fill. Set GCL_ATLAS_BACKFILL_MODE=all with GCL_ATLAS_BACKFILL_FORCE=1 for a full deterministic layer rerun.',
     'It expands layer coverage; it does not claim all-channel FFN extraction.',
     'If a case fails, the required action is to repair that case or add a stronger oracle-only recovery configuration, not to hide the layer gap.'
   ]
@@ -338,6 +351,7 @@ fs.writeFileSync(
     '',
     `Status: **${summary.pass ? 'PASS' : 'NEEDS FIX'}**`,
     '',
+    `Mode: ${summary.mode}`,
     `Requested cases: ${summary.requestedCases}`,
     `Passed cases: ${summary.passedCases}`,
     `Skipped existing cases: ${summary.skippedExistingCases}`,
