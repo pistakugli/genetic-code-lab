@@ -576,15 +576,18 @@ Finite-precision boundary:
 - Deep live SwiGLU atlas: `npm run benchmark:nn-live-blind-swiglu-deep-atlas`
   now reads all current real-model oracle-only Mistral/LLaMA-family SwiGLU
   decompiler reports and builds a layer-by-layer atlas. Current artifact:
-  `86` source reports, `67` selected rows, `19` aggregate rows, `28`
-  layer-atlas rows, LLaMA-family coverage `13/28` layers, Mistral-family
-  coverage `15/32` layers, early/middle/late buckets present for both families,
-  global min R2 `0.9951436177161573`, global min subspace cosine
-  `0.9992840966989263`. Artifact:
+  `118` source reports, `99` selected rows, `19` aggregate rows, `60`
+  layer-atlas rows, LLaMA-family coverage `28/28` layers, Mistral-family
+  coverage `32/32` layers, early/middle/late buckets fully covered for both
+  families, global min R2 `0.9951436177161573`, global max worst error
+  `0.12080532366266805`, and global min subspace cosine
+  `0.9992840966989263`. The companion backfill gate is
+  `npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill`, which verifies
+  that no configured LLaMA/Mistral layer is still missing. Artifact:
   `benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/report.json`.
-  This is the first deep multi-layer atlas over real-model oracle-only SwiGLU
-  recoveries, not a claim that every channel or the entire LLM mind has been
-  recovered.
+  This is a full configured-layer atlas over real-model oracle-only selected
+  SwiGLU recoveries, not a claim that every channel, full FFN, semantic hidden
+  neuron identity, or the entire LLM mind has been recovered.
 
 What they do not support yet:
 

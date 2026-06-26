@@ -623,6 +623,8 @@ def fit_swiglu_sum(
             "ups": np.expand_dims(single["up"], axis=0),
             "scales": np.array([single["scale"]], dtype=np.float64),
             "bias": single["bias"],
+            "restartCount": int(single.get("restartCount", 1)),
+            "restartChunkSize": None,
             "fitMode": "single-atom",
         }
 

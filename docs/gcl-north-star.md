@@ -424,12 +424,15 @@ Finite-precision interpretation and boundaries:
   real-model oracle-only Mistral/LLaMA-family SwiGLU decompiler artifacts and
   builds a model/layer/unit/noise geometry atlas in
   `benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/report.json`.
-  Current witness: `86` source reports, `67` selected rows, `19` aggregate rows,
-  `28` layer-atlas rows, LLaMA-family `13/28` layers, Mistral-family `15/32`
-  layers, early/middle/late buckets present for both families, global min R2
-  `0.9951436177161573`, and global min subspace cosine
-  `0.9992840966989263`. This is a real deep atlas of covered SwiGLU blocks, not
-  full-brain LLM extraction.
+  Current witness: `118` source reports, `99` selected rows, `19` aggregate rows,
+  `60` layer-atlas rows, LLaMA-family `28/28` layers, Mistral-family `32/32`
+  layers, early/middle/late buckets fully covered for both families, global min
+  R2 `0.9951436177161573`, global max worst error `0.12080532366266805`, and
+  global min subspace cosine `0.9992840966989263`. Companion command
+  `npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill` audits the
+  configured full-layer fill and refuses missing LLaMA/Mistral layers. This is
+  a real full configured-layer atlas of selected SwiGLU blocks, not all-channel
+  FFN extraction or full-brain LLM extraction.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local
   Mistral-family 4096D units using forward-coordinate witnesses and explicit
   fit restart budgeting. Current artifact:
