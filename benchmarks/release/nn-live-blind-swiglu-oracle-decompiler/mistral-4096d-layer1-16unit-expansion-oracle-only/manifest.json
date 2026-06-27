@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-27T20:47:25.020Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "mistral-4096d-layer1-16unit-expansion-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-layer-expansion:mistral-16unit-randomized",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "mistral-4096d-randomized-2block-16unit-layer-expansion-oracle-only",
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "32",
+    "GCL_BLIND_SWIGLU_BASIS_MOMENT": "centered",
+    "GCL_BLIND_SWIGLU_EXPECTED_DIMENSION": "4096",
+    "GCL_BLIND_SWIGLU_FAMILY_LABEL": "Mistral-family",
+    "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP": "0.04",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT": "256",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP": "0.04",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT": "0.2",
+    "GCL_BLIND_SWIGLU_FIT_MODE": "batched",
+    "GCL_BLIND_SWIGLU_FIT_RESTART_CHUNK_SIZE": "128",
+    "GCL_BLIND_SWIGLU_FIT_RESTARTS": "512",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "2600",
+    "GCL_BLIND_SWIGLU_GRADIENT_MODE": "forward-coordinate",
+    "GCL_BLIND_SWIGLU_INPUT_SCALE": "0.45",
+    "GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE": "14336",
+    "GCL_BLIND_SWIGLU_LAYER_COUNT": "32",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "300000",
+    "GCL_BLIND_SWIGLU_MODEL": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+    "GCL_BLIND_SWIGLU_MODEL_LABEL": "mistral-4096d",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "33",
+    "GCL_BLIND_SWIGLU_SWEEP_CASES": "1:75+1393+2126+2469+2944+4288+6099+6803+7551+7821+8715+9325+9689+13343+14111+14277:0.995:0.015:0.98:0.12",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.015",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR": "0.12",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.98",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "mistral-4096d-layer1-16unit-expansion-oracle-only",
+    "GCL_BLIND_SWIGLU_TIMEOUT_MS": "3600000",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "16000",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "4096",
+    "GCL_BLIND_SWIGLU_VALIDATION_SCALE": "0.65",
+    "GCL_LAYER_EXPANSION_RANDOM_COUNT": "2",
+    "GCL_LAYER_EXPANSION_RANDOM_FAMILY": "mistral",
+    "GCL_LAYER_EXPANSION_RANDOM_SEED": "260627",
+    "GCL_LAYER_EXPANSION_RANDOM_UNIT_COUNT": "16",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "2304334548290dbdbd438f9f9b905aada042872c",
+    "statusShort": "M package.json\n M scripts/benchmark-nn-live-blind-swiglu-layer-expansion.ts\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-16unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-units75-1393-2126-2469-2944-4288-6099-6803-7551-7821-8715-9325-9689-13343-14111-14277-16atom-forward-coordinate-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-16unit-expansion-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-16unit-expansion-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer1-16unit-expansion-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 1,
+    "passedCases": 1,
+    "failedCases": 0,
+    "minR2": 0.9968086229936512,
+    "maxMae": 0.0013585229495551043,
+    "maxWorstError": 0.01298486925016918,
+    "minSubspacePrincipalCosine": 0.999989791877386,
+    "maxRawOracleCallsPerCase": 188193,
+    "totalRawOracleCalls": 188193,
+    "maxUnitCount": 16,
+    "maxAtomCount": 16,
+    "accessInvariant": true
+  },
+  "notes": [
+    "This sweep proves selected real local Mistral-family 4096D SwiGLU unit or small-unit-block outputs can be recovered as blind oracle-only explicit SwiGLU atoms under the recorded case budgets.",
+    "It does not prove full Mistral-family FFN extraction, all-channel 4096D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}

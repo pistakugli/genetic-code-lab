@@ -610,6 +610,16 @@ Finite-precision boundary:
   R2 `0.9932383815355237` and adaptive-rescue R2 `0.9969881717700748`.
   Artifact:
   `benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-16unit-expansion-oracle-only/report.json`.
+- Live blind SwiGLU randomized 16-unit layer expansion:
+  `npm run benchmark:nn-live-blind-swiglu-layer-expansion:mistral-16unit-randomized`
+  runs two deterministic-random Mistral-family 4096D 16-unit scalar oracles
+  through the same oracle-only layer-expansion runner. Current witness:
+  `2/2` passed, layers `1` and `11`, max expanded unit count `16`, min R2
+  `0.9968086229936512`, max MAE `0.0013585229495551043`, max worst error
+  `0.018289335513027943`, min subspace principal cosine
+  `0.999989791877386`, total raw oracle calls `376386`, and access invariant
+  `true`. Artifact:
+  `benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-4096d-randomized-2block-16unit-layer-expansion-oracle-only/report.json`.
 
 What they do not support yet:
 

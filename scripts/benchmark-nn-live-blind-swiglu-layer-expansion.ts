@@ -121,6 +121,15 @@ function deterministicSpread(count: number, intermediateSize: number, salt: numb
   return [...units].sort((a, b) => a - b).slice(0, count);
 }
 
+function makeRandom(seed: number): () => number {
+  let state = Math.floor(seed) % 2147483647;
+  if (state <= 0) state += 2147483646;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return (state - 1) / 2147483646;
+  };
+}
+
 function parseExpansionCase(raw: string): ExpansionCase {
   const [familyRaw, layerRaw, unitCountRaw, unitsRaw, minR2Raw, maxMaeRaw, minSubspaceRaw, maxWorstRaw] = raw.split(':');
   const family = familyRaw as Family;
@@ -159,7 +168,44 @@ function parseExpansionCase(raw: string): ExpansionCase {
   };
 }
 
+function generateRandomExpansionCases(count: number): ExpansionCase[] {
+  const family = envValue('GCL_LAYER_EXPANSION_RANDOM_FAMILY', 'mistral') as Family;
+  const spec = familySpecs[family];
+  if (!spec) throw new Error(`unknown random expansion family ${family}; expected mistral or llama`);
+  const unitCount = Number(envValue('GCL_LAYER_EXPANSION_RANDOM_UNIT_COUNT', '16'));
+  if (!Number.isInteger(count) || count <= 0) throw new Error(`invalid random expansion count ${count}`);
+  if (!Number.isInteger(unitCount) || unitCount <= 0 || unitCount > spec.intermediateSize) {
+    throw new Error(`invalid random expansion unit count ${unitCount}`);
+  }
+  const random = makeRandom(Number(envValue('GCL_LAYER_EXPANSION_RANDOM_SEED', '260627')));
+  const cases: ExpansionCase[] = [];
+  const seen = new Set<string>();
+  while (cases.length < count) {
+    const layer = Math.floor(random() * spec.layerCount);
+    const unitSet = new Set<number>();
+    while (unitSet.size < unitCount) unitSet.add(Math.floor(random() * spec.intermediateSize));
+    const units = [...unitSet].sort((a, b) => a - b);
+    const key = `${family}:${layer}:${units.join('+')}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cases.push({
+      family,
+      layer,
+      unitCount,
+      units,
+      activeRank: Number(envValue('GCL_LAYER_EXPANSION_ACTIVE_RANK', String(unitCount * 2))),
+      minR2: Number(envValue('GCL_LAYER_EXPANSION_MIN_R2', '0.995')),
+      maxMae: Number(envValue('GCL_LAYER_EXPANSION_MAX_MAE', '0.015')),
+      maxWorstError: Number(envValue('GCL_LAYER_EXPANSION_MAX_WORST_ERROR', '0.12')),
+      minSubspaceCosine: Number(envValue('GCL_LAYER_EXPANSION_MIN_SUBSPACE_COSINE', '0.98'))
+    });
+  }
+  return cases;
+}
+
 function resolveExpansionCases(): ExpansionCase[] {
+  const randomCount = Number(process.env.GCL_LAYER_EXPANSION_RANDOM_COUNT ?? '0');
+  if (randomCount > 0) return generateRandomExpansionCases(randomCount);
   const raw = envValue('GCL_LAYER_EXPANSION_CASES', defaultCaseSpec);
   return raw.split(';').map(item => item.trim()).filter(Boolean).map(parseExpansionCase);
 }
@@ -306,7 +352,19 @@ const report = {
   summary,
   cases: caseResults,
   config: {
-    caseSpec: envValue('GCL_LAYER_EXPANSION_CASES', defaultCaseSpec),
+    caseSpec: process.env.GCL_LAYER_EXPANSION_RANDOM_COUNT
+      ? null
+      : envValue('GCL_LAYER_EXPANSION_CASES', defaultCaseSpec),
+    randomCount: Number(process.env.GCL_LAYER_EXPANSION_RANDOM_COUNT ?? '0'),
+    randomSeed: process.env.GCL_LAYER_EXPANSION_RANDOM_COUNT
+      ? Number(envValue('GCL_LAYER_EXPANSION_RANDOM_SEED', '260627'))
+      : null,
+    randomFamily: process.env.GCL_LAYER_EXPANSION_RANDOM_COUNT
+      ? envValue('GCL_LAYER_EXPANSION_RANDOM_FAMILY', 'mistral')
+      : null,
+    randomUnitCount: process.env.GCL_LAYER_EXPANSION_RANDOM_COUNT
+      ? Number(envValue('GCL_LAYER_EXPANSION_RANDOM_UNIT_COUNT', '16'))
+      : null,
     defaultVariant,
     gradientMode: envValue('GCL_LAYER_EXPANSION_GRADIENT_MODE', 'forward-coordinate')
   },
