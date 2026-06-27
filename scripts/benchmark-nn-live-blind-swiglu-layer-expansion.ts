@@ -68,7 +68,7 @@ type SweepReport = {
 
 const repoRoot = path.resolve(__dirname, '..');
 const lane = 'nn-live-blind-swiglu-layer-expansion';
-const defaultCaseSpec = 'mistral:20:12:-';
+const defaultCaseSpec = 'mistral:20:16:-';
 
 const familySpecs: Record<Family, FamilySpec> = {
   mistral: {
@@ -209,10 +209,18 @@ for (const testCase of cases) {
   const spec = familySpecs[testCase.family];
   const sweepVariant = expansionVariant(testCase);
   const sweepCases = caseToSweepCase(testCase);
+  const highAtomProfile = testCase.unitCount >= 16;
+  const defaultTimeoutMs = highAtomProfile ? '2700000' : '1800000';
+  const defaultTrainCount = highAtomProfile ? String(Math.max(32000, testCase.unitCount * 2000)) : String(Math.max(14400, testCase.unitCount * 1400));
+  const defaultValidationCount = highAtomProfile ? '4096' : '3072';
+  const defaultFitSteps = highAtomProfile ? '5200' : '3200';
+  const defaultFitRestarts = highAtomProfile ? '1024' : '768';
+  const defaultFitGradientCount = highAtomProfile ? '512' : '256';
+  const defaultMaxOracleCalls = highAtomProfile ? '260000' : '180000';
   const env = {
     ...process.env,
     GCL_PYTHON: resolveGclPython(),
-    GCL_BLIND_SWIGLU_TIMEOUT_MS: envValue('GCL_LAYER_EXPANSION_TIMEOUT_MS', '1800000'),
+    GCL_BLIND_SWIGLU_TIMEOUT_MS: envValue('GCL_LAYER_EXPANSION_TIMEOUT_MS', defaultTimeoutMs),
     GCL_BLIND_SWIGLU_MODEL: spec.model,
     GCL_BLIND_SWIGLU_MODEL_LABEL: spec.modelLabel,
     GCL_BLIND_SWIGLU_FAMILY_LABEL: spec.familyLabel,
@@ -228,20 +236,20 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP: envValue('GCL_LAYER_EXPANSION_FINITE_DIFFERENCE_STEP', '0.04'),
     GCL_BLIND_SWIGLU_INPUT_SCALE: envValue('GCL_LAYER_EXPANSION_INPUT_SCALE', testCase.family === 'llama' ? '0.65' : '0.45'),
     GCL_BLIND_SWIGLU_VALIDATION_SCALE: envValue('GCL_LAYER_EXPANSION_VALIDATION_SCALE', '0.65'),
-    GCL_BLIND_SWIGLU_TRAIN_COUNT: envValue('GCL_LAYER_EXPANSION_TRAIN_COUNT', String(Math.max(14400, testCase.unitCount * 1400))),
-    GCL_BLIND_SWIGLU_VALIDATION_COUNT: envValue('GCL_LAYER_EXPANSION_VALIDATION_COUNT', '3072'),
-    GCL_BLIND_SWIGLU_FIT_STEPS: envValue('GCL_LAYER_EXPANSION_FIT_STEPS', '3200'),
-    GCL_BLIND_SWIGLU_FIT_RESTARTS: envValue('GCL_LAYER_EXPANSION_FIT_RESTARTS', '768'),
+    GCL_BLIND_SWIGLU_TRAIN_COUNT: envValue('GCL_LAYER_EXPANSION_TRAIN_COUNT', defaultTrainCount),
+    GCL_BLIND_SWIGLU_VALIDATION_COUNT: envValue('GCL_LAYER_EXPANSION_VALIDATION_COUNT', defaultValidationCount),
+    GCL_BLIND_SWIGLU_FIT_STEPS: envValue('GCL_LAYER_EXPANSION_FIT_STEPS', defaultFitSteps),
+    GCL_BLIND_SWIGLU_FIT_RESTARTS: envValue('GCL_LAYER_EXPANSION_FIT_RESTARTS', defaultFitRestarts),
     GCL_BLIND_SWIGLU_FIT_RESTART_CHUNK_SIZE: envValue('GCL_LAYER_EXPANSION_FIT_RESTART_CHUNK_SIZE', '128'),
     GCL_BLIND_SWIGLU_FIT_MODE: envValue('GCL_LAYER_EXPANSION_FIT_MODE', 'batched'),
-    GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_COUNT', '256'),
+    GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_COUNT', defaultFitGradientCount),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_STEP', '0.04'),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_WEIGHT', '0.2'),
     GCL_BLIND_SWIGLU_SWEEP_MIN_R2: String(testCase.minR2),
     GCL_BLIND_SWIGLU_SWEEP_MAX_MAE: String(testCase.maxMae),
     GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR: String(testCase.maxWorstError),
     GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE: String(testCase.minSubspaceCosine),
-    GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS: envValue('GCL_LAYER_EXPANSION_MAX_ORACLE_CALLS', '180000')
+    GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS: envValue('GCL_LAYER_EXPANSION_MAX_ORACLE_CALLS', defaultMaxOracleCalls)
   };
 
   console.log(`[EXPAND] ${spec.familyLabel} layer=${testCase.layer} unitCount=${testCase.unitCount} units=${testCase.units.join(',')}`);

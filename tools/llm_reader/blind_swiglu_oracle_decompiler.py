@@ -594,10 +594,119 @@ def fit_swiglu_sum_batched(
         torch.cuda.empty_cache()
     if best is None:
         raise RuntimeError("batched SwiGLU fit did not produce a finite candidate")
+    best = polish_swiglu_candidate(
+        coords,
+        targets,
+        best,
+        learning_rate,
+        gradient_coords,
+        gradient_targets,
+        gradient_weight,
+    )
     best["restartCount"] = restart_count
     best["restartChunkSize"] = chunk_size
-    best["fitMode"] = "batched-cuda" if chunk_size >= restart_count else "batched-cuda-chunked"
+    batched_mode = "batched-cuda" if chunk_size >= restart_count else "batched-cuda-chunked"
+    best["fitMode"] = f"{batched_mode}+lbfgs-polish" if best.get("polished") else batched_mode
     return best
+
+
+def polish_swiglu_candidate(
+    coords: np.ndarray,
+    targets: np.ndarray,
+    candidate: dict[str, Any],
+    learning_rate: float,
+    gradient_coords: np.ndarray | None,
+    gradient_targets: np.ndarray | None,
+    gradient_weight: float,
+) -> dict[str, Any]:
+    import torch
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    fit_dtype = torch.float32
+    x = torch.tensor(coords, dtype=fit_dtype, device=device)
+    y = torch.tensor(targets, dtype=fit_dtype, device=device)
+    gates = torch.nn.Parameter(torch.tensor(candidate["gates"], dtype=fit_dtype, device=device))
+    ups = torch.nn.Parameter(torch.tensor(candidate["ups"], dtype=fit_dtype, device=device))
+    scales = torch.nn.Parameter(torch.tensor(candidate["scales"], dtype=fit_dtype, device=device))
+    bias = torch.nn.Parameter(torch.tensor(float(candidate["bias"]), dtype=fit_dtype, device=device))
+    has_gradient_witness = (
+        gradient_coords is not None
+        and gradient_targets is not None
+        and gradient_weight > 0.0
+        and gradient_coords.shape[0] > 0
+    )
+    if has_gradient_witness:
+        gx = torch.tensor(gradient_coords, dtype=fit_dtype, device=device)
+        gy = torch.tensor(gradient_targets, dtype=fit_dtype, device=device)
+        target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(1e-12)
+    else:
+        gx = None
+        gy = None
+        target_grad_scale = None
+
+    lbfgs = torch.optim.LBFGS(
+        [gates, ups, scales, bias],
+        lr=max(0.2, min(0.8, learning_rate * 28.0)),
+        max_iter=520 if gates.shape[0] >= 12 else 360,
+        line_search_fn="strong_wolfe",
+    )
+
+    def closure() -> torch.Tensor:
+        lbfgs.zero_grad()
+        gate_projection = x @ gates.T
+        up_projection = x @ ups.T
+        activations = torch.nn.functional.silu(gate_projection) * up_projection
+        prediction = activations @ scales + bias
+        loss = torch.mean((prediction - y) ** 2)
+        if has_gradient_witness and gx is not None and gy is not None and target_grad_scale is not None:
+            grad_gate_projection = gx @ gates.T
+            grad_up_projection = gx @ ups.T
+            sigmoid = torch.sigmoid(grad_gate_projection)
+            silu_values = torch.nn.functional.silu(grad_gate_projection)
+            silu_prime = sigmoid * (1.0 + grad_gate_projection * (1.0 - sigmoid))
+            gradient_terms = scales[None, :, None] * (
+                silu_prime[:, :, None] * grad_up_projection[:, :, None] * gates[None, :, :]
+                + silu_values[:, :, None] * ups[None, :, :]
+            )
+            predicted_gradients = torch.sum(gradient_terms, dim=1)
+            loss = loss + gradient_weight * torch.mean((predicted_gradients - gy) ** 2) / target_grad_scale
+        loss.backward()
+        return loss
+
+    try:
+        lbfgs.step(closure)
+    except RuntimeError:
+        return candidate
+
+    gates_np = gates.detach().cpu().numpy().astype(np.float64)
+    ups_np = ups.detach().cpu().numpy().astype(np.float64)
+    activation_np = silu_np(coords @ gates_np.T) * (coords @ ups_np.T)
+    design = np.column_stack([activation_np, np.ones(coords.shape[0], dtype=np.float64)])
+    try:
+        coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
+        if not np.all(np.isfinite(coeffs)):
+            return candidate
+    except np.linalg.LinAlgError:
+        return candidate
+
+    prediction_np = design @ coeffs
+    mae = float(np.mean(np.abs(prediction_np - targets)))
+    mse = float(np.mean((prediction_np - targets) ** 2))
+    if mae >= float(candidate["score"]):
+        return candidate
+    polished = dict(candidate)
+    polished.update({
+        "mae": mae,
+        "mse": mse,
+        "score": mae,
+        "gates": gates_np,
+        "ups": ups_np,
+        "scales": coeffs[:-1].astype(np.float64),
+        "bias": float(coeffs[-1]),
+        "polished": True,
+        "polishMaeBefore": float(candidate["mae"]),
+    })
+    return polished
 
 
 def fit_swiglu_sum(
