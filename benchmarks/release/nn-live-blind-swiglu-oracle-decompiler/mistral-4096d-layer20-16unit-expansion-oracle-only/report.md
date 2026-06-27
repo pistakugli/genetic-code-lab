@@ -2,9 +2,9 @@
 
 - pass: `true`
 - cases: `1/1`
-- min R2: `0.9973170168506432`
-- max MAE: `0.0012842742350251879`
-- max worst error: `0.013479211039965633`
+- min R2: `0.9969881717700748`
+- max MAE: `0.0013780126849811608`
+- max worst error: `0.009548484562662135`
 - min subspace principal cosine: `0.9999979444870536`
 - max unit count: `16`
 - max atom count: `16`

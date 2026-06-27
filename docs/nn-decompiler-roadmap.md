@@ -1208,6 +1208,22 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     subspace min principal cosine `0.999936352892748`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current Mistral-family 16-unit layer-expansion gate: DONE as a targeted
+    benchmark with `npm run benchmark:nn-live-blind-swiglu-layer-expansion`.
+    The default runner now starts from a cheaper 16-unit probe profile and
+    relies on the oracle decompiler's adaptive-rescue ledger when that probe
+    misses gate quality, instead of manually starting every default run at the
+    full high-budget profile. Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-16unit-expansion-oracle-only/report.json`.
+    Result: pass `true`, model family Mistral, dimension `4096`, layer `20`,
+    unitCount `16`, active rank `32`, raw oracle calls `188193`, validation R2
+    `0.9969881717700748`, validation MAE `0.0013780126849811608`, worst error
+    `0.009548484562662135`, subspace min principal cosine
+    `0.9999979444870536`, and access audit `solverAccess = oracle-only`,
+    `weightsUsedBySolver = false`, `hooksUsedBySolver = false`,
+    `postHocWitnessOnly = true`. The per-case ledger records initial probe R2
+    `0.9932383815355237`, then adaptive-rescue R2
+    `0.9969881717700748`.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, including first selected and first randomized 2-unit scalar
@@ -1217,21 +1233,25 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     scalar blocks, plus first selected/randomized LLaMA-family 6-unit scalar
     blocks and forward-coordinate query-budget parity for selected/randomized
     Mistral/LLaMA 6-unit blocks plus selected/randomized Mistral 8-unit blocks
-    and selected/randomized LLaMA-family 8-unit blocks.
+    and selected/randomized LLaMA-family 8-unit blocks, plus a first
+    self-rescuing Mistral-family 16-unit layer-expansion default runner.
     It does not prove full Mistral/LLaMA FFN extraction,
     all-channel 3072D/4096D block decompilation, exhaustive circuit recovery,
     arbitrary high-count mixtures, or semantic original-neuron identity from
     output-only access.
   - Next K5 hardening:
-    1. widen randomized multi-unit block gates beyond 2 cases per unit-count;
-    2. widen the randomized unit/layer sweeps beyond 8 Mistral and 8 LLaMA
-       units;
-    3. add another LLaMA-family dimension where local model dimensions allow;
-    4. add noisy/quantized oracle response stress;
-    5. reduce the remaining coordinate-family query cost further with a
-       validated adaptive directional or block-coordinate probe before calling
-       this scalable to larger blocks;
-    6. only then promote K5 into full `release:gate`.
+    1. add randomized 16-unit Mistral-family layer-expansion sweeps, not only
+       the selected layer-20/unit-list witness;
+    2. add LLaMA-family parity for the larger block size that fits local memory
+       and model dimensions;
+    3. add finite-precision/noisy response stress for the 16-unit expansion
+       path after the clean self-rescue default is stable;
+    4. reduce coordinate-family query cost with a validated adaptive
+       directional or block-coordinate probe before claiming larger-block
+       scalability;
+    5. then widen randomized multi-unit block gates beyond 2 cases per
+       unit-count and only promote K5 into full `release:gate` when the
+       randomized expansion evidence exists.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

@@ -29,14 +29,14 @@
     "atomCount": 16,
     "rawOracleCalls": 188193,
     "metrics": {
-      "mae": 0.0012842742350251879,
-      "mse": 3.151248384662376e-06,
-      "r2": 0.9973170168506432,
-      "worstError": 0.013479211039965633
+      "mae": 0.0013780126849811608,
+      "mse": 3.576543950592006e-06,
+      "r2": 0.9969881717700748,
+      "worstError": 0.009548484562662135
     },
     "sourceAlignment": {
-      "gateMaxAbsCosine": 0.998716909706043,
-      "upMaxAbsCosine": 0.9926631330717132,
+      "gateMaxAbsCosine": 0.9957990721278873,
+      "upMaxAbsCosine": 0.9907003560061857,
       "subspaceMinPrincipalCosine": 0.9999979444870536,
       "subspaceCosines": [
         0.9999999952138219,
@@ -96,7 +96,7 @@
     "finiteDifferenceSteps": [
       0.04
     ],
-    "trainCount": 32000,
+    "trainCount": 16000,
     "validationCount": 4096,
     "validationScale": 0.65,
     "gradientEigenvalues": [
@@ -133,7 +133,7 @@
       9.434859829238704e-07,
       9.395917930773176e-08
     ],
-    "fitTrainMae": 0.0004367261767949801,
+    "fitTrainMae": 0.0004701964186958697,
     "fitRestarts": 1024,
     "fitRestartChunkSize": 128,
     "fitMode": "batched-cuda-chunked+lbfgs-polish",
@@ -143,24 +143,52 @@
     ],
     "fitGradientWeight": 0.2,
     "fitScales": [
-      0.05472387488900154,
-      -0.12232548614682609,
-      0.08623813711914279,
-      0.06784883657846354,
-      0.0619791687648268,
-      0.08472517654082455,
-      0.09833173633219501,
-      0.10622264776982887,
-      -0.09583295063003407,
-      -0.03970958154929383,
-      -0.135286434791756,
-      -0.1008924027365436,
-      -0.04653809741734294,
-      -0.06091516522964127,
-      0.06398267558440955,
-      0.09144484152324002
+      0.05623426505781588,
+      -0.11045226203087673,
+      0.04052227877658476,
+      -0.09906100547215513,
+      -0.07412039885749304,
+      -0.0626369855988741,
+      -0.1143588946266506,
+      0.09406299174144868,
+      0.09334670751574033,
+      -0.06516430463819217,
+      0.06595446512662541,
+      0.09950128409854717,
+      0.0999437805295458,
+      -0.08050483495404709,
+      -0.06382401643598513,
+      -0.09943519795488626
     ],
-    "fitBias": -4.073447225733123e-05
+    "fitBias": -5.541781765382014e-05,
+    "fitAttempts": [
+      {
+        "stage": "initial",
+        "trainCount": 16000,
+        "fitGradientCount": 256,
+        "fitSteps": 2600,
+        "fitRestarts": 512,
+        "fitMode": "batched-cuda-chunked+lbfgs-polish",
+        "fitTrainMae": 0.0007262790875802026,
+        "validationR2": 0.9932383815355237,
+        "validationMae": 0.0021214408765068402,
+        "validationWorstError": 0.015322936386822208,
+        "rawOracleCalls": 163745
+      },
+      {
+        "stage": "adaptive-rescue",
+        "trainCount": 32000,
+        "fitGradientCount": 512,
+        "fitSteps": 5200,
+        "fitRestarts": 1024,
+        "fitMode": "batched-cuda-chunked+lbfgs-polish",
+        "fitTrainMae": 0.0004701964186958697,
+        "validationR2": 0.9969881717700748,
+        "validationMae": 0.0013780126849811608,
+        "validationWorstError": 0.009548484562662135,
+        "rawOracleCalls": 188193
+      }
+    ]
   },
   "oracleResponse": {
     "quantizationStep": 0.0

@@ -210,13 +210,13 @@ for (const testCase of cases) {
   const sweepVariant = expansionVariant(testCase);
   const sweepCases = caseToSweepCase(testCase);
   const highAtomProfile = testCase.unitCount >= 16;
-  const defaultTimeoutMs = highAtomProfile ? '2700000' : '1800000';
-  const defaultTrainCount = highAtomProfile ? String(Math.max(32000, testCase.unitCount * 2000)) : String(Math.max(14400, testCase.unitCount * 1400));
+  const defaultTimeoutMs = highAtomProfile ? '3600000' : '1800000';
+  const defaultTrainCount = highAtomProfile ? String(Math.max(16000, testCase.unitCount * 1000)) : String(Math.max(14400, testCase.unitCount * 1400));
   const defaultValidationCount = highAtomProfile ? '4096' : '3072';
-  const defaultFitSteps = highAtomProfile ? '5200' : '3200';
-  const defaultFitRestarts = highAtomProfile ? '1024' : '768';
-  const defaultFitGradientCount = highAtomProfile ? '512' : '256';
-  const defaultMaxOracleCalls = highAtomProfile ? '260000' : '180000';
+  const defaultFitSteps = highAtomProfile ? '2600' : '3200';
+  const defaultFitRestarts = highAtomProfile ? '512' : '768';
+  const defaultFitGradientCount = '256';
+  const defaultMaxOracleCalls = highAtomProfile ? '300000' : '180000';
   const env = {
     ...process.env,
     GCL_PYTHON: resolveGclPython(),

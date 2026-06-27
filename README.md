@@ -597,14 +597,18 @@ Finite-precision boundary:
   neuron identity, or the entire LLM mind has been recovered.
 - Live blind SwiGLU layer expansion:
   `npm run benchmark:nn-live-blind-swiglu-layer-expansion` now pushes the
-  real-model oracle-only lane beyond the selected 8-unit block. Current witness
-  is Mistral-family 4096D layer 20 with `16` SwiGLU units
+  real-model oracle-only lane beyond the selected 8-unit block. The default
+  runner now starts with a cheaper 16-unit probe profile and lets the oracle
+  decompiler's adaptive rescue path escalate the fit only when the probe is
+  below gate quality. Current witness is Mistral-family 4096D layer 20 with
+  `16` SwiGLU units
   `[0,17,123,456,789,1024,2048,4096,6144,6331,8191,10000,11772,12288,13200,14000]`,
-  active rank `32`, pass `true`, R2 `0.9973170168506432`, MAE
-  `0.0012842742350251879`, worst error `0.013479211039965633`, subspace min
+  active rank `32`, pass `true`, R2 `0.9969881717700748`, MAE
+  `0.0013780126849811608`, worst error `0.009548484562662135`, subspace min
   principal cosine `0.9999979444870536`, raw oracle calls `188193`, and access
-  invariant
-  `true`. Artifact:
+  invariant `true`. The recorded per-case attempt ledger shows initial probe
+  R2 `0.9932383815355237` and adaptive-rescue R2 `0.9969881717700748`.
+  Artifact:
   `benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-16unit-expansion-oracle-only/report.json`.
 
 What they do not support yet:
