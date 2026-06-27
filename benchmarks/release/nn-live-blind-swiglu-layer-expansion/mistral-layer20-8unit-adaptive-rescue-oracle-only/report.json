@@ -1,0 +1,75 @@
+{
+  "summary": {
+    "pass": true,
+    "caseCount": 1,
+    "passedCases": 1,
+    "failedCases": 0,
+    "maxExpandedUnitCount": 8,
+    "minR2": 0.9966155130108486,
+    "maxMae": 0.0009254176411342425,
+    "maxWorstError": 0.010542759345426856,
+    "minSubspacePrincipalCosine": 0.9999966163799717,
+    "totalRawOracleCalls": 92049,
+    "accessInvariant": true,
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "cases": [
+    {
+      "case": {
+        "family": "mistral",
+        "layer": 20,
+        "unitCount": 8,
+        "units": [
+          0,
+          17,
+          123,
+          456,
+          789,
+          1024,
+          2048,
+          4096
+        ],
+        "activeRank": 16,
+        "minR2": 0.995,
+        "maxMae": 0.015,
+        "maxWorstError": 0.12,
+        "minSubspaceCosine": 0.98
+      },
+      "sweepVariant": "mistral-4096d-layer20-8unit-expansion-oracle-only",
+      "sweepReportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-8unit-expansion-oracle-only/report.json",
+      "pass": true,
+      "failures": [],
+      "sweepSummary": {
+        "pass": true,
+        "caseCount": 1,
+        "passedCases": 1,
+        "failedCases": 0,
+        "minR2": 0.9966155130108486,
+        "maxMae": 0.0009254176411342425,
+        "maxWorstError": 0.010542759345426856,
+        "minSubspacePrincipalCosine": 0.9999966163799717,
+        "maxRawOracleCallsPerCase": 92049,
+        "totalRawOracleCalls": 92049,
+        "maxUnitCount": 8,
+        "maxAtomCount": 8,
+        "accessInvariant": true
+      }
+    }
+  ],
+  "config": {
+    "caseSpec": "mistral:20:8:-",
+    "defaultVariant": "mistral-layer20-8unit-expansion-oracle-only",
+    "gradientMode": "forward-coordinate"
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "delegatedSweepReportsEnforceInvariant": true
+  }
+}

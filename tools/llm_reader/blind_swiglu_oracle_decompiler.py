@@ -940,6 +940,19 @@ def regression_metrics(actual: np.ndarray, predicted: np.ndarray) -> dict[str, f
     return {"mae": mae, "mse": mse, "r2": r2, "worstError": worst}
 
 
+def passes_metric_thresholds(
+    metrics: dict[str, float],
+    min_r2: float,
+    max_mae: float,
+    max_worst_error: float,
+) -> bool:
+    return (
+        metrics["r2"] >= min_r2
+        and metrics["mae"] <= max_mae
+        and metrics["worstError"] <= max_worst_error
+    )
+
+
 def principal_cosines(basis: np.ndarray, truth_vectors: np.ndarray) -> np.ndarray:
     q1, _ = np.linalg.qr(basis.T)
     q2, _ = np.linalg.qr(truth_vectors.T)
@@ -1018,6 +1031,83 @@ def run_solver(args: argparse.Namespace) -> int:
             validation_coords = validation_inputs @ basis.T
             validation_prediction = predict_swiglu(validation_coords, fit)
             metrics = regression_metrics(validation_targets, validation_prediction)
+            fit_attempts = [{
+                "stage": "initial",
+                "trainCount": int(train_coords.shape[0]),
+                "fitGradientCount": int(fit_gradient_coords.shape[0]),
+                "fitSteps": int(args.fit_steps),
+                "fitRestarts": int(fit["restartCount"]),
+                "fitMode": str(fit.get("fitMode", "unknown")),
+                "fitTrainMae": float(fit["mae"]),
+                "validationR2": float(metrics["r2"]),
+                "validationMae": float(metrics["mae"]),
+                "validationWorstError": float(metrics["worstError"]),
+                "rawOracleCalls": int(oracle.query_count),
+            }]
+
+            if (
+                not passes_metric_thresholds(metrics, args.min_r2, args.max_mae, args.max_worst_error)
+                and args.atom_count >= 8
+                and oracle.query_count < args.max_oracle_calls
+            ):
+                rescue_train_target = max(args.train_count, args.atom_count * 2000)
+                rescue_gradient_target = max(args.fit_gradient_count, args.atom_count * 32)
+                rescue_steps = max(args.fit_steps, 5200 if args.atom_count >= 16 else 4200)
+                rescue_restarts = max(args.fit_restarts if args.fit_restarts > 0 else 0, 1024 if args.atom_count >= 16 else 768)
+                extra_train = max(0, rescue_train_target - train_coords.shape[0])
+                if extra_train > 0:
+                    extra_inputs = rng.normal(0.0, args.input_scale, size=(extra_train, dimension)).astype(np.float32)
+                    extra_targets = oracle.eval(extra_inputs)
+                    train_inputs = np.vstack([train_inputs, extra_inputs])
+                    train_targets = np.concatenate([train_targets, extra_targets])
+                    train_coords = train_inputs @ basis.T
+                extra_gradient = max(0, rescue_gradient_target - fit_gradient_coords.shape[0])
+                if extra_gradient > 0:
+                    extra_coords, extra_targets = estimate_active_forward_gradients(
+                        oracle,
+                        rng,
+                        basis,
+                        extra_gradient,
+                        args.input_scale,
+                        fit_gradient_steps,
+                    )
+                    fit_gradient_coords = np.vstack([fit_gradient_coords, extra_coords])
+                    fit_gradient_targets = np.vstack([fit_gradient_targets, extra_targets])
+                rescue_fit = fit_swiglu_sum(
+                    train_coords,
+                    train_targets,
+                    args.atom_count,
+                    args.seed + 7919,
+                    rescue_steps,
+                    args.fit_learning_rate,
+                    rescue_restarts,
+                    fit_gradient_coords,
+                    fit_gradient_targets,
+                    args.fit_gradient_weight,
+                    args.fit_mode,
+                    args.fit_restart_chunk_size,
+                )
+                rescue_prediction = predict_swiglu(validation_coords, rescue_fit)
+                rescue_metrics = regression_metrics(validation_targets, rescue_prediction)
+                fit_attempts.append({
+                    "stage": "adaptive-rescue",
+                    "trainCount": int(train_coords.shape[0]),
+                    "fitGradientCount": int(fit_gradient_coords.shape[0]),
+                    "fitSteps": int(rescue_steps),
+                    "fitRestarts": int(rescue_fit["restartCount"]),
+                    "fitMode": str(rescue_fit.get("fitMode", "unknown")),
+                    "fitTrainMae": float(rescue_fit["mae"]),
+                    "validationR2": float(rescue_metrics["r2"]),
+                    "validationMae": float(rescue_metrics["mae"]),
+                    "validationWorstError": float(rescue_metrics["worstError"]),
+                    "rawOracleCalls": int(oracle.query_count),
+                })
+                if (
+                    passes_metric_thresholds(rescue_metrics, args.min_r2, args.max_mae, args.max_worst_error)
+                    or rescue_metrics["mae"] < metrics["mae"]
+                ):
+                    fit = rescue_fit
+                    metrics = rescue_metrics
 
             truth_gate, truth_up = oracle.truth()
             if truth_gate.ndim == 1:
@@ -1093,6 +1183,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "fitGradientWeight": float(args.fit_gradient_weight),
                     "fitScales": [float(value) for value in fit["scales"]],
                     "fitBias": float(fit["bias"]),
+                    "fitAttempts": fit_attempts,
                 },
                 "oracleResponse": {
                     "quantizationStep": float(args.oracle_quantization_step),
