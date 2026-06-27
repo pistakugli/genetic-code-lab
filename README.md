@@ -598,13 +598,14 @@ Finite-precision boundary:
 - Live blind SwiGLU layer expansion:
   `npm run benchmark:nn-live-blind-swiglu-layer-expansion` now pushes the
   real-model oracle-only lane beyond the selected 8-unit block. Current witness
-  is Mistral-family 4096D layer 20 with `10` SwiGLU units
-  `[0,17,123,456,789,1024,2048,4096,6144,8191]`, active rank `20`, pass
-  `true`, R2 `0.9950616546567232`, MAE `0.0012622919284927562`, worst error
-  `0.019690672359748522`, subspace min principal cosine
-  `0.9999950507602267`, raw oracle calls `108885`, and access invariant
+  is Mistral-family 4096D layer 20 with `12` SwiGLU units
+  `[0,17,123,456,789,1024,2048,4096,6144,8191,10000,12288]`, active rank
+  `24`, pass `true`, R2 `0.9952350522320941`, MAE
+  `0.0013654271559954592`, worst error `0.013953604091311328`, subspace min
+  principal cosine `0.9999973679313839`, raw oracle calls `128697`, and access
+  invariant
   `true`. Artifact:
-  `benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-10unit-expansion-oracle-only/report.json`.
+  `benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-12unit-expansion-oracle-only/report.json`.
 
 What they do not support yet:
 

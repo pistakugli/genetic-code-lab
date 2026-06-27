@@ -68,7 +68,7 @@ type SweepReport = {
 
 const repoRoot = path.resolve(__dirname, '..');
 const lane = 'nn-live-blind-swiglu-layer-expansion';
-const defaultVariant = 'mistral-layer20-10unit-expansion-oracle-only';
+const defaultCaseSpec = 'mistral:20:12:-';
 
 const familySpecs: Record<Family, FamilySpec> = {
   mistral: {
@@ -160,7 +160,7 @@ function parseExpansionCase(raw: string): ExpansionCase {
 }
 
 function resolveExpansionCases(): ExpansionCase[] {
-  const raw = envValue('GCL_LAYER_EXPANSION_CASES', 'mistral:20:10:-');
+  const raw = envValue('GCL_LAYER_EXPANSION_CASES', defaultCaseSpec);
   return raw.split(';').map(item => item.trim()).filter(Boolean).map(parseExpansionCase);
 }
 
@@ -187,6 +187,9 @@ function sweepAggregatePath(variant: string): string {
 const cases = resolveExpansionCases();
 if (!cases.length) throw new Error('layer expansion requires at least one case');
 
+const defaultVariant = cases.length === 1
+  ? `${familySpecs[cases[0].family].family}-layer${cases[0].layer}-${cases[0].unitCount}unit-expansion-oracle-only`
+  : 'multi-case-layer-expansion-oracle-only';
 const output = resolveBenchmarkOutput(repoRoot, lane, envValue('GCL_BENCHMARK_VARIANT', defaultVariant));
 fs.mkdirSync(output.outputDir, { recursive: true });
 for (const staleOutput of [output.jsonOutputPath, output.markdownOutputPath, output.manifestOutputPath]) {
@@ -295,7 +298,7 @@ const report = {
   summary,
   cases: caseResults,
   config: {
-    caseSpec: envValue('GCL_LAYER_EXPANSION_CASES', 'mistral:20:10:-'),
+    caseSpec: envValue('GCL_LAYER_EXPANSION_CASES', defaultCaseSpec),
     defaultVariant,
     gradientMode: envValue('GCL_LAYER_EXPANSION_GRADIENT_MODE', 'forward-coordinate')
   },
