@@ -595,6 +595,16 @@ Finite-precision boundary:
   This is a full configured-layer atlas over real-model oracle-only selected
   SwiGLU recoveries, not a claim that every channel, full FFN, semantic hidden
   neuron identity, or the entire LLM mind has been recovered.
+- Live blind SwiGLU layer expansion:
+  `npm run benchmark:nn-live-blind-swiglu-layer-expansion` now pushes the
+  real-model oracle-only lane beyond the selected 8-unit block. Current witness
+  is Mistral-family 4096D layer 20 with `10` SwiGLU units
+  `[0,17,123,456,789,1024,2048,4096,6144,8191]`, active rank `20`, pass
+  `true`, R2 `0.9950616546567232`, MAE `0.0012622919284927562`, worst error
+  `0.019690672359748522`, subspace min principal cosine
+  `0.9999950507602267`, raw oracle calls `108885`, and access invariant
+  `true`. Artifact:
+  `benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-10unit-expansion-oracle-only/report.json`.
 
 What they do not support yet:
 

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-27T14:58:36.150Z",
+  "lane": "nn-live-blind-swiglu-layer-expansion",
+  "variant": "mistral-layer20-10unit-expansion-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-layer-expansion.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-layer-expansion",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "d7dc1fee82bb88d3901cd84026dc9c46b7ebd1c8",
+    "statusShort": "M package.json\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-10unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer20-units0-17-123-456-789-1024-2048-4096-6144-8191-10atom-forward-coordinate-oracle-only/\n?? scripts/benchmark-nn-live-blind-swiglu-layer-expansion.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-10unit-expansion-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-10unit-expansion-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer20-10unit-expansion-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 1,
+    "passedCases": 1,
+    "failedCases": 0,
+    "maxExpandedUnitCount": 10,
+    "minR2": 0.9950616546567232,
+    "maxMae": 0.0012622919284927562,
+    "maxWorstError": 0.019690672359748522,
+    "minSubspacePrincipalCosine": 0.9999950507602267,
+    "totalRawOracleCalls": 108885,
+    "accessInvariant": true,
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "notes": [
+    "Runs configured real-model multi-unit SwiGLU layer expansion through the oracle-only sweep runner.",
+    "This gate is intended to push beyond selected 8-unit blocks while preserving solver access invariants."
+  ]
+}
