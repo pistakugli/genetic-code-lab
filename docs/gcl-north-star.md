@@ -424,16 +424,19 @@ Finite-precision interpretation and boundaries:
   real-model oracle-only Mistral/LLaMA-family SwiGLU decompiler artifacts and
   builds a model/layer/unit/noise geometry atlas in
   `benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/report.json`.
-  Current witness: `118` source reports, `99` selected rows, `19` aggregate rows,
+  Current witness: `146` source reports, `127` selected rows, `19` aggregate rows,
   `60` layer-atlas rows, LLaMA-family `28/28` layers, Mistral-family `32/32`
   layers, early/middle/late buckets fully covered for both families, global min
   R2 `0.9951436177161573`, global max worst error `0.12080532366266805`, and
   global min subspace cosine `0.9992840966989263`. Companion command
   `npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill` audits the
-  configured full-layer fill and refuses missing LLaMA/Mistral layers. Its
-  default mode is missing-layer gap fill/audit; a same-code deterministic layer
-  rerun requires
-  `GCL_ATLAS_BACKFILL_MODE=all GCL_ATLAS_BACKFILL_FORCE=1 npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill`.
+  configured full-layer fill and refuses missing LLaMA/Mistral layers. Current
+  backfill witness was a same-code deterministic configured-layer rerun:
+  `mode=all`, requested `60`, passed `60`, skipped `0`, coverage complete
+  `true`, refreshed atlas pass `true`, and no failed cases. The default command
+  remains missing-layer gap fill/audit; use
+  `GCL_ATLAS_BACKFILL_MODE=all GCL_ATLAS_BACKFILL_FORCE=1 npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill`
+  when a full configured-layer regeneration witness is required.
   This is a real full configured-layer atlas of selected SwiGLU blocks, not
   all-channel FFN extraction or full-brain LLM extraction.
 - first query-budget randomized 8-unit SwiGLU block sweep on real local

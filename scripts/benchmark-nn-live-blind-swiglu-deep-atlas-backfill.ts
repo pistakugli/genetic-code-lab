@@ -111,6 +111,16 @@ function selectedFamilies(): Set<ModelFamily> {
   return new Set(raw.split(',').map(item => item.trim()).filter(Boolean) as ModelFamily[]);
 }
 
+function selectedLayerFilter(): Set<number> | null {
+  const raw = process.env.GCL_ATLAS_BACKFILL_LAYERS;
+  if (!raw || !raw.trim()) return null;
+  const layers = raw.split(',')
+    .map(item => Number(item.trim()))
+    .filter(layer => Number.isInteger(layer) && layer >= 0);
+  if (layers.length === 0) throw new Error(`GCL_ATLAS_BACKFILL_LAYERS=${raw} did not contain valid non-negative integer layers`);
+  return new Set(layers);
+}
+
 function deterministicUnit(family: ModelFamily, layer: number): number {
   if (family === 'Mistral-family') return (3125 + layer * 7919) % 14336;
   return (1786 + layer * 3571) % 8192;
@@ -125,12 +135,14 @@ function backfillMode(): BackfillMode {
 function buildCases(): BackfillCase[] {
   const present = existingLayersByFamily();
   const families = selectedFamilies();
+  const layers = selectedLayerFilter();
   const mode = backfillMode();
   const cases: BackfillCase[] = [];
   for (const spec of familySpecs) {
     if (!families.has(spec.family)) continue;
     const have = present.get(spec.family) ?? new Set<number>();
     for (let layer = 0; layer < spec.layerCount; layer++) {
+      if (layers && !layers.has(layer)) continue;
       if (mode === 'missing' && have.has(layer)) continue;
       const unit = deterministicUnit(spec.family, layer);
       const prefix = spec.family === 'Mistral-family' ? 'mistral-4096d' : 'llama-3072d';
@@ -144,6 +156,21 @@ function buildCases(): BackfillCase[] {
   }
   const limit = Number(envValue('GCL_ATLAS_BACKFILL_LIMIT', '0'));
   return Number.isFinite(limit) && limit > 0 ? cases.slice(0, limit) : cases;
+}
+
+function hardCaseEnv(testCase: BackfillCase): Record<string, string> {
+  if (testCase.family === 'Mistral-family' && testCase.layer === 23 && testCase.unit === 13230) {
+    return {
+      GCL_BLIND_SWIGLU_PROBE_POINTS: envValue('GCL_ATLAS_BACKFILL_HARD_PROBE_POINTS', '7'),
+      GCL_BLIND_SWIGLU_TRAIN_COUNT: envValue('GCL_ATLAS_BACKFILL_HARD_TRAIN_COUNT', '2400'),
+      GCL_BLIND_SWIGLU_VALIDATION_COUNT: envValue('GCL_ATLAS_BACKFILL_HARD_VALIDATION_COUNT', '768'),
+      GCL_BLIND_SWIGLU_FIT_STEPS: envValue('GCL_ATLAS_BACKFILL_HARD_FIT_STEPS', '1600'),
+      GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS: envValue('GCL_ATLAS_BACKFILL_HARD_MAX_ORACLE_CALLS', '70000'),
+      GCL_BLIND_SWIGLU_MIN_R2: envValue('GCL_ATLAS_BACKFILL_HARD_MIN_R2', '0.985'),
+      GCL_BLIND_SWIGLU_MIN_SUBSPACE_COSINE: envValue('GCL_ATLAS_BACKFILL_HARD_MIN_SUBSPACE_COSINE', '0.999')
+    };
+  }
+  return {};
 }
 
 function sourceReportPath(variant: string): string {
@@ -182,7 +209,8 @@ function runCase(testCase: BackfillCase): CaseResult {
     GCL_BLIND_SWIGLU_FIT_STEPS: envValue('GCL_ATLAS_BACKFILL_FIT_STEPS', '1200'),
     GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS: envValue('GCL_ATLAS_BACKFILL_MAX_ORACLE_CALLS', '25000'),
     GCL_BLIND_SWIGLU_MIN_R2: envValue('GCL_ATLAS_BACKFILL_MIN_R2', '0.985'),
-    GCL_BLIND_SWIGLU_MIN_SUBSPACE_COSINE: envValue('GCL_ATLAS_BACKFILL_MIN_SUBSPACE_COSINE', '0.93')
+    GCL_BLIND_SWIGLU_MIN_SUBSPACE_COSINE: envValue('GCL_ATLAS_BACKFILL_MIN_SUBSPACE_COSINE', '0.93'),
+    ...hardCaseEnv(testCase)
   };
   const result = spawnSync('ts-node', ['scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler.ts'], {
     cwd: repoRoot,
@@ -337,8 +365,8 @@ const report = {
   backfillArtifacts,
   summary,
   boundaries: [
-    'This runner backfills missing deep-atlas layers with real-model oracle-only single-unit SwiGLU recoveries.',
-    'Default mode is missing-layer gap fill. Set GCL_ATLAS_BACKFILL_MODE=all with GCL_ATLAS_BACKFILL_FORCE=1 for a full deterministic layer rerun.',
+    'This runner audits, backfills, or regenerates configured deep-atlas layers with real-model oracle-only single-unit SwiGLU recoveries.',
+    'Default mode is missing-layer gap fill. Set GCL_ATLAS_BACKFILL_MODE=all with GCL_ATLAS_BACKFILL_FORCE=1 for a full deterministic configured-layer rerun.',
     'It expands layer coverage; it does not claim all-channel FFN extraction.',
     'If a case fails, the required action is to repair that case or add a stronger oracle-only recovery configuration, not to hide the layer gap.'
   ]

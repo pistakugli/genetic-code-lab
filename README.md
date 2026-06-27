@@ -576,17 +576,20 @@ Finite-precision boundary:
 - Deep live SwiGLU atlas: `npm run benchmark:nn-live-blind-swiglu-deep-atlas`
   now reads all current real-model oracle-only Mistral/LLaMA-family SwiGLU
   decompiler reports and builds a layer-by-layer atlas. Current artifact:
-  `118` source reports, `99` selected rows, `19` aggregate rows, `60`
+  `146` source reports, `127` selected rows, `19` aggregate rows, `60`
   layer-atlas rows, LLaMA-family coverage `28/28` layers, Mistral-family
   coverage `32/32` layers, early/middle/late buckets fully covered for both
   families, global min R2 `0.9951436177161573`, global max worst error
   `0.12080532366266805`, and global min subspace cosine
   `0.9992840966989263`. The companion backfill gate is
   `npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill`, which verifies
-  that no configured LLaMA/Mistral layer is still missing. By default it is a
-  missing-layer gap-fill/audit, not a full regeneration of every historical
-  report. For a deterministic full layer rerun, use
-  `GCL_ATLAS_BACKFILL_MODE=all GCL_ATLAS_BACKFILL_FORCE=1 npm run benchmark:nn-live-blind-swiglu-deep-atlas:backfill`.
+  that no configured LLaMA/Mistral layer is still missing. Current backfill
+  witness was run with
+  `GCL_ATLAS_BACKFILL_MODE=all GCL_ATLAS_BACKFILL_FORCE=1`, regenerated all
+  `60` configured layer cases, passed `60/60`, skipped `0`, refreshed atlas
+  pass `true`, and left no failed cases. The default command remains
+  missing-layer gap-fill/audit for routine runs; use the `all+force` form for a
+  deterministic configured-layer rerun.
   Artifact:
   `benchmarks/release/nn-live-blind-swiglu-deep-atlas/mistral-llama-multilayer-swiglu-atlas/report.json`.
   This is a full configured-layer atlas over real-model oracle-only selected
