@@ -19,31 +19,31 @@
     "atomCount": 6,
     "rawOracleCalls": 48941,
     "metrics": {
-      "mae": 0.0008233366167048662,
-      "mse": 1.38951472760322e-06,
-      "r2": 0.9999975420086665,
-      "worstError": 0.006377951229655121
+      "mae": 0.0011053255707858649,
+      "mse": 2.4912191026568952e-06,
+      "r2": 0.9999957375724998,
+      "worstError": 0.00964802002491183
     },
     "sourceAlignment": {
-      "gateMaxAbsCosine": 0.9999997686299558,
-      "upMaxAbsCosine": 0.9999996273645426,
-      "subspaceMinPrincipalCosine": 0.9999960757027645,
+      "gateMaxAbsCosine": 0.9999995478245838,
+      "upMaxAbsCosine": 0.9999995077613143,
+      "subspaceMinPrincipalCosine": 0.9999888168255016,
       "subspaceCosines": [
-        0.9999999824803606,
-        0.9999999802217011,
-        0.9999999299969549,
-        0.9999999058280628,
-        0.9999998910851968,
-        0.9999998228394649,
-        0.9999997629676134,
-        0.9999996594734564,
-        0.9999995913086919,
-        0.9999995153438193,
-        0.9999990822278987,
-        0.9999960757027645
+        0.9999999907969946,
+        0.9999999815542879,
+        0.9999999326014318,
+        0.9999999121144131,
+        0.9999998868125993,
+        0.9999998122555301,
+        0.9999997711890859,
+        0.9999996510761278,
+        0.9999995347092973,
+        0.9999994502252573,
+        0.9999970985525906,
+        0.9999888168255016
       ]
     },
-    "selectedGradientEnergyRatio": 0.999999999999997
+    "selectedGradientEnergyRatio": 0.9999999724876508
   },
   "accessAudit": {
     "solverAccess": "oracle-only",
@@ -58,37 +58,129 @@
     "kind": "blind-active-subspace-explicit-swiglu-sum",
     "probePoints": 13,
     "gradientMode": "forward-coordinate",
+    "basisMoment": "raw",
     "directionCount": 384,
     "gradientWitnessCount": 13,
+    "cubicDirectionCount": 0,
+    "cubicStep": 0.35,
+    "cubicMaxAbsScore": 0.0,
     "subspaceCount": null,
     "finiteDifferenceStep": 0.04,
+    "finiteDifferenceSteps": [
+      0.04
+    ],
+    "trainScaleMixture": null,
     "trainCount": 7200,
     "validationCount": 1792,
     "validationScale": 0.65,
     "gradientEigenvalues": [
-      0.33704747699221843,
-      0.14552225465101576,
-      0.1155450946509577,
-      0.08369669450763109,
-      0.05759361236714977,
-      0.037488673670023634,
-      0.02753510755628262,
-      0.014884437877932737,
-      0.008548397074106526,
-      0.005514376137734819,
-      0.002504615638743119,
-      0.0007523887646666847
+      0.34557472571157855,
+      0.19261830814842243,
+      0.14108712578463375,
+      0.0931753214277518,
+      0.07438953347124304,
+      0.038335438922925284,
+      0.02958083001928024,
+      0.025029737543511496,
+      0.014525682806871587,
+      0.008142935117339203,
+      0.003915817445310064,
+      0.0016668299998831091
     ],
-    "fitTrainMae": 0.0003813396553552275,
+    "fitTrainMae": 0.000523090247189886,
+    "fitRestarts": 300,
+    "fitRandomRestarts": 288,
+    "fitStructuredStarts": 12,
+    "selectedStartKind": "random",
+    "selectedRandomRestartIndex": 52,
+    "bestScoreByStartKind": {
+      "structured": 0.0005213354600734111,
+      "random": 0.0005212013486247345
+    },
+    "bestMetricsByStartKind": {
+      "structured": {
+        "restart": 6,
+        "randomRestartIndex": null,
+        "mae": 0.0005231034422688658,
+        "mse": 5.415069108289441e-07,
+        "r2": 0.9999953980981625,
+        "selectionScore": 0.0005213354600734111
+      },
+      "random": {
+        "restart": 64,
+        "randomRestartIndex": 52,
+        "mae": 0.0005230902471898863,
+        "mse": 5.415024285941757e-07,
+        "r2": 0.999995398136254,
+        "selectionScore": 0.0005212013486247345
+      }
+    },
+    "fitRestartChunkSize": 300,
+    "fitMode": "batched-cuda+structured-starts",
+    "fitGradientCount": 0,
+    "fitGradientSteps": [
+      0.04
+    ],
+    "fitGradientWeight": 0.2,
+    "counterexampleCount": 0,
+    "counterexampleRepeat": 4,
+    "counterexampleJitterCount": 0,
+    "counterexampleJitterScale": 0.025,
+    "fitSelectionScore": 0.0005212013486247345,
     "fitScales": [
-      -0.38151490188796267,
-      0.4442339574398537,
-      0.41801200636267316,
-      0.6223614576962239,
-      0.3185196867014419,
-      0.49341237121589276
+      0.3334635667994076,
+      -0.3337055470048365,
+      0.36785854683855185,
+      0.6016472035984832,
+      -0.3368143467138394,
+      0.39039117632553955
     ],
-    "fitBias": -7.664372194025821e-06
+    "fitBias": -2.5196036570638703e-05,
+    "fitAttempts": [
+      {
+        "stage": "initial",
+        "trainCount": 7200,
+        "fitGradientCount": 0,
+        "fitSteps": 5000,
+        "fitRestarts": 300,
+        "fitRandomRestarts": 288,
+        "fitStructuredStarts": 12,
+        "selectedStartKind": "random",
+        "selectedRandomRestartIndex": 52,
+        "bestScoreByStartKind": {
+          "structured": 0.0005213354600734111,
+          "random": 0.0005212013486247345
+        },
+        "bestMetricsByStartKind": {
+          "structured": {
+            "restart": 6,
+            "randomRestartIndex": null,
+            "mae": 0.0005231034422688658,
+            "mse": 5.415069108289441e-07,
+            "r2": 0.9999953980981625,
+            "selectionScore": 0.0005213354600734111
+          },
+          "random": {
+            "restart": 64,
+            "randomRestartIndex": 52,
+            "mae": 0.0005230902471898863,
+            "mse": 5.415024285941757e-07,
+            "r2": 0.999995398136254,
+            "selectionScore": 0.0005212013486247345
+          }
+        },
+        "fitMode": "batched-cuda+structured-starts",
+        "fitTrainMae": 0.000523090247189886,
+        "fitSelectionScore": 0.0005212013486247345,
+        "validationR2": 0.9999957375724998,
+        "validationMae": 0.0011053255707858649,
+        "validationWorstError": 0.00964802002491183,
+        "rawOracleCalls": 48941
+      }
+    ]
+  },
+  "oracleResponse": {
+    "quantizationStep": 0.0
   },
   "claimBoundary": [
     "This gate proves selected real local SwiGLU unit outputs can be queried as a black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under the recorded budget.",

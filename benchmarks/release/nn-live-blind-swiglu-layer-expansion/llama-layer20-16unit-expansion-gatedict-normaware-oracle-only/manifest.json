@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-29T05:08:43.452Z",
+  "lane": "nn-live-blind-swiglu-layer-expansion",
+  "variant": "llama-layer20-16unit-expansion-gatedict-normaware-oracle-only",
+  "status": "fail",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-layer-expansion.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blind-swiglu-layer-expansion",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.22.3"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "llama-layer20-16unit-expansion-gatedict-normaware-oracle-only",
+    "GCL_LAYER_EXPANSION_CASES": "llama:20:16:-",
+    "GCL_LAYER_EXPANSION_MAX_ORACLE_CALLS": "300000",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "030485fe79270bff6afcb9bb76dcfd4c2de60aa5",
+    "statusShort": "M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-fixednorm-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-gatedict-default-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-gatedict-normaware-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-grad0-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-normfit-default-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-probe65-grad2048-w2-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-probe65-hessian-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-probe65-ica-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-probe65-step02-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-scaleinit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-strongfit-chunk32-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-strongfit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-16unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-gatedict-normaware-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-gatedict-normaware-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-gatedict-normaware-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": false,
+    "caseCount": 1,
+    "passedCases": 0,
+    "failedCases": 1,
+    "maxExpandedUnitCount": 16,
+    "minR2": 0.9896547022176337,
+    "maxMae": 0.076911232356724,
+    "maxWorstError": 1.5313590379485764,
+    "minSubspacePrincipalCosine": 0.9999469628979306,
+    "totalRawOracleCalls": 154401,
+    "accessInvariant": true,
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "notes": [
+    "Runs configured real-model multi-unit SwiGLU layer expansion through the oracle-only sweep runner.",
+    "This gate is intended to push beyond selected 8-unit blocks while preserving solver access invariants."
+  ]
+}
