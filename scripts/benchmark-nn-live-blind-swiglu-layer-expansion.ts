@@ -38,6 +38,9 @@ type SweepSummary = {
   maxMae: number;
   maxWorstError: number;
   minSubspacePrincipalCosine: number;
+  minPairedAtomJointCosine: number | null;
+  minPairedAtomCountAboveThreshold: number | null;
+  pairedAtomThreshold: number | null;
   maxRawOracleCallsPerCase: number;
   totalRawOracleCalls: number;
   maxUnitCount: number;
@@ -256,11 +259,15 @@ for (const testCase of cases) {
   const sweepVariant = expansionVariant(testCase);
   const sweepCases = caseToSweepCase(testCase);
   const highAtomProfile = testCase.unitCount >= 16;
+  const llamaHighAtomProfile = testCase.family === 'llama' && highAtomProfile;
   const defaultTimeoutMs = highAtomProfile ? '3600000' : '1800000';
   const defaultTrainCount = highAtomProfile ? String(Math.max(16000, testCase.unitCount * 1000)) : String(Math.max(14400, testCase.unitCount * 1400));
   const defaultValidationCount = highAtomProfile ? '4096' : '3072';
   const defaultFitSteps = highAtomProfile ? '2600' : '3200';
   const defaultFitRestarts = highAtomProfile ? '512' : '768';
+  const defaultProbePoints = llamaHighAtomProfile ? String(Math.max(33, testCase.activeRank + 1)) : String(Math.max(17, testCase.activeRank + 1));
+  const defaultInputScale = llamaHighAtomProfile ? '0.35' : (testCase.family === 'llama' ? '0.65' : '0.45');
+  const defaultValidationScale = llamaHighAtomProfile ? '0.35' : '0.65';
   const defaultFitGradientCount = '256';
   const defaultFitGradientWeight = highAtomProfile ? '1.0' : '0.2';
   const defaultMaxOracleCalls = highAtomProfile ? '300000' : '180000';
@@ -279,13 +286,14 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_ACTIVE_RANK: String(testCase.activeRank),
     GCL_BLIND_SWIGLU_GRADIENT_MODE: envValue('GCL_LAYER_EXPANSION_GRADIENT_MODE', 'forward-coordinate'),
     GCL_BLIND_SWIGLU_BASIS_MOMENT: envValue('GCL_LAYER_EXPANSION_BASIS_MOMENT', 'centered'),
-    GCL_BLIND_SWIGLU_PROBE_POINTS: envValue('GCL_LAYER_EXPANSION_PROBE_POINTS', String(Math.max(17, testCase.activeRank + 1))),
+    GCL_BLIND_SWIGLU_PROBE_POINTS: envValue('GCL_LAYER_EXPANSION_PROBE_POINTS', defaultProbePoints),
     GCL_BLIND_SWIGLU_CUBIC_DIRECTION_COUNT: envValue('GCL_LAYER_EXPANSION_CUBIC_DIRECTION_COUNT', '0'),
     GCL_BLIND_SWIGLU_CUBIC_STEP: envValue('GCL_LAYER_EXPANSION_CUBIC_STEP', '0.35'),
     GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP: envValue('GCL_LAYER_EXPANSION_FINITE_DIFFERENCE_STEP', '0.04'),
-    GCL_BLIND_SWIGLU_INPUT_SCALE: envValue('GCL_LAYER_EXPANSION_INPUT_SCALE', testCase.family === 'llama' ? '0.65' : '0.45'),
+    GCL_BLIND_SWIGLU_INPUT_SCALE: envValue('GCL_LAYER_EXPANSION_INPUT_SCALE', defaultInputScale),
     GCL_BLIND_SWIGLU_TRAIN_SCALE_MIXTURE: envValue('GCL_LAYER_EXPANSION_TRAIN_SCALE_MIXTURE', ''),
-    GCL_BLIND_SWIGLU_VALIDATION_SCALE: envValue('GCL_LAYER_EXPANSION_VALIDATION_SCALE', '0.65'),
+    GCL_BLIND_SWIGLU_TRAIN_SAMPLING_MODE: envValue('GCL_LAYER_EXPANSION_TRAIN_SAMPLING_MODE', 'gaussian'),
+    GCL_BLIND_SWIGLU_VALIDATION_SCALE: envValue('GCL_LAYER_EXPANSION_VALIDATION_SCALE', defaultValidationScale),
     GCL_BLIND_SWIGLU_TRAIN_COUNT: envValue('GCL_LAYER_EXPANSION_TRAIN_COUNT', defaultTrainCount),
     GCL_BLIND_SWIGLU_VALIDATION_COUNT: envValue('GCL_LAYER_EXPANSION_VALIDATION_COUNT', defaultValidationCount),
     GCL_BLIND_SWIGLU_FIT_STEPS: envValue('GCL_LAYER_EXPANSION_FIT_STEPS', defaultFitSteps),
@@ -295,8 +303,11 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_COUNT', defaultFitGradientCount),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_STEP', '0.04'),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_WEIGHT', defaultFitGradientWeight),
+    GCL_BLIND_SWIGLU_FIT_SELECTION_COUNT: envValue('GCL_LAYER_EXPANSION_FIT_SELECTION_COUNT', '0'),
+    GCL_BLIND_SWIGLU_FIT_SELECTION_SCALE: envValue('GCL_LAYER_EXPANSION_FIT_SELECTION_SCALE', '0'),
     GCL_BLIND_SWIGLU_SELECTION_TAIL_WEIGHT: envValue('GCL_LAYER_EXPANSION_SELECTION_TAIL_WEIGHT', '0'),
     GCL_BLIND_SWIGLU_SELECTION_TAIL_QUANTILE: envValue('GCL_LAYER_EXPANSION_SELECTION_TAIL_QUANTILE', '0.995'),
+    GCL_BLIND_SWIGLU_SELECTION_WORST_WEIGHT: envValue('GCL_LAYER_EXPANSION_SELECTION_WORST_WEIGHT', '0'),
     GCL_BLIND_SWIGLU_COUNTEREXAMPLE_COUNT: envValue('GCL_LAYER_EXPANSION_COUNTEREXAMPLE_COUNT', '0'),
     GCL_BLIND_SWIGLU_COUNTEREXAMPLE_REPEAT: envValue('GCL_LAYER_EXPANSION_COUNTEREXAMPLE_REPEAT', '4'),
     GCL_BLIND_SWIGLU_COUNTEREXAMPLE_JITTER_COUNT: envValue('GCL_LAYER_EXPANSION_COUNTEREXAMPLE_JITTER_COUNT', '0'),
@@ -308,8 +319,20 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_RESCUE_GRADIENT_TARGET: envValue('GCL_LAYER_EXPANSION_RESCUE_GRADIENT_TARGET', '0'),
     GCL_BLIND_SWIGLU_RESCUE_STEPS: envValue('GCL_LAYER_EXPANSION_RESCUE_STEPS', '0'),
     GCL_BLIND_SWIGLU_RESCUE_RESTARTS: envValue('GCL_LAYER_EXPANSION_RESCUE_RESTARTS', '0'),
-    GCL_BLIND_SWIGLU_DISABLE_ADAPTIVE_RESCUE: envValue('GCL_LAYER_EXPANSION_DISABLE_ADAPTIVE_RESCUE', '0'),
+    GCL_BLIND_SWIGLU_DISABLE_ADAPTIVE_RESCUE: envValue('GCL_LAYER_EXPANSION_DISABLE_ADAPTIVE_RESCUE', llamaHighAtomProfile ? '1' : '0'),
     GCL_BLIND_SWIGLU_PROGRESS: envValue('GCL_LAYER_EXPANSION_PROGRESS', '0'),
+    GCL_BLIND_SWIGLU_POLISH_TOP_K: envValue('GCL_LAYER_EXPANSION_POLISH_TOP_K', '1'),
+    GCL_BLIND_SWIGLU_BACKFIT_CYCLES: envValue('GCL_LAYER_EXPANSION_BACKFIT_CYCLES', '0'),
+    GCL_BLIND_SWIGLU_TAIL_POLISH_STEPS: envValue('GCL_LAYER_EXPANSION_TAIL_POLISH_STEPS', llamaHighAtomProfile ? '1100' : '420'),
+    GCL_BLIND_SWIGLU_TAIL_POLISH_WEIGHT: envValue('GCL_LAYER_EXPANSION_TAIL_POLISH_WEIGHT', llamaHighAtomProfile ? '2.2' : '0.35'),
+    GCL_BLIND_SWIGLU_TAIL_POLISH_FRACTION: envValue('GCL_LAYER_EXPANSION_TAIL_POLISH_FRACTION', llamaHighAtomProfile ? '0.30' : '0.125'),
+    GCL_BLIND_SWIGLU_TAIL_POLISH_LR: envValue('GCL_LAYER_EXPANSION_TAIL_POLISH_LR', llamaHighAtomProfile ? '0.003' : '0.006'),
+    GCL_BLIND_SWIGLU_TAIL_POLISH_LOSS: envValue('GCL_LAYER_EXPANSION_TAIL_POLISH_LOSS', 'topk'),
+    GCL_BLIND_SWIGLU_ROBUST_SCALAR_CALIBRATION: envValue('GCL_LAYER_EXPANSION_ROBUST_SCALAR_CALIBRATION', llamaHighAtomProfile ? '1' : '0'),
+    GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_STEPS: envValue('GCL_LAYER_EXPANSION_SCALAR_CALIBRATION_STEPS', '900'),
+    GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_LR: envValue('GCL_LAYER_EXPANSION_SCALAR_CALIBRATION_LR', '0.01'),
+    GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_TAIL_WEIGHT: envValue('GCL_LAYER_EXPANSION_SCALAR_CALIBRATION_TAIL_WEIGHT', llamaHighAtomProfile ? '2.0' : '1.0'),
+    GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_TAIL_FRACTION: envValue('GCL_LAYER_EXPANSION_SCALAR_CALIBRATION_TAIL_FRACTION', llamaHighAtomProfile ? '0.25' : '0.20'),
     GCL_BLIND_SWIGLU_SWEEP_MIN_R2: String(testCase.minR2),
     GCL_BLIND_SWIGLU_SWEEP_MAX_MAE: String(testCase.maxMae),
     GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR: String(testCase.maxWorstError),
@@ -359,6 +382,13 @@ const summary = {
   maxMae: summaries.length ? Math.max(...summaries.map(item => item.maxMae)) : null,
   maxWorstError: summaries.length ? Math.max(...summaries.map(item => item.maxWorstError)) : null,
   minSubspacePrincipalCosine: summaries.length ? Math.min(...summaries.map(item => item.minSubspacePrincipalCosine)) : null,
+  minPairedAtomJointCosine: summaries.length
+    ? Math.min(...summaries.map(item => item.minPairedAtomJointCosine ?? Number.POSITIVE_INFINITY))
+    : null,
+  minPairedAtomCountAboveThreshold: summaries.length
+    ? Math.min(...summaries.map(item => item.minPairedAtomCountAboveThreshold ?? 0))
+    : null,
+  pairedAtomThreshold: summaries.find(item => item.pairedAtomThreshold !== null)?.pairedAtomThreshold ?? null,
   totalRawOracleCalls: summaries.reduce((sum, item) => sum + item.totalRawOracleCalls, 0),
   accessInvariant: caseResults.every(result => result.sweepSummary?.accessInvariant === true),
   solverAccess: 'oracle-only',
@@ -410,6 +440,8 @@ fs.writeFileSync(
     `- max MAE: \`${summary.maxMae}\``,
     `- max worst error: \`${summary.maxWorstError}\``,
     `- min subspace principal cosine: \`${summary.minSubspacePrincipalCosine}\``,
+    `- min post-hoc paired atom joint cosine: \`${summary.minPairedAtomJointCosine}\``,
+    `- min paired atoms above threshold: \`${summary.minPairedAtomCountAboveThreshold}\``,
     `- total raw oracle calls: \`${summary.totalRawOracleCalls}\``,
     `- access invariant: \`${summary.accessInvariant}\``,
     '',

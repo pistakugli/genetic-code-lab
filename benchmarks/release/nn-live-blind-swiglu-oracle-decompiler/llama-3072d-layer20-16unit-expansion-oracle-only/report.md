@@ -1,14 +1,14 @@
 # Blind 3072D SwiGLU Oracle Decompiler Sweep
 
-- pass: `false`
-- cases: `0/1`
-- min R2: `0.9915249275292025`
-- max MAE: `0.025860451651904412`
-- max worst error: `0.2709458526175194`
-- min subspace principal cosine: `0.9998458489586742`
+- pass: `true`
+- cases: `1/1`
+- min R2: `0.996028807883924`
+- max MAE: `0.013147489844684133`
+- max worst error: `0.1197387336033246`
+- min subspace principal cosine: `0.9996660748268255`
 - max unit count: `16`
 - max atom count: `16`
-- total raw oracle calls: `138401`
+- total raw oracle calls: `129953`
 
 Access audit:
 
@@ -17,6 +17,6 @@ Access audit:
 - hooksUsedBySolver: `false`
 - postHocWitnessOnly: `true`
 
-- layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191: `fail summary.pass=false; r2=0.9915249275292025<0.995; mae=0.025860451651904412>0.015; worstError=0.2709458526175194>0.12` (benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/report.json)
+- layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191: `pass` (benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/report.json)
 
 Boundary: this is a selected-unit sweep, not full FFN or arbitrary LLM decompilation.

@@ -502,18 +502,28 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        manifests, validates IID/OOD held-out outputs, and verifies every atom
        against exact GPT-2 source ids with strict parameter provenance. This is
        deliberately separate from output-only recovery.
-    18. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
+    18. DONE for randomized real-LLaMA 16-unit source-blind structure recovery:
+       Add `benchmark:nn-live-blind-swiglu-layer-expansion:llama-16unit-residual-block-randomized`.
+       The solver recovers two deterministic-random real LLaMA-family 3072D
+       16-unit scalar SwiGLU blocks from oracle values only. A gate-norm plus
+       tail-responsibility weak-block selector repairs under-resolved atoms;
+       source weights remain post-hoc and are used only for exact one-to-one
+       gate/up assignment. Current gate: `2/2` pass, min R2
+       `0.9993531509315209`, max worst error `0.04507800353440916`, min paired
+       atom joint cosine `0.9942495918505425`, and all `16/16` atoms above
+       `0.99` in both cases.
+    19. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
        itself.
-    19. DONE for full-slice/rank-cap negative guarding: Add
+    20. DONE for full-slice/rank-cap negative guarding: Add
        `benchmark:nn-gelu-ffn-rank-cap-negative`, where a self-contained
        synthetic 768D/3072-channel full-slice teacher must report
        `insufficient-rank` under a too-small rank cap instead of promoting a
        weak structure claim. Add
        `research:nn-gpt2-gelu-ffn-full-rank-cap-negative` as a local audit over
        the uncommitted full GPT-2 fixture.
-    20. NEXT: Only after blind top-K is efficient should full FFN slices be used
+    21. NEXT: Only after blind top-K is efficient should full FFN slices be used
        as research stress tests. They must not replace the generic mixed-
        channel gate.
 - Stage D: local transformer MLP hook.
@@ -1236,9 +1246,37 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     min principal cosine `0.999989791877386`, and access audit
     `solverAccess = oracle-only`, `weightsUsedBySolver = false`,
     `hooksUsedBySolver = false`, `postHocWitnessOnly = true`.
+  - Current selected LLaMA-family 16-unit layer-expansion parity gate: DONE as
+    a targeted benchmark with
+    `npm run benchmark:nn-live-blind-swiglu-layer-expansion:llama-16unit`.
+    Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/report.json`.
+    Result: pass `true`, model family LLaMA, dimension `3072`, layer `20`,
+    unitCount `16`, active rank `32`, raw oracle calls `129953`, validation R2
+    `0.996028807883924`, validation MAE `0.013147489844684133`, worst error
+    `0.1197387336033246`, subspace min principal cosine
+    `0.9996660748268255`, and access audit `solverAccess = oracle-only`,
+    `weightsUsedBySolver = false`, `hooksUsedBySolver = false`,
+    `postHocWitnessOnly = true`. The runner now uses LLaMA high-atom defaults
+    for this profile instead of the earlier Mistral-shaped scale/profile
+    defaults; thresholds were not lowered.
+  - Current randomized LLaMA-family 16-unit function-and-structure gate: DONE
+    with
+    `npm run benchmark:nn-live-blind-swiglu-layer-expansion:llama-16unit-residual-block-randomized`.
+    Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json`.
+    Result: pass `true`, cases `2/2`, total raw oracle calls `284482`, min R2
+    `0.9993531509315209`, max MAE `0.005235521283167137`, max worst error
+    `0.04507800353440916`, min subspace principal cosine
+    `0.9999482868797673`, min exact one-to-one paired gate/up joint cosine
+    `0.9942495918505425`, and all `16/16` recovered atoms above `0.99` in
+    both cases. Recovery and weak-block selection are oracle-only; source
+    weights enter only after fitting for the post-hoc assignment witness.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
-    budgets, including first selected and first randomized 2-unit scalar
+    budgets, plus selected real LLaMA-family 16-unit parity under its recorded
+    budget. The current evidence includes first selected and first randomized
+    2-unit scalar
     blocks, first selected and randomized 3-unit scalar blocks, and a first
     selected and randomized 4-unit scalar block plus first selected and
     randomized 5-unit scalar blocks plus first selected and randomized 6-unit
@@ -1246,23 +1284,23 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     blocks and forward-coordinate query-budget parity for selected/randomized
     Mistral/LLaMA 6-unit blocks plus selected/randomized Mistral 8-unit blocks
     and selected/randomized LLaMA-family 8-unit blocks, plus a first
-    self-rescuing Mistral-family 16-unit layer-expansion default runner and a
+    self-rescuing Mistral-family 16-unit layer-expansion default runner, a
     first deterministic-random 2-case Mistral-family 16-unit layer-expansion
-    sweep.
+    sweep, a first selected LLaMA-family 16-unit layer-expansion parity gate,
+    and a first deterministic-random 2-case LLaMA-family 16-unit gate with
+    individual atom-structure evidence.
     It does not prove full Mistral/LLaMA FFN extraction,
     all-channel 3072D/4096D block decompilation, exhaustive circuit recovery,
     arbitrary high-count mixtures, or semantic original-neuron identity from
     output-only access.
   - Next K5 hardening:
-    1. add LLaMA-family parity for the larger block size that fits local memory
-       and model dimensions;
-    2. add finite-precision/noisy response stress for the 16-unit expansion
+    1. add finite-precision/noisy response stress for the 16-unit expansion
        path after the clean self-rescue default is stable;
-    3. reduce coordinate-family query cost with a validated adaptive
+    2. reduce coordinate-family query cost with a validated adaptive
        directional or block-coordinate probe before claiming larger-block
        scalability;
-    4. widen randomized 16-unit sweeps beyond 2 cases per family;
-    5. then widen randomized multi-unit block gates beyond 2 cases per
+    3. widen randomized 16-unit sweeps beyond 2 cases per family;
+    4. then widen randomized multi-unit block gates beyond 2 cases per
        unit-count and only promote K5 into full `release:gate` when the
        cross-family randomized expansion evidence exists.
 - Stage L: `LLMOracleAdapter` control plane.

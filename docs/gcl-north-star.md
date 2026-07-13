@@ -479,6 +479,26 @@ Finite-precision interpretation and boundaries:
   calls per case `68241`, min R2 `0.9999781080257685`, max MAE
   `0.002327151614302204`, max worst error `0.02565795362142126`, and min
   subspace principal cosine `0.999936352892748`.
+- first selected 16-unit layer-expansion parity gate on real local
+  LLaMA-family 3072D units using the same oracle-only delegated sweep verifier.
+  Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/report.json`,
+  pass `true`, layer `20`, active rank `32`, unitCount `16`, raw oracle calls
+  `129953`, R2 `0.996028807883924`, MAE `0.013147489844684133`, worst error
+  `0.1197387336033246`, subspace min principal cosine
+  `0.9996660748268255`, and oracle-only access invariant.
+- randomized structure-gated 16-unit recovery on two real local LLaMA-family
+  3072D scalar SwiGLU block oracles. The recovery process receives only batch
+  `f(x)` values; source weights are requested only after recovery for the
+  paired-atom witness. Current artifact:
+  `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json`,
+  pass `true`, cases `2/2`, min R2 `0.9993531509315209`, max MAE
+  `0.005235521283167137`, max worst error `0.04507800353440916`, min subspace
+  principal cosine `0.9999482868797673`, min one-to-one paired gate/up joint
+  cosine `0.9942495918505425`, paired atoms above `0.99` `16/16` in both
+  cases, total raw oracle calls `284482`, and oracle-only access invariant.
+  The gate-norm/tail-responsibility weak-block selector is source-blind; the
+  Hungarian source assignment is post-hoc evidence and does not enter fitting.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block

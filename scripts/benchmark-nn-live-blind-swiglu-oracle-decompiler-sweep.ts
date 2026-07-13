@@ -42,6 +42,10 @@ type CaseReport = {
       upMaxAbsCosine: number;
       subspaceMinPrincipalCosine: number;
       subspaceCosines: number[];
+      pairedAtomMinJointCosine?: number;
+      pairedAtomMeanJointCosine?: number;
+      pairedAtomCountAbove095?: number;
+      pairedAtomCountAbove099?: number;
     };
     selectedGradientEnergyRatio: number;
   };
@@ -64,9 +68,15 @@ function envValue(name: string, fallback: string): string {
   return value && value.trim() ? value.trim() : fallback;
 }
 
+function optionalEnvArg(flag: string, name: string): string[] {
+  const value = process.env[name];
+  return value && value.trim() ? [flag, value.trim()] : [];
+}
+
 const modelLabel = envValue('GCL_BLIND_SWIGLU_MODEL_LABEL', 'mistral-4096d');
 const expectedDimension = Number(envValue('GCL_BLIND_SWIGLU_EXPECTED_DIMENSION', '4096'));
 const familyLabel = envValue('GCL_BLIND_SWIGLU_FAMILY_LABEL', 'Mistral-family');
+const minPairedAtomCosine = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_PAIRED_ATOM_COSINE', '0'));
 
 function resolveGclPython(): string {
   if (process.env.GCL_PYTHON) return process.env.GCL_PYTHON;
@@ -233,6 +243,16 @@ function assertCaseReport(report: CaseReport, testCase: SweepCase): string[] {
   if (report.summary.sourceAlignment.subspaceMinPrincipalCosine < testCase.minSubspaceCosine) {
     failures.push(`subspace=${report.summary.sourceAlignment.subspaceMinPrincipalCosine}<${testCase.minSubspaceCosine}`);
   }
+  if (minPairedAtomCosine > 0) {
+    const pairedMinimum = report.summary.sourceAlignment.pairedAtomMinJointCosine;
+    const pairedCount = minPairedAtomCosine >= 0.99
+      ? report.summary.sourceAlignment.pairedAtomCountAbove099
+      : report.summary.sourceAlignment.pairedAtomCountAbove095;
+    if (pairedMinimum === undefined) failures.push('pairedAtomMinJointCosine=missing');
+    else if (pairedMinimum < minPairedAtomCosine) failures.push(`pairedAtomMinJointCosine=${pairedMinimum}<${minPairedAtomCosine}`);
+    if (pairedCount === undefined) failures.push('pairedAtomCount=missing');
+    else if (pairedCount < testCase.atomCount) failures.push(`pairedAtomCount=${pairedCount}<${testCase.atomCount}`);
+  }
   if (report.accessAudit.solverAccess !== 'oracle-only') failures.push(`solverAccess=${report.accessAudit.solverAccess}`);
   if (report.accessAudit.weightsUsedBySolver !== false) failures.push('weightsUsedBySolver!=false');
   if (report.accessAudit.hooksUsedBySolver !== false) failures.push('hooksUsedBySolver!=false');
@@ -285,6 +305,7 @@ for (const testCase of sweepCases) {
     '--finite-difference-steps', envValue('GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEPS', ''),
     '--input-scale', envValue('GCL_BLIND_SWIGLU_INPUT_SCALE', '0.45'),
     '--train-scale-mixture', envValue('GCL_BLIND_SWIGLU_TRAIN_SCALE_MIXTURE', ''),
+    '--train-sampling-mode', envValue('GCL_BLIND_SWIGLU_TRAIN_SAMPLING_MODE', 'gaussian'),
     '--validation-scale', envValue('GCL_BLIND_SWIGLU_VALIDATION_SCALE', '0.65'),
     '--train-count', envValue('GCL_BLIND_SWIGLU_TRAIN_COUNT', '1600'),
     '--validation-count', envValue('GCL_BLIND_SWIGLU_VALIDATION_COUNT', '512'),
@@ -297,6 +318,29 @@ for (const testCase of sweepCases) {
     '--fit-gradient-step', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP', '0'),
     '--fit-gradient-steps', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_STEPS', ''),
     '--fit-gradient-weight', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT', '0.2'),
+    '--fit-selection-count', envValue('GCL_BLIND_SWIGLU_FIT_SELECTION_COUNT', '0'),
+    '--fit-selection-scale', envValue('GCL_BLIND_SWIGLU_FIT_SELECTION_SCALE', '0'),
+    '--selection-tail-weight', envValue('GCL_BLIND_SWIGLU_SELECTION_TAIL_WEIGHT', '0'),
+    '--selection-tail-quantile', envValue('GCL_BLIND_SWIGLU_SELECTION_TAIL_QUANTILE', '0.995'),
+    '--selection-worst-weight', envValue('GCL_BLIND_SWIGLU_SELECTION_WORST_WEIGHT', '0'),
+    '--seed', envValue('GCL_BLIND_SWIGLU_SEED', '260620'),
+    ...optionalEnvArg('--polish-top-k', 'GCL_BLIND_SWIGLU_POLISH_TOP_K'),
+    ...optionalEnvArg('--backfit-cycles', 'GCL_BLIND_SWIGLU_BACKFIT_CYCLES'),
+    ...optionalEnvArg('--tail-polish-steps', 'GCL_BLIND_SWIGLU_TAIL_POLISH_STEPS'),
+    ...optionalEnvArg('--tail-polish-weight', 'GCL_BLIND_SWIGLU_TAIL_POLISH_WEIGHT'),
+    ...optionalEnvArg('--tail-polish-fraction', 'GCL_BLIND_SWIGLU_TAIL_POLISH_FRACTION'),
+    ...optionalEnvArg('--tail-polish-lr', 'GCL_BLIND_SWIGLU_TAIL_POLISH_LR'),
+    ...optionalEnvArg('--tail-polish-loss', 'GCL_BLIND_SWIGLU_TAIL_POLISH_LOSS'),
+    ...optionalEnvArg('--tail-polish-smoothness', 'GCL_BLIND_SWIGLU_TAIL_POLISH_SMOOTHNESS'),
+    ...optionalEnvArg('--tail-polish-calibration', 'GCL_BLIND_SWIGLU_TAIL_POLISH_CALIBRATION'),
+    ...optionalEnvArg('--final-lbfgs-steps', 'GCL_BLIND_SWIGLU_FINAL_LBFGS_STEPS'),
+    ...optionalEnvArg('--final-lbfgs-tail-weight', 'GCL_BLIND_SWIGLU_FINAL_LBFGS_TAIL_WEIGHT'),
+    ...optionalEnvArg('--final-lbfgs-tail-fraction', 'GCL_BLIND_SWIGLU_FINAL_LBFGS_TAIL_FRACTION'),
+    ...(envValue('GCL_BLIND_SWIGLU_ROBUST_SCALAR_CALIBRATION', '0') === '1' ? ['--robust-scalar-calibration'] : []),
+    ...optionalEnvArg('--scalar-calibration-steps', 'GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_STEPS'),
+    ...optionalEnvArg('--scalar-calibration-lr', 'GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_LR'),
+    ...optionalEnvArg('--scalar-calibration-tail-weight', 'GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_TAIL_WEIGHT'),
+    ...optionalEnvArg('--scalar-calibration-tail-fraction', 'GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_TAIL_FRACTION'),
     '--counterexample-count', envValue('GCL_BLIND_SWIGLU_COUNTEREXAMPLE_COUNT', '0'),
     '--counterexample-repeat', envValue('GCL_BLIND_SWIGLU_COUNTEREXAMPLE_REPEAT', '4'),
     '--counterexample-jitter-count', envValue('GCL_BLIND_SWIGLU_COUNTEREXAMPLE_JITTER_COUNT', '0'),
@@ -313,6 +357,8 @@ for (const testCase of sweepCases) {
     '--max-worst-error', String(testCase.maxWorstError),
     '--min-subspace-cosine', String(testCase.minSubspaceCosine),
     '--max-oracle-calls', envValue('GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS', '20000'),
+    ...optionalEnvArg('--fit-snapshot-input', 'GCL_BLIND_SWIGLU_FIT_SNAPSHOT_INPUT'),
+    ...optionalEnvArg('--fit-snapshot-output', 'GCL_BLIND_SWIGLU_FIT_SNAPSHOT_OUTPUT'),
     '--local-files-only',
     ...(envValue('GCL_BLIND_SWIGLU_DISABLE_ADAPTIVE_RESCUE', '0') === '1' ? ['--disable-adaptive-rescue'] : []),
     ...(envValue('GCL_BLIND_SWIGLU_PROGRESS', '0') === '1' ? ['--progress'] : []),
@@ -375,6 +421,17 @@ const aggregate = {
     maxMae: Math.max(...summaries.map(summary => summary.metrics.mae)),
     maxWorstError: Math.max(...summaries.map(summary => summary.metrics.worstError)),
     minSubspacePrincipalCosine: Math.min(...summaries.map(summary => summary.sourceAlignment.subspaceMinPrincipalCosine)),
+    minPairedAtomJointCosine: summaries.every(summary => summary.sourceAlignment.pairedAtomMinJointCosine !== undefined)
+      ? Math.min(...summaries.map(summary => summary.sourceAlignment.pairedAtomMinJointCosine as number))
+      : null,
+    minPairedAtomCountAboveThreshold: minPairedAtomCosine > 0
+      ? Math.min(...summaries.map(summary => (
+        minPairedAtomCosine >= 0.99
+          ? summary.sourceAlignment.pairedAtomCountAbove099 ?? 0
+          : summary.sourceAlignment.pairedAtomCountAbove095 ?? 0
+      )))
+      : null,
+    pairedAtomThreshold: minPairedAtomCosine > 0 ? minPairedAtomCosine : null,
     maxRawOracleCallsPerCase: Math.max(...summaries.map(summary => summary.rawOracleCalls)),
     totalRawOracleCalls: summaries.reduce((sum, summary) => sum + summary.rawOracleCalls, 0),
     maxUnitCount: Math.max(...summaries.map(summary => summary.unitCount ?? 1)),
@@ -409,6 +466,8 @@ fs.writeFileSync(
     `- max MAE: \`${aggregate.summary.maxMae}\``,
     `- max worst error: \`${aggregate.summary.maxWorstError}\``,
     `- min subspace principal cosine: \`${aggregate.summary.minSubspacePrincipalCosine}\``,
+    `- min post-hoc paired atom joint cosine: \`${aggregate.summary.minPairedAtomJointCosine}\``,
+    `- min paired atoms above threshold: \`${aggregate.summary.minPairedAtomCountAboveThreshold}\``,
     `- max unit count: \`${aggregate.summary.maxUnitCount}\``,
     `- max atom count: \`${aggregate.summary.maxAtomCount}\``,
     `- total raw oracle calls: \`${aggregate.summary.totalRawOracleCalls}\``,
