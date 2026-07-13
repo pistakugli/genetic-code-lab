@@ -226,7 +226,11 @@ function caseToSweepCase(testCase: ExpansionCase): string {
 
 function expansionVariant(testCase: ExpansionCase): string {
   const spec = familySpecs[testCase.family];
-  return `${spec.modelLabel}-layer${testCase.layer}-${testCase.unitCount}unit-expansion-oracle-only`;
+  const quantizationStep = Number(envValue('GCL_LAYER_EXPANSION_ORACLE_QUANTIZATION_STEP', '0'));
+  const quantizationTag = quantizationStep > 0
+    ? `-q${String(quantizationStep).replace(/^0\./, '').replace(/\./g, '')}`
+    : '';
+  return `${spec.modelLabel}-layer${testCase.layer}-${testCase.unitCount}unit${quantizationTag}-expansion-oracle-only`;
 }
 
 function sweepAggregatePath(variant: string): string {
@@ -281,6 +285,7 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_EXPECTED_DIMENSION: String(spec.dimension),
     GCL_BLIND_SWIGLU_LAYER_COUNT: String(spec.layerCount),
     GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE: String(spec.intermediateSize),
+    GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP: envValue('GCL_LAYER_EXPANSION_ORACLE_QUANTIZATION_STEP', '0'),
     GCL_BLIND_SWIGLU_SWEEP_VARIANT: sweepVariant,
     GCL_BLIND_SWIGLU_SWEEP_CASES: sweepCases,
     GCL_BLIND_SWIGLU_ACTIVE_RANK: String(testCase.activeRank),
@@ -290,6 +295,7 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_CUBIC_DIRECTION_COUNT: envValue('GCL_LAYER_EXPANSION_CUBIC_DIRECTION_COUNT', '0'),
     GCL_BLIND_SWIGLU_CUBIC_STEP: envValue('GCL_LAYER_EXPANSION_CUBIC_STEP', '0.35'),
     GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP: envValue('GCL_LAYER_EXPANSION_FINITE_DIFFERENCE_STEP', '0.04'),
+    GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEPS: envValue('GCL_LAYER_EXPANSION_FINITE_DIFFERENCE_STEPS', ''),
     GCL_BLIND_SWIGLU_INPUT_SCALE: envValue('GCL_LAYER_EXPANSION_INPUT_SCALE', defaultInputScale),
     GCL_BLIND_SWIGLU_TRAIN_SCALE_MIXTURE: envValue('GCL_LAYER_EXPANSION_TRAIN_SCALE_MIXTURE', ''),
     GCL_BLIND_SWIGLU_TRAIN_SAMPLING_MODE: envValue('GCL_LAYER_EXPANSION_TRAIN_SAMPLING_MODE', 'gaussian'),
@@ -302,6 +308,7 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_FIT_MODE: envValue('GCL_LAYER_EXPANSION_FIT_MODE', 'batched'),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_COUNT', defaultFitGradientCount),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_STEP', '0.04'),
+    GCL_BLIND_SWIGLU_FIT_GRADIENT_STEPS: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_STEPS', ''),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_WEIGHT', defaultFitGradientWeight),
     GCL_BLIND_SWIGLU_FIT_SELECTION_COUNT: envValue('GCL_LAYER_EXPANSION_FIT_SELECTION_COUNT', '0'),
     GCL_BLIND_SWIGLU_FIT_SELECTION_SCALE: envValue('GCL_LAYER_EXPANSION_FIT_SELECTION_SCALE', '0'),

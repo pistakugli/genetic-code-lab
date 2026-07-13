@@ -12,6 +12,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools.llm_reader.blind_swiglu_oracle_decompiler import (
+    detect_swiglu_cancellation_pairs,
     maximum_weight_assignment,
     select_residual_block_atoms,
 )
@@ -27,6 +28,42 @@ def diagnostic(scores: list[float]) -> dict[str, object]:
 
 
 class ResidualBlockSelectionTest(unittest.TestCase):
+    def test_detects_source_blind_cancellation_pair(self) -> None:
+        rng = np.random.default_rng(260914)
+        coords = rng.normal(size=(2048, 3))
+        candidate = {
+            "gates": np.array([
+                [1.0, 0.0, 0.0],
+                [0.99, 0.08, 0.0],
+                [0.0, 0.0, 1.0],
+            ]),
+            "ups": np.array([
+                [0.0, 1.0, 0.0],
+                [0.0, -1.0, 0.0],
+                [1.0, 0.0, 0.0],
+            ]),
+            "scales": np.ones(3),
+        }
+
+        pairs = detect_swiglu_cancellation_pairs(coords, candidate)
+
+        self.assertEqual(len(pairs), 1)
+        self.assertEqual(pairs[0]["atoms"], [0, 1])
+        self.assertGreater(pairs[0]["gateCosine"], 0.99)
+        self.assertGreater(pairs[0]["upCosine"], 0.99)
+        self.assertLess(pairs[0]["contributionCorrelation"], -0.99)
+
+    def test_does_not_flag_independent_swiglu_atoms(self) -> None:
+        rng = np.random.default_rng(260915)
+        coords = rng.normal(size=(2048, 3))
+        candidate = {
+            "gates": np.eye(3),
+            "ups": np.roll(np.eye(3), shift=1, axis=1),
+            "scales": np.ones(3),
+        }
+
+        self.assertEqual(detect_swiglu_cancellation_pairs(coords, candidate), [])
+
     def test_maximum_weight_assignment_avoids_greedy_collision(self) -> None:
         assignment = maximum_weight_assignment(np.array([
             [10.0, 9.0, 0.0],

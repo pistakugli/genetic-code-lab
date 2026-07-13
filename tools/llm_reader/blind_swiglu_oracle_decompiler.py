@@ -4489,6 +4489,64 @@ def residual_gradient_atom_replace_swiglu_candidate(
     return refined
 
 
+def detect_swiglu_cancellation_pairs(
+    coords: np.ndarray,
+    candidate: dict[str, Any],
+    gate_cosine_threshold: float = 0.75,
+    up_cosine_threshold: float = 0.75,
+    contribution_correlation_threshold: float = -0.50,
+) -> list[dict[str, Any]]:
+    gates = np.asarray(candidate["gates"], dtype=np.float64)
+    ups = np.asarray(candidate["ups"], dtype=np.float64)
+    scales = np.asarray(candidate["scales"], dtype=np.float64)
+    points = np.asarray(coords, dtype=np.float64)
+    if (
+        gates.ndim != 2
+        or ups.shape != gates.shape
+        or scales.shape != (gates.shape[0],)
+        or points.ndim != 2
+        or points.shape[1] != gates.shape[1]
+        or points.shape[0] < 2
+    ):
+        return []
+    effective_ups = ups * scales[:, None]
+    gate_norms = np.linalg.norm(gates, axis=1)
+    up_norms = np.linalg.norm(effective_ups, axis=1)
+    valid = (gate_norms > 1e-12) & (up_norms > 1e-12)
+    gate_directions = gates / np.maximum(gate_norms[:, None], 1e-12)
+    up_directions = effective_ups / np.maximum(up_norms[:, None], 1e-12)
+    contributions = silu_np(points @ gates.T) * (points @ effective_ups.T)
+    centered = contributions - np.mean(contributions, axis=0, keepdims=True)
+    contribution_norms = np.linalg.norm(centered, axis=0)
+
+    pairs: list[dict[str, Any]] = []
+    for left, right in combinations(range(gates.shape[0]), 2):
+        if not valid[left] or not valid[right]:
+            continue
+        gate_cosine = abs(float(np.dot(gate_directions[left], gate_directions[right])))
+        up_cosine = abs(float(np.dot(up_directions[left], up_directions[right])))
+        correlation_denom = float(contribution_norms[left] * contribution_norms[right])
+        if correlation_denom <= 1e-15:
+            continue
+        contribution_correlation = float(np.dot(centered[:, left], centered[:, right]) / correlation_denom)
+        if (
+            gate_cosine < gate_cosine_threshold
+            or up_cosine < up_cosine_threshold
+            or contribution_correlation > contribution_correlation_threshold
+        ):
+            continue
+        score = math.sqrt(gate_cosine * up_cosine) * -contribution_correlation
+        pairs.append({
+            "atoms": [int(left), int(right)],
+            "gateCosine": gate_cosine,
+            "upCosine": up_cosine,
+            "contributionCorrelation": contribution_correlation,
+            "score": float(score),
+        })
+    pairs.sort(key=lambda item: (-float(item["score"]), item["atoms"]))
+    return pairs
+
+
 def residual_gradient_block_refit_swiglu_candidate(
     coords: np.ndarray,
     targets: np.ndarray,
@@ -4499,6 +4557,9 @@ def residual_gradient_block_refit_swiglu_candidate(
     seed: int,
     selection_coords: np.ndarray | None = None,
     selection_targets: np.ndarray | None = None,
+    enable_cancellation_rescue: bool = True,
+    fit_steps_override: int | None = None,
+    fit_restarts_override: int | None = None,
 ) -> dict[str, Any]:
     gates = np.asarray(candidate["gates"], dtype=np.float64)
     ups = np.asarray(candidate["ups"], dtype=np.float64)
@@ -4553,14 +4614,19 @@ def residual_gradient_block_refit_swiglu_candidate(
         scales[selected].copy(),
         float(candidate.get("bias", 0.0)),
     )]
-    fit_steps = max(200, int(os.environ.get(
-        "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_STEPS",
-        "1800",
-    ) or "1800"))
-    fit_restarts = max(16, int(os.environ.get(
-        "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_RESTARTS",
-        str(max(192, len(selected) * 64)),
-    ) or "0"))
+    fit_steps = max(200, int(
+        fit_steps_override
+        if fit_steps_override is not None
+        else os.environ.get("GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_STEPS", "1800") or "1800"
+    ))
+    fit_restarts = max(16, int(
+        fit_restarts_override
+        if fit_restarts_override is not None
+        else os.environ.get(
+            "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_RESTARTS",
+            str(max(192, len(selected) * 64)),
+        ) or "0"
+    ))
     fit_learning_rate = float(os.environ.get(
         "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_LEARNING_RATE",
         "0.008",
@@ -4618,6 +4684,75 @@ def residual_gradient_block_refit_swiglu_candidate(
         trial_selection_metrics = regression_metrics(selection_targets, predict_swiglu(selection_coords, trial))
         base_score = float(base_selection_metrics["mae"]) + 0.35 * float(base_selection_metrics["worstError"])
         trial_score = float(trial_selection_metrics["mae"]) + 0.35 * float(trial_selection_metrics["worstError"])
+
+    cancellation_pairs_before = detect_swiglu_cancellation_pairs(coords, trial)
+    cancellation_pairs_after = cancellation_pairs_before
+    cancellation_rescue_attempted = False
+    cancellation_rescued = False
+    cancellation_rescue_atoms: list[int] = []
+    cancellation_rescue_score_before = trial_score
+    cancellation_rescue_score_after = trial_score
+    cancellation_rescue_enabled = (
+        enable_cancellation_rescue
+        and os.environ.get(
+            "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE",
+            "1",
+        ).strip() == "1"
+    )
+    if cancellation_rescue_enabled and cancellation_pairs_before:
+        cancellation_rescue_attempted = True
+        cancellation_rescue_atoms = [int(index) for index in cancellation_pairs_before[0]["atoms"]]
+        trial_residual_gradient_targets = oracle_gradients - predict_swiglu_active_gradients(
+            gradient_coords,
+            trial,
+        )
+        rescue_steps = max(200, int(os.environ.get(
+            "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE_STEPS",
+            str(min(fit_steps, 1800)),
+        ) or "0"))
+        rescue_restarts = max(16, int(os.environ.get(
+            "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE_RESTARTS",
+            str(min(fit_restarts, 256)),
+        ) or "0"))
+        rescued_trial = residual_gradient_block_refit_swiglu_candidate(
+            coords,
+            targets,
+            trial,
+            cancellation_rescue_atoms,
+            gradient_coords,
+            trial_residual_gradient_targets,
+            seed + 104729,
+            selection_coords,
+            selection_targets,
+            enable_cancellation_rescue=False,
+            fit_steps_override=rescue_steps,
+            fit_restarts_override=rescue_restarts,
+        )
+        rescued_metrics = regression_metrics(targets, predict_swiglu(coords, rescued_trial))
+        rescued_score = float(rescued_metrics["mae"]) + 0.25 * float(rescued_metrics["worstError"])
+        if residual_selection_targets is not None and selection_coords is not None and selection_targets is not None:
+            rescued_selection_metrics = regression_metrics(
+                selection_targets,
+                predict_swiglu(selection_coords, rescued_trial),
+            )
+            rescued_score = (
+                float(rescued_selection_metrics["mae"])
+                + 0.35 * float(rescued_selection_metrics["worstError"])
+            )
+        rescued_pairs = detect_swiglu_cancellation_pairs(coords, rescued_trial)
+        cancellation_rescue_score_after = rescued_score
+        strongest_before = float(cancellation_pairs_before[0]["score"])
+        strongest_after = float(rescued_pairs[0]["score"]) if rescued_pairs else 0.0
+        cancellation_rescued = (
+            bool(rescued_trial.get("residualGradientBlockRefit"))
+            and rescued_score < trial_score
+            and strongest_after < strongest_before * 0.5
+        )
+        if cancellation_rescued:
+            trial = rescued_trial
+            trial_metrics = rescued_metrics
+            trial_score = rescued_score
+            cancellation_pairs_after = rescued_pairs
     accepted = (
         trial_score < base_score
         and (
@@ -4637,6 +4772,13 @@ def residual_gradient_block_refit_swiglu_candidate(
         "residualGradientBlockRefitScoreAfter": float(trial_score),
         "residualGradientBlockRefitMaeBefore": float(base_metrics["mae"]),
         "residualGradientBlockRefitWorstBefore": float(base_metrics["worstError"]),
+        "residualGradientBlockRefitCancellationPairsBefore": cancellation_pairs_before,
+        "residualGradientBlockRefitCancellationPairsAfter": cancellation_pairs_after,
+        "residualGradientBlockRefitCancellationRescueAttempted": bool(cancellation_rescue_attempted),
+        "residualGradientBlockRefitCancellationRescued": bool(cancellation_rescued),
+        "residualGradientBlockRefitCancellationRescueAtoms": cancellation_rescue_atoms,
+        "residualGradientBlockRefitCancellationRescueScoreBefore": float(cancellation_rescue_score_before),
+        "residualGradientBlockRefitCancellationRescueScoreAfter": float(cancellation_rescue_score_after),
     })
     if accepted:
         refined.update({
@@ -7132,6 +7274,32 @@ def run_solver(args: argparse.Namespace) -> int:
                     "residualGradientBlockRefitSelectionCount": int(full_tail_polished_fit.get("residualGradientBlockRefitSelectionCount", 0)),
                     "residualGradientBlockRefitScoreBefore": full_tail_polished_fit.get("residualGradientBlockRefitScoreBefore"),
                     "residualGradientBlockRefitScoreAfter": full_tail_polished_fit.get("residualGradientBlockRefitScoreAfter"),
+                    "residualGradientBlockRefitCancellationPairsBefore": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationPairsBefore",
+                        [],
+                    ),
+                    "residualGradientBlockRefitCancellationPairsAfter": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationPairsAfter",
+                        [],
+                    ),
+                    "residualGradientBlockRefitCancellationRescueAttempted": bool(full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescueAttempted",
+                        False,
+                    )),
+                    "residualGradientBlockRefitCancellationRescued": bool(full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescued",
+                        False,
+                    )),
+                    "residualGradientBlockRefitCancellationRescueAtoms": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescueAtoms",
+                        [],
+                    ),
+                    "residualGradientBlockRefitCancellationRescueScoreBefore": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescueScoreBefore"
+                    ),
+                    "residualGradientBlockRefitCancellationRescueScoreAfter": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescueScoreAfter"
+                    ),
                     "gradientPolished": bool(full_tail_polished_fit.get("polished", False) or full_tail_polished_fit.get("fixedGateDirectionValuePolished", False)),
                     "paramRefit": bool(full_tail_polished_fit.get("paramRefit", False)),
                     "paramRefitFitSteps": int(param_refit_fit_steps),
@@ -7190,6 +7358,26 @@ def run_solver(args: argparse.Namespace) -> int:
                     residualGradientBlockSelection=full_tail_polished_fit.get(
                         "residualGradientBlockSelection",
                         residual_block_selection,
+                    ),
+                    residualGradientBlockRefitCancellationRescueAttempted=bool(full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescueAttempted",
+                        False,
+                    )),
+                    residualGradientBlockRefitCancellationRescued=bool(full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescued",
+                        False,
+                    )),
+                    residualGradientBlockRefitCancellationRescueAtoms=full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescueAtoms",
+                        [],
+                    ),
+                    residualGradientBlockRefitCancellationPairsBefore=full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationPairsBefore",
+                        [],
+                    ),
+                    residualGradientBlockRefitCancellationPairsAfter=full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationPairsAfter",
+                        [],
                     ),
                     gradientPolished=bool(full_tail_polished_fit.get("polished", False) or full_tail_polished_fit.get("fixedGateDirectionValuePolished", False)),
                     paramRefit=bool(full_tail_polished_fit.get("paramRefit", False)),
@@ -7978,6 +8166,32 @@ def run_solver(args: argparse.Namespace) -> int:
                     "dictionaryCandidateRankScore": fit.get("dictionaryCandidateRankScore"),
                     "forcedPolishCandidateCount": int(fit.get("forcedPolishCandidateCount", 0)),
                     "extraGateCandidateCount": int(fit.get("extraGateCandidateCount", 0)),
+                    "residualGradientBlockRefitCancellationPairsBefore": fit.get(
+                        "residualGradientBlockRefitCancellationPairsBefore",
+                        [],
+                    ),
+                    "residualGradientBlockRefitCancellationPairsAfter": fit.get(
+                        "residualGradientBlockRefitCancellationPairsAfter",
+                        [],
+                    ),
+                    "residualGradientBlockRefitCancellationRescueAttempted": bool(fit.get(
+                        "residualGradientBlockRefitCancellationRescueAttempted",
+                        False,
+                    )),
+                    "residualGradientBlockRefitCancellationRescued": bool(fit.get(
+                        "residualGradientBlockRefitCancellationRescued",
+                        False,
+                    )),
+                    "residualGradientBlockRefitCancellationRescueAtoms": fit.get(
+                        "residualGradientBlockRefitCancellationRescueAtoms",
+                        [],
+                    ),
+                    "residualGradientBlockRefitCancellationRescueScoreBefore": fit.get(
+                        "residualGradientBlockRefitCancellationRescueScoreBefore"
+                    ),
+                    "residualGradientBlockRefitCancellationRescueScoreAfter": fit.get(
+                        "residualGradientBlockRefitCancellationRescueScoreAfter"
+                    ),
                     "residualRegionAtomReplaced": bool(fit.get("residualRegionAtomReplaced", False)),
                     "residualRegionReplacementCount": int(fit.get("residualRegionReplacementCount", 0)),
                     "residualRegionReplacementCycles": int(fit.get("residualRegionReplacementCycles", 0)),
