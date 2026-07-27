@@ -5519,11 +5519,54 @@ def choose_gate_stitch_probe_direction(
     return best[1]
 
 
+_CLUSTER_LAST_REASON: dict[str, Any] = {"reason": None}
+
+
 def cluster_repeated_gate_normals(
     normals: np.ndarray,
     strengths: np.ndarray,
     expected_count: int,
     min_abs_cosine: float = 0.965,
+) -> list[dict[str, Any]]:
+    """Group boundary normals into one direction per atom, searching the grouping
+    threshold instead of trusting a single hardcoded value.
+
+    The clustering is all-or-nothing: a run that ends up one cluster short returns an
+    empty list, and the caller then refuses the whole structure. On a weak block the
+    recovered normals scatter, so a threshold that is right for a strong block splits one
+    atom's normals across two groups and the whole recovery is thrown away with 350 usable
+    normals in hand.
+
+    The acceptance criterion is unchanged: exactly `expected_count` clusters, each with at
+    least two supporting normals. Only the threshold is searched, starting at the caller's
+    value so a block that already groups cleanly is unaffected. A wrongly merged pair
+    cannot sneak through, because the recovered structure still has to clear the
+    post-hoc paired-atom cosine and the held-out fidelity gates.
+    """
+    ladder_raw = os.environ.get("GCL_BLIND_SWIGLU_GATE_NORMAL_CLUSTER_COSINE_LADDER", "").strip()
+    if ladder_raw:
+        ladder = [float(value) for value in ladder_raw.split(",") if value.strip()]
+    else:
+        ladder = [0.95, 0.93, 0.90, 0.86]
+    thresholds = [float(min_abs_cosine)]
+    for value in ladder:
+        if 0.0 < value < 1.0 and value < thresholds[-1]:
+            thresholds.append(value)
+    primary: list[dict[str, Any]] = []
+    for index, threshold in enumerate(thresholds):
+        attempt = _cluster_gate_normals_at_cosine(normals, strengths, expected_count, threshold)
+        if index == 0:
+            primary = attempt
+        if len(attempt) == expected_count:
+            return attempt
+    return primary
+
+
+def _cluster_gate_normals_at_cosine(
+    normals: np.ndarray,
+    strengths: np.ndarray,
+    expected_count: int,
+    min_abs_cosine: float,
 ) -> list[dict[str, Any]]:
     directions = np.asarray(normals, dtype=np.float64)
     weights = np.asarray(strengths, dtype=np.float64)
@@ -5534,6 +5577,7 @@ def cluster_repeated_gate_normals(
         or directions.shape[0] < expected_count * 2
         or not 0.0 < min_abs_cosine < 1.0
     ):
+        _CLUSTER_LAST_REASON["reason"] = "shape-guard"
         return []
     normalized: list[np.ndarray] = []
     normalized_weights: list[float] = []
@@ -5544,11 +5588,23 @@ def cluster_repeated_gate_normals(
         normalized.append(canonical)
         normalized_weights.append(float(weight))
     if len(normalized) < expected_count * 2:
+        _CLUSTER_LAST_REASON["reason"] = "normalized-count-guard"
         return []
     values = np.vstack(normalized)
     raw_weights = np.asarray(normalized_weights, dtype=np.float64)
     weight_cap = max(float(np.quantile(raw_weights, 0.90)), 1e-12)
     robust_weights = np.minimum(raw_weights, weight_cap)
+    # Cluster centres are the weighted sum of unit member directions, and that sum is fed
+    # to canonical_direction, which rejects anything with norm below 1e-9. The weights
+    # carry the block's own signal scale, so on a low-amplitude block the sum lands under
+    # that absolute floor and a perfectly good cluster is discarded as "centre undefined".
+    # Rescaling the weights to a maximum of one cannot change the resulting direction, a
+    # positive rescale of a vector leaves its normalisation identical, and it removes the
+    # dependence on how loud the block happens to be. raw_weights is left untouched
+    # because the reported cluster strength is meant to stay in the block's own units.
+    robust_weight_peak = float(np.max(robust_weights)) if robust_weights.size else 0.0
+    if robust_weight_peak > 0.0:
+        robust_weights = robust_weights / robust_weight_peak
 
     remaining = np.ones(values.shape[0], dtype=bool)
     clusters: list[dict[str, Any]] = []
@@ -5563,6 +5619,7 @@ def cluster_repeated_gate_normals(
             if best is None or score > (best[0], best[1]):
                 best = (support_count, support_weight, int(index), support_mask)
         if best is None or best[0] < 2:
+            _CLUSTER_LAST_REASON["reason"] = "no-support-candidate"
             return []
         support_mask = best[3]
         members = values[support_mask].copy()
@@ -5573,6 +5630,7 @@ def cluster_repeated_gate_normals(
             axis=0,
         ))
         if center is None:
+            _CLUSTER_LAST_REASON["reason"] = "center-undefined"
             return []
         clusters.append({
             "direction": center,
@@ -5592,6 +5650,7 @@ def cluster_repeated_gate_normals(
                 & (scores[:, cluster_index] >= min_abs_cosine)
             )
             if int(np.sum(member_mask)) < 2:
+                _CLUSTER_LAST_REASON["reason"] = "refine-member-shortfall"
                 return []
             members = values[member_mask].copy()
             anchor = centers[cluster_index]
@@ -5601,6 +5660,7 @@ def cluster_repeated_gate_normals(
                 axis=0,
             ))
             if center is None:
+                _CLUSTER_LAST_REASON["reason"] = "refine-center-undefined"
                 return []
             refreshed.append({
                 "direction": center,
@@ -8951,6 +9011,24 @@ def run_solver(args: argparse.Namespace) -> int:
                     )
                     if not fit.get("asymptoticGateStitched", False):
                         failure = str(fit.get("asymptoticGateStitchFailure", "structure-court-rejected"))
+                        # The stitch already computed why it refused: usable lines, boundary
+                        # normals, and recovered cluster count. Raising without emitting them
+                        # discards the only evidence that says which stage to repair, and
+                        # leaves a caller with a bare "structure-court-rejected" string.
+                        log_progress(
+                            args,
+                            "asymptotic-cold-start-rejected",
+                            failure=failure,
+                            atomCount=int(args.atom_count),
+                            lineCount=fit.get("asymptoticGateStitchLineCount"),
+                            usableLineCount=fit.get("asymptoticGateStitchUsableLineCount"),
+                            failedLineCount=fit.get("asymptoticGateStitchFailedLineCount"),
+                            boundaryNormalCount=fit.get("asymptoticGateStitchBoundaryNormalCount"),
+                            clusterCount=fit.get("asymptoticGateStitchClusterCount"),
+                            clusterRejectReason=_CLUSTER_LAST_REASON.get("reason"),
+                            inputScale=float(args.input_scale),
+                            rawOracleCalls=int(oracle.query_count),
+                        )
                         raise RuntimeError(f"asymptotic cold start failed: {failure}")
                 else:
                     fit = fit_swiglu_sum(
