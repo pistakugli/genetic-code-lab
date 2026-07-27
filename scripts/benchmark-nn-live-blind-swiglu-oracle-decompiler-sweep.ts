@@ -28,6 +28,8 @@ type CaseReport = {
     unit: number;
     units?: number[];
     unitCount?: number;
+    oracleMode?: string;
+    outputChannel?: number | null;
     activeRank: number;
     atomCount?: number;
     rawOracleCalls: number;
@@ -46,6 +48,12 @@ type CaseReport = {
       pairedAtomMeanJointCosine?: number;
       pairedAtomCountAbove095?: number;
       pairedAtomCountAbove099?: number;
+      sourceCancellation?: {
+        cancellationFraction: number;
+        negativePairCount: number;
+        pairCountAtOrBelowMinus050: number;
+        minimumPairCorrelation: number | null;
+      };
     };
     selectedGradientEnergyRatio: number;
   };
@@ -77,6 +85,15 @@ const modelLabel = envValue('GCL_BLIND_SWIGLU_MODEL_LABEL', 'mistral-4096d');
 const expectedDimension = Number(envValue('GCL_BLIND_SWIGLU_EXPECTED_DIMENSION', '4096'));
 const familyLabel = envValue('GCL_BLIND_SWIGLU_FAMILY_LABEL', 'Mistral-family');
 const minPairedAtomCosine = Number(envValue('GCL_BLIND_SWIGLU_SWEEP_MIN_PAIRED_ATOM_COSINE', '0'));
+const outputChannel = Number(envValue('GCL_BLIND_SWIGLU_OUTPUT_CHANNEL', '-1'));
+const minSourceCancellationFraction = Number(envValue(
+  'GCL_BLIND_SWIGLU_SWEEP_MIN_SOURCE_CANCELLATION_FRACTION',
+  '0'
+));
+const maxSourcePairCorrelation = Number(envValue(
+  'GCL_BLIND_SWIGLU_SWEEP_MAX_SOURCE_PAIR_CORRELATION',
+  '1'
+));
 
 function resolveGclPython(): string {
   if (process.env.GCL_PYTHON) return process.env.GCL_PYTHON;
@@ -89,8 +106,17 @@ function resolveGclPython(): string {
 function caseVariant(testCase: SweepCase): string {
   const gradientMode = envValue('GCL_BLIND_SWIGLU_GRADIENT_MODE', 'coordinate');
   const quantizationStep = Number(envValue('GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP', '0'));
+  const cubicDirectionCount = Number(envValue('GCL_BLIND_SWIGLU_CUBIC_DIRECTION_COUNT', '0'));
+  const cubicHoldoutCount = Number(envValue('GCL_BLIND_SWIGLU_CUBIC_HOLDOUT_COUNT', '0'));
+  const cubicSteps = envValue('GCL_BLIND_SWIGLU_CUBIC_STEPS', envValue('GCL_BLIND_SWIGLU_CUBIC_STEP', '0.35'));
   const variantTags = [];
+  if (outputChannel >= 0) variantTags.push(`output${outputChannel}`);
   if (quantizationStep > 0) variantTags.push(`q${String(quantizationStep).replace(/^0\./, '').replace(/\./g, '')}`);
+  if (cubicDirectionCount > 0) {
+    variantTags.push(
+      `cubic-richardson-${cubicDirectionCount}h${cubicHoldoutCount}s${cubicSteps.replace(/[^0-9]+/g, '-')}`
+    );
+  }
   const variantTag = variantTags.length ? `${variantTags.join('-')}-` : '';
   const suffix = gradientMode === 'coordinate' ? `${variantTag}oracle-only` : `${variantTag}${gradientMode}-oracle-only`;
   if (testCase.units.length === 1) return `${modelLabel}-layer${testCase.layer}-unit${testCase.unit}-${suffix}`;
@@ -233,6 +259,9 @@ function assertCaseReport(report: CaseReport, testCase: SweepCase): string[] {
   const reportUnits = report.summary.units ?? [report.summary.unit];
   if (JSON.stringify(reportUnits) !== JSON.stringify(testCase.units)) failures.push(`units=${reportUnits.join(',')}`);
   if ((report.summary.unitCount ?? 1) !== testCase.units.length) failures.push(`unitCount=${report.summary.unitCount}`);
+  if (outputChannel >= 0 && report.summary.outputChannel !== outputChannel) {
+    failures.push(`outputChannel=${report.summary.outputChannel}`);
+  }
   if ((report.summary.atomCount ?? 1) !== testCase.atomCount) failures.push(`atomCount=${report.summary.atomCount}`);
   if (report.summary.activeRank !== testCase.activeRank) failures.push(`activeRank=${report.summary.activeRank}`);
   if (report.summary.metrics.r2 < testCase.minR2) failures.push(`r2=${report.summary.metrics.r2}<${testCase.minR2}`);
@@ -252,6 +281,24 @@ function assertCaseReport(report: CaseReport, testCase: SweepCase): string[] {
     else if (pairedMinimum < minPairedAtomCosine) failures.push(`pairedAtomMinJointCosine=${pairedMinimum}<${minPairedAtomCosine}`);
     if (pairedCount === undefined) failures.push('pairedAtomCount=missing');
     else if (pairedCount < testCase.atomCount) failures.push(`pairedAtomCount=${pairedCount}<${testCase.atomCount}`);
+  }
+  const sourceCancellation = report.summary.sourceAlignment.sourceCancellation;
+  if (minSourceCancellationFraction > 0) {
+    if (!sourceCancellation) failures.push('sourceCancellation=missing');
+    else if (sourceCancellation.cancellationFraction < minSourceCancellationFraction) {
+      failures.push(
+        `sourceCancellationFraction=${sourceCancellation.cancellationFraction}<${minSourceCancellationFraction}`
+      );
+    }
+  }
+  if (maxSourcePairCorrelation < 1) {
+    if (!sourceCancellation || sourceCancellation.minimumPairCorrelation === null) {
+      failures.push('sourceMinimumPairCorrelation=missing');
+    } else if (sourceCancellation.minimumPairCorrelation > maxSourcePairCorrelation) {
+      failures.push(
+        `sourceMinimumPairCorrelation=${sourceCancellation.minimumPairCorrelation}>${maxSourcePairCorrelation}`
+      );
+    }
   }
   if (report.accessAudit.solverAccess !== 'oracle-only') failures.push(`solverAccess=${report.accessAudit.solverAccess}`);
   if (report.accessAudit.weightsUsedBySolver !== false) failures.push('weightsUsedBySolver!=false');
@@ -290,6 +337,7 @@ for (const testCase of sweepCases) {
     '--layer', String(testCase.layer),
     '--unit', String(testCase.unit),
     ...(testCase.units.length > 1 ? ['--units', testCase.units.join(',')] : []),
+    ...(outputChannel >= 0 ? ['--output-channel', String(outputChannel)] : []),
     '--device', envValue('GCL_BLIND_SWIGLU_DEVICE', 'cuda'),
     '--oracle-quantization-step', envValue('GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP', '0'),
     '--active-rank', String(testCase.activeRank),
@@ -301,6 +349,8 @@ for (const testCase of sweepCases) {
     '--subspace-count', envValue('GCL_BLIND_SWIGLU_SUBSPACE_COUNT', '0'),
     '--cubic-direction-count', envValue('GCL_BLIND_SWIGLU_CUBIC_DIRECTION_COUNT', '0'),
     '--cubic-step', envValue('GCL_BLIND_SWIGLU_CUBIC_STEP', '0.35'),
+    '--cubic-steps', envValue('GCL_BLIND_SWIGLU_CUBIC_STEPS', ''),
+    '--cubic-holdout-count', envValue('GCL_BLIND_SWIGLU_CUBIC_HOLDOUT_COUNT', '0'),
     '--finite-difference-step', envValue('GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP', '0.08'),
     '--finite-difference-steps', envValue('GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEPS', ''),
     '--input-scale', envValue('GCL_BLIND_SWIGLU_INPUT_SCALE', '0.45'),
@@ -314,7 +364,9 @@ for (const testCase of sweepCases) {
     '--fit-restarts', envValue('GCL_BLIND_SWIGLU_FIT_RESTARTS', '0'),
     '--fit-restart-chunk-size', envValue('GCL_BLIND_SWIGLU_FIT_RESTART_CHUNK_SIZE', '0'),
     '--fit-mode', envValue('GCL_BLIND_SWIGLU_FIT_MODE', 'auto'),
+    '--recovery-path', envValue('GCL_BLIND_SWIGLU_RECOVERY_PATH', 'nonlinear-fit'),
     '--fit-gradient-count', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT', '0'),
+    '--fit-gradient-mode', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_MODE', 'forward'),
     '--fit-gradient-step', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP', '0'),
     '--fit-gradient-steps', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_STEPS', ''),
     '--fit-gradient-weight', envValue('GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT', '0.2'),
@@ -431,6 +483,14 @@ const aggregate = {
           : summary.sourceAlignment.pairedAtomCountAbove095 ?? 0
       )))
       : null,
+    minSourceCancellationFraction: summaries.every(summary => summary.sourceAlignment.sourceCancellation !== undefined)
+      ? Math.min(...summaries.map(summary => summary.sourceAlignment.sourceCancellation?.cancellationFraction ?? 0))
+      : null,
+    minimumSourcePairCorrelation: summaries.every(summary => summary.sourceAlignment.sourceCancellation !== undefined)
+      ? Math.min(...summaries.map(summary => (
+        summary.sourceAlignment.sourceCancellation?.minimumPairCorrelation ?? Number.POSITIVE_INFINITY
+      )))
+      : null,
     pairedAtomThreshold: minPairedAtomCosine > 0 ? minPairedAtomCosine : null,
     maxRawOracleCallsPerCase: Math.max(...summaries.map(summary => summary.rawOracleCalls)),
     totalRawOracleCalls: summaries.reduce((sum, summary) => sum + summary.rawOracleCalls, 0),
@@ -468,6 +528,8 @@ fs.writeFileSync(
     `- min subspace principal cosine: \`${aggregate.summary.minSubspacePrincipalCosine}\``,
     `- min post-hoc paired atom joint cosine: \`${aggregate.summary.minPairedAtomJointCosine}\``,
     `- min paired atoms above threshold: \`${aggregate.summary.minPairedAtomCountAboveThreshold}\``,
+    `- min source cancellation fraction: \`${aggregate.summary.minSourceCancellationFraction}\``,
+    `- minimum source pair correlation: \`${aggregate.summary.minimumSourcePairCorrelation}\``,
     `- max unit count: \`${aggregate.summary.maxUnitCount}\``,
     `- max atom count: \`${aggregate.summary.maxAtomCount}\``,
     `- total raw oracle calls: \`${aggregate.summary.totalRawOracleCalls}\``,

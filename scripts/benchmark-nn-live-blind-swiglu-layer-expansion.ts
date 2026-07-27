@@ -40,6 +40,8 @@ type SweepSummary = {
   minSubspacePrincipalCosine: number;
   minPairedAtomJointCosine: number | null;
   minPairedAtomCountAboveThreshold: number | null;
+  minSourceCancellationFraction?: number | null;
+  minimumSourcePairCorrelation?: number | null;
   pairedAtomThreshold: number | null;
   maxRawOracleCallsPerCase: number;
   totalRawOracleCalls: number;
@@ -133,6 +135,19 @@ function makeRandom(seed: number): () => number {
   };
 }
 
+function parseRandomLayers(raw: string, spec: FamilySpec): number[] {
+  const values = raw.split(/[,+|]/).map(value => value.trim()).filter(Boolean);
+  if (!values.length) throw new Error('GCL_LAYER_EXPANSION_RANDOM_LAYERS must name at least one layer');
+  const layers = values.map(value => Number(value));
+  if (layers.some(layer => !Number.isInteger(layer) || layer < 0 || layer >= spec.layerCount)) {
+    throw new Error(`invalid ${spec.family} random layer list ${raw}; expected unique layers in 0..${spec.layerCount - 1}`);
+  }
+  if (new Set(layers).size !== layers.length) {
+    throw new Error(`GCL_LAYER_EXPANSION_RANDOM_LAYERS contains duplicate layers: ${raw}`);
+  }
+  return layers;
+}
+
 function parseExpansionCase(raw: string): ExpansionCase {
   const [familyRaw, layerRaw, unitCountRaw, unitsRaw, minR2Raw, maxMaeRaw, minSubspaceRaw, maxWorstRaw] = raw.split(':');
   const family = familyRaw as Family;
@@ -181,10 +196,16 @@ function generateRandomExpansionCases(count: number): ExpansionCase[] {
     throw new Error(`invalid random expansion unit count ${unitCount}`);
   }
   const random = makeRandom(Number(envValue('GCL_LAYER_EXPANSION_RANDOM_SEED', '260627')));
+  const explicitLayers = process.env.GCL_LAYER_EXPANSION_RANDOM_LAYERS?.trim()
+    ? parseRandomLayers(process.env.GCL_LAYER_EXPANSION_RANDOM_LAYERS, spec)
+    : null;
+  if (explicitLayers && count !== explicitLayers.length) {
+    throw new Error(`GCL_LAYER_EXPANSION_RANDOM_COUNT=${count} must equal the ${explicitLayers.length} stratified random layers`);
+  }
   const cases: ExpansionCase[] = [];
   const seen = new Set<string>();
   while (cases.length < count) {
-    const layer = Math.floor(random() * spec.layerCount);
+    const layer = explicitLayers ? explicitLayers[cases.length] : Math.floor(random() * spec.layerCount);
     const unitSet = new Set<number>();
     while (unitSet.size < unitCount) unitSet.add(Math.floor(random() * spec.intermediateSize));
     const units = [...unitSet].sort((a, b) => a - b);
@@ -227,10 +248,22 @@ function caseToSweepCase(testCase: ExpansionCase): string {
 function expansionVariant(testCase: ExpansionCase): string {
   const spec = familySpecs[testCase.family];
   const quantizationStep = Number(envValue('GCL_LAYER_EXPANSION_ORACLE_QUANTIZATION_STEP', '0'));
+  const cubicDirectionCount = Number(envValue('GCL_LAYER_EXPANSION_CUBIC_DIRECTION_COUNT', '0'));
+  const cubicSteps = envValue(
+    'GCL_LAYER_EXPANSION_CUBIC_STEPS',
+    envValue('GCL_LAYER_EXPANSION_CUBIC_STEP', '0.35')
+  );
+  const cubicHoldoutCount = Number(envValue('GCL_LAYER_EXPANSION_CUBIC_HOLDOUT_COUNT', '0'));
+  const outputChannel = Number(envValue('GCL_LAYER_EXPANSION_OUTPUT_CHANNEL', '-1'));
   const quantizationTag = quantizationStep > 0
     ? `-q${String(quantizationStep).replace(/^0\./, '').replace(/\./g, '')}`
     : '';
-  return `${spec.modelLabel}-layer${testCase.layer}-${testCase.unitCount}unit${quantizationTag}-expansion-oracle-only`;
+  const cubicTag = cubicDirectionCount > 0
+    ? `-cubic${cubicDirectionCount}h${cubicHoldoutCount}s${cubicSteps.replace(/[^0-9]+/g, '-')}`
+      + `w${envValue('GCL_LAYER_EXPANSION_FIT_CUBIC_WEIGHT', '0').replace(/\./g, '')}`
+    : '';
+  const outputChannelTag = outputChannel >= 0 ? `-output${outputChannel}` : '';
+  return `${spec.modelLabel}-layer${testCase.layer}-${testCase.unitCount}unit${outputChannelTag}${quantizationTag}${cubicTag}-expansion-oracle-only`;
 }
 
 function sweepAggregatePath(variant: string): string {
@@ -286,6 +319,7 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_LAYER_COUNT: String(spec.layerCount),
     GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE: String(spec.intermediateSize),
     GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP: envValue('GCL_LAYER_EXPANSION_ORACLE_QUANTIZATION_STEP', '0'),
+    GCL_BLIND_SWIGLU_OUTPUT_CHANNEL: envValue('GCL_LAYER_EXPANSION_OUTPUT_CHANNEL', '-1'),
     GCL_BLIND_SWIGLU_SWEEP_VARIANT: sweepVariant,
     GCL_BLIND_SWIGLU_SWEEP_CASES: sweepCases,
     GCL_BLIND_SWIGLU_ACTIVE_RANK: String(testCase.activeRank),
@@ -294,6 +328,10 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_PROBE_POINTS: envValue('GCL_LAYER_EXPANSION_PROBE_POINTS', defaultProbePoints),
     GCL_BLIND_SWIGLU_CUBIC_DIRECTION_COUNT: envValue('GCL_LAYER_EXPANSION_CUBIC_DIRECTION_COUNT', '0'),
     GCL_BLIND_SWIGLU_CUBIC_STEP: envValue('GCL_LAYER_EXPANSION_CUBIC_STEP', '0.35'),
+    GCL_BLIND_SWIGLU_CUBIC_STEPS: envValue('GCL_LAYER_EXPANSION_CUBIC_STEPS', ''),
+    GCL_BLIND_SWIGLU_CUBIC_HOLDOUT_COUNT: envValue('GCL_LAYER_EXPANSION_CUBIC_HOLDOUT_COUNT', '0'),
+    GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT: envValue('GCL_LAYER_EXPANSION_FIT_CUBIC_WEIGHT', '0'),
+    GCL_BLIND_SWIGLU_SELECTION_CUBIC_WEIGHT: envValue('GCL_LAYER_EXPANSION_SELECTION_CUBIC_WEIGHT', '0'),
     GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP: envValue('GCL_LAYER_EXPANSION_FINITE_DIFFERENCE_STEP', '0.04'),
     GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEPS: envValue('GCL_LAYER_EXPANSION_FINITE_DIFFERENCE_STEPS', ''),
     GCL_BLIND_SWIGLU_INPUT_SCALE: envValue('GCL_LAYER_EXPANSION_INPUT_SCALE', defaultInputScale),
@@ -307,6 +345,7 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_FIT_RESTART_CHUNK_SIZE: envValue('GCL_LAYER_EXPANSION_FIT_RESTART_CHUNK_SIZE', '128'),
     GCL_BLIND_SWIGLU_FIT_MODE: envValue('GCL_LAYER_EXPANSION_FIT_MODE', 'batched'),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_COUNT', defaultFitGradientCount),
+    GCL_BLIND_SWIGLU_FIT_GRADIENT_MODE: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_MODE', 'forward'),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_STEP', '0.04'),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_STEPS: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_STEPS', ''),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_WEIGHT', defaultFitGradientWeight),
@@ -344,6 +383,14 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_SWEEP_MAX_MAE: String(testCase.maxMae),
     GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR: String(testCase.maxWorstError),
     GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE: String(testCase.minSubspaceCosine),
+    GCL_BLIND_SWIGLU_SWEEP_MIN_SOURCE_CANCELLATION_FRACTION: envValue(
+      'GCL_LAYER_EXPANSION_MIN_SOURCE_CANCELLATION_FRACTION',
+      '0'
+    ),
+    GCL_BLIND_SWIGLU_SWEEP_MAX_SOURCE_PAIR_CORRELATION: envValue(
+      'GCL_LAYER_EXPANSION_MAX_SOURCE_PAIR_CORRELATION',
+      '1'
+    ),
     GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS: envValue('GCL_LAYER_EXPANSION_MAX_ORACLE_CALLS', defaultMaxOracleCalls)
   };
 
@@ -396,6 +443,12 @@ const summary = {
     ? Math.min(...summaries.map(item => item.minPairedAtomCountAboveThreshold ?? 0))
     : null,
   pairedAtomThreshold: summaries.find(item => item.pairedAtomThreshold !== null)?.pairedAtomThreshold ?? null,
+  minSourceCancellationFraction: summaries.length
+    ? Math.min(...summaries.map(item => item.minSourceCancellationFraction ?? Number.POSITIVE_INFINITY))
+    : null,
+  minimumSourcePairCorrelation: summaries.length
+    ? Math.min(...summaries.map(item => item.minimumSourcePairCorrelation ?? Number.POSITIVE_INFINITY))
+    : null,
   totalRawOracleCalls: summaries.reduce((sum, item) => sum + item.totalRawOracleCalls, 0),
   accessInvariant: caseResults.every(result => result.sweepSummary?.accessInvariant === true),
   solverAccess: 'oracle-only',
@@ -421,8 +474,12 @@ const report = {
     randomUnitCount: process.env.GCL_LAYER_EXPANSION_RANDOM_COUNT
       ? Number(envValue('GCL_LAYER_EXPANSION_RANDOM_UNIT_COUNT', '16'))
       : null,
+    randomLayers: process.env.GCL_LAYER_EXPANSION_RANDOM_COUNT
+      ? process.env.GCL_LAYER_EXPANSION_RANDOM_LAYERS?.trim() || null
+      : null,
     defaultVariant,
-    gradientMode: envValue('GCL_LAYER_EXPANSION_GRADIENT_MODE', 'forward-coordinate')
+    gradientMode: envValue('GCL_LAYER_EXPANSION_GRADIENT_MODE', 'forward-coordinate'),
+    outputChannel: Number(envValue('GCL_LAYER_EXPANSION_OUTPUT_CHANNEL', '-1'))
   },
   accessAudit: {
     solverAccess: 'oracle-only',
@@ -449,6 +506,8 @@ fs.writeFileSync(
     `- min subspace principal cosine: \`${summary.minSubspacePrincipalCosine}\``,
     `- min post-hoc paired atom joint cosine: \`${summary.minPairedAtomJointCosine}\``,
     `- min paired atoms above threshold: \`${summary.minPairedAtomCountAboveThreshold}\``,
+    `- min source cancellation fraction: \`${summary.minSourceCancellationFraction}\``,
+    `- minimum source pair correlation: \`${summary.minimumSourcePairCorrelation}\``,
     `- total raw oracle calls: \`${summary.totalRawOracleCalls}\``,
     `- access invariant: \`${summary.accessInvariant}\``,
     '',

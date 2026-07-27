@@ -2,17 +2,35 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
+import socket
 import subprocess
 import sys
 import tempfile
+import time
 from itertools import combinations
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+try:
+    from tools.llm_reader.swiglu_oracle_protocol import (
+        INITIAL_TRANSCRIPT,
+        advance_transcript,
+        recv_frame,
+        send_frame,
+    )
+except ModuleNotFoundError:
+    from swiglu_oracle_protocol import (
+        INITIAL_TRANSCRIPT,
+        advance_transcript,
+        recv_frame,
+        send_frame,
+    )
 
 
 def silu_np(values: np.ndarray) -> np.ndarray:
@@ -43,6 +61,60 @@ def dequantized_weight(module: Any) -> Any:
     import bitsandbytes.functional as bnb_functional
 
     return bnb_functional.dequantize_4bit(weight.data, quant_state).detach()
+
+
+def build_oracle_ready_payload(
+    *,
+    args: argparse.Namespace,
+    model_type: str,
+    units: list[int],
+    hidden_size: int,
+    intermediate_size: int,
+    oracle_mode: str,
+    output_channel: int | None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "type": "ready",
+        "hiddenSize": int(hidden_size),
+        "unitCount": len(units),
+        "oracleQuantizationStep": float(args.oracle_quantization_step),
+        "oracleOwnsWeights": True,
+        "solverAccess": "oracle-only",
+        "protocolCapabilities": {
+            "eval": True,
+            "truth": not bool(args.oracle_eval_only),
+        },
+    }
+    if args.oracle_ready_mode == "full":
+        payload.update({
+            "model": args.model,
+            "modelType": model_type,
+            "layer": int(args.layer),
+            "unit": int(args.unit),
+            "units": [int(value) for value in units],
+            "intermediateSize": int(intermediate_size),
+            "device": args.device,
+            "oracleMode": oracle_mode,
+            "outputChannel": output_channel,
+        })
+    return payload
+
+
+def validate_opaque_oracle_metadata(metadata: dict[str, Any]) -> None:
+    forbidden = {
+        "model", "modelType", "layer", "unit", "units", "intermediateSize",
+        "device", "oracleMode", "outputChannel",
+    }
+    exposed = sorted(forbidden.intersection(metadata))
+    if exposed:
+        raise RuntimeError(f"opaque oracle exposed teacher manifest fields: {','.join(exposed)}")
+    capabilities = metadata.get("protocolCapabilities")
+    if not isinstance(capabilities, dict) or capabilities.get("eval") is not True:
+        raise RuntimeError("opaque oracle does not advertise eval capability")
+    if capabilities.get("truth") is not False:
+        raise RuntimeError("opaque solver oracle must not advertise truth capability")
+    if int(metadata.get("hiddenSize", 0)) <= 0 or int(metadata.get("unitCount", 0)) <= 0:
+        raise RuntimeError("opaque oracle metadata requires positive hiddenSize and unitCount")
 
 
 def oracle_server(args: argparse.Namespace) -> int:
@@ -78,34 +150,41 @@ def oracle_server(args: argparse.Namespace) -> int:
     mlp = layers[args.layer].mlp
     gate_weight = dequantized_weight(mlp.gate_proj).detach().float().cpu()
     up_weight = dequantized_weight(mlp.up_proj).detach().float().cpu()
+    down_weight = None
+    if args.output_channel >= 0:
+        down_weight = dequantized_weight(mlp.down_proj).detach().float().cpu()
+        if args.output_channel >= down_weight.shape[0]:
+            raise RuntimeError(
+                f"output channel {args.output_channel} outside down_proj output range "
+                f"0..{down_weight.shape[0] - 1}"
+            )
     units = parse_units(args.unit, args.units)
     for unit in units:
         if unit < 0 or unit >= gate_weight.shape[0]:
             raise RuntimeError(f"unit {unit} outside SwiGLU intermediate range 0..{gate_weight.shape[0] - 1}")
     gate = gate_weight[units].contiguous()
     up = up_weight[units].contiguous()
+    if down_weight is None:
+        source_scales = torch.ones(len(units), dtype=torch.float32)
+        oracle_mode = "selected-unit-sum"
+        output_channel = None
+    else:
+        source_scales = down_weight[args.output_channel, units].contiguous()
+        oracle_mode = "down-proj-output-channel"
+        output_channel = int(args.output_channel)
     hidden_size = int(gate.shape[1])
-    gate_norm = torch.linalg.vector_norm(gate, dim=1, keepdim=True).clamp_min(1e-12)
-    up_norm = torch.linalg.vector_norm(up, dim=1, keepdim=True).clamp_min(1e-12)
-    gate_unit = (gate / gate_norm).numpy().astype(np.float32)
-    up_unit = (up / up_norm).numpy().astype(np.float32)
 
-    print(json.dumps({
-        "type": "ready",
-        "model": args.model,
-        "modelType": model_type,
-        "layer": args.layer,
-        "unit": args.unit,
-        "units": units,
-        "unitCount": len(units),
-        "hiddenSize": hidden_size,
-        "intermediateSize": int(gate_weight.shape[0]),
-        "device": args.device,
-        "oracleQuantizationStep": args.oracle_quantization_step,
-        "oracleOwnsWeights": True,
-        "solverAccess": "oracle-only"
-    }), flush=True)
+    print(json.dumps(build_oracle_ready_payload(
+        args=args,
+        model_type=model_type,
+        units=units,
+        hidden_size=hidden_size,
+        intermediate_size=int(gate_weight.shape[0]),
+        oracle_mode=oracle_mode,
+        output_channel=output_channel,
+    )), flush=True)
 
+    oracle_query_count = 0
     for line in sys.stdin:
         if not line.strip():
             continue
@@ -117,6 +196,16 @@ def oracle_server(args: argparse.Namespace) -> int:
             values = np.load(input_path).astype(np.float32, copy=False)
             if values.ndim != 2 or values.shape[1] != hidden_size:
                 raise RuntimeError(f"oracle input shape {values.shape} does not match hidden size {hidden_size}")
+            requested = int(values.shape[0])
+            if requested > int(args.max_oracle_calls) - oracle_query_count:
+                print(json.dumps({
+                    "type": "error",
+                    "error": "oracle-budget-exceeded",
+                    "requested": requested,
+                    "consumed": oracle_query_count,
+                    "limit": int(args.max_oracle_calls),
+                }), flush=True)
+                continue
             outputs: list[np.ndarray] = []
             batch_size = max(1, int(request.get("batchSize", args.batch_size)))
             with torch.no_grad():
@@ -124,17 +213,32 @@ def oracle_server(args: argparse.Namespace) -> int:
                     batch = torch.from_numpy(values[start:start + batch_size])
                     gate_projection = batch @ gate.T
                     up_projection = batch @ up.T
-                    outputs.append((torch.nn.functional.silu(gate_projection) * up_projection).sum(dim=1).cpu().numpy())
+                    atom_values = torch.nn.functional.silu(gate_projection) * up_projection
+                    outputs.append((atom_values @ source_scales).cpu().numpy())
             result = np.concatenate(outputs).astype(np.float64)
             if args.oracle_quantization_step > 0.0:
                 result = np.round(result / args.oracle_quantization_step) * args.oracle_quantization_step
             np.save(output_path, result.astype(np.float32))
-            print(json.dumps({"type": "ok", "count": int(values.shape[0])}), flush=True)
+            oracle_query_count += requested
+            print(json.dumps({
+                "type": "ok",
+                "count": requested,
+                "totalCount": oracle_query_count,
+            }), flush=True)
         elif command == "truth_npy":
+            if args.oracle_eval_only:
+                print(json.dumps({
+                    "type": "error",
+                    "error": "truth-disabled-for-eval-only-oracle",
+                }), flush=True)
+                continue
             gate_path = Path(request["gatePath"])
             up_path = Path(request["upPath"])
             np.save(gate_path, gate.numpy().astype(np.float32))
-            np.save(up_path, up.numpy().astype(np.float32))
+            np.save(
+                up_path,
+                (up * source_scales[:, None]).numpy().astype(np.float32),
+            )
             print(json.dumps({"type": "ok", "truth": True}), flush=True)
         elif command == "stop":
             print(json.dumps({"type": "bye"}), flush=True)
@@ -144,53 +248,97 @@ def oracle_server(args: argparse.Namespace) -> int:
     return 0
 
 
+class OracleBudgetExceeded(RuntimeError):
+    def __init__(self, *, stage: str, requested: int, consumed: int, limit: int) -> None:
+        self.stage = stage
+        self.requested = requested
+        self.consumed = consumed
+        self.limit = limit
+        super().__init__(
+            f"oracle budget exceeded at {stage}: requested={requested} "
+            f"consumed={consumed} limit={limit}"
+        )
+
+
 class OracleClient:
     def __init__(self, args: argparse.Namespace, work_dir: Path) -> None:
+        self.max_oracle_calls = int(args.max_oracle_calls)
+        if self.max_oracle_calls <= 0:
+            raise RuntimeError("--max-oracle-calls must be positive")
         self.stderr_path = work_dir / "oracle-stderr.log"
-        self.stderr_file = self.stderr_path.open("w", encoding="utf-8", buffering=1)
-        command = [
-            sys.executable,
-            __file__,
-            "--oracle-server",
-            "--model",
-            args.model,
-            "--layer",
-            str(args.layer),
-            "--unit",
-            str(args.unit),
-            "--device",
-            args.device,
-            "--batch-size",
-            str(args.oracle_batch_size),
-        ]
-        if args.units:
-            command.extend(["--units", args.units])
-        if args.oracle_quantization_step > 0.0:
-            command.extend(["--oracle-quantization-step", str(args.oracle_quantization_step)])
-        if args.local_files_only:
-            command.append("--local-files-only")
-        self.process = subprocess.Popen(
-            command,
-            cwd=Path(__file__).resolve().parents[2],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=self.stderr_file,
-            text=True,
-            bufsize=1,
-        )
-        assert self.process.stdout is not None
-        ready_line = self.process.stdout.readline()
+        self.stderr_file: Any | None = None
+        self.process: subprocess.Popen[str] | None = None
+        self.request_stream: Any
+        self.response_stream: Any
+        read_fd = int(args.oracle_read_fd)
+        write_fd = int(args.oracle_write_fd)
+        if (read_fd >= 0) != (write_fd >= 0):
+            raise RuntimeError("external oracle transport requires both --oracle-read-fd and --oracle-write-fd")
+        self.external_transport = read_fd >= 0
+        if self.external_transport:
+            self.response_stream = os.fdopen(read_fd, "r", encoding="utf-8", buffering=1)
+            self.request_stream = os.fdopen(write_fd, "w", encoding="utf-8", buffering=1)
+        else:
+            self.stderr_file = self.stderr_path.open("w", encoding="utf-8", buffering=1)
+            command = [
+                sys.executable,
+                __file__,
+                "--oracle-server",
+                "--model",
+                args.model,
+                "--layer",
+                str(args.layer),
+                "--unit",
+                str(args.unit),
+                "--device",
+                args.device,
+                "--batch-size",
+                str(args.oracle_batch_size),
+                "--max-oracle-calls",
+                str(args.max_oracle_calls),
+            ]
+            if args.units:
+                command.extend(["--units", args.units])
+            if args.output_channel >= 0:
+                command.extend(["--output-channel", str(args.output_channel)])
+            if args.oracle_quantization_step > 0.0:
+                command.extend(["--oracle-quantization-step", str(args.oracle_quantization_step)])
+            if args.local_files_only:
+                command.append("--local-files-only")
+            self.process = subprocess.Popen(
+                command,
+                cwd=Path(__file__).resolve().parents[2],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=self.stderr_file,
+                text=True,
+                bufsize=1,
+            )
+            assert self.process.stdin is not None
+            assert self.process.stdout is not None
+            self.request_stream = self.process.stdin
+            self.response_stream = self.process.stdout
+        ready_line = self.response_stream.readline()
         if not ready_line:
-            raise RuntimeError(f"oracle did not become ready; exit={self.process.poll()} stderr={self.stderr_tail()}")
+            exit_code = None if self.process is None else self.process.poll()
+            raise RuntimeError(f"oracle did not become ready; exit={exit_code} stderr={self.stderr_tail()}")
         ready = json.loads(ready_line)
         if ready.get("type") != "ready":
             raise RuntimeError(f"oracle did not become ready: {ready}")
+        if args.require_opaque_oracle:
+            validate_opaque_oracle_metadata(ready)
         self.meta = ready
         self.work_dir = work_dir
         self.query_count = 0
         self._counter = 0
+        self._truth_unlocked = False
+        self.truth_unlock_stage: str | None = None
+        self.truth_unlock_query_count: int | None = None
+        self.truth_request_count = 0
 
     def stderr_tail(self, max_chars: int = 4000) -> str:
+        if self.stderr_file is None:
+            return ""
         try:
             self.stderr_file.flush()
             text = self.stderr_path.read_text(encoding="utf-8", errors="replace")
@@ -199,24 +347,32 @@ class OracleClient:
         return text[-max_chars:]
 
     def request(self, payload: dict[str, Any]) -> dict[str, Any]:
-        assert self.process.stdin is not None
-        assert self.process.stdout is not None
-        if self.process.poll() is not None:
+        if self.process is not None and self.process.poll() is not None:
             raise RuntimeError(f"oracle process exited before request {payload.get('cmd')!r}; exit={self.process.returncode} stderr={self.stderr_tail()}")
         try:
-            self.process.stdin.write(json.dumps(payload) + "\n")
-            self.process.stdin.flush()
+            self.request_stream.write(json.dumps(payload) + "\n")
+            self.request_stream.flush()
         except (BrokenPipeError, OSError) as error:
-            raise RuntimeError(f"oracle pipe failed during request {payload.get('cmd')!r}; exit={self.process.poll()} stderr={self.stderr_tail()}") from error
-        response_line = self.process.stdout.readline()
+            exit_code = None if self.process is None else self.process.poll()
+            raise RuntimeError(f"oracle pipe failed during request {payload.get('cmd')!r}; exit={exit_code} stderr={self.stderr_tail()}") from error
+        response_line = self.response_stream.readline()
         if not response_line:
-            raise RuntimeError(f"oracle closed stdout during request {payload.get('cmd')!r}; exit={self.process.poll()} stderr={self.stderr_tail()}")
+            exit_code = None if self.process is None else self.process.poll()
+            raise RuntimeError(f"oracle closed stdout during request {payload.get('cmd')!r}; exit={exit_code} stderr={self.stderr_tail()}")
         response = json.loads(response_line)
         if response.get("type") not in {"ok", "bye"}:
             raise RuntimeError(f"oracle request failed: {response}")
         return response
 
-    def eval(self, inputs: np.ndarray) -> np.ndarray:
+    def eval(self, inputs: np.ndarray, *, stage: str = "oracle-eval") -> np.ndarray:
+        requested = int(inputs.shape[0])
+        if requested > self.max_oracle_calls - self.query_count:
+            raise OracleBudgetExceeded(
+                stage=stage,
+                requested=requested,
+                consumed=self.query_count,
+                limit=self.max_oracle_calls,
+            )
         self._counter += 1
         input_path = self.work_dir / f"oracle-input-{self._counter}.npy"
         output_path = self.work_dir / f"oracle-output-{self._counter}.npy"
@@ -226,10 +382,33 @@ class OracleClient:
             "inputPath": str(input_path),
             "outputPath": str(output_path),
         })
-        self.query_count += int(response["count"])
+        observed = int(response.get("count", -1))
+        if observed != requested:
+            raise RuntimeError(
+                f"oracle response count mismatch at {stage}: requested={requested} observed={observed}"
+            )
+        expected_total = self.query_count + requested
+        observed_total = int(response.get("totalCount", expected_total))
+        if observed_total != expected_total:
+            raise RuntimeError(
+                f"oracle response totalCount mismatch at {stage}: "
+                f"expected={expected_total} observed={observed_total}"
+            )
+        self.query_count = expected_total
         return np.load(output_path).astype(np.float64)
 
+    def unlock_posthoc_truth(self, stage: str) -> None:
+        if not stage.strip():
+            raise RuntimeError("post-hoc truth unlock requires a non-empty stage")
+        if self._truth_unlocked:
+            raise RuntimeError(f"post-hoc truth already unlocked at {self.truth_unlock_stage}")
+        self._truth_unlocked = True
+        self.truth_unlock_stage = stage
+        self.truth_unlock_query_count = int(self.query_count)
+
     def truth(self) -> tuple[np.ndarray, np.ndarray]:
+        if not self._truth_unlocked:
+            raise RuntimeError("oracle truth is locked until recovery is frozen after validation")
         gate_path = self.work_dir / "truth-gate.npy"
         up_path = self.work_dir / "truth-up.npy"
         self.request({
@@ -237,18 +416,125 @@ class OracleClient:
             "gatePath": str(gate_path),
             "upPath": str(up_path),
         })
+        self.truth_request_count += 1
         return np.load(gate_path).astype(np.float64), np.load(up_path).astype(np.float64)
 
     def close(self) -> None:
         try:
-            if self.process.poll() is None:
+            if self.process is None or self.process.poll() is None:
                 self.request({"cmd": "stop"})
         finally:
+            if self.process is not None:
+                try:
+                    self.process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+            else:
+                self.request_stream.close()
+                self.response_stream.close()
+            if self.stderr_file is not None:
+                self.stderr_file.close()
+
+
+class SocketOracleClient:
+    def __init__(self, args: argparse.Namespace, work_dir: Path) -> None:
+        del work_dir
+        self.max_oracle_calls = int(args.max_oracle_calls)
+        if self.max_oracle_calls <= 0:
+            raise RuntimeError("--max-oracle-calls must be positive")
+        self.connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        deadline = time.monotonic() + 60.0
+        while True:
             try:
-                self.process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
-            self.stderr_file.close()
+                self.connection.connect(args.oracle_socket)
+                break
+            except (FileNotFoundError, ConnectionRefusedError):
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(f"timed out connecting to opaque oracle socket: {args.oracle_socket}")
+                time.sleep(0.05)
+        ready, payload = recv_frame(self.connection)
+        if payload or ready.get("type") != "ready":
+            raise RuntimeError(f"invalid opaque oracle ready frame: {ready}")
+        validate_opaque_oracle_metadata(ready)
+        if ready.get("protocol") != "gcl-swiglu-eval-v1":
+            raise RuntimeError(f"unsupported opaque oracle protocol: {ready.get('protocol')!r}")
+        server_budget = int(ready.get("maxOracleCalls", -1))
+        if server_budget != self.max_oracle_calls:
+            raise RuntimeError(f"oracle budget mismatch: server={server_budget} solver={self.max_oracle_calls}")
+        self.meta = ready
+        self.query_count = 0
+        self._counter = 0
+        self.external_transport = True
+        self.truth_request_count = 0
+        self.truth_unlock_stage: str | None = None
+        self.truth_unlock_query_count: int | None = None
+        self.transcript_sha256 = advance_transcript(INITIAL_TRANSCRIPT, ready, b"")
+
+    def eval(self, inputs: np.ndarray, *, stage: str = "oracle-eval") -> np.ndarray:
+        values = np.asarray(inputs, dtype="<f4", order="C")
+        if values.ndim != 2 or values.shape[1] != int(self.meta["hiddenSize"]):
+            raise RuntimeError(f"opaque oracle input shape mismatch: {values.shape}")
+        if not np.all(np.isfinite(values)):
+            raise RuntimeError("opaque oracle input contains non-finite values")
+        requested = int(values.shape[0])
+        if requested > self.max_oracle_calls - self.query_count:
+            raise OracleBudgetExceeded(
+                stage=stage,
+                requested=requested,
+                consumed=self.query_count,
+                limit=self.max_oracle_calls,
+            )
+        payload = values.tobytes(order="C")
+        request = {
+            "type": "eval",
+            "requestId": self._counter,
+            "count": requested,
+            "dimension": int(values.shape[1]),
+            "dtype": "float32-le",
+        }
+        send_frame(self.connection, request, payload)
+        self.transcript_sha256 = advance_transcript(self.transcript_sha256, request, payload)
+        response, response_payload = recv_frame(self.connection)
+        self.transcript_sha256 = advance_transcript(self.transcript_sha256, response, response_payload)
+        if response.get("type") != "ok":
+            raise RuntimeError(f"opaque oracle request failed: {response}")
+        if int(response.get("requestId", -1)) != self._counter:
+            raise RuntimeError("opaque oracle response request id mismatch")
+        if int(response.get("count", -1)) != requested:
+            raise RuntimeError("opaque oracle response count mismatch")
+        expected_total = self.query_count + requested
+        if int(response.get("totalCount", -1)) != expected_total:
+            raise RuntimeError("opaque oracle response total count mismatch")
+        if response.get("dtype") != "float32-le" or len(response_payload) != requested * 4:
+            raise RuntimeError("opaque oracle response payload mismatch")
+        self.query_count = expected_total
+        self._counter += 1
+        return np.frombuffer(response_payload, dtype="<f4").astype(np.float64)
+
+    def unlock_posthoc_truth(self, stage: str) -> None:
+        del stage
+        raise RuntimeError("truth is unavailable on the opaque eval-only oracle")
+
+    def truth(self) -> tuple[np.ndarray, np.ndarray]:
+        self.truth_request_count += 1
+        raise RuntimeError("truth is unavailable on the opaque eval-only oracle")
+
+    def close(self) -> None:
+        try:
+            send_frame(self.connection, {"type": "stop"})
+            response, payload = recv_frame(self.connection)
+            if payload or response.get("type") != "bye":
+                raise RuntimeError(f"invalid opaque oracle close response: {response}")
+        finally:
+            self.connection.close()
+
+
+def create_oracle_client(args: argparse.Namespace, work_dir: Path) -> OracleClient | SocketOracleClient:
+    if args.oracle_socket:
+        if args.oracle_read_fd >= 0 or args.oracle_write_fd >= 0:
+            raise RuntimeError("choose either --oracle-socket or external oracle file descriptors")
+        return SocketOracleClient(args, work_dir)
+    return OracleClient(args, work_dir)
 
 
 def estimate_gradient(
@@ -291,6 +577,95 @@ def estimate_forward_coordinate_gradient(
     shifted = base[None, :] + step * eye
     values = oracle.eval(np.vstack([base[None, :], shifted]))
     return (values[1:] - values[0]) / step
+
+
+def symmetric_regression_slopes(
+    plus_values: np.ndarray,
+    minus_values: np.ndarray,
+    steps: list[float],
+) -> np.ndarray:
+    plus = np.asarray(plus_values, dtype=np.float64)
+    minus = np.asarray(minus_values, dtype=np.float64)
+    step_values = np.asarray(steps, dtype=np.float64)
+    if (
+        plus.shape != minus.shape
+        or plus.ndim < 2
+        or plus.shape[0] != step_values.shape[0]
+        or step_values.shape[0] == 0
+        or np.any(~np.isfinite(step_values))
+        or np.any(step_values <= 0.0)
+    ):
+        raise RuntimeError("symmetric regression values/steps are incompatible")
+    denominator = 2.0 * float(np.sum(step_values ** 2))
+    weights_shape = (step_values.shape[0],) + (1,) * (plus.ndim - 1)
+    weighted_differences = (
+        step_values.reshape(weights_shape) * (plus - minus)
+    )
+    return np.sum(weighted_differences, axis=0) / max(denominator, 1e-15)
+
+
+def estimate_symmetric_regression_coordinate_gradient(
+    oracle: OracleClient,
+    base: np.ndarray,
+    steps: list[float],
+) -> np.ndarray:
+    gradients = estimate_symmetric_multiscale_coordinate_gradients(oracle, base, steps)
+    plus_slopes = gradients * np.asarray(steps, dtype=np.float64)[:, None]
+    denominator = float(np.sum(np.asarray(steps, dtype=np.float64) ** 2))
+    return np.sum(plus_slopes * np.asarray(steps, dtype=np.float64)[:, None], axis=0) / max(denominator, 1e-15)
+
+
+def richardson_extrapolate_symmetric_gradients(
+    gradient_estimates: np.ndarray,
+    steps: list[float],
+) -> np.ndarray:
+    estimates = np.asarray(gradient_estimates, dtype=np.float64)
+    step_values = np.asarray(steps, dtype=np.float64)
+    if (
+        estimates.ndim < 2
+        or estimates.shape[0] != step_values.shape[0]
+        or step_values.shape[0] < 2
+        or np.any(~np.isfinite(step_values))
+        or np.any(step_values <= 0.0)
+    ):
+        raise RuntimeError("symmetric Richardson gradients require at least two positive finite steps")
+    design = np.column_stack([
+        np.ones(step_values.shape[0], dtype=np.float64),
+        step_values ** 2,
+    ])
+    flattened = estimates.reshape(estimates.shape[0], -1)
+    try:
+        coefficients, *_ = np.linalg.lstsq(design, flattened, rcond=None)
+    except np.linalg.LinAlgError as exc:
+        raise RuntimeError("failed to Richardson-extrapolate symmetric gradients") from exc
+    return coefficients[0].reshape(estimates.shape[1:]).astype(np.float64)
+
+
+def estimate_symmetric_richardson_coordinate_gradient(
+    oracle: OracleClient,
+    base: np.ndarray,
+    steps: list[float],
+) -> np.ndarray:
+    gradients = estimate_symmetric_multiscale_coordinate_gradients(oracle, base, steps)
+    return richardson_extrapolate_symmetric_gradients(gradients, steps)
+
+
+def estimate_symmetric_multiscale_coordinate_gradients(
+    oracle: OracleClient,
+    base: np.ndarray,
+    steps: list[float],
+) -> np.ndarray:
+    dimension = base.shape[0]
+    eye = np.eye(dimension, dtype=np.float32)
+    query_blocks: list[np.ndarray] = []
+    for step in steps:
+        query_blocks.extend([
+            base[None, :] + step * eye,
+            base[None, :] - step * eye,
+        ])
+    values = oracle.eval(np.vstack(query_blocks)).reshape(len(steps), 2, dimension)
+    step_values = np.asarray(steps, dtype=np.float64)[:, None]
+    return (values[:, 0, :] - values[:, 1, :]) / (2.0 * step_values)
 
 
 def parse_step_list(raw: str | None, fallback: float) -> list[float]:
@@ -463,18 +838,128 @@ def estimate_active_forward_gradients(
     if not steps:
         raise RuntimeError("active-gradient estimation requires at least one positive step")
     coords = rng.normal(0.0, input_scale, size=(count, rank)).astype(np.float32)
-    base_inputs = coords @ basis
+    active_gradients = estimate_active_forward_gradients_at_coords(
+        oracle,
+        basis,
+        coords,
+        steps,
+        stage="fit-active-gradient",
+    )
+    return coords.astype(np.float64), active_gradients
+
+
+def estimate_active_forward_gradients_at_coords(
+    oracle: OracleClient,
+    basis: np.ndarray,
+    coords: np.ndarray,
+    steps: list[float],
+    *,
+    stage: str,
+) -> np.ndarray:
+    rank = basis.shape[0]
+    active_coords = np.asarray(coords, dtype=np.float32)
+    if active_coords.ndim != 2 or active_coords.shape[1] != rank:
+        raise RuntimeError("active-gradient coordinates do not match basis rank")
+    if not steps or any(not np.isfinite(step) or step <= 0.0 for step in steps):
+        raise RuntimeError("active-gradient estimation requires positive finite steps")
+    base_inputs = active_coords @ basis
     step_gradients = []
-    for step in steps:
-        shifted_coords = np.repeat(coords[:, None, :], rank, axis=1)
+    for step_index, step in enumerate(steps):
+        shifted_coords = np.repeat(active_coords[:, None, :], rank, axis=1)
         for index in range(rank):
             shifted_coords[:, index, index] += step
+        count = active_coords.shape[0]
         shifted_inputs = shifted_coords.reshape(count * rank, rank) @ basis
-        values = oracle.eval(np.vstack([base_inputs, shifted_inputs]).astype(np.float32))
+        values = oracle.eval(
+            np.vstack([base_inputs, shifted_inputs]).astype(np.float32),
+            stage=f"{stage}-step-{step_index}",
+        )
         base_values = values[:count]
         shifted_values = values[count:].reshape(count, rank)
         step_gradients.append((shifted_values - base_values[:, None]) / step)
     active_gradients = np.mean(np.stack(step_gradients, axis=0), axis=0)
+    return active_gradients.astype(np.float64)
+
+
+def estimate_active_symmetric_richardson_gradients_at_coords(
+    oracle: OracleClient,
+    basis: np.ndarray,
+    coords: np.ndarray,
+    steps: list[float],
+    *,
+    stage: str,
+    chunk_size: int = 32,
+) -> np.ndarray:
+    rank = basis.shape[0]
+    active_coords = np.asarray(coords, dtype=np.float32)
+    if active_coords.ndim != 2 or active_coords.shape[1] != rank:
+        raise RuntimeError("active-gradient coordinates do not match basis rank")
+    if len(steps) < 2 or any(not np.isfinite(step) or step <= 0.0 for step in steps):
+        raise RuntimeError("active Richardson gradients require at least two positive finite steps")
+    if chunk_size <= 0:
+        raise RuntimeError("active Richardson gradient chunk size must be positive")
+
+    estimates = np.zeros(
+        (len(steps), active_coords.shape[0], rank),
+        dtype=np.float64,
+    )
+    for chunk_start in range(0, active_coords.shape[0], chunk_size):
+        chunk = active_coords[chunk_start:chunk_start + chunk_size]
+        count = chunk.shape[0]
+        for step_index, step in enumerate(steps):
+            plus_coords = np.repeat(chunk[:, None, :], rank, axis=1)
+            minus_coords = plus_coords.copy()
+            for index in range(rank):
+                plus_coords[:, index, index] += step
+                minus_coords[:, index, index] -= step
+            plus_inputs = plus_coords.reshape(count * rank, rank) @ basis
+            minus_inputs = minus_coords.reshape(count * rank, rank) @ basis
+            values = oracle.eval(
+                np.vstack([plus_inputs, minus_inputs]).astype(np.float32),
+                stage=f"{stage}-chunk-{chunk_start // chunk_size}-step-{step_index}",
+            ).reshape(2, count, rank)
+            estimates[step_index, chunk_start:chunk_start + count] = (
+                values[0] - values[1]
+            ) / (2.0 * step)
+    return richardson_extrapolate_symmetric_gradients(estimates, steps)
+
+
+def estimate_active_symmetric_regression_gradients(
+    oracle: OracleClient,
+    rng: np.random.Generator,
+    basis: np.ndarray,
+    count: int,
+    input_scale: float,
+    steps: list[float],
+) -> tuple[np.ndarray, np.ndarray]:
+    rank = basis.shape[0]
+    if count <= 0:
+        return np.zeros((0, rank), dtype=np.float64), np.zeros((0, rank), dtype=np.float64)
+    if not steps:
+        raise RuntimeError("active symmetric-gradient estimation requires positive steps")
+    coords = rng.normal(0.0, input_scale, size=(count, rank)).astype(np.float32)
+    query_blocks: list[np.ndarray] = []
+    for step in steps:
+        plus_coords = np.repeat(coords[:, None, :], rank, axis=1)
+        minus_coords = plus_coords.copy()
+        for index in range(rank):
+            plus_coords[:, index, index] += step
+            minus_coords[:, index, index] -= step
+        query_blocks.extend([
+            plus_coords.reshape(count * rank, rank) @ basis,
+            minus_coords.reshape(count * rank, rank) @ basis,
+        ])
+    values = oracle.eval(np.vstack(query_blocks).astype(np.float32)).reshape(
+        len(steps),
+        2,
+        count,
+        rank,
+    )
+    active_gradients = symmetric_regression_slopes(
+        values[:, 0, :, :],
+        values[:, 1, :, :],
+        steps,
+    )
     return coords.astype(np.float64), active_gradients.astype(np.float64)
 
 
@@ -483,23 +968,78 @@ def estimate_active_cubic_directions(
     rng: np.random.Generator,
     basis: np.ndarray,
     count: int,
-    step: float,
+    steps: list[float],
 ) -> tuple[np.ndarray, np.ndarray]:
     if count <= 0:
         return np.zeros((0, basis.shape[0]), dtype=np.float64), np.zeros(0, dtype=np.float64)
-    if step <= 0.0 or not np.isfinite(step):
-        raise RuntimeError("cubic direction probe step must be positive and finite")
+    if not steps or any(step <= 0.0 or not np.isfinite(step) for step in steps):
+        raise RuntimeError("cubic direction probe steps must be positive and finite")
     rank = basis.shape[0]
     directions = rng.normal(0.0, 1.0, size=(count, rank)).astype(np.float64)
     directions /= np.linalg.norm(directions, axis=1, keepdims=True).clip(min=1e-12)
     multipliers = np.array([2.0, 1.0, -1.0, -2.0], dtype=np.float64)
-    active_points = (multipliers[:, None, None] * step * directions[None, :, :]).reshape(count * 4, rank)
-    values = oracle.eval((active_points @ basis).astype(np.float32)).reshape(4, count)
-    # Central third directional derivative stencil:
-    # f'''(0) ~= (f(2h) - 2f(h) + 2f(-h) - f(-2h)) / (2h^3)
-    cubic_scores = (values[0] - 2.0 * values[1] + 2.0 * values[2] - values[3]) / (2.0 * step ** 3)
+    score_estimates = []
+    for step in steps:
+        active_points = (multipliers[:, None, None] * step * directions[None, :, :]).reshape(count * 4, rank)
+        values = oracle.eval((active_points @ basis).astype(np.float32)).reshape(4, count)
+        # Central third directional derivative stencil:
+        # f'''(0) ~= (f(2h) - 2f(h) + 2f(-h) - f(-2h)) / (2h^3)
+        score_estimates.append(
+            (values[0] - 2.0 * values[1] + 2.0 * values[2] - values[3])
+            / (2.0 * step ** 3)
+        )
+    cubic_scores = richardson_extrapolate_cubic_scores(
+        np.stack(score_estimates, axis=0),
+        steps,
+    )
     order = np.argsort(np.abs(cubic_scores))[::-1]
     return directions[order].astype(np.float64), cubic_scores[order].astype(np.float64)
+
+
+def richardson_extrapolate_cubic_scores(
+    score_estimates: np.ndarray,
+    steps: list[float],
+) -> np.ndarray:
+    estimates = np.asarray(score_estimates, dtype=np.float64)
+    if estimates.ndim != 2 or estimates.shape[0] != len(steps):
+        raise RuntimeError("cubic score estimates must have one row per finite-difference step")
+    if estimates.shape[0] == 1:
+        return estimates[0].copy()
+    step_squares = np.square(np.asarray(steps, dtype=np.float64))
+    design = np.column_stack([
+        np.ones(step_squares.shape[0], dtype=np.float64),
+        step_squares,
+    ])
+    try:
+        coefficients, *_ = np.linalg.lstsq(design, estimates, rcond=None)
+    except np.linalg.LinAlgError as exc:
+        raise RuntimeError("failed to Richardson-extrapolate cubic witnesses") from exc
+    # The central third-derivative stencil has D3 + c*h^2 + O(h^4) error.
+    return coefficients[0].astype(np.float64)
+
+
+def predict_swiglu_cubic_directional_derivatives(
+    directions: np.ndarray,
+    gates: np.ndarray,
+    ups: np.ndarray,
+    scales: np.ndarray,
+) -> np.ndarray:
+    directions = np.asarray(directions, dtype=np.float64)
+    gates = np.asarray(gates, dtype=np.float64)
+    ups = np.asarray(ups, dtype=np.float64)
+    scales = np.asarray(scales, dtype=np.float64)
+    if directions.ndim != 2 or gates.ndim != 2 or ups.shape != gates.shape:
+        raise RuntimeError("cubic directional derivative inputs have incompatible shapes")
+    if gates.shape[0] != scales.shape[0] or directions.shape[1] != gates.shape[1]:
+        raise RuntimeError("cubic directional derivative atom dimensions do not match")
+    gate_projection = directions @ gates.T
+    up_projection = directions @ ups.T
+    # silu(t a) * (t b) = 0.5 t^2 ab + 0.25 t^3 a^2 b + O(t^5).
+    # The third derivative at zero is therefore 3! * 0.25 * a^2 b.
+    return 1.5 * np.sum(
+        gate_projection ** 2 * up_projection * scales[None, :],
+        axis=1,
+    )
 
 
 def make_quadratic_atom_starts(
@@ -919,6 +1459,12 @@ def fit_swiglu_sum_batched(
     selection_coords: np.ndarray | None = None,
     selection_targets: np.ndarray | None = None,
     extra_gate_candidates: list[np.ndarray] | None = None,
+    cubic_directions: np.ndarray | None = None,
+    cubic_targets: np.ndarray | None = None,
+    cubic_selection_directions: np.ndarray | None = None,
+    cubic_selection_targets: np.ndarray | None = None,
+    cubic_weight_override: float | None = None,
+    selection_cubic_weight_override: float | None = None,
 ) -> dict[str, Any]:
     import torch
 
@@ -953,6 +1499,35 @@ def fit_swiglu_sum_batched(
         gx = None
         gy = None
         target_grad_scale = None
+    cubic_weight = float(
+        cubic_weight_override
+        if cubic_weight_override is not None
+        else os.environ.get("GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT", "0.0") or "0.0"
+    )
+    selection_cubic_weight = float(
+        selection_cubic_weight_override
+        if selection_cubic_weight_override is not None
+        else os.environ.get("GCL_BLIND_SWIGLU_SELECTION_CUBIC_WEIGHT", "0.0") or "0.0"
+    )
+    if not np.isfinite(cubic_weight) or cubic_weight < 0.0:
+        raise RuntimeError("GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT must be non-negative and finite")
+    if not np.isfinite(selection_cubic_weight) or selection_cubic_weight < 0.0:
+        raise RuntimeError("GCL_BLIND_SWIGLU_SELECTION_CUBIC_WEIGHT must be non-negative and finite")
+    has_cubic_witness = (
+        cubic_directions is not None
+        and cubic_targets is not None
+        and cubic_weight > 0.0
+        and cubic_directions.shape[0] > 0
+        and cubic_directions.shape[0] == cubic_targets.shape[0]
+    )
+    if has_cubic_witness:
+        cv = torch.tensor(cubic_directions, dtype=fit_dtype, device=device)
+        cy = torch.tensor(cubic_targets, dtype=fit_dtype, device=device)
+        target_cubic_scale = torch.mean(cy ** 2).detach().clamp_min(1e-12)
+    else:
+        cv = None
+        cy = None
+        target_cubic_scale = None
 
     best: dict[str, Any] | None = None
     top_candidates: list[dict[str, Any]] = []
@@ -1036,6 +1611,29 @@ def fit_swiglu_sum_batched(
     def candidate_rank_score(candidate: dict[str, Any]) -> float:
         return float(candidate.get("selectionScore", candidate.get("score", candidate["mae"])))
 
+    def cubic_relative_rmse(gates: np.ndarray, ups: np.ndarray, scales: np.ndarray) -> float | None:
+        score_directions = (
+            cubic_selection_directions
+            if cubic_selection_directions is not None and cubic_selection_directions.shape[0] > 0
+            else cubic_directions
+        )
+        score_targets = (
+            cubic_selection_targets
+            if cubic_selection_targets is not None and cubic_selection_targets.shape[0] > 0
+            else cubic_targets
+        )
+        if score_directions is None or score_targets is None or score_directions.shape[0] != score_targets.shape[0]:
+            return None
+        predicted = predict_swiglu_cubic_directional_derivatives(
+            score_directions,
+            gates,
+            ups,
+            scales,
+        )
+        numerator = float(np.mean((predicted - score_targets) ** 2))
+        denominator = max(float(np.mean(score_targets ** 2)), 1e-12)
+        return math.sqrt(numerator / denominator)
+
     def residual_selection_score(prediction: np.ndarray, actual: np.ndarray) -> float:
         residual = np.abs(prediction - actual)
         mae = float(np.mean(residual))
@@ -1088,6 +1686,9 @@ def fit_swiglu_sum_batched(
                     selection_score = residual_selection_score(selection_prediction, targets[selection_holdout_indices])
             except np.linalg.LinAlgError:
                 selection_score = residual_selection_score(prediction_np, targets)
+        cubic_error = cubic_relative_rmse(gates_np, ups_np, scales_np)
+        if cubic_error is not None:
+            selection_score += selection_cubic_weight * cubic_error
         rescored = dict(candidate)
         rescored.update({
             "mae": mae,
@@ -1100,6 +1701,7 @@ def fit_swiglu_sum_batched(
             "ups": ups_np,
             "scales": scales_np,
             "bias": bias_value,
+            "cubicRelativeRmse": cubic_error,
         })
         return rescored
 
@@ -1155,6 +1757,15 @@ def fit_swiglu_sum_batched(
                 predicted_gradients = torch.sum(gradient_terms, dim=2)
                 gradient_loss = torch.mean((predicted_gradients - gy[None, :, :]) ** 2, dim=(1, 2)) / target_grad_scale
                 per_restart_loss = per_restart_loss + gradient_weight * gradient_loss
+            if has_cubic_witness and cv is not None and cy is not None and target_cubic_scale is not None:
+                cubic_gate_projection = torch.einsum("mr,bkr->bmk", cv, gates)
+                cubic_up_projection = torch.einsum("mr,bkr->bmk", cv, ups)
+                predicted_cubic = 1.5 * torch.sum(
+                    cubic_gate_projection ** 2 * cubic_up_projection * scales[:, None, :],
+                    dim=2,
+                )
+                cubic_loss = torch.mean((predicted_cubic - cy[None, :]) ** 2, dim=1) / target_cubic_scale
+                per_restart_loss = per_restart_loss + cubic_weight * cubic_loss
             loss = torch.mean(per_restart_loss)
             loss.backward()
             optimizer.step()
@@ -1200,6 +1811,13 @@ def fit_swiglu_sum_batched(
                         selection_score = residual_selection_score(selection_prediction, targets[selection_holdout_indices])
                 except np.linalg.LinAlgError:
                     selection_score = residual_selection_score(prediction_np, targets)
+            cubic_error = cubic_relative_rmse(
+                gates_np[local_restart],
+                ups_np[local_restart],
+                coeffs[:-1].astype(np.float64),
+            )
+            if cubic_error is not None:
+                selection_score += selection_cubic_weight * cubic_error
             candidate = {
                 "restart": restart,
                 "mae": mae,
@@ -1213,6 +1831,7 @@ def fit_swiglu_sum_batched(
                 "ups": ups_np[local_restart],
                 "scales": coeffs[:-1].astype(np.float64),
                 "bias": float(coeffs[-1]),
+                "cubicRelativeRmse": cubic_error,
             }
             for gate in gates_np[local_restart]:
                 if np.all(np.isfinite(gate)) and np.linalg.norm(gate) > 1e-9:
@@ -1277,6 +1896,9 @@ def fit_swiglu_sum_batched(
             gradient_coords,
             gradient_targets,
             gradient_weight,
+            cubic_directions,
+            cubic_targets,
+            cubic_weight,
         )
         polished_candidates.append(rescore_candidate(polished))
     best = min(polished_candidates, key=candidate_rank_score)
@@ -1347,6 +1969,13 @@ def fit_swiglu_sum_batched(
     best["selectionTailWeight"] = selection_tail_weight
     best["selectionTailQuantile"] = selection_tail_quantile
     best["selectionWorstWeight"] = selection_worst_weight
+    best["fitCubicWeight"] = cubic_weight
+    best["selectionCubicWeight"] = selection_cubic_weight
+    best["cubicRelativeRmse"] = cubic_relative_rmse(
+        np.asarray(best["gates"], dtype=np.float64),
+        np.asarray(best["ups"], dtype=np.float64),
+        np.asarray(best["scales"], dtype=np.float64),
+    )
     best["externalSelectionCount"] = int(selection_coords.shape[0]) if has_external_selection and selection_coords is not None else 0
     best["dictionaryCandidateRankScore"] = None if dictionary_rank_score is None else float(dictionary_rank_score)
     best["forcedPolishCandidateCount"] = len(forced_polish_candidates)
@@ -1650,6 +2279,9 @@ def polish_swiglu_candidate(
     gradient_coords: np.ndarray | None,
     gradient_targets: np.ndarray | None,
     gradient_weight: float,
+    cubic_directions: np.ndarray | None = None,
+    cubic_targets: np.ndarray | None = None,
+    cubic_weight: float = 0.0,
 ) -> dict[str, Any]:
     import torch
 
@@ -1675,6 +2307,21 @@ def polish_swiglu_candidate(
         gx = None
         gy = None
         target_grad_scale = None
+    has_cubic_witness = (
+        cubic_directions is not None
+        and cubic_targets is not None
+        and cubic_weight > 0.0
+        and cubic_directions.shape[0] > 0
+        and cubic_directions.shape[0] == cubic_targets.shape[0]
+    )
+    if has_cubic_witness:
+        cv = torch.tensor(cubic_directions, dtype=fit_dtype, device=device)
+        cy = torch.tensor(cubic_targets, dtype=fit_dtype, device=device)
+        target_cubic_scale = torch.mean(cy ** 2).detach().clamp_min(1e-12)
+    else:
+        cv = None
+        cy = None
+        target_cubic_scale = None
 
     lbfgs = torch.optim.LBFGS(
         [gates, ups, scales, bias],
@@ -1702,6 +2349,14 @@ def polish_swiglu_candidate(
             )
             predicted_gradients = torch.sum(gradient_terms, dim=1)
             loss = loss + gradient_weight * torch.mean((predicted_gradients - gy) ** 2) / target_grad_scale
+        if has_cubic_witness and cv is not None and cy is not None and target_cubic_scale is not None:
+            cubic_gate_projection = cv @ gates.T
+            cubic_up_projection = cv @ ups.T
+            predicted_cubic = 1.5 * torch.sum(
+                cubic_gate_projection ** 2 * cubic_up_projection * scales[None, :],
+                dim=1,
+            )
+            loss = loss + cubic_weight * torch.mean((predicted_cubic - cy) ** 2) / target_cubic_scale
         loss.backward()
         return loss
 
@@ -2043,8 +2698,10 @@ def fixed_gate_direction_value_polish(
     fit_dtype = torch.float32
     x = torch.tensor(coords, dtype=fit_dtype, device=device)
     y = torch.tensor(targets, dtype=fit_dtype, device=device)
+    target_scale = torch.std(y).detach().clamp_min(1e-8)
     gate_dirs_t = torch.tensor(gate_dirs, dtype=fit_dtype, device=device)
-    log_gate_norms = torch.nn.Parameter(torch.tensor(np.log(gate_norms), dtype=fit_dtype, device=device))
+    initial_log_gate_norms = torch.tensor(np.log(gate_norms), dtype=fit_dtype, device=device)
+    log_gate_norms = torch.nn.Parameter(initial_log_gate_norms.clone())
     up_vectors = torch.nn.Parameter(torch.tensor(base_ups, dtype=fit_dtype, device=device))
     bias = torch.nn.Parameter(torch.tensor(float(candidate["bias"]), dtype=fit_dtype, device=device))
     has_gradient_witness = (
@@ -2062,9 +2719,32 @@ def fixed_gate_direction_value_polish(
         gy = None
         target_grad_scale = None
 
-    optimizer = torch.optim.AdamW([log_gate_norms, up_vectors, bias], lr=0.03, weight_decay=1e-6)
+    norm_lr = float(os.environ.get("GCL_BLIND_SWIGLU_FIXED_DIRECTION_NORM_LR", "0.012") or "0.012")
+    value_lr = float(os.environ.get("GCL_BLIND_SWIGLU_FIXED_DIRECTION_VALUE_LR", "0.002") or "0.002")
+    max_norm_ratio = float(os.environ.get("GCL_BLIND_SWIGLU_FIXED_DIRECTION_MAX_NORM_RATIO", "6.0") or "6.0")
+    if (
+        not np.isfinite(norm_lr)
+        or norm_lr <= 0.0
+        or not np.isfinite(value_lr)
+        or value_lr <= 0.0
+        or not np.isfinite(max_norm_ratio)
+        or max_norm_ratio < 1.0
+    ):
+        raise RuntimeError("fixed-direction value polish learning rates/norm ratio are invalid")
+    optimizer = torch.optim.AdamW([
+        {"params": [log_gate_norms], "lr": norm_lr},
+        {"params": [up_vectors, bias], "lr": value_lr},
+    ], weight_decay=1e-8)
+    log_norm_min = initial_log_gate_norms - math.log(max_norm_ratio)
+    log_norm_max = initial_log_gate_norms + math.log(max_norm_ratio)
     best_state: tuple[float, np.ndarray, np.ndarray, float] | None = None
-    step_count = 2800 if gates.shape[0] >= 12 else 1800
+    default_steps = 2800 if gates.shape[0] >= 12 else 1800
+    step_count = int(os.environ.get(
+        "GCL_BLIND_SWIGLU_FIXED_DIRECTION_VALUE_STEPS",
+        str(default_steps),
+    ) or str(default_steps))
+    if step_count <= 0:
+        raise RuntimeError("GCL_BLIND_SWIGLU_FIXED_DIRECTION_VALUE_STEPS must be positive")
     for step in range(step_count):
         optimizer.zero_grad()
         gate_norms_t = torch.exp(log_gate_norms).clamp(1e-5, 20.0)
@@ -2072,7 +2752,7 @@ def fixed_gate_direction_value_polish(
         gate_projection = x @ gate_vectors.T
         up_projection = x @ up_vectors.T
         prediction = torch.sum(torch.nn.functional.silu(gate_projection) * up_projection, dim=1) + bias
-        loss = torch.mean((prediction - y) ** 2)
+        loss = torch.mean(((prediction - y) / target_scale) ** 2)
         if has_gradient_witness and gx is not None and gy is not None and target_grad_scale is not None:
             grad_gate_projection = gx @ gate_vectors.T
             grad_up_projection = gx @ up_vectors.T
@@ -2088,6 +2768,8 @@ def fixed_gate_direction_value_polish(
         loss.backward()
         torch.nn.utils.clip_grad_norm_([log_gate_norms, up_vectors, bias], 10.0)
         optimizer.step()
+        with torch.no_grad():
+            log_gate_norms.clamp_(log_norm_min, log_norm_max)
         if step == 0 or (step + 1) % 100 == 0:
             with torch.no_grad():
                 plain_prediction = torch.sum(
@@ -2095,7 +2777,7 @@ def fixed_gate_direction_value_polish(
                     * (x @ up_vectors.T),
                     dim=1,
                 ) + bias
-                plain_loss = float(torch.mean((plain_prediction - y) ** 2).detach().cpu().item())
+                plain_loss = float(torch.mean(((plain_prediction - y) / target_scale) ** 2).detach().cpu().item())
                 if best_state is None or plain_loss < best_state[0]:
                     best_state = (
                         plain_loss,
@@ -2107,33 +2789,46 @@ def fixed_gate_direction_value_polish(
         return candidate
     _loss, norm_values, up_values, bias_value = best_state
     gate_values = gate_dirs * norm_values[:, None]
-    activation_np = silu_np(coords @ gate_values.T) * (coords @ up_values.T)
-    design = np.column_stack([activation_np, np.ones(coords.shape[0], dtype=np.float64)])
-    try:
-        coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
-    except np.linalg.LinAlgError:
-        coeffs = None
-    if coeffs is not None and np.all(np.isfinite(coeffs)):
-        up_values = up_values * coeffs[:-1, None]
-        bias_value = float(coeffs[-1])
-        prediction_np = design @ coeffs
+    solved = solve_fixed_gate_start(coords, targets, gate_values)
+    if solved is not None:
+        gate_values, normalized_ups, solved_scales, bias_value, _solved_mae = solved
+        up_values = normalized_ups
+        scale_values = solved_scales
     else:
-        prediction_np = activation_np.sum(axis=1) + bias_value
-    mae = float(np.mean(np.abs(prediction_np - targets)))
-    mse = float(np.mean((prediction_np - targets) ** 2))
-    if mae >= float(candidate["score"]):
+        up_norms = np.linalg.norm(up_values, axis=1).clip(min=1e-12)
+        scale_values = up_norms
+        up_values = up_values / up_norms[:, None]
+    prediction_np = np.sum(
+        silu_np(coords @ gate_values.T)
+        * (coords @ up_values.T)
+        * scale_values[None, :],
+        axis=1,
+    ) + bias_value
+    metrics = regression_metrics(targets, prediction_np)
+    base_metrics = regression_metrics(targets, predict_swiglu(coords, candidate))
+    if (
+        metrics["mae"] >= base_metrics["mae"]
+        and metrics["worstError"] >= base_metrics["worstError"]
+    ):
         return candidate
     polished = dict(candidate)
     polished.update({
-        "mae": mae,
-        "mse": mse,
-        "score": mae,
+        "mae": float(metrics["mae"]),
+        "mse": float(metrics["mse"]),
+        "r2": float(metrics["r2"]),
+        "score": float(metrics["mae"]),
+        "selectionScore": float(metrics["mae"]),
+        "worstError": float(metrics["worstError"]),
         "gates": gate_values.astype(np.float64),
         "ups": up_values.astype(np.float64),
-        "scales": np.ones(gates.shape[0], dtype=np.float64),
+        "scales": scale_values.astype(np.float64),
         "bias": bias_value,
         "fixedGateDirectionValuePolished": True,
         "fixedGateDirectionMaeBefore": float(candidate["mae"]),
+        "fixedGateDirectionValueSteps": int(step_count),
+        "fixedGateDirectionNormLearningRate": float(norm_lr),
+        "fixedGateDirectionValueLearningRate": float(value_lr),
+        "fixedGateDirectionMaxNormRatio": float(max_norm_ratio),
     })
     if candidate.get("polished"):
         polished["polished"] = True
@@ -3774,6 +4469,13 @@ def fit_swiglu_sum(
     selection_coords: np.ndarray | None = None,
     selection_targets: np.ndarray | None = None,
     warm_starts: list[tuple[np.ndarray, np.ndarray, np.ndarray, float]] | None = None,
+    gate_seed_scores: np.ndarray | None = None,
+    cubic_selection_directions: np.ndarray | None = None,
+    cubic_selection_scores: np.ndarray | None = None,
+    cubic_directions: np.ndarray | None = None,
+    cubic_targets: np.ndarray | None = None,
+    cubic_weight_override: float | None = None,
+    selection_cubic_weight_override: float | None = None,
 ) -> dict[str, Any]:
     if atom_count == 1:
         single = fit_swiglu_atom(coords, targets, seed, steps, learning_rate)
@@ -3807,6 +4509,38 @@ def fit_swiglu_sum(
     else:
         gx = None
         gy = None
+    cubic_weight = float(
+        cubic_weight_override
+        if cubic_weight_override is not None
+        else os.environ.get("GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT", "0.0") or "0.0"
+    )
+    if not np.isfinite(cubic_weight) or cubic_weight < 0.0:
+        raise RuntimeError("SwiGLU cubic fit weight must be non-negative and finite")
+    effective_cubic_directions = (
+        cubic_directions
+        if cubic_directions is not None
+        else gate_seed_directions
+    )
+    effective_cubic_targets = (
+        cubic_targets
+        if cubic_targets is not None
+        else gate_seed_scores
+    )
+    has_cubic_witness = (
+        effective_cubic_directions is not None
+        and effective_cubic_targets is not None
+        and cubic_weight > 0.0
+        and effective_cubic_directions.shape[0] > 0
+        and effective_cubic_directions.shape[0] == effective_cubic_targets.shape[0]
+    )
+    if has_cubic_witness:
+        cv = torch.tensor(effective_cubic_directions, dtype=fit_dtype)
+        cy = torch.tensor(effective_cubic_targets, dtype=fit_dtype)
+        target_cubic_scale = torch.mean(cy ** 2).detach().clamp_min(1e-12)
+    else:
+        cv = None
+        cy = None
+        target_cubic_scale = None
     rank = coords.shape[1]
     target_scale = float(np.std(targets)) or 1.0
     target_variance = float(np.mean((targets - np.mean(targets)) ** 2))
@@ -3921,6 +4655,12 @@ def fit_swiglu_sum(
                 selection_coords,
                 selection_targets,
                 extra_gate_candidates,
+                effective_cubic_directions,
+                effective_cubic_targets,
+                cubic_selection_directions,
+                cubic_selection_scores,
+                cubic_weight,
+                selection_cubic_weight_override,
             )
         except Exception:
             if fit_mode == "batched":
@@ -3962,6 +4702,14 @@ def fit_swiglu_sum(
                 predicted_gradients = torch.sum(gradient_terms, dim=1)
                 target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(torch.tensor(1e-12, dtype=fit_dtype))
                 loss = loss + gradient_weight * torch.mean((predicted_gradients - gy) ** 2) / target_grad_scale
+            if has_cubic_witness and cv is not None and cy is not None and target_cubic_scale is not None:
+                cubic_gate_projection = cv @ gates.T
+                cubic_up_projection = cv @ ups.T
+                predicted_cubic = 1.5 * torch.sum(
+                    cubic_gate_projection ** 2 * cubic_up_projection * scales[None, :],
+                    dim=1,
+                )
+                loss = loss + cubic_weight * torch.mean((predicted_cubic - cy) ** 2) / target_cubic_scale
             loss.backward()
             optimizer.step()
 
@@ -3990,6 +4738,14 @@ def fit_swiglu_sum(
                 predicted_gradients = torch.sum(gradient_terms, dim=1)
                 target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(torch.tensor(1e-12, dtype=fit_dtype))
                 loss = loss + gradient_weight * torch.mean((predicted_gradients - gy) ** 2) / target_grad_scale
+            if has_cubic_witness and cv is not None and cy is not None and target_cubic_scale is not None:
+                cubic_gate_projection = cv @ gates.T
+                cubic_up_projection = cv @ ups.T
+                predicted_cubic = 1.5 * torch.sum(
+                    cubic_gate_projection ** 2 * cubic_up_projection * scales[None, :],
+                    dim=1,
+                )
+                loss = loss + cubic_weight * torch.mean((predicted_cubic - cy) ** 2) / target_cubic_scale
             loss.backward()
             return loss
 
@@ -4547,6 +5303,1131 @@ def detect_swiglu_cancellation_pairs(
     return pairs
 
 
+def audit_swiglu_source_cancellation(
+    coords: np.ndarray,
+    gates: np.ndarray,
+    effective_ups: np.ndarray,
+    source_units: list[int],
+) -> dict[str, Any]:
+    points = np.asarray(coords, dtype=np.float64)
+    gate_values = np.asarray(gates, dtype=np.float64)
+    up_values = np.asarray(effective_ups, dtype=np.float64)
+    if (
+        points.ndim != 2
+        or gate_values.ndim != 2
+        or up_values.shape != gate_values.shape
+        or points.shape[1] != gate_values.shape[1]
+        or len(source_units) != gate_values.shape[0]
+    ):
+        raise RuntimeError("source cancellation audit received incompatible shapes")
+    contributions = silu_np(points @ gate_values.T) * (points @ up_values.T)
+    gross = np.sum(np.abs(contributions), axis=1)
+    net = np.abs(np.sum(contributions, axis=1))
+    mean_gross = float(np.mean(gross))
+    mean_net = float(np.mean(net))
+    cancellation_fraction = (
+        0.0
+        if mean_gross <= 1e-15
+        else max(0.0, min(1.0, 1.0 - mean_net / mean_gross))
+    )
+    centered = contributions - np.mean(contributions, axis=0, keepdims=True)
+    norms = np.linalg.norm(centered, axis=0)
+    pairs: list[dict[str, Any]] = []
+    for left, right in combinations(range(gate_values.shape[0]), 2):
+        denominator = float(norms[left] * norms[right])
+        if denominator <= 1e-15:
+            continue
+        correlation = float(np.dot(centered[:, left], centered[:, right]) / denominator)
+        pairs.append({
+            "sourceIndices": [int(left), int(right)],
+            "sourceUnits": [int(source_units[left]), int(source_units[right])],
+            "contributionCorrelation": correlation,
+            "meanAbsContributionLeft": float(np.mean(np.abs(contributions[:, left]))),
+            "meanAbsContributionRight": float(np.mean(np.abs(contributions[:, right]))),
+        })
+    pairs.sort(key=lambda item: float(item["contributionCorrelation"]))
+    return {
+        "meanGrossContribution": mean_gross,
+        "meanNetContribution": mean_net,
+        "cancellationFraction": cancellation_fraction,
+        "negativePairCount": int(sum(
+            1 for item in pairs
+            if float(item["contributionCorrelation"]) < 0.0
+        )),
+        "pairCountAtOrBelowMinus050": int(sum(
+            1 for item in pairs
+            if float(item["contributionCorrelation"]) <= -0.50
+        )),
+        "minimumPairCorrelation": (
+            None
+            if not pairs
+            else float(pairs[0]["contributionCorrelation"])
+        ),
+        "mostNegativePairs": pairs[:min(8, len(pairs))],
+    }
+
+
+def residual_block_refit_cubic_weights(has_cubic_witness: bool) -> tuple[float, float]:
+    fit_default = os.environ.get(
+        "GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT",
+        "1.0" if has_cubic_witness else "0.0",
+    )
+    fit_weight = float(os.environ.get(
+        "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CUBIC_FIT_WEIGHT",
+        fit_default,
+    ) or "0.0")
+    selection_weight = float(os.environ.get(
+        "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CUBIC_SELECTION_WEIGHT",
+        os.environ.get("GCL_BLIND_SWIGLU_SELECTION_CUBIC_WEIGHT", "0.0"),
+    ) or "0.0")
+    if not np.isfinite(fit_weight) or fit_weight < 0.0:
+        raise RuntimeError(
+            "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CUBIC_FIT_WEIGHT "
+            "must be non-negative and finite"
+        )
+    if not np.isfinite(selection_weight) or selection_weight < 0.0:
+        raise RuntimeError(
+            "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CUBIC_SELECTION_WEIGHT "
+            "must be non-negative and finite"
+        )
+    return fit_weight, selection_weight
+
+
+def detect_piecewise_quadratic_boundaries(
+    line_coordinates: np.ndarray,
+    values: np.ndarray,
+    expected_count: int,
+) -> list[dict[str, float]]:
+    coordinates = np.asarray(line_coordinates, dtype=np.float64)
+    observed = np.asarray(values, dtype=np.float64)
+    if (
+        coordinates.ndim != 1
+        or observed.shape != coordinates.shape
+        or coordinates.size < max(17, expected_count * 4 + 1)
+        or expected_count <= 0
+    ):
+        return []
+    steps = np.diff(coordinates)
+    step = float(np.median(steps))
+    if not np.isfinite(step) or step <= 0.0 or np.max(np.abs(steps - step)) > step * 1e-5:
+        return []
+    second = np.diff(observed, n=2) / (step ** 2)
+    if second.size < 7:
+        return []
+    smoothed = np.convolve(second, np.array([0.2, 0.6, 0.2]), mode="same")
+    third_jump = np.diff(smoothed)
+    scores = np.abs(third_jump)
+    score_median = float(np.median(scores))
+    score_mad = float(np.median(np.abs(scores - score_median)))
+    score_floor = max(
+        score_median + 8.0 * 1.4826 * score_mad,
+        float(np.max(scores)) * 1e-4,
+        1e-18,
+    )
+    margin = 4
+    candidate_order = np.argsort(scores)[::-1]
+    separation = max(2, coordinates.size // max(8, expected_count * 8))
+    selected: list[int] = []
+    for raw_index in candidate_order:
+        index = int(raw_index)
+        if float(scores[index]) < score_floor:
+            break
+        if index < margin or index >= scores.size - margin:
+            continue
+        if any(abs(index - existing) <= separation for existing in selected):
+            continue
+        selected.append(index)
+        if len(selected) >= expected_count:
+            break
+    if not selected:
+        return []
+
+    boundaries: list[dict[str, float]] = []
+    for index in selected:
+        local_start = max(0, index - separation)
+        local_stop = min(scores.size, index + separation + 1)
+        local_scores = scores[local_start:local_stop]
+        local_positions = 0.5 * (
+            coordinates[local_start + 1:local_stop + 1]
+            + coordinates[local_start + 2:local_stop + 2]
+        )
+        denominator = float(np.sum(local_scores))
+        boundary = (
+            float(np.sum(local_scores * local_positions) / denominator)
+            if denominator > 1e-18
+            else float(0.5 * (coordinates[index + 1] + coordinates[index + 2]))
+        )
+        window = max(2, separation)
+        left = smoothed[max(0, index - 2 * window):max(1, index - window)]
+        right = smoothed[min(smoothed.size - 1, index + window + 1):min(smoothed.size, index + 2 * window + 1)]
+        if left.size == 0 or right.size == 0:
+            jump = float(third_jump[index])
+        else:
+            jump = float(np.median(right) - np.median(left))
+        boundaries.append({
+            "coordinate": boundary,
+            "jump": jump,
+            "score": float(scores[index]),
+        })
+    boundaries.sort(key=lambda item: float(item["coordinate"]))
+    return boundaries
+
+
+def fit_origin_hyperplane_normal(points: np.ndarray) -> tuple[np.ndarray, float] | None:
+    values = np.asarray(points, dtype=np.float64)
+    if values.ndim != 2 or values.shape[0] <= values.shape[1] or values.shape[1] < 2:
+        return None
+    working = values
+    normal: np.ndarray | None = None
+    for _ in range(3):
+        try:
+            _u, _s, vh = np.linalg.svd(working, full_matrices=False)
+        except np.linalg.LinAlgError:
+            return None
+        normal = canonical_direction(vh[-1])
+        if normal is None:
+            return None
+        residual = np.abs(values @ normal)
+        if working.shape[0] <= values.shape[1] + 8:
+            break
+        cutoff = float(np.quantile(residual, 0.85))
+        keep = residual <= cutoff
+        if int(np.sum(keep)) <= values.shape[1]:
+            break
+        working = values[keep]
+    if normal is None:
+        return None
+    residual = np.abs(values @ normal)
+    scale = np.linalg.norm(values, axis=1).clip(min=1e-9)
+    return normal, float(np.median(residual / scale))
+
+
+def choose_gate_stitch_probe_direction(
+    rng: np.random.Generator,
+    gate_directions: np.ndarray,
+    candidate_count: int = 2048,
+) -> np.ndarray:
+    directions = np.asarray(gate_directions, dtype=np.float64)
+    best: tuple[float, np.ndarray] | None = None
+    for _ in range(max(64, candidate_count)):
+        candidate = normalize(rng.normal(size=directions.shape[1]))
+        projections = np.abs(directions @ candidate)
+        score = float(np.min(projections)) + 0.25 * float(np.quantile(projections, 0.25))
+        if best is None or score > best[0]:
+            best = (score, candidate)
+    assert best is not None
+    return best[1]
+
+
+def cluster_repeated_gate_normals(
+    normals: np.ndarray,
+    strengths: np.ndarray,
+    expected_count: int,
+    min_abs_cosine: float = 0.965,
+) -> list[dict[str, Any]]:
+    directions = np.asarray(normals, dtype=np.float64)
+    weights = np.asarray(strengths, dtype=np.float64)
+    if (
+        directions.ndim != 2
+        or weights.shape != (directions.shape[0],)
+        or expected_count <= 0
+        or directions.shape[0] < expected_count * 2
+        or not 0.0 < min_abs_cosine < 1.0
+    ):
+        return []
+    normalized: list[np.ndarray] = []
+    normalized_weights: list[float] = []
+    for direction, weight in zip(directions, weights):
+        canonical = canonical_direction(direction)
+        if canonical is None or not np.isfinite(weight) or weight <= 0.0:
+            continue
+        normalized.append(canonical)
+        normalized_weights.append(float(weight))
+    if len(normalized) < expected_count * 2:
+        return []
+    values = np.vstack(normalized)
+    raw_weights = np.asarray(normalized_weights, dtype=np.float64)
+    weight_cap = max(float(np.quantile(raw_weights, 0.90)), 1e-12)
+    robust_weights = np.minimum(raw_weights, weight_cap)
+
+    remaining = np.ones(values.shape[0], dtype=bool)
+    clusters: list[dict[str, Any]] = []
+    for _ in range(expected_count):
+        candidates = np.flatnonzero(remaining)
+        best: tuple[int, float, int, np.ndarray] | None = None
+        for index in candidates:
+            support_mask = remaining & (np.abs(values @ values[index]) >= min_abs_cosine)
+            support_count = int(np.sum(support_mask))
+            support_weight = float(np.sum(robust_weights[support_mask]))
+            score = (support_count, support_weight)
+            if best is None or score > (best[0], best[1]):
+                best = (support_count, support_weight, int(index), support_mask)
+        if best is None or best[0] < 2:
+            return []
+        support_mask = best[3]
+        members = values[support_mask].copy()
+        anchor = values[best[2]]
+        members[np.sum(members * anchor, axis=1) < 0.0] *= -1.0
+        center = canonical_direction(np.sum(
+            members * robust_weights[support_mask, None],
+            axis=0,
+        ))
+        if center is None:
+            return []
+        clusters.append({
+            "direction": center,
+            "support": int(np.sum(support_mask)),
+            "strength": float(np.sum(raw_weights[support_mask])),
+        })
+        remaining[support_mask] = False
+
+    centers = np.vstack([item["direction"] for item in clusters])
+    for _ in range(3):
+        scores = np.abs(values @ centers.T)
+        assignments = np.argmax(scores, axis=1)
+        refreshed: list[dict[str, Any]] = []
+        for cluster_index in range(expected_count):
+            member_mask = (
+                (assignments == cluster_index)
+                & (scores[:, cluster_index] >= min_abs_cosine)
+            )
+            if int(np.sum(member_mask)) < 2:
+                return []
+            members = values[member_mask].copy()
+            anchor = centers[cluster_index]
+            members[np.sum(members * anchor, axis=1) < 0.0] *= -1.0
+            center = canonical_direction(np.sum(
+                members * robust_weights[member_mask, None],
+                axis=0,
+            ))
+            if center is None:
+                return []
+            refreshed.append({
+                "direction": center,
+                "support": int(np.sum(member_mask)),
+                "strength": float(np.sum(raw_weights[member_mask])),
+            })
+        clusters = refreshed
+        centers = np.vstack([item["direction"] for item in clusters])
+    return clusters
+
+
+def recover_up_direction_from_hessian_gate_action(
+    gate_direction: np.ndarray,
+    hessian_jump_times_gate: np.ndarray,
+) -> np.ndarray | None:
+    gate = canonical_direction(gate_direction)
+    action = np.asarray(hessian_jump_times_gate, dtype=np.float64)
+    if gate is None or action.shape != gate.shape or not np.all(np.isfinite(action)):
+        return None
+    effective_up = action - 0.5 * float(np.dot(gate, action)) * gate
+    return canonical_direction(effective_up)
+
+
+def apply_asymptotic_support_fallback(
+    recovered_gate_directions: np.ndarray,
+    recovered_up_directions: list[np.ndarray | None],
+    gate_supports: np.ndarray,
+    up_supports: np.ndarray,
+    initial_gate_directions: np.ndarray,
+    initial_up_directions: np.ndarray,
+    minimum_gate_support: int,
+    minimum_up_support: int,
+) -> tuple[np.ndarray, list[np.ndarray], list[int]]:
+    recovered_gates = np.asarray(recovered_gate_directions, dtype=np.float64)
+    initial_gates = np.asarray(initial_gate_directions, dtype=np.float64)
+    initial_ups = np.asarray(initial_up_directions, dtype=np.float64)
+    gate_support_values = np.asarray(gate_supports, dtype=np.int64)
+    up_support_values = np.asarray(up_supports, dtype=np.int64)
+    atom_count = recovered_gates.shape[0]
+    if (
+        recovered_gates.ndim != 2
+        or initial_gates.shape != recovered_gates.shape
+        or initial_ups.shape != recovered_gates.shape
+        or len(recovered_up_directions) != atom_count
+        or gate_support_values.shape != (atom_count,)
+        or up_support_values.shape != (atom_count,)
+        or minimum_gate_support <= 0
+        or minimum_up_support <= 0
+    ):
+        raise RuntimeError("asymptotic support fallback inputs are incompatible")
+    selected_gates = recovered_gates.copy()
+    selected_ups: list[np.ndarray] = []
+    fallback_atoms: list[int] = []
+    for atom_index in range(atom_count):
+        recovered_up = recovered_up_directions[atom_index]
+        use_fallback = (
+            gate_support_values[atom_index] < minimum_gate_support
+            or up_support_values[atom_index] < minimum_up_support
+            or recovered_up is None
+        )
+        if use_fallback:
+            selected_gates[atom_index] = initial_gates[atom_index]
+            selected_ups.append(initial_ups[atom_index].copy())
+            fallback_atoms.append(atom_index)
+        else:
+            selected_ups.append(np.asarray(recovered_up, dtype=np.float64).copy())
+    return selected_gates, selected_ups, fallback_atoms
+
+
+def make_asymptotic_cold_start_scaffold(
+    atom_count: int,
+    rank: int,
+    targets: np.ndarray,
+) -> dict[str, Any]:
+    if atom_count <= 0 or rank <= 0:
+        raise RuntimeError("asymptotic cold start requires positive atom_count and rank")
+    target_values = np.asarray(targets, dtype=np.float64)
+    if target_values.ndim != 1 or target_values.size == 0 or not np.all(np.isfinite(target_values)):
+        raise RuntimeError("asymptotic cold start requires finite one-dimensional targets")
+    gates = np.zeros((atom_count, rank), dtype=np.float64)
+    ups = np.zeros_like(gates)
+    for atom_index in range(atom_count):
+        gates[atom_index, atom_index % rank] = 1.0
+        ups[atom_index, (atom_index + 1) % rank] = 1.0
+    bias = float(np.mean(target_values))
+    baseline = np.full(target_values.shape, bias, dtype=np.float64)
+    metrics = regression_metrics(target_values, baseline)
+    return {
+        "gates": gates,
+        "ups": ups,
+        "scales": np.zeros(atom_count, dtype=np.float64),
+        "bias": bias,
+        "mae": float(metrics["mae"]),
+        "mse": float(metrics["mse"]),
+        "r2": float(metrics["r2"]),
+        "worstError": float(metrics["worstError"]),
+        "score": float(metrics["mae"]),
+        "selectionScore": float(metrics["mae"]),
+        "restartCount": 0,
+        "randomRestartCount": 0,
+        "structuredStartCount": 0,
+        "startKind": "asymptotic-cold-start-scaffold",
+        "fitMode": "asymptotic-structure-cold-start",
+        "bestScoreByStartKind": {},
+        "bestMetricsByStartKind": {},
+    }
+
+
+def asymptotic_stitch_query_upper_bound(
+    line_count: int,
+    samples_per_line: int,
+    atom_count: int,
+    rank: int,
+    hessian_representatives: int,
+) -> int:
+    if min(line_count, samples_per_line, atom_count, rank, hessian_representatives) <= 0:
+        raise RuntimeError("asymptotic query-bound inputs must be positive")
+    line_queries = line_count * samples_per_line
+    normal_queries = line_count * atom_count * 2 * (rank + 1)
+    hessian_queries = atom_count * hessian_representatives * 4 * rank * 2 * 2
+    return int(line_queries + normal_queries + hessian_queries)
+
+
+def solve_bidirectional_gate_orientation_start(
+    coords: np.ndarray,
+    targets: np.ndarray,
+    gate_directions: np.ndarray,
+    gate_norm: float,
+    *,
+    sample_limit: int = 4096,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, float] | None:
+    points = np.asarray(coords, dtype=np.float64)
+    values = np.asarray(targets, dtype=np.float64)
+    directions = np.asarray(gate_directions, dtype=np.float64)
+    if (
+        points.ndim != 2
+        or values.shape != (points.shape[0],)
+        or directions.ndim != 2
+        or directions.shape[1] != points.shape[1]
+        or directions.shape[0] == 0
+        or not np.isfinite(gate_norm)
+        or gate_norm <= 0.0
+    ):
+        return None
+
+    count = min(points.shape[0], max(512, int(sample_limit)))
+    if count < points.shape[0]:
+        sample_indices = np.linspace(0, points.shape[0] - 1, count, dtype=np.int64)
+        court_points = points[sample_indices]
+        court_values = values[sample_indices]
+    else:
+        court_points = points
+        court_values = values
+
+    positive_gates = directions * gate_norm
+    signed_gates = np.vstack([positive_gates, -positive_gates])
+    blocks = [silu_np(court_points @ gate)[:, None] * court_points for gate in signed_gates]
+    design = np.column_stack(blocks + [np.ones(court_points.shape[0], dtype=np.float64)])
+    try:
+        coefficients, *_ = np.linalg.lstsq(design, court_values, rcond=None)
+    except np.linalg.LinAlgError:
+        return None
+    if not np.all(np.isfinite(coefficients)):
+        return None
+    rank = points.shape[1]
+    raw_ups = coefficients[:-1].reshape(signed_gates.shape[0], rank)
+    positive_strength = np.linalg.norm(raw_ups[:directions.shape[0]], axis=1)
+    negative_strength = np.linalg.norm(raw_ups[directions.shape[0]:], axis=1)
+    signs = np.where(positive_strength >= negative_strength, 1.0, -1.0)
+    oriented_gates = positive_gates * signs[:, None]
+    solved = solve_fixed_gate_start(points, values, oriented_gates)
+    if solved is None:
+        return None
+    solved_gates, solved_ups, solved_scales, solved_bias, solved_mae = solved
+    return solved_gates, solved_ups, solved_scales, solved_bias, solved_mae
+
+
+def asymptotic_gate_stitch_swiglu_candidate(
+    oracle: OracleClient,
+    basis: np.ndarray,
+    coords: np.ndarray,
+    targets: np.ndarray,
+    candidate: dict[str, Any],
+    seed: int,
+    *,
+    selection_coords: np.ndarray | None = None,
+    selection_targets: np.ndarray | None = None,
+    gradient_coords: np.ndarray | None = None,
+    gradient_targets: np.ndarray | None = None,
+    cubic_directions: np.ndarray | None = None,
+    cubic_targets: np.ndarray | None = None,
+    line_count: int,
+    samples_per_line: int,
+    line_range: float,
+    offset_scale: float,
+    asymptotic_scale: float,
+    cold_start: bool = False,
+) -> dict[str, Any]:
+    gates = np.asarray(candidate["gates"], dtype=np.float64)
+    if gates.ndim != 2 or gates.shape[0] < 2 or gates.shape[1] != basis.shape[0]:
+        return candidate
+    atom_count, rank = gates.shape
+    if (
+        line_count < 4
+        or samples_per_line < atom_count * 4 + 1
+        or samples_per_line % 2 == 0
+        or line_range <= 0.0
+        or offset_scale <= 0.0
+        or asymptotic_scale <= 0.0
+    ):
+        raise RuntimeError("asymptotic gate stitch configuration is invalid")
+    rng = np.random.default_rng(seed)
+    if cold_start:
+        initial_gate_norm = float(os.environ.get(
+            "GCL_BLIND_SWIGLU_ASYMPTOTIC_COLD_START_GATE_NORM",
+            "0.25",
+        ) or "0.25")
+        if not np.isfinite(initial_gate_norm) or initial_gate_norm <= 0.0:
+            raise RuntimeError("asymptotic cold-start gate norm must be positive and finite")
+        gate_norms = np.full(atom_count, initial_gate_norm, dtype=np.float64)
+        initial_directions = np.zeros_like(gates)
+        balanced_line_direction = normalize(rng.normal(size=rank))
+    else:
+        gate_norms = np.linalg.norm(gates, axis=1).clip(min=1e-9)
+        initial_directions = gates / gate_norms[:, None]
+        balanced_line_direction = choose_gate_stitch_probe_direction(rng, initial_directions)
+    line_coordinates = np.linspace(-line_range, line_range, samples_per_line, dtype=np.float64)
+    line_rows: list[dict[str, Any]] = []
+    failed_lines = 0
+    for line_index in range(line_count):
+        if line_index == 0:
+            line_direction = balanced_line_direction
+        else:
+            line_direction = normalize(rng.normal(size=rank))
+            if not cold_start:
+                for _ in range(64):
+                    if float(np.min(np.abs(initial_directions @ line_direction))) >= 0.02:
+                        break
+                    line_direction = normalize(rng.normal(size=rank))
+        offset = rng.normal(0.0, offset_scale, size=rank)
+        offset -= float(np.dot(offset, line_direction)) * line_direction
+        active_points = offset[None, :] + line_coordinates[:, None] * line_direction[None, :]
+        inputs = (asymptotic_scale * active_points) @ basis
+        outputs = oracle.eval(
+            inputs.astype(np.float32),
+            stage=f"asymptotic-gate-stitch-line-{line_index}",
+        ) / (asymptotic_scale ** 2)
+        boundaries = detect_piecewise_quadratic_boundaries(
+            line_coordinates,
+            outputs,
+            atom_count,
+        )
+        if len(boundaries) < max(3, atom_count // 4):
+            failed_lines += 1
+            continue
+        line_rows.append({
+            "offset": offset,
+            "direction": line_direction,
+            "boundaries": boundaries,
+        })
+    if len(line_rows) < 4:
+        diagnosed = dict(candidate)
+        diagnosed.update({
+            "asymptoticGateStitched": False,
+            "asymptoticGateStitchLineCount": int(line_count),
+            "asymptoticGateStitchUsableLineCount": int(len(line_rows)),
+            "asymptoticGateStitchFailedLineCount": int(failed_lines),
+        })
+        return diagnosed
+
+    coordinate_step = float(line_coordinates[1] - line_coordinates[0])
+    boundary_rows: list[dict[str, Any]] = []
+    for row in line_rows:
+        offset = np.asarray(row["offset"], dtype=np.float64)
+        row_direction = np.asarray(row["direction"], dtype=np.float64)
+        boundaries = row["boundaries"]
+        boundary_coordinates = np.asarray([
+            float(item["coordinate"])
+            for item in boundaries
+        ], dtype=np.float64)
+        for boundary_index, boundary in enumerate(boundaries):
+            neighbor_gaps = []
+            if boundary_index > 0:
+                neighbor_gaps.append(boundary_coordinates[boundary_index] - boundary_coordinates[boundary_index - 1])
+            if boundary_index + 1 < len(boundaries):
+                neighbor_gaps.append(boundary_coordinates[boundary_index + 1] - boundary_coordinates[boundary_index])
+            nearest_gap = min(neighbor_gaps) if neighbor_gaps else line_range
+            if nearest_gap < coordinate_step * 6.0:
+                continue
+            side_delta = min(0.08, nearest_gap * 0.25)
+            side_delta = max(side_delta, coordinate_step * 2.5)
+            boundary_point = offset + float(boundary["coordinate"]) * row_direction
+            boundary_rows.append({
+                "boundaryPoint": boundary_point,
+                "minus": boundary_point - side_delta * row_direction,
+                "plus": boundary_point + side_delta * row_direction,
+                "score": float(boundary["score"]),
+                "sideDelta": float(side_delta),
+                "lineDirection": row_direction,
+            })
+
+    normal_directions: list[np.ndarray] = []
+    normal_strengths: list[float] = []
+    normal_witness_rows: list[dict[str, Any]] = []
+    gradient_step = max(1e-4, coordinate_step * 0.25)
+    gradient_chunk_size = 32
+    for chunk_start in range(0, len(boundary_rows), gradient_chunk_size):
+        chunk = boundary_rows[chunk_start:chunk_start + gradient_chunk_size]
+        side_coords = np.vstack([
+            row[side]
+            for row in chunk
+            for side in ("minus", "plus")
+        ])
+        side_gradients = estimate_active_forward_gradients_at_coords(
+            oracle,
+            basis,
+            asymptotic_scale * side_coords,
+            [asymptotic_scale * gradient_step],
+            stage=f"asymptotic-gate-normal-{chunk_start // gradient_chunk_size}",
+        ) / asymptotic_scale
+        for local_index, row in enumerate(chunk):
+            minus_gradient = side_gradients[2 * local_index]
+            plus_gradient = side_gradients[2 * local_index + 1]
+            jump = plus_gradient - minus_gradient
+            direction = canonical_direction(jump)
+            strength = float(np.linalg.norm(jump))
+            if direction is None or not np.isfinite(strength) or strength <= 1e-10:
+                continue
+            normal_directions.append(direction)
+            normal_strengths.append(strength * max(float(row["score"]), 1e-12))
+            normal_witness_rows.append(row)
+
+    clusters = cluster_repeated_gate_normals(
+        np.vstack(normal_directions) if normal_directions else np.zeros((0, rank)),
+        np.asarray(normal_strengths, dtype=np.float64),
+        atom_count,
+    )
+    if len(clusters) != atom_count:
+        diagnosed = dict(candidate)
+        diagnosed.update({
+            "asymptoticGateStitched": False,
+            "asymptoticGateStitchLineCount": int(line_count),
+            "asymptoticGateStitchUsableLineCount": int(len(line_rows)),
+            "asymptoticGateStitchFailedLineCount": int(failed_lines),
+            "asymptoticGateStitchBoundaryNormalCount": int(len(normal_directions)),
+            "asymptoticGateStitchClusterCount": int(len(clusters)),
+        })
+        return diagnosed
+
+    recovered_centers = np.vstack([item["direction"] for item in clusters])
+    normal_matrix = np.vstack(normal_directions)
+    normal_cluster_scores = np.abs(normal_matrix @ recovered_centers.T)
+    normal_cluster_assignments = np.argmax(normal_cluster_scores, axis=1)
+    hessian_probe_coords: list[np.ndarray] = []
+    hessian_probe_meta: list[tuple[int, float, float]] = []
+    hessian_representatives = int(os.environ.get(
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_REPRESENTATIVES",
+        "5",
+    ) or "5")
+    if hessian_representatives <= 0:
+        raise RuntimeError("asymptotic stitch Hessian representatives must be positive")
+    for cluster_index, gate_direction in enumerate(recovered_centers):
+        member_indices = np.flatnonzero(
+            (normal_cluster_assignments == cluster_index)
+            & (normal_cluster_scores[:, cluster_index] >= 0.965)
+        )
+        if member_indices.size == 0:
+            continue
+        ranked_members = sorted(
+            [int(index) for index in member_indices],
+            key=lambda index: normal_strengths[index],
+            reverse=True,
+        )[:hessian_representatives]
+        for representative_index in ranked_members:
+            representative = normal_witness_rows[representative_index]
+            boundary_point = np.asarray(representative["boundaryPoint"], dtype=np.float64)
+            normal_side_delta = float(os.environ.get(
+                "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_NORMAL_DELTA",
+                "0.10",
+            ) or "0.10")
+            if not np.isfinite(normal_side_delta) or normal_side_delta <= 0.0:
+                raise RuntimeError("asymptotic stitch Hessian normal delta must be positive and finite")
+            minus_side = boundary_point - normal_side_delta * gate_direction
+            plus_side = boundary_point + normal_side_delta * gate_direction
+            hessian_step = min(
+                0.01,
+                max(gradient_step * 2.0, normal_side_delta * 0.08),
+            )
+            hessian_probe_coords.extend([
+                minus_side - hessian_step * gate_direction,
+                minus_side + hessian_step * gate_direction,
+                plus_side - hessian_step * gate_direction,
+                plus_side + hessian_step * gate_direction,
+            ])
+            hessian_probe_meta.append((
+                cluster_index,
+                hessian_step,
+                float(normal_strengths[representative_index]),
+            ))
+
+    recovered_up_samples: list[list[tuple[np.ndarray, float]]] = [
+        [] for _ in range(atom_count)
+    ]
+    if hessian_probe_meta:
+        hessian_gradient_base_step = asymptotic_scale * gradient_step
+        hessian_gradient_steps = [
+            hessian_gradient_base_step,
+            2.0 * hessian_gradient_base_step,
+        ]
+        hessian_gradient_chunk_size = int(os.environ.get(
+            "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_GRADIENT_CHUNK_SIZE",
+            "32",
+        ) or "32")
+        hessian_probe_gradients = estimate_active_symmetric_richardson_gradients_at_coords(
+            oracle,
+            basis,
+            asymptotic_scale * np.vstack(hessian_probe_coords),
+            hessian_gradient_steps,
+            stage="asymptotic-up-hessian-action",
+            chunk_size=hessian_gradient_chunk_size,
+        ) / asymptotic_scale
+        for probe_index, (cluster_index, hessian_step, witness_strength) in enumerate(hessian_probe_meta):
+            base = probe_index * 4
+            hessian_minus_action = (
+                hessian_probe_gradients[base + 1]
+                - hessian_probe_gradients[base]
+            ) / (2.0 * hessian_step)
+            hessian_plus_action = (
+                hessian_probe_gradients[base + 3]
+                - hessian_probe_gradients[base + 2]
+            ) / (2.0 * hessian_step)
+            recovered_up = recover_up_direction_from_hessian_gate_action(
+                recovered_centers[cluster_index],
+                hessian_plus_action - hessian_minus_action,
+            )
+            if recovered_up is not None:
+                recovered_up_samples[cluster_index].append((recovered_up, witness_strength))
+
+    recovered_up_centers: list[np.ndarray | None] = []
+    recovered_up_supports: list[int] = []
+    for samples in recovered_up_samples:
+        if not samples:
+            recovered_up_centers.append(None)
+            recovered_up_supports.append(0)
+            continue
+        sample_directions = np.vstack([direction for direction, _weight in samples])
+        sample_weights = np.asarray([weight for _direction, weight in samples], dtype=np.float64)
+        similarities = np.abs(sample_directions @ sample_directions.T)
+        anchor_index = int(np.argmax(np.median(similarities, axis=1)))
+        anchor = sample_directions[anchor_index]
+        inlier_mask = similarities[anchor_index] >= 0.85
+        inlier_directions = sample_directions[inlier_mask].copy()
+        inlier_directions[np.sum(inlier_directions * anchor, axis=1) < 0.0] *= -1.0
+        inlier_weights = sample_weights[inlier_mask]
+        weight_cap = max(float(np.quantile(inlier_weights, 0.80)), 1e-12)
+        recovered_up_centers.append(canonical_direction(np.sum(
+            inlier_directions * np.minimum(inlier_weights, weight_cap)[:, None],
+            axis=0,
+        )))
+        recovered_up_supports.append(int(np.sum(inlier_mask)))
+
+    if cold_start:
+        assignment = np.asarray(sorted(
+            range(atom_count),
+            key=lambda index: tuple(np.round(recovered_centers[index], decimals=12).tolist()),
+        ), dtype=np.int64)
+        current_directions = recovered_centers[assignment].copy()
+    else:
+        assignment = maximum_weight_assignment(np.abs(initial_directions @ recovered_centers.T))
+        current_directions = recovered_centers[assignment]
+        current_directions[
+            np.sum(current_directions * initial_directions, axis=1) < 0.0
+        ] *= -1.0
+    assigned_gate_supports = np.asarray([
+        clusters[index]["support"]
+        for index in assignment
+    ], dtype=np.int64)
+
+    assigned_up_directions = [recovered_up_centers[index] for index in assignment]
+    assigned_up_supports = np.asarray([
+        recovered_up_supports[index]
+        for index in assignment
+    ], dtype=np.int64)
+    minimum_gate_support = int(os.environ.get(
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_MIN_GATE_SUPPORT",
+        "4",
+    ) or "4")
+    minimum_up_support = int(os.environ.get(
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_MIN_UP_SUPPORT",
+        "3",
+    ) or "3")
+    if minimum_gate_support <= 0 or minimum_up_support <= 0:
+        raise RuntimeError("asymptotic stitch minimum gate/up support must be positive")
+    if cold_start:
+        fallback_atoms = [
+            atom_index
+            for atom_index in range(atom_count)
+            if (
+                assigned_gate_supports[atom_index] < minimum_gate_support
+                or assigned_up_supports[atom_index] < minimum_up_support
+                or assigned_up_directions[atom_index] is None
+            )
+        ]
+    else:
+        initial_up_norms = np.linalg.norm(np.asarray(candidate["ups"], dtype=np.float64), axis=1).clip(min=1e-12)
+        initial_up_directions = np.asarray(candidate["ups"], dtype=np.float64) / initial_up_norms[:, None]
+        current_directions, assigned_up_directions, fallback_atoms = apply_asymptotic_support_fallback(
+            current_directions,
+            assigned_up_directions,
+            assigned_gate_supports,
+            assigned_up_supports,
+            initial_directions,
+            initial_up_directions,
+            minimum_gate_support,
+            minimum_up_support,
+        )
+
+    stitched_gates = current_directions * gate_norms[:, None]
+    independent_hessian_up_complete = all(
+        direction is not None and assigned_up_supports[index] >= minimum_up_support
+        for index, direction in enumerate(assigned_up_directions)
+    )
+    hessian_up_complete = (
+        independent_hessian_up_complete
+        if cold_start
+        else all(direction is not None for direction in assigned_up_directions)
+    )
+    structure_snapshot_output = os.environ.get(
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_STRUCTURE_SNAPSHOT_OUTPUT",
+        "",
+    ).strip()
+    if cold_start:
+        oriented = solve_bidirectional_gate_orientation_start(
+            coords,
+            targets,
+            current_directions,
+            float(gate_norms[0]),
+            sample_limit=int(os.environ.get(
+                "GCL_BLIND_SWIGLU_ASYMPTOTIC_COLD_START_ORIENTATION_SAMPLES",
+                "4096",
+            ) or "4096"),
+        )
+        if oriented is None:
+            diagnosed = dict(candidate)
+            diagnosed.update({
+                "asymptoticGateStitched": False,
+                "asymptoticGateStitchColdStart": True,
+                "asymptoticGateStitchFailure": "bidirectional-orientation-court-failed",
+            })
+            return diagnosed
+        oriented_gates, linear_ups, _linear_scales, _linear_bias, _mae = oriented
+        current_directions = oriented_gates / np.linalg.norm(oriented_gates, axis=1).clip(min=1e-12)[:, None]
+        linear_up_norms = np.linalg.norm(linear_ups, axis=1).clip(min=1e-12)
+        linear_up_directions = linear_ups / linear_up_norms[:, None]
+        selected_up_directions: list[np.ndarray] = []
+        for atom_index, recovered_up in enumerate(assigned_up_directions):
+            if (
+                recovered_up is None
+                or assigned_gate_supports[atom_index] < minimum_gate_support
+                or assigned_up_supports[atom_index] < minimum_up_support
+            ):
+                selected_up_directions.append(linear_up_directions[atom_index])
+            else:
+                selected_up_directions.append(np.asarray(recovered_up, dtype=np.float64))
+        assigned_up_directions = selected_up_directions
+        stitched_gates = current_directions * gate_norms[:, None]
+        stitched_ups = np.vstack(assigned_up_directions)
+        scalar_features = silu_np(coords @ stitched_gates.T) * (coords @ stitched_ups.T)
+        scalar_design = np.column_stack([
+            scalar_features,
+            np.ones(coords.shape[0], dtype=np.float64),
+        ])
+        try:
+            scalar_coefficients, *_ = np.linalg.lstsq(scalar_design, targets, rcond=None)
+        except np.linalg.LinAlgError:
+            scalar_coefficients = None
+        if scalar_coefficients is None or not np.all(np.isfinite(scalar_coefficients)):
+            return candidate
+        solved_gates = stitched_gates
+        solved_ups = stitched_ups
+        solved_scales = scalar_coefficients[:-1]
+        solved_bias = float(scalar_coefficients[-1])
+    elif hessian_up_complete:
+        stitched_ups = np.vstack(assigned_up_directions)
+        scalar_features = silu_np(coords @ stitched_gates.T) * (coords @ stitched_ups.T)
+        scalar_design = np.column_stack([
+            scalar_features,
+            np.ones(coords.shape[0], dtype=np.float64),
+        ])
+        try:
+            scalar_coefficients, *_ = np.linalg.lstsq(scalar_design, targets, rcond=None)
+        except np.linalg.LinAlgError:
+            scalar_coefficients = None
+        if scalar_coefficients is None or not np.all(np.isfinite(scalar_coefficients)):
+            return candidate
+        solved_gates = stitched_gates
+        solved_ups = stitched_ups
+        solved_scales = scalar_coefficients[:-1]
+        solved_bias = float(scalar_coefficients[-1])
+    else:
+        solved = solve_fixed_gate_start(coords, targets, stitched_gates)
+        if solved is None:
+            return candidate
+        solved_gates, solved_ups, solved_scales, solved_bias, _mae = solved
+    if structure_snapshot_output and all(direction is not None for direction in assigned_up_directions):
+        structure_snapshot_path = Path(structure_snapshot_output).expanduser().resolve()
+        structure_snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            structure_snapshot_path,
+            gate_directions=current_directions,
+            up_directions=np.vstack(assigned_up_directions),
+            gate_supports=assigned_gate_supports,
+            up_supports=assigned_up_supports,
+            fallback_atoms=np.asarray([] if cold_start else fallback_atoms, dtype=np.int64),
+            linear_identified_atoms=np.asarray(fallback_atoms if cold_start else [], dtype=np.int64),
+            cold_start=np.asarray(cold_start, dtype=np.bool_),
+        )
+    trial = dict(candidate)
+    trial.update({
+        "gates": solved_gates,
+        "ups": solved_ups,
+        "scales": solved_scales,
+        "bias": solved_bias,
+    })
+    base_metrics = regression_metrics(targets, predict_swiglu(coords, candidate))
+    trial_metrics = regression_metrics(targets, predict_swiglu(coords, trial))
+    trial.update({
+        "mae": float(trial_metrics["mae"]),
+        "mse": float(trial_metrics["mse"]),
+        "r2": float(trial_metrics["r2"]),
+        "score": float(trial_metrics["mae"]),
+        "selectionScore": float(trial_metrics["mae"]),
+        "worstError": float(trial_metrics["worstError"]),
+    })
+    structure_calibrated = False
+    structure_calibration_enabled = os.environ.get(
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_STRUCTURE_CALIBRATION",
+        "1" if hessian_up_complete else "0",
+    ).strip() == "1"
+    if structure_calibration_enabled:
+        calibrated_trial = gate_norm_calibrate_swiglu_candidate(
+            coords,
+            targets,
+            trial,
+            selection_coords,
+            selection_targets,
+        )
+        structure_calibrated = bool(calibrated_trial.get("gateNormCalibrated", False))
+        trial = calibrated_trial
+        trial_metrics = regression_metrics(targets, predict_swiglu(coords, trial))
+    structure_refined = False
+    structure_refine_enabled = os.environ.get(
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_STRUCTURE_REFINE",
+        "1" if hessian_up_complete else "0",
+    ).strip() == "1"
+    if structure_refine_enabled:
+        refined_trial = trust_region_structure_refine_swiglu_candidate(
+            coords,
+            targets,
+            trial,
+            selection_coords,
+            selection_targets,
+            gradient_coords,
+            gradient_targets,
+            cubic_directions,
+            cubic_targets,
+            max_tangent_override=(
+                float(os.environ.get(
+                    "GCL_BLIND_SWIGLU_ASYMPTOTIC_COLD_START_MAX_TANGENT",
+                    "0.12",
+                ) or "0.12")
+                if cold_start
+                else None
+            ),
+            gradient_weight_override=(0.0 if cold_start else None),
+            cubic_weight_override=(0.0 if cold_start else None),
+        )
+        structure_refined = bool(refined_trial.get("structureTrustRegionAccepted", False))
+        trial = refined_trial
+        trial_metrics = regression_metrics(targets, predict_swiglu(coords, trial))
+    value_polish_enabled = os.environ.get(
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_VALUE_POLISH",
+        "0" if hessian_up_complete else "1",
+    ).strip() == "1"
+    value_polished = False
+    if value_polish_enabled:
+        polished_trial = fixed_gate_direction_value_polish(
+            coords,
+            targets,
+            trial,
+            None,
+            None,
+            0.0,
+        )
+        value_polished = bool(polished_trial.get("fixedGateDirectionValuePolished", False))
+        trial = polished_trial
+        trial_metrics = regression_metrics(targets, predict_swiglu(coords, trial))
+    base_score = float(base_metrics["mae"]) + 0.25 * float(base_metrics["worstError"])
+    trial_score = float(trial_metrics["mae"]) + 0.25 * float(trial_metrics["worstError"])
+    accepted = trial_score < base_score
+    refined = dict(trial if accepted else candidate)
+    refined.update({
+        "asymptoticGateStitched": bool(accepted),
+        "asymptoticGateStitchLineCount": int(line_count),
+        "asymptoticGateStitchUsableLineCount": int(len(line_rows)),
+        "asymptoticGateStitchFailedLineCount": int(failed_lines),
+        "asymptoticGateStitchSamplesPerLine": int(samples_per_line),
+        "asymptoticGateStitchAsymptoticScale": float(asymptotic_scale),
+        "asymptoticGateStitchBoundaryNormalCount": int(len(normal_directions)),
+        "asymptoticGateStitchDetectedBoundaryCount": int(sum(
+            len(row["boundaries"])
+            for row in line_rows
+        )),
+        "asymptoticGateStitchClusterCount": int(len(clusters)),
+        "asymptoticGateStitchClusterSupports": [int(item["support"]) for item in clusters],
+        "asymptoticGateStitchGradientStep": float(gradient_step),
+        "asymptoticGateStitchHessianUpComplete": bool(hessian_up_complete),
+        "asymptoticGateStitchIndependentHessianUpComplete": bool(independent_hessian_up_complete),
+        "asymptoticGateStitchHessianUpCount": int(sum(
+            direction is not None
+            for direction in recovered_up_centers
+        )),
+        "asymptoticGateStitchHessianUpSupports": recovered_up_supports,
+        "asymptoticGateStitchAssignedGateSupports": assigned_gate_supports.tolist(),
+        "asymptoticGateStitchAssignedUpSupports": assigned_up_supports.tolist(),
+        "asymptoticGateStitchFallbackAtoms": ([] if cold_start else fallback_atoms),
+        "asymptoticGateStitchLinearIdentifiedAtoms": (fallback_atoms if cold_start else []),
+        "asymptoticGateStitchColdStart": bool(cold_start),
+        "asymptoticGateStitchOrientationMethod": (
+            "bidirectional-fixed-swiglu-variable-projection"
+            if cold_start
+            else "prior-candidate-alignment"
+        ),
+        "asymptoticGateStitchHessianGradientEstimator": "symmetric-richardson-coordinate",
+        "asymptoticGateStitchHessianGradientSteps": (
+            hessian_gradient_steps
+            if hessian_probe_meta
+            else []
+        ),
+        "asymptoticGateStitchValuePolished": bool(value_polished),
+        "asymptoticGateStitchStructureCalibrated": bool(structure_calibrated),
+        "asymptoticGateStitchStructureRefined": bool(structure_refined),
+        "asymptoticGateStitchStructureRefineAttempted": bool(
+            trial.get("structureTrustRegionAttempted", False)
+        ),
+        "asymptoticGateStitchStructureRefineSelectionScoreBefore": trial.get(
+            "structureTrustRegionSelectionScoreBefore"
+        ),
+        "asymptoticGateStitchStructureRefineSelectionScoreAfter": trial.get(
+            "structureTrustRegionSelectionScoreAfter"
+        ),
+        "asymptoticGateStitchStructureRefineRestarts": trial.get(
+            "structureTrustRegionRestarts",
+            [],
+        ),
+        "asymptoticGateStitchStructureCalibrationAttempted": bool(
+            trial.get("gateNormCalibrationAttempted", False)
+        ),
+        "asymptoticGateStitchStructureCalibrationAttemptR2": trial.get(
+            "gateNormCalibrationAttemptR2"
+        ),
+        "asymptoticGateStitchStructureCalibrationAttemptMae": trial.get(
+            "gateNormCalibrationAttemptMae"
+        ),
+        "asymptoticGateStitchStructureCalibrationAttemptWorst": trial.get(
+            "gateNormCalibrationAttemptWorst"
+        ),
+        "asymptoticGateStitchStructureCalibrationRestarts": trial.get(
+            "gateNormCalibrationRestartSummaries",
+            [],
+        ),
+        "asymptoticGateStitchStructureSnapshotOutput": (
+            structure_snapshot_output
+            if structure_snapshot_output and hessian_up_complete
+            else None
+        ),
+        "asymptoticGateStitchRecoveredDirections": current_directions.tolist(),
+        "asymptoticGateStitchRecoveredUpDirections": (
+            np.vstack(assigned_up_directions).tolist()
+            if hessian_up_complete
+            else None
+        ),
+        "asymptoticGateStitchMeanDirectionDelta": (
+            0.0
+            if cold_start
+            else float(np.mean(
+                1.0 - np.abs(np.sum(current_directions * initial_directions, axis=1))
+            ))
+        ),
+        "asymptoticGateStitchScoreBefore": float(base_score),
+        "asymptoticGateStitchScoreAfter": float(trial_score),
+        "asymptoticGateStitchTrialR2": float(trial_metrics["r2"]),
+        "asymptoticGateStitchTrialMae": float(trial_metrics["mae"]),
+        "asymptoticGateStitchTrialWorstError": float(trial_metrics["worstError"]),
+    })
+    if accepted:
+        refined.update({
+            "mae": float(trial_metrics["mae"]),
+            "mse": float(trial_metrics["mse"]),
+            "r2": float(trial_metrics["r2"]),
+            "score": float(trial_metrics["mae"]),
+            "selectionScore": float(trial_score),
+            "worstError": float(trial_metrics["worstError"]),
+        })
+        if cold_start:
+            refined.update({
+                "restartCount": 0,
+                "randomRestartCount": 0,
+                "structuredStartCount": 1,
+                "restartChunkSize": 0,
+                "startKind": "asymptotic-cold-start",
+                "fitMode": "asymptotic-structure-cold-start",
+                "randomInitScales": [],
+                "bestScoreByStartKind": {
+                    "asymptotic-cold-start": float(trial_score),
+                },
+                "bestMetricsByStartKind": {
+                    "asymptotic-cold-start": {
+                        "r2": float(trial_metrics["r2"]),
+                        "mae": float(trial_metrics["mae"]),
+                        "worstError": float(trial_metrics["worstError"]),
+                    },
+                },
+            })
+    return refined
+
+
 def residual_gradient_block_refit_swiglu_candidate(
     coords: np.ndarray,
     targets: np.ndarray,
@@ -4560,6 +6441,10 @@ def residual_gradient_block_refit_swiglu_candidate(
     enable_cancellation_rescue: bool = True,
     fit_steps_override: int | None = None,
     fit_restarts_override: int | None = None,
+    cubic_directions: np.ndarray | None = None,
+    cubic_targets: np.ndarray | None = None,
+    cubic_selection_directions: np.ndarray | None = None,
+    cubic_selection_targets: np.ndarray | None = None,
 ) -> dict[str, Any]:
     gates = np.asarray(candidate["gates"], dtype=np.float64)
     ups = np.asarray(candidate["ups"], dtype=np.float64)
@@ -4598,6 +6483,44 @@ def residual_gradient_block_refit_swiglu_candidate(
         and selection_coords.shape[0] > 0
     ):
         residual_selection_targets = selection_targets - atom_sum(selection_coords, keep)
+    has_cubic_witness = (
+        cubic_directions is not None
+        and cubic_targets is not None
+        and cubic_directions.shape[0] > 0
+        and cubic_directions.shape[0] == cubic_targets.shape[0]
+    )
+    residual_cubic_targets: np.ndarray | None = None
+    if has_cubic_witness and cubic_directions is not None and cubic_targets is not None:
+        residual_cubic_targets = cubic_targets - predict_swiglu_cubic_directional_derivatives(
+            cubic_directions,
+            gates[keep],
+            ups[keep],
+            scales[keep],
+        )
+    cubic_fit_weight, cubic_decision_weight = residual_block_refit_cubic_weights(
+        has_cubic_witness
+    )
+    has_cubic_selection_witness = (
+        cubic_selection_directions is not None
+        and cubic_selection_targets is not None
+        and cubic_selection_directions.shape[0] > 0
+        and cubic_selection_directions.shape[0] == cubic_selection_targets.shape[0]
+    )
+    residual_cubic_selection_targets: np.ndarray | None = None
+    if (
+        has_cubic_selection_witness
+        and cubic_selection_directions is not None
+        and cubic_selection_targets is not None
+    ):
+        residual_cubic_selection_targets = (
+            cubic_selection_targets
+            - predict_swiglu_cubic_directional_derivatives(
+                cubic_selection_directions,
+                gates[keep],
+                ups[keep],
+                scales[keep],
+            )
+        )
 
     direction_limit = max(128, len(selected) * 96)
     residual_directions = make_gradient_gate_directions(
@@ -4656,6 +6579,12 @@ def residual_gradient_block_refit_swiglu_candidate(
         selection_coords,
         residual_selection_targets,
         warm_start,
+        cubic_selection_directions=cubic_selection_directions,
+        cubic_selection_scores=residual_cubic_selection_targets,
+        cubic_directions=cubic_directions,
+        cubic_targets=residual_cubic_targets,
+        cubic_weight_override=cubic_fit_weight,
+        selection_cubic_weight_override=cubic_decision_weight,
     )
 
     combined_gates = gates.copy()
@@ -4677,6 +6606,8 @@ def residual_gradient_block_refit_swiglu_candidate(
     trial_metrics = regression_metrics(targets, predict_swiglu(coords, trial))
     base_score = float(base_metrics["mae"]) + 0.25 * float(base_metrics["worstError"])
     trial_score = float(trial_metrics["mae"]) + 0.25 * float(trial_metrics["worstError"])
+    base_output_score = base_score
+    trial_output_score = trial_score
     selection_count = 0
     if residual_selection_targets is not None and selection_coords is not None and selection_targets is not None:
         selection_count = int(selection_coords.shape[0])
@@ -4684,6 +6615,40 @@ def residual_gradient_block_refit_swiglu_candidate(
         trial_selection_metrics = regression_metrics(selection_targets, predict_swiglu(selection_coords, trial))
         base_score = float(base_selection_metrics["mae"]) + 0.35 * float(base_selection_metrics["worstError"])
         trial_score = float(trial_selection_metrics["mae"]) + 0.35 * float(trial_selection_metrics["worstError"])
+        base_output_score = base_score
+        trial_output_score = trial_score
+
+    def cubic_relative_rmse(model: dict[str, Any]) -> float | None:
+        score_directions = (
+            cubic_selection_directions
+            if has_cubic_selection_witness
+            else cubic_directions
+        )
+        score_targets = (
+            cubic_selection_targets
+            if has_cubic_selection_witness
+            else cubic_targets
+        )
+        if score_directions is None or score_targets is None:
+            return None
+        predicted = predict_swiglu_cubic_directional_derivatives(
+            score_directions,
+            np.asarray(model["gates"], dtype=np.float64),
+            np.asarray(model["ups"], dtype=np.float64),
+            np.asarray(model["scales"], dtype=np.float64),
+        )
+        denominator = max(float(np.mean(score_targets ** 2)), 1e-12)
+        return math.sqrt(float(np.mean((predicted - score_targets) ** 2)) / denominator)
+
+    base_cubic_rmse = cubic_relative_rmse(base)
+    trial_cubic_rmse = cubic_relative_rmse(trial)
+    if (
+        base_cubic_rmse is not None
+        and trial_cubic_rmse is not None
+        and cubic_decision_weight > 0.0
+    ):
+        base_score += cubic_decision_weight * base_cubic_rmse
+        trial_score += cubic_decision_weight * trial_cubic_rmse
 
     cancellation_pairs_before = detect_swiglu_cancellation_pairs(coords, trial)
     cancellation_pairs_after = cancellation_pairs_before
@@ -4692,6 +6657,7 @@ def residual_gradient_block_refit_swiglu_candidate(
     cancellation_rescue_atoms: list[int] = []
     cancellation_rescue_score_before = trial_score
     cancellation_rescue_score_after = trial_score
+    cancellation_rescue_attempts: list[dict[str, Any]] = []
     cancellation_rescue_enabled = (
         enable_cancellation_rescue
         and os.environ.get(
@@ -4701,11 +6667,6 @@ def residual_gradient_block_refit_swiglu_candidate(
     )
     if cancellation_rescue_enabled and cancellation_pairs_before:
         cancellation_rescue_attempted = True
-        cancellation_rescue_atoms = [int(index) for index in cancellation_pairs_before[0]["atoms"]]
-        trial_residual_gradient_targets = oracle_gradients - predict_swiglu_active_gradients(
-            gradient_coords,
-            trial,
-        )
         rescue_steps = max(200, int(os.environ.get(
             "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE_STEPS",
             str(min(fit_steps, 1800)),
@@ -4714,50 +6675,119 @@ def residual_gradient_block_refit_swiglu_candidate(
             "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE_RESTARTS",
             str(min(fit_restarts, 256)),
         ) or "0"))
-        rescued_trial = residual_gradient_block_refit_swiglu_candidate(
-            coords,
-            targets,
-            trial,
-            cancellation_rescue_atoms,
-            gradient_coords,
-            trial_residual_gradient_targets,
-            seed + 104729,
-            selection_coords,
-            selection_targets,
-            enable_cancellation_rescue=False,
-            fit_steps_override=rescue_steps,
-            fit_restarts_override=rescue_restarts,
-        )
-        rescued_metrics = regression_metrics(targets, predict_swiglu(coords, rescued_trial))
-        rescued_score = float(rescued_metrics["mae"]) + 0.25 * float(rescued_metrics["worstError"])
-        if residual_selection_targets is not None and selection_coords is not None and selection_targets is not None:
-            rescued_selection_metrics = regression_metrics(
+        rescue_pair_limit = max(1, int(os.environ.get(
+            "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE_PAIR_LIMIT",
+            "4",
+        ) or "4"))
+        attempted_pairs: set[tuple[int, int]] = set()
+
+        def cancellation_pair_score(
+            pairs: list[dict[str, Any]],
+            atoms: list[int],
+        ) -> float:
+            key = tuple(sorted(int(index) for index in atoms))
+            for pair in pairs:
+                if tuple(sorted(int(index) for index in pair["atoms"])) == key:
+                    return float(pair["score"])
+            return 0.0
+
+        while len(cancellation_rescue_attempts) < rescue_pair_limit:
+            current_pairs = detect_swiglu_cancellation_pairs(coords, trial)
+            pair = next((
+                item for item in current_pairs
+                if tuple(sorted(int(index) for index in item["atoms"])) not in attempted_pairs
+            ), None)
+            if pair is None:
+                break
+            pair_atoms = [int(index) for index in pair["atoms"]]
+            pair_key = tuple(sorted(pair_atoms))
+            attempted_pairs.add(pair_key)
+            cancellation_rescue_atoms.extend(
+                index for index in pair_atoms
+                if index not in cancellation_rescue_atoms
+            )
+            trial_residual_gradient_targets = oracle_gradients - predict_swiglu_active_gradients(
+                gradient_coords,
+                trial,
+            )
+            rescued_trial = residual_gradient_block_refit_swiglu_candidate(
+                coords,
+                targets,
+                trial,
+                pair_atoms,
+                gradient_coords,
+                trial_residual_gradient_targets,
+                seed + 104729 + len(cancellation_rescue_attempts) * 1009,
+                selection_coords,
                 selection_targets,
-                predict_swiglu(selection_coords, rescued_trial),
+                enable_cancellation_rescue=False,
+                fit_steps_override=rescue_steps,
+                fit_restarts_override=rescue_restarts,
+                cubic_directions=cubic_directions,
+                cubic_targets=cubic_targets,
+                cubic_selection_directions=cubic_selection_directions,
+                cubic_selection_targets=cubic_selection_targets,
             )
-            rescued_score = (
-                float(rescued_selection_metrics["mae"])
-                + 0.35 * float(rescued_selection_metrics["worstError"])
+            rescued_metrics = regression_metrics(targets, predict_swiglu(coords, rescued_trial))
+            rescued_output_score = (
+                float(rescued_metrics["mae"])
+                + 0.25 * float(rescued_metrics["worstError"])
             )
-        rescued_pairs = detect_swiglu_cancellation_pairs(coords, rescued_trial)
-        cancellation_rescue_score_after = rescued_score
-        strongest_before = float(cancellation_pairs_before[0]["score"])
-        strongest_after = float(rescued_pairs[0]["score"]) if rescued_pairs else 0.0
-        cancellation_rescued = (
-            bool(rescued_trial.get("residualGradientBlockRefit"))
-            and rescued_score < trial_score
-            and strongest_after < strongest_before * 0.5
-        )
-        if cancellation_rescued:
-            trial = rescued_trial
-            trial_metrics = rescued_metrics
-            trial_score = rescued_score
-            cancellation_pairs_after = rescued_pairs
+            rescued_score = rescued_output_score
+            if (
+                residual_selection_targets is not None
+                and selection_coords is not None
+                and selection_targets is not None
+            ):
+                rescued_selection_metrics = regression_metrics(
+                    selection_targets,
+                    predict_swiglu(selection_coords, rescued_trial),
+                )
+                rescued_output_score = (
+                    float(rescued_selection_metrics["mae"])
+                    + 0.35 * float(rescued_selection_metrics["worstError"])
+                )
+                rescued_score = rescued_output_score
+            rescued_cubic_rmse = cubic_relative_rmse(rescued_trial)
+            if rescued_cubic_rmse is not None and cubic_decision_weight > 0.0:
+                rescued_score += cubic_decision_weight * rescued_cubic_rmse
+            rescued_pairs = detect_swiglu_cancellation_pairs(coords, rescued_trial)
+            pair_score_before = float(pair["score"])
+            pair_score_after = cancellation_pair_score(rescued_pairs, pair_atoms)
+            accepted_pair = (
+                bool(rescued_trial.get("residualGradientBlockRefit"))
+                and rescued_score < trial_score
+                and pair_score_after < pair_score_before * 0.5
+            )
+            cancellation_rescue_attempts.append({
+                "atoms": pair_atoms,
+                "accepted": bool(accepted_pair),
+                "decisionScoreBefore": float(trial_score),
+                "decisionScoreAfter": float(rescued_score),
+                "pairScoreBefore": pair_score_before,
+                "pairScoreAfter": pair_score_after,
+            })
+            cancellation_rescue_score_after = rescued_score
+            if accepted_pair:
+                cancellation_rescued = True
+                trial = rescued_trial
+                trial_metrics = rescued_metrics
+                trial_score = rescued_score
+                trial_output_score = rescued_output_score
+                trial_cubic_rmse = rescued_cubic_rmse
+                cancellation_pairs_after = rescued_pairs
+        cancellation_pairs_after = detect_swiglu_cancellation_pairs(coords, trial)
     accepted = (
         trial_score < base_score
         and (
-            trial_metrics["mae"] <= base_metrics["mae"] * 1.05
-            or trial_metrics["worstError"] < base_metrics["worstError"]
+            trial_output_score <= base_output_score * 1.05
+            or (
+                base_cubic_rmse is not None
+                and trial_cubic_rmse is not None
+                and trial_cubic_rmse < base_cubic_rmse
+                and trial_metrics["mae"] <= base_metrics["mae"] * 1.05
+                and trial_metrics["worstError"] <= base_metrics["worstError"] * 1.05
+            )
         )
     )
     refined = dict(trial if accepted else candidate)
@@ -4770,6 +6800,18 @@ def residual_gradient_block_refit_swiglu_candidate(
         "residualGradientBlockRefitSelectionCount": int(selection_count),
         "residualGradientBlockRefitScoreBefore": float(base_score),
         "residualGradientBlockRefitScoreAfter": float(trial_score),
+        "residualGradientBlockRefitOutputScoreBefore": float(base_output_score),
+        "residualGradientBlockRefitOutputScoreAfter": float(trial_output_score),
+        "residualGradientBlockRefitCubicRelativeRmseBefore": base_cubic_rmse,
+        "residualGradientBlockRefitCubicRelativeRmseAfter": trial_cubic_rmse,
+        "residualGradientBlockRefitCubicSelectionWeight": float(cubic_decision_weight),
+        "residualGradientBlockRefitCubicFitWeight": float(cubic_fit_weight),
+        "residualGradientBlockRefitCubicDirectionCount": int(
+            0 if cubic_directions is None else cubic_directions.shape[0]
+        ),
+        "residualGradientBlockRefitCubicSelectionDirectionCount": int(
+            0 if cubic_selection_directions is None else cubic_selection_directions.shape[0]
+        ),
         "residualGradientBlockRefitMaeBefore": float(base_metrics["mae"]),
         "residualGradientBlockRefitWorstBefore": float(base_metrics["worstError"]),
         "residualGradientBlockRefitCancellationPairsBefore": cancellation_pairs_before,
@@ -4779,6 +6821,7 @@ def residual_gradient_block_refit_swiglu_candidate(
         "residualGradientBlockRefitCancellationRescueAtoms": cancellation_rescue_atoms,
         "residualGradientBlockRefitCancellationRescueScoreBefore": float(cancellation_rescue_score_before),
         "residualGradientBlockRefitCancellationRescueScoreAfter": float(cancellation_rescue_score_after),
+        "residualGradientBlockRefitCancellationRescueAttempts": cancellation_rescue_attempts,
     })
     if accepted:
         refined.update({
@@ -4787,8 +6830,123 @@ def residual_gradient_block_refit_swiglu_candidate(
             "score": float(trial_metrics["mae"]),
             "selectionScore": float(trial_score),
             "worstError": float(trial_metrics["worstError"]),
+            "cubicRelativeRmse": trial_cubic_rmse,
         })
     return refined
+
+
+def sequential_cancellation_pair_refit_swiglu_candidate(
+    coords: np.ndarray,
+    targets: np.ndarray,
+    candidate: dict[str, Any],
+    gradient_coords: np.ndarray,
+    oracle_gradient_targets: np.ndarray,
+    seed: int,
+    selection_coords: np.ndarray | None = None,
+    selection_targets: np.ndarray | None = None,
+    cubic_directions: np.ndarray | None = None,
+    cubic_targets: np.ndarray | None = None,
+    cubic_selection_directions: np.ndarray | None = None,
+    cubic_selection_targets: np.ndarray | None = None,
+) -> dict[str, Any]:
+    current = dict(candidate)
+    initial_pairs = detect_swiglu_cancellation_pairs(coords, current)
+    pair_limit = max(1, int(os.environ.get(
+        "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE_PAIR_LIMIT",
+        "4",
+    ) or "4"))
+    fit_steps = max(200, int(os.environ.get(
+        "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE_STEPS",
+        "1800",
+    ) or "1800"))
+    fit_restarts = max(16, int(os.environ.get(
+        "GCL_BLIND_SWIGLU_RESIDUAL_BLOCK_REFIT_CANCELLATION_RESCUE_RESTARTS",
+        "256",
+    ) or "256"))
+    attempts: list[dict[str, Any]] = []
+    attempted_pairs: set[tuple[int, int]] = set()
+    rescued_any = False
+
+    while len(attempts) < pair_limit:
+        current_pairs = detect_swiglu_cancellation_pairs(coords, current)
+        pair = next((
+            item for item in current_pairs
+            if tuple(sorted(int(index) for index in item["atoms"])) not in attempted_pairs
+        ), None)
+        if pair is None:
+            break
+        atoms = [int(index) for index in pair["atoms"]]
+        pair_key = tuple(sorted(atoms))
+        attempted_pairs.add(pair_key)
+        residual_gradient_targets = (
+            np.asarray(oracle_gradient_targets, dtype=np.float64)
+            - predict_swiglu_active_gradients(gradient_coords, current)
+        )
+        trial = residual_gradient_block_refit_swiglu_candidate(
+            coords,
+            targets,
+            current,
+            atoms,
+            gradient_coords,
+            residual_gradient_targets,
+            seed + len(attempts) * 1009,
+            selection_coords,
+            selection_targets,
+            enable_cancellation_rescue=False,
+            fit_steps_override=fit_steps,
+            fit_restarts_override=fit_restarts,
+            cubic_directions=cubic_directions,
+            cubic_targets=cubic_targets,
+            cubic_selection_directions=cubic_selection_directions,
+            cubic_selection_targets=cubic_selection_targets,
+        )
+        trial_pairs = detect_swiglu_cancellation_pairs(coords, trial)
+        pair_score_after = next((
+            float(item["score"])
+            for item in trial_pairs
+            if tuple(sorted(int(index) for index in item["atoms"])) == pair_key
+        ), 0.0)
+        accepted = (
+            bool(trial.get("residualGradientBlockRefit"))
+            and pair_score_after < float(pair["score"]) * 0.5
+        )
+        attempts.append({
+            "atoms": atoms,
+            "accepted": bool(accepted),
+            "pairScoreBefore": float(pair["score"]),
+            "pairScoreAfter": pair_score_after,
+            "decisionScoreBefore": current.get("selectionScore"),
+            "decisionScoreAfter": trial.get("selectionScore"),
+        })
+        if accepted:
+            rescued_any = True
+            current = trial
+
+    result = dict(current)
+    result.update({
+        "residualGradientBlockRefit": bool(rescued_any),
+        "residualGradientBlockRefitAtoms": sorted({
+            atom
+            for attempt in attempts
+            for atom in attempt["atoms"]
+        }),
+        "residualGradientBlockRefitCancellationPairsBefore": initial_pairs,
+        "residualGradientBlockRefitCancellationPairsAfter": detect_swiglu_cancellation_pairs(
+            coords,
+            current,
+        ),
+        "residualGradientBlockRefitCancellationRescueAttempted": bool(attempts),
+        "residualGradientBlockRefitCancellationRescued": bool(rescued_any),
+        "residualGradientBlockRefitCancellationRescueAtoms": sorted({
+            atom
+            for attempt in attempts
+            for atom in attempt["atoms"]
+        }),
+        "residualGradientBlockRefitCancellationRescueAttempts": attempts,
+        "residualGradientBlockRefitRestarts": int(fit_restarts),
+        "residualGradientBlockRefitSteps": int(fit_steps),
+    })
+    return result
 
 
 def minimax_bias_polish_swiglu_candidate(
@@ -5057,18 +7215,25 @@ def gate_norm_calibrate_swiglu_candidate(
         return candidate
     gate_norms = np.linalg.norm(gates_np, axis=1).clip(min=1e-9)
     gate_dirs = gates_np / gate_norms[:, None]
-    up_vectors = ups_np * scales_np[:, None]
-    if not (np.all(np.isfinite(gate_dirs)) and np.all(np.isfinite(up_vectors))):
+    up_norms = np.linalg.norm(ups_np, axis=1).clip(min=1e-12)
+    up_dirs = ups_np / up_norms[:, None]
+    effective_scales = scales_np * up_norms
+    if not (
+        np.all(np.isfinite(gate_dirs))
+        and np.all(np.isfinite(up_dirs))
+        and np.all(np.isfinite(effective_scales))
+    ):
         return candidate
 
-    steps = int(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_STEPS", "1600") or "1600")
-    lr = float(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_LR", "0.012") or "0.012")
+    steps = int(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_STEPS", "160") or "160")
+    lr = float(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_LR", "0.8") or "0.8")
+    restart_count = int(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_RESTARTS", "4") or "4")
     tail_weight = float(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_TAIL_WEIGHT", "0.0") or "0.0")
     tail_fraction = float(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_TAIL_FRACTION", "0.12") or "0.12")
     mae_weight = float(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_MAE_WEIGHT", "0.0") or "0.0")
     best_mae_weight = float(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_BEST_MAE_WEIGHT", "2.0") or "2.0")
     max_norm_ratio = float(os.environ.get("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_MAX_NORM_RATIO", "6.0") or "6.0")
-    if steps <= 0 or not np.isfinite(lr) or lr <= 0.0:
+    if steps <= 0 or not np.isfinite(lr) or lr <= 0.0 or restart_count <= 0:
         raise RuntimeError("invalid GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_STEPS/LR")
     for name, value in [
         ("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_TAIL_WEIGHT", tail_weight),
@@ -5083,81 +7248,147 @@ def gate_norm_calibrate_swiglu_candidate(
         raise RuntimeError("GCL_BLIND_SWIGLU_GATE_NORM_CALIBRATION_MAX_NORM_RATIO must be >= 1")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dtype = torch.float32
+    dtype = torch.float64
+    target_scale = max(
+        float(np.std(targets)),
+        float(np.mean(np.abs(targets))),
+        1e-8,
+    )
     x = torch.tensor(coords, dtype=dtype, device=device)
-    y = torch.tensor(targets, dtype=dtype, device=device)
+    y = torch.tensor(targets / target_scale, dtype=dtype, device=device)
     gate_dirs_t = torch.tensor(gate_dirs, dtype=dtype, device=device)
-    up_vectors_t = torch.tensor(up_vectors, dtype=dtype, device=device)
-    up_projection = x @ up_vectors_t.T
+    up_dirs_t = torch.tensor(up_dirs, dtype=dtype, device=device)
+    up_projection = x @ up_dirs_t.T
     if selection_coords is not None and selection_targets is not None and selection_coords.shape[0] > 0:
         selection_x = torch.tensor(selection_coords, dtype=dtype, device=device)
-        selection_y = torch.tensor(selection_targets, dtype=dtype, device=device)
-        selection_up_projection = selection_x @ up_vectors_t.T
+        selection_y = torch.tensor(selection_targets / target_scale, dtype=dtype, device=device)
+        selection_up_projection = selection_x @ up_dirs_t.T
     else:
         selection_x = x
         selection_y = y
         selection_up_projection = up_projection
 
-    log_norms = torch.nn.Parameter(torch.tensor(np.log(gate_norms), dtype=dtype, device=device))
-    atom_scales = torch.nn.Parameter(torch.ones(gates_np.shape[0], dtype=dtype, device=device))
-    bias = torch.nn.Parameter(torch.tensor(float(candidate["bias"]), dtype=dtype, device=device))
-    optimizer = torch.optim.AdamW([log_norms, atom_scales, bias], lr=lr, weight_decay=1e-8)
-    log_min = torch.tensor(np.log(gate_norms / max_norm_ratio), dtype=dtype, device=device)
-    log_max = torch.tensor(np.log(gate_norms * max_norm_ratio), dtype=dtype, device=device)
+    initial_log_norms = torch.tensor(np.log(gate_norms), dtype=dtype, device=device)
+    log_norm_span = math.log(max_norm_ratio)
     tail_count = max(64, min(coords.shape[0], int(coords.shape[0] * tail_fraction)))
     base_metrics = regression_metrics(targets, predict_swiglu(coords, candidate))
     best_state: tuple[float, float, float, np.ndarray, np.ndarray, float] | None = None
 
-    def predict_from_params(input_x: torch.Tensor, input_up_projection: torch.Tensor) -> torch.Tensor:
-        norms = torch.exp(log_norms)
+    def make_design(
+        input_x: torch.Tensor,
+        input_up_projection: torch.Tensor,
+        norms: torch.Tensor,
+    ) -> torch.Tensor:
         gate_projection = (input_x @ gate_dirs_t.T) * norms
-        return torch.sum(torch.nn.functional.silu(gate_projection) * input_up_projection * atom_scales, dim=1) + bias
+        features = torch.nn.functional.silu(gate_projection) * input_up_projection
+        return torch.cat([
+            features,
+            torch.ones((features.shape[0], 1), dtype=dtype, device=device),
+        ], dim=1)
 
-    for step_index in range(steps):
-        optimizer.zero_grad()
-        prediction = predict_from_params(x, up_projection)
-        residual = prediction - y
-        loss = torch.mean(residual ** 2)
-        if tail_weight > 0.0:
-            tail_values = torch.topk(torch.abs(residual), k=tail_count, largest=True).values
-            loss = loss + tail_weight * torch.mean(tail_values ** 2)
-        if mae_weight > 0.0:
-            loss = loss + mae_weight * torch.mean(torch.abs(residual))
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_([log_norms, atom_scales, bias], 8.0)
-        optimizer.step()
-        with torch.no_grad():
-            log_norms.clamp_(log_min, log_max)
-        if step_index == 0 or (step_index + 1) % 80 == 0 or step_index + 1 == steps:
+    def solve_linear_coefficients(design: torch.Tensor, values: torch.Tensor) -> torch.Tensor:
+        sample_count = max(1, design.shape[0])
+        gram = (design.T @ design) / sample_count
+        rhs = (design.T @ values) / sample_count
+        ridge_scale = torch.trace(gram).detach().clamp_min(1e-12) * 1e-10 / gram.shape[0]
+        regularizer = torch.eye(gram.shape[0], dtype=dtype, device=device) * ridge_scale
+        regularizer[-1, -1] = 0.0
+        return torch.linalg.solve(gram + regularizer, rhs)
+
+    restart_summaries: list[dict[str, float]] = []
+    index_values = torch.arange(gates_np.shape[0], dtype=dtype, device=device)
+    for restart_index in range(restart_count):
+        if restart_index == 0:
+            initial_raw = torch.zeros_like(initial_log_norms)
+        else:
+            phase = float(restart_index) * 1.618033988749895
+            initial_raw = 0.35 * torch.sin(index_values * (0.73 + 0.11 * restart_index) + phase)
+        raw_norm_offsets = torch.nn.Parameter(initial_raw)
+        optimizer = torch.optim.LBFGS(
+            [raw_norm_offsets],
+            lr=lr,
+            max_iter=steps,
+            line_search_fn="strong_wolfe",
+            tolerance_grad=1e-10,
+            tolerance_change=1e-12,
+            history_size=min(80, max(20, steps // 2)),
+        )
+
+        def current_state() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+            norms = torch.exp(initial_log_norms + torch.tanh(raw_norm_offsets) * log_norm_span)
+            train_design = make_design(x, up_projection, norms)
+            coefficients = solve_linear_coefficients(train_design, y)
+            train_prediction = train_design @ coefficients
+            selection_design = make_design(selection_x, selection_up_projection, norms)
+            selection_prediction = selection_design @ coefficients
+            return norms, coefficients, train_prediction, selection_prediction
+
+        def closure() -> torch.Tensor:
+            optimizer.zero_grad()
+            _norms, _coefficients, train_prediction, selection_prediction = current_state()
+            train_residual = train_prediction - y
+            selection_residual = selection_prediction - selection_y
+            loss = 0.25 * torch.mean(train_residual ** 2) + 0.75 * torch.mean(selection_residual ** 2)
+            if tail_weight > 0.0:
+                tail_values = torch.topk(torch.abs(train_residual), k=tail_count, largest=True).values
+                loss = loss + tail_weight * torch.mean(tail_values ** 2)
+            if mae_weight > 0.0:
+                loss = loss + mae_weight * torch.mean(torch.abs(selection_residual))
+            loss.backward()
+            return loss
+
+        try:
+            optimizer.step(closure)
             with torch.no_grad():
-                selected_prediction = predict_from_params(selection_x, selection_up_projection)
-                selected_abs = torch.abs(selected_prediction - selection_y)
+                norms, coefficients, _train_prediction, selection_prediction = current_state()
+                selected_abs = torch.abs(selection_prediction - selection_y)
                 worst = float(torch.max(selected_abs).detach().cpu().item())
                 mae_now = float(torch.mean(selected_abs).detach().cpu().item())
                 score = worst + best_mae_weight * mae_now
+                restart_summaries.append({
+                    "restart": float(restart_index),
+                    "score": float(score),
+                    "worst": float(worst),
+                    "mae": float(mae_now),
+                })
                 if best_state is None or score < best_state[0]:
+                    coefficient_values = coefficients.detach().cpu().numpy().astype(np.float64)
                     best_state = (
                         score,
                         worst,
                         mae_now,
-                        torch.exp(log_norms).detach().cpu().numpy().astype(np.float64),
-                        atom_scales.detach().cpu().numpy().astype(np.float64),
-                        float(bias.detach().cpu().item()),
+                        norms.detach().cpu().numpy().astype(np.float64),
+                        coefficient_values[:-1],
+                        float(coefficient_values[-1]),
                     )
+        except (RuntimeError, ValueError):
+            continue
     if best_state is None:
         return candidate
     best_score, best_worst, best_mae, learned_norms, learned_scales, learned_bias = best_state
     calibrated = dict(candidate)
     calibrated.update({
         "gates": gate_dirs * learned_norms[:, None],
-        "ups": up_vectors,
-        "scales": learned_scales,
-        "bias": float(learned_bias),
+        "ups": up_dirs,
+        "scales": learned_scales * target_scale,
+        "bias": float(learned_bias * target_scale),
     })
     prediction = predict_swiglu(coords, calibrated)
     metrics = regression_metrics(targets, prediction)
+    calibration_diagnostics = {
+        "gateNormCalibrationAttempted": True,
+        "gateNormCalibrationMethod": "bounded-variable-projection-lbfgs",
+        "gateNormCalibrationRestarts": int(restart_count),
+        "gateNormCalibrationRestartSummaries": restart_summaries,
+        "gateNormCalibrationAttemptMae": float(metrics["mae"]),
+        "gateNormCalibrationAttemptWorst": float(metrics["worstError"]),
+        "gateNormCalibrationAttemptR2": float(metrics["r2"]),
+        "gateNormCalibrationTargetScale": float(target_scale),
+    }
     if metrics["mae"] >= base_metrics["mae"] and metrics["worstError"] >= base_metrics["worstError"]:
-        return candidate
+        rejected = dict(candidate)
+        rejected.update(calibration_diagnostics)
+        return rejected
     calibrated.update({
         "mae": float(metrics["mae"]),
         "mse": float(metrics["mse"]),
@@ -5167,6 +7398,7 @@ def gate_norm_calibrate_swiglu_candidate(
         "gateNormCalibrated": True,
         "gateNormCalibrationSteps": int(steps),
         "gateNormCalibrationLearningRate": float(lr),
+        **calibration_diagnostics,
         "gateNormCalibrationTailWeight": float(tail_weight),
         "gateNormCalibrationTailFraction": float(tail_fraction),
         "gateNormCalibrationBestObjectiveScore": float(best_score),
@@ -5175,8 +7407,343 @@ def gate_norm_calibrate_swiglu_candidate(
         "gateNormCalibrationSelectionCount": int(0 if selection_coords is None else selection_coords.shape[0]),
         "gateNormCalibrationMaeBefore": float(base_metrics["mae"]),
         "gateNormCalibrationWorstBefore": float(base_metrics["worstError"]),
+        "gateNormCalibrationTargetScale": float(target_scale),
     })
     return calibrated
+
+
+def trust_region_structure_refine_swiglu_candidate(
+    coords: np.ndarray,
+    targets: np.ndarray,
+    candidate: dict[str, Any],
+    selection_coords: np.ndarray | None = None,
+    selection_targets: np.ndarray | None = None,
+    gradient_coords: np.ndarray | None = None,
+    gradient_targets: np.ndarray | None = None,
+    cubic_directions: np.ndarray | None = None,
+    cubic_targets: np.ndarray | None = None,
+    *,
+    max_tangent_override: float | None = None,
+    gradient_weight_override: float | None = None,
+    cubic_weight_override: float | None = None,
+) -> dict[str, Any]:
+    import torch
+
+    gates_np = np.asarray(candidate["gates"], dtype=np.float64)
+    ups_np = np.asarray(candidate["ups"], dtype=np.float64)
+    scales_np = np.asarray(candidate["scales"], dtype=np.float64)
+    if gates_np.ndim != 2 or ups_np.shape != gates_np.shape or scales_np.shape != (gates_np.shape[0],):
+        return candidate
+    if coords.shape[0] < max(256, gates_np.shape[0] * 16):
+        return candidate
+
+    gate_norms = np.linalg.norm(gates_np, axis=1).clip(min=1e-9)
+    gate_anchors = gates_np / gate_norms[:, None]
+    up_norms = np.linalg.norm(ups_np, axis=1).clip(min=1e-12)
+    up_anchors = ups_np / up_norms[:, None]
+    if not (np.all(np.isfinite(gate_anchors)) and np.all(np.isfinite(up_anchors))):
+        return candidate
+
+    max_tangent = (
+        float(max_tangent_override)
+        if max_tangent_override is not None
+        else float(os.environ.get(
+            "GCL_BLIND_SWIGLU_STRUCTURE_REFINE_MAX_TANGENT",
+            "0.25",
+        ) or "0.25")
+    )
+    max_norm_ratio = float(os.environ.get(
+        "GCL_BLIND_SWIGLU_STRUCTURE_REFINE_MAX_NORM_RATIO",
+        "6.0",
+    ) or "6.0")
+    steps = int(os.environ.get("GCL_BLIND_SWIGLU_STRUCTURE_REFINE_STEPS", "180") or "180")
+    restart_count = int(os.environ.get("GCL_BLIND_SWIGLU_STRUCTURE_REFINE_RESTARTS", "2") or "2")
+    learning_rate = float(os.environ.get("GCL_BLIND_SWIGLU_STRUCTURE_REFINE_LR", "0.6") or "0.6")
+    gradient_weight = (
+        float(gradient_weight_override)
+        if gradient_weight_override is not None
+        else float(os.environ.get(
+            "GCL_BLIND_SWIGLU_STRUCTURE_REFINE_GRADIENT_WEIGHT",
+            "0.25",
+        ) or "0.25")
+    )
+    cubic_weight = (
+        float(cubic_weight_override)
+        if cubic_weight_override is not None
+        else float(os.environ.get(
+            "GCL_BLIND_SWIGLU_STRUCTURE_REFINE_CUBIC_WEIGHT",
+            "0.5",
+        ) or "0.5")
+    )
+    if (
+        not np.isfinite(max_tangent)
+        or max_tangent <= 0.0
+        or max_tangent >= 1.0
+        or not np.isfinite(max_norm_ratio)
+        or max_norm_ratio < 1.0
+        or steps <= 0
+        or restart_count <= 0
+        or not np.isfinite(learning_rate)
+        or learning_rate <= 0.0
+        or not np.isfinite(gradient_weight)
+        or gradient_weight < 0.0
+        or not np.isfinite(cubic_weight)
+        or cubic_weight < 0.0
+    ):
+        raise RuntimeError("invalid trust-region structure refinement configuration")
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dtype = torch.float64
+    target_scale = max(float(np.std(targets)), float(np.mean(np.abs(targets))), 1e-8)
+    x = torch.tensor(coords, dtype=dtype, device=device)
+    y = torch.tensor(targets / target_scale, dtype=dtype, device=device)
+    gate_anchor_t = torch.tensor(gate_anchors, dtype=dtype, device=device)
+    up_anchor_t = torch.tensor(up_anchors, dtype=dtype, device=device)
+    initial_log_norms = torch.tensor(np.log(gate_norms), dtype=dtype, device=device)
+    log_norm_span = math.log(max_norm_ratio)
+    if selection_coords is not None and selection_targets is not None and selection_coords.shape[0] > 0:
+        selection_x = torch.tensor(selection_coords, dtype=dtype, device=device)
+        selection_y = torch.tensor(selection_targets / target_scale, dtype=dtype, device=device)
+    else:
+        selection_x = x
+        selection_y = y
+
+    has_gradient_witness = (
+        gradient_coords is not None
+        and gradient_targets is not None
+        and gradient_weight > 0.0
+        and gradient_coords.shape[0] > 0
+        and gradient_targets.shape == gradient_coords.shape
+    )
+    if has_gradient_witness:
+        gradient_x = torch.tensor(gradient_coords, dtype=dtype, device=device)
+        gradient_y = torch.tensor(gradient_targets / target_scale, dtype=dtype, device=device)
+        gradient_scale = torch.mean(gradient_y ** 2).detach().clamp_min(1e-12)
+    else:
+        gradient_x = None
+        gradient_y = None
+        gradient_scale = None
+    has_cubic_witness = (
+        cubic_directions is not None
+        and cubic_targets is not None
+        and cubic_weight > 0.0
+        and cubic_directions.shape[0] > 0
+        and cubic_targets.shape == (cubic_directions.shape[0],)
+    )
+    if has_cubic_witness:
+        cubic_x = torch.tensor(cubic_directions, dtype=dtype, device=device)
+        cubic_y = torch.tensor(cubic_targets / target_scale, dtype=dtype, device=device)
+        cubic_scale = torch.mean(cubic_y ** 2).detach().clamp_min(1e-12)
+    else:
+        cubic_x = None
+        cubic_y = None
+        cubic_scale = None
+
+    def bounded_directions(anchors: torch.Tensor, raw_offsets: torch.Tensor) -> torch.Tensor:
+        tangent = raw_offsets - torch.sum(raw_offsets * anchors, dim=1, keepdim=True) * anchors
+        bounded = max_tangent * tangent / torch.sqrt(
+            1.0 + torch.sum(tangent ** 2, dim=1, keepdim=True)
+        )
+        directions = anchors + bounded
+        return directions / torch.linalg.norm(directions, dim=1, keepdim=True).clamp_min(1e-12)
+
+    def make_design(
+        input_x: torch.Tensor,
+        gate_directions_t: torch.Tensor,
+        up_directions_t: torch.Tensor,
+        norms: torch.Tensor,
+    ) -> torch.Tensor:
+        features = torch.nn.functional.silu(
+            (input_x @ gate_directions_t.T) * norms
+        ) * (input_x @ up_directions_t.T)
+        return torch.cat([
+            features,
+            torch.ones((features.shape[0], 1), dtype=dtype, device=device),
+        ], dim=1)
+
+    def solve_coefficients(design: torch.Tensor, values: torch.Tensor) -> torch.Tensor:
+        count = max(1, design.shape[0])
+        gram = (design.T @ design) / count
+        rhs = (design.T @ values) / count
+        ridge = torch.trace(gram).detach().clamp_min(1e-12) * 1e-10 / gram.shape[0]
+        regularizer = torch.eye(gram.shape[0], dtype=dtype, device=device) * ridge
+        regularizer[-1, -1] = 0.0
+        return torch.linalg.solve(gram + regularizer, rhs)
+
+    base_selection_metrics = regression_metrics(
+        np.asarray(selection_targets if selection_targets is not None else targets, dtype=np.float64),
+        predict_swiglu(
+            np.asarray(selection_coords if selection_coords is not None else coords, dtype=np.float64),
+            candidate,
+        ),
+    )
+    base_selection_score = float(base_selection_metrics["worstError"]) + 2.0 * float(base_selection_metrics["mae"])
+    best_state: dict[str, Any] | None = None
+    restart_summaries: list[dict[str, float]] = []
+    atom_indices = torch.arange(gates_np.shape[0], dtype=dtype, device=device)[:, None]
+    coordinate_indices = torch.arange(gates_np.shape[1], dtype=dtype, device=device)[None, :]
+
+    for restart_index in range(restart_count):
+        if restart_index == 0:
+            gate_start = torch.zeros_like(gate_anchor_t)
+            up_start = torch.zeros_like(up_anchor_t)
+            norm_start = torch.zeros(gates_np.shape[0], dtype=dtype, device=device)
+        else:
+            phase = float(restart_index) * 1.324717957244746
+            gate_start = 0.03 * torch.sin(atom_indices * 0.71 + coordinate_indices * 0.37 + phase)
+            up_start = 0.03 * torch.cos(atom_indices * 0.43 + coordinate_indices * 0.61 + phase)
+            norm_start = 0.08 * torch.sin(atom_indices[:, 0] * 0.79 + phase)
+        raw_gate_offsets = torch.nn.Parameter(gate_start)
+        raw_up_offsets = torch.nn.Parameter(up_start)
+        raw_norm_offsets = torch.nn.Parameter(norm_start)
+        optimizer = torch.optim.LBFGS(
+            [raw_gate_offsets, raw_up_offsets, raw_norm_offsets],
+            lr=learning_rate,
+            max_iter=steps,
+            line_search_fn="strong_wolfe",
+            tolerance_grad=1e-10,
+            tolerance_change=1e-12,
+            history_size=min(80, max(20, steps // 2)),
+        )
+
+        def current_state() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+            gate_directions_t = bounded_directions(gate_anchor_t, raw_gate_offsets)
+            up_directions_t = bounded_directions(up_anchor_t, raw_up_offsets)
+            norms = torch.exp(initial_log_norms + torch.tanh(raw_norm_offsets) * log_norm_span)
+            train_design = make_design(x, gate_directions_t, up_directions_t, norms)
+            coefficients = solve_coefficients(train_design, y)
+            train_prediction = train_design @ coefficients
+            selection_prediction = make_design(
+                selection_x,
+                gate_directions_t,
+                up_directions_t,
+                norms,
+            ) @ coefficients
+            return gate_directions_t, up_directions_t, norms, coefficients, train_prediction, selection_prediction
+
+        def closure() -> torch.Tensor:
+            optimizer.zero_grad()
+            gate_directions_t, up_directions_t, norms, coefficients, train_prediction, selection_prediction = current_state()
+            loss = 0.35 * torch.mean((train_prediction - y) ** 2)
+            loss = loss + 0.65 * torch.mean((selection_prediction - selection_y) ** 2)
+            if has_gradient_witness and gradient_x is not None and gradient_y is not None and gradient_scale is not None:
+                gate_vectors_t = gate_directions_t * norms[:, None]
+                gate_projection = gradient_x @ gate_vectors_t.T
+                up_projection = gradient_x @ up_directions_t.T
+                sigmoid = torch.sigmoid(gate_projection)
+                silu_values = torch.nn.functional.silu(gate_projection)
+                silu_prime = sigmoid * (1.0 + gate_projection * (1.0 - sigmoid))
+                predicted_gradients = torch.sum(
+                    coefficients[:-1][None, :, None] * (
+                        silu_prime[:, :, None] * up_projection[:, :, None] * gate_vectors_t[None, :, :]
+                        + silu_values[:, :, None] * up_directions_t[None, :, :]
+                    ),
+                    dim=1,
+                )
+                loss = loss + gradient_weight * torch.mean(
+                    (predicted_gradients - gradient_y) ** 2
+                ) / gradient_scale
+            if has_cubic_witness and cubic_x is not None and cubic_y is not None and cubic_scale is not None:
+                gate_vectors_t = gate_directions_t * norms[:, None]
+                predicted_cubic = 1.5 * torch.sum(
+                    (cubic_x @ gate_vectors_t.T) ** 2
+                    * (cubic_x @ up_directions_t.T)
+                    * coefficients[:-1][None, :],
+                    dim=1,
+                )
+                loss = loss + cubic_weight * torch.mean(
+                    (predicted_cubic - cubic_y) ** 2
+                ) / cubic_scale
+            loss = loss + 1e-7 * (
+                torch.mean(raw_gate_offsets ** 2)
+                + torch.mean(raw_up_offsets ** 2)
+                + torch.mean(raw_norm_offsets ** 2)
+            )
+            loss.backward()
+            return loss
+
+        try:
+            optimizer.step(closure)
+            with torch.no_grad():
+                gate_directions_t, up_directions_t, norms, coefficients, train_prediction, selection_prediction = current_state()
+                train_abs = torch.abs(train_prediction - y) * target_scale
+                selection_abs = torch.abs(selection_prediction - selection_y) * target_scale
+                train_mae = float(torch.mean(train_abs).detach().cpu().item())
+                selection_mae = float(torch.mean(selection_abs).detach().cpu().item())
+                selection_worst = float(torch.max(selection_abs).detach().cpu().item())
+                score = selection_worst + 2.0 * selection_mae
+                restart_summaries.append({
+                    "restart": float(restart_index),
+                    "score": float(score),
+                    "trainMae": float(train_mae),
+                    "selectionMae": float(selection_mae),
+                    "selectionWorst": float(selection_worst),
+                })
+                if best_state is None or score < best_state["score"]:
+                    best_state = {
+                        "score": score,
+                        "gateDirections": gate_directions_t.detach().cpu().numpy().astype(np.float64),
+                        "upDirections": up_directions_t.detach().cpu().numpy().astype(np.float64),
+                        "norms": norms.detach().cpu().numpy().astype(np.float64),
+                        "coefficients": coefficients.detach().cpu().numpy().astype(np.float64),
+                    }
+        except (RuntimeError, ValueError):
+            continue
+
+    if best_state is None:
+        return candidate
+    coefficients_np = np.asarray(best_state["coefficients"], dtype=np.float64)
+    refined = dict(candidate)
+    refined.update({
+        "gates": np.asarray(best_state["gateDirections"]) * np.asarray(best_state["norms"])[:, None],
+        "ups": np.asarray(best_state["upDirections"]),
+        "scales": coefficients_np[:-1] * target_scale,
+        "bias": float(coefficients_np[-1] * target_scale),
+    })
+    train_metrics = regression_metrics(targets, predict_swiglu(coords, refined))
+    refined_selection_metrics = regression_metrics(
+        np.asarray(selection_targets if selection_targets is not None else targets, dtype=np.float64),
+        predict_swiglu(
+            np.asarray(selection_coords if selection_coords is not None else coords, dtype=np.float64),
+            refined,
+        ),
+    )
+    refined_selection_score = float(refined_selection_metrics["worstError"]) + 2.0 * float(refined_selection_metrics["mae"])
+    if refined_selection_score >= base_selection_score:
+        rejected = dict(candidate)
+        rejected.update({
+            "structureTrustRegionAttempted": True,
+            "structureTrustRegionAccepted": False,
+            "structureTrustRegionRestarts": restart_summaries,
+            "structureTrustRegionSelectionScoreBefore": float(base_selection_score),
+            "structureTrustRegionSelectionScoreAfter": float(refined_selection_score),
+        })
+        return rejected
+    refined.update({
+        "mae": float(train_metrics["mae"]),
+        "mse": float(train_metrics["mse"]),
+        "r2": float(train_metrics["r2"]),
+        "score": float(train_metrics["mae"]),
+        "selectionScore": float(refined_selection_score),
+        "worstError": float(train_metrics["worstError"]),
+        "structureTrustRegionAttempted": True,
+        "structureTrustRegionAccepted": True,
+        "structureTrustRegionRestarts": restart_summaries,
+        "structureTrustRegionSelectionScoreBefore": float(base_selection_score),
+        "structureTrustRegionSelectionScoreAfter": float(refined_selection_score),
+        "structureTrustRegionMaxTangent": float(max_tangent),
+        "structureTrustRegionMinGateAnchorCosine": float(np.min(np.abs(np.sum(
+            np.asarray(best_state["gateDirections"]) * gate_anchors,
+            axis=1,
+        )))),
+        "structureTrustRegionMinUpAnchorCosine": float(np.min(np.abs(np.sum(
+            np.asarray(best_state["upDirections"]) * up_anchors,
+            axis=1,
+        )))),
+        "structureTrustRegionUsedGradientWitness": bool(has_gradient_witness),
+        "structureTrustRegionUsedCubicWitness": bool(has_cubic_witness),
+    })
+    return refined
 
 
 def pair_swap_refine_swiglu_candidate(
@@ -5432,7 +7999,15 @@ def select_residual_block_atoms(
             for item in rows[:available]
             if float(normalized_gate_norms[int(item["atom"])]) <= gate_norm_threshold
         ]
-        if len(consensus_rows) >= lower and len(weak_gate_atoms) >= lower:
+        fixed_width_tail_completion = (
+            lower == upper
+            and len(weak_gate_atoms) == lower - 1
+            and len(consensus_rows) == len(weak_gate_atoms)
+        )
+        if (
+            (len(consensus_rows) >= lower and len(weak_gate_atoms) >= lower)
+            or fixed_width_tail_completion
+        ):
             consensus_limit = min(len(consensus_rows), upper, len(weak_gate_atoms))
             consensus_cuts: list[dict[str, float | int]] = []
             for selected_count in range(lower, consensus_limit + 1):
@@ -5467,9 +8042,23 @@ def select_residual_block_atoms(
                     (atom for atom in weak_gate_atoms if atom not in ordered_weak_atoms),
                     key=lambda atom: float(normalized_gate_norms[atom]),
                 ))
+                tail_completion_atoms: list[int] = []
+                if fixed_width_tail_completion:
+                    for item in rows[:available]:
+                        atom = int(item["atom"])
+                        if atom in ordered_weak_atoms:
+                            continue
+                        ordered_weak_atoms.append(atom)
+                        tail_completion_atoms.append(atom)
+                        if len(ordered_weak_atoms) >= lower:
+                            break
                 selected_count = min(len(ordered_weak_atoms), upper)
                 selected_atoms = ordered_weak_atoms[:selected_count]
-                method = "gate-norm-weak-block"
+                method = (
+                    "gate-norm-weak-block-tail-completion"
+                    if tail_completion_atoms
+                    else "gate-norm-weak-block"
+                )
             return selected_atoms, {
                 "method": method,
                 "selectedCount": int(selected_count),
@@ -5484,6 +8073,7 @@ def select_residual_block_atoms(
                 "strongCutRatio": float(strong_cut_ratio),
                 "consensusAtoms": [int(item["atom"]) for item in consensus_rows],
                 "weakGateAtoms": [int(atom) for atom in weak_gate_atoms],
+                "tailCompletionAtoms": tail_completion_atoms if strongest_cut is None else [],
                 "cutRatios": consensus_cuts,
             }
 
@@ -5529,6 +8119,35 @@ def passes_metric_thresholds(
         and metrics["mae"] <= max_mae
         and metrics["worstError"] <= max_worst_error
     )
+
+
+def validation_gradient_polish_weights(args: argparse.Namespace) -> tuple[float, float]:
+    fit_cubic_weight = float(os.environ.get(
+        "GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT",
+        "0.0",
+    ) or "0.0")
+    gradient_weight = float(os.environ.get(
+        "GCL_BLIND_SWIGLU_VALIDATION_GRADIENT_POLISH_WEIGHT",
+        str(args.fit_gradient_weight),
+    ) or args.fit_gradient_weight)
+    cubic_weight = float(os.environ.get(
+        "GCL_BLIND_SWIGLU_VALIDATION_GRADIENT_POLISH_CUBIC_WEIGHT",
+        str(fit_cubic_weight),
+    ) or fit_cubic_weight)
+    if not np.isfinite(gradient_weight) or gradient_weight < 0.0:
+        raise RuntimeError("validation gradient polish weight must be non-negative and finite")
+    if not np.isfinite(cubic_weight) or cubic_weight < 0.0:
+        raise RuntimeError("validation cubic polish weight must be non-negative and finite")
+    return gradient_weight, cubic_weight
+
+
+def validation_full_tail_polish_cubic_trigger(method: str, cubic_score_count: int) -> bool:
+    raw = os.environ.get("GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_ON_CUBIC", "").strip()
+    if raw:
+        if raw not in {"0", "1"}:
+            raise RuntimeError("validation full-tail cubic trigger must be 0 or 1")
+        return raw == "1" and cubic_score_count > 0
+    return method in {"gradient-polish", "asymptotic-gate-stitch"} and cubic_score_count > 0
 
 
 def log_progress(args: argparse.Namespace, phase: str, **fields: Any) -> None:
@@ -5620,6 +8239,122 @@ def principal_cosines(basis: np.ndarray, truth_vectors: np.ndarray) -> np.ndarra
     return singular_values
 
 
+def write_basis_diagnostic(
+    args: argparse.Namespace,
+    oracle: OracleClient,
+    basis: np.ndarray,
+    eigenvalues: np.ndarray,
+    energy_ratio: float,
+    gradient_witness_count: int,
+    basis_moment: str,
+    cubic_directions: np.ndarray,
+    cubic_scores: np.ndarray,
+    output_json: Path,
+    output_md: Path | None,
+) -> bool:
+    oracle.unlock_posthoc_truth("basis-diagnostic-recovery-frozen")
+    truth_gate, truth_up = oracle.truth()
+    if truth_gate.ndim == 1:
+        truth_gate = np.expand_dims(truth_gate, axis=0)
+    if truth_up.ndim == 1:
+        truth_up = np.expand_dims(truth_up, axis=0)
+    truth_basis = np.vstack([
+        normalize(row) for row in truth_gate
+    ] + [
+        normalize(row) for row in truth_up
+    ])
+    cosines = principal_cosines(basis, truth_basis)
+    minimum_cosine = float(np.min(cosines))
+    cubic_relative_rmse: float | None = None
+    cubic_cosine: float | None = None
+    if cubic_directions.shape[0] > 0:
+        truth_gate_coords = truth_gate @ basis.T
+        truth_up_coords = truth_up @ basis.T
+        true_cubic_scores = predict_swiglu_cubic_directional_derivatives(
+            cubic_directions,
+            truth_gate_coords,
+            truth_up_coords,
+            np.ones(truth_gate.shape[0], dtype=np.float64),
+        )
+        cubic_error = np.asarray(cubic_scores, dtype=np.float64) - true_cubic_scores
+        cubic_relative_rmse = float(
+            np.sqrt(np.mean(cubic_error ** 2))
+            / max(np.sqrt(np.mean(true_cubic_scores ** 2)), 1e-15)
+        )
+        cubic_cosine = float(
+            np.dot(cubic_scores, true_cubic_scores)
+            / max(np.linalg.norm(cubic_scores) * np.linalg.norm(true_cubic_scores), 1e-15)
+        )
+    passed = (
+        minimum_cosine >= args.min_subspace_cosine
+        and (
+            cubic_relative_rmse is None
+            or cubic_relative_rmse <= args.max_cubic_witness_relative_rmse
+        )
+        and oracle.query_count <= args.max_oracle_calls
+        and oracle.meta.get("solverAccess") == "oracle-only"
+    )
+    report = {
+        "summary": {
+            "pass": passed,
+            "kind": "post-hoc-basis-diagnostic",
+            "model": oracle.meta["model"],
+            "modelType": oracle.meta["modelType"],
+            "dimension": int(oracle.meta["hiddenSize"]),
+            "layer": int(oracle.meta["layer"]),
+            "units": oracle.meta.get("units", [oracle.meta["unit"]]),
+            "unitCount": int(oracle.meta.get("unitCount", 1)),
+            "oracleMode": oracle.meta.get("oracleMode", "selected-unit-sum"),
+            "outputChannel": oracle.meta.get("outputChannel"),
+            "activeRank": int(args.active_rank),
+            "rawOracleCalls": int(oracle.query_count),
+            "gradientMode": args.gradient_mode,
+            "finiteDifferenceSteps": parse_step_list(
+                args.finite_difference_steps,
+                args.finite_difference_step,
+            ),
+            "gradientWitnessCount": int(gradient_witness_count),
+            "basisMoment": basis_moment,
+            "selectedGradientEnergyRatio": float(energy_ratio),
+            "subspaceMinPrincipalCosine": minimum_cosine,
+            "subspaceCosines": [float(value) for value in cosines],
+            "eigenvalues": [float(value) for value in eigenvalues],
+            "cubicDirectionCount": int(cubic_directions.shape[0]),
+            "cubicWitnessRelativeRmse": cubic_relative_rmse,
+            "cubicWitnessCosine": cubic_cosine,
+        },
+        "accessAudit": {
+            "solverAccess": "oracle-only",
+            "weightsUsedBySolver": False,
+            "hooksUsedBySolver": False,
+            "sourceIdsUsedBySolver": False,
+            "oracleOwnsWeights": True,
+            "postHocWitnessOnly": True,
+        },
+    }
+    output_json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    if output_md:
+        output_md.write_text(
+            "\n".join([
+                "# Blind SwiGLU Basis Diagnostic",
+                "",
+                f"- pass: `{str(passed).lower()}`",
+                f"- gradient mode: `{args.gradient_mode}`",
+                f"- gradient witnesses: `{gradient_witness_count}`",
+                f"- minimum principal cosine: `{minimum_cosine}`",
+                f"- cubic witness relative RMSE: `{cubic_relative_rmse}`",
+                f"- cubic witness cosine: `{cubic_cosine}`",
+                f"- raw oracle calls: `{oracle.query_count}`",
+                "",
+                "Source vectors are requested only after basis recovery and are used only for this diagnostic witness.",
+                "",
+            ]),
+            encoding="utf-8",
+        )
+    print(json.dumps(report["summary"], indent=2))
+    return passed
+
+
 def maximum_weight_assignment(scores: np.ndarray) -> list[int]:
     matrix = np.asarray(scores, dtype=np.float64)
     if matrix.ndim != 2 or matrix.shape[0] > matrix.shape[1]:
@@ -5697,11 +8432,15 @@ def save_fit_snapshot(
     energy_ratio: float,
     fit_gradient_coords: np.ndarray,
     fit_gradient_targets: np.ndarray,
+    cubic_directions: np.ndarray,
+    cubic_targets: np.ndarray,
+    cubic_holdout_directions: np.ndarray,
+    cubic_holdout_targets: np.ndarray,
 ) -> None:
     snapshot_path = Path(path)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     metadata = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "kind": "blind-swiglu-fit-snapshot",
         "dimension": int(dimension),
         "activeRank": int(active_rank),
@@ -5732,6 +8471,10 @@ def save_fit_snapshot(
         eigenvalues=np.asarray(eigenvalues, dtype=np.float64),
         fit_gradient_coords=np.asarray(fit_gradient_coords, dtype=np.float64),
         fit_gradient_targets=np.asarray(fit_gradient_targets, dtype=np.float64),
+        cubic_directions=np.asarray(cubic_directions, dtype=np.float64),
+        cubic_targets=np.asarray(cubic_targets, dtype=np.float64),
+        cubic_holdout_directions=np.asarray(cubic_holdout_directions, dtype=np.float64),
+        cubic_holdout_targets=np.asarray(cubic_holdout_targets, dtype=np.float64),
     )
 
 
@@ -5763,6 +8506,22 @@ def load_fit_snapshot(path: str, *, dimension: int, active_rank: int, atom_count
             raise RuntimeError("snapshot fit atom shapes do not match activeRank/atomCount")
         if train_coords.ndim != 2 or train_coords.shape[1] != active_rank or train_targets.shape[0] != train_coords.shape[0]:
             raise RuntimeError("snapshot train set shapes are inconsistent")
+        for direction_key, target_key in (
+            ("cubic_directions", "cubic_targets"),
+            ("cubic_holdout_directions", "cubic_holdout_targets"),
+        ):
+            if direction_key not in data and target_key not in data:
+                continue
+            if direction_key not in data or target_key not in data:
+                raise RuntimeError(f"snapshot has incomplete {direction_key} witness data")
+            directions = np.asarray(data[direction_key], dtype=np.float64)
+            targets = np.asarray(data[target_key], dtype=np.float64)
+            if (
+                directions.ndim != 2
+                or directions.shape[1] != active_rank
+                or targets.shape != (directions.shape[0],)
+            ):
+                raise RuntimeError(f"snapshot {direction_key} witness shapes are inconsistent")
         fit = {
             "gates": gates,
             "ups": ups,
@@ -5793,10 +8552,53 @@ def load_fit_snapshot(path: str, *, dimension: int, active_rank: int, atom_count
             "eigenvalues": np.asarray(data["eigenvalues"], dtype=np.float64),
             "fitGradientCoords": np.asarray(data["fit_gradient_coords"], dtype=np.float64),
             "fitGradientTargets": np.asarray(data["fit_gradient_targets"], dtype=np.float64),
+            "cubicDirections": (
+                np.asarray(data["cubic_directions"], dtype=np.float64)
+                if "cubic_directions" in data
+                else np.zeros((0, active_rank), dtype=np.float64)
+            ),
+            "cubicTargets": (
+                np.asarray(data["cubic_targets"], dtype=np.float64)
+                if "cubic_targets" in data
+                else np.zeros(0, dtype=np.float64)
+            ),
+            "cubicHoldoutDirections": (
+                np.asarray(data["cubic_holdout_directions"], dtype=np.float64)
+                if "cubic_holdout_directions" in data
+                else np.zeros((0, active_rank), dtype=np.float64)
+            ),
+            "cubicHoldoutTargets": (
+                np.asarray(data["cubic_holdout_targets"], dtype=np.float64)
+                if "cubic_holdout_targets" in data
+                else np.zeros(0, dtype=np.float64)
+            ),
         }
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def run_solver(args: argparse.Namespace) -> int:
+    if args.recovery_path == "asymptotic-cold-start":
+        if args.fit_snapshot_input:
+            raise RuntimeError("asymptotic cold start forbids --fit-snapshot-input")
+        if not args.disable_adaptive_rescue:
+            raise RuntimeError("asymptotic cold start requires --disable-adaptive-rescue to forbid nonlinear fallback")
+    if args.defer_posthoc_truth:
+        if args.recovery_path != "asymptotic-cold-start":
+            raise RuntimeError("--defer-posthoc-truth requires --recovery-path asymptotic-cold-start")
+        external_opaque_transport = bool(args.oracle_socket) or (
+            args.oracle_read_fd >= 0 and args.oracle_write_fd >= 0
+        )
+        if not external_opaque_transport or not args.require_opaque_oracle:
+            raise RuntimeError("--defer-posthoc-truth requires an external opaque oracle transport")
+        if not args.frozen_fit_output:
+            raise RuntimeError("--defer-posthoc-truth requires --frozen-fit-output")
     output_json = Path(args.output_json)
     output_md = Path(args.output_md)
     output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -5805,11 +8607,13 @@ def run_solver(args: argparse.Namespace) -> int:
 
     with tempfile.TemporaryDirectory(prefix="gcl-blind-swiglu-") as raw_tmp:
         work_dir = Path(raw_tmp)
-        oracle = OracleClient(args, work_dir)
+        oracle = create_oracle_client(args, work_dir)
         try:
             dimension = int(oracle.meta["hiddenSize"])
             unit_count = int(oracle.meta.get("unitCount", 1))
-            log_progress(args, "oracle-ready", dimension=dimension, unitCount=unit_count, layer=int(oracle.meta["layer"]))
+            log_progress(args, "oracle-ready", dimension=dimension, unitCount=unit_count, layer=oracle.meta.get("layer"))
+            if args.expected_dimension > 0 and dimension != args.expected_dimension:
+                raise RuntimeError(f"oracle dimension={dimension} does not match expected={args.expected_dimension}")
             if args.atom_count is None:
                 args.atom_count = unit_count
             if args.atom_count != unit_count:
@@ -5818,13 +8622,20 @@ def run_solver(args: argparse.Namespace) -> int:
             independent_rng = os.environ.get("GCL_BLIND_SWIGLU_INDEPENDENT_RNG", "").strip() == "1"
             basis_rng = np.random.default_rng(args.seed + 101) if independent_rng else rng
             cubic_rng = np.random.default_rng(args.seed + 202) if independent_rng else rng
+            cubic_holdout_rng = np.random.default_rng(args.seed + 203) if independent_rng else rng
             train_rng = np.random.default_rng(args.seed + 303) if independent_rng else rng
             fit_gradient_rng = np.random.default_rng(args.seed + 404) if independent_rng else rng
             validation_rng = np.random.default_rng(args.seed + 505) if independent_rng else rng
             finite_difference_steps = parse_step_list(args.finite_difference_steps, args.finite_difference_step)
+            cubic_steps = parse_step_list(args.cubic_steps, args.cubic_step)
             fit_gradient_steps = parse_step_list(
                 args.fit_gradient_steps,
                 args.fit_gradient_step if args.fit_gradient_step > 0 else args.finite_difference_step,
+            )
+            active_gradient_estimator = (
+                estimate_active_symmetric_regression_gradients
+                if args.fit_gradient_mode == "symmetric-regression"
+                else estimate_active_forward_gradients
             )
             train_scale_mixture = parse_float_list(args.train_scale_mixture)
             if args.fit_snapshot_input:
@@ -5847,8 +8658,10 @@ def run_solver(args: argparse.Namespace) -> int:
                 energy_ratio = float(snapshot["metadata"].get("energyRatio", 0.0))
                 gradient_witness_count = int(snapshot["metadata"].get("gradientWitnessCount", 0))
                 basis_moment = f"snapshot:{args.basis_moment}"
-                cubic_gate_directions = np.zeros((0, args.active_rank), dtype=np.float64)
-                cubic_scores = np.zeros(0, dtype=np.float64)
+                cubic_gate_directions = snapshot["cubicDirections"]
+                cubic_scores = snapshot["cubicTargets"]
+                cubic_holdout_directions = snapshot["cubicHoldoutDirections"]
+                cubic_holdout_scores = snapshot["cubicHoldoutTargets"]
                 train_sampling_mode = f"snapshot:{args.train_sampling_mode.strip().lower()}"
                 fit_selection_count = 0
                 fit_selection_scale = 0.0
@@ -5866,6 +8679,27 @@ def run_solver(args: argparse.Namespace) -> int:
                 gradients = []
                 for _ in range(args.probe_points):
                     base = basis_rng.normal(0.0, args.input_scale, size=dimension).astype(np.float32)
+                    if args.gradient_mode == "symmetric-multiscale-coordinate":
+                        gradients.extend(estimate_symmetric_multiscale_coordinate_gradients(
+                            oracle,
+                            base,
+                            finite_difference_steps,
+                        ))
+                        continue
+                    if args.gradient_mode == "symmetric-regression-coordinate":
+                        gradients.append(estimate_symmetric_regression_coordinate_gradient(
+                            oracle,
+                            base,
+                            finite_difference_steps,
+                        ))
+                        continue
+                    if args.gradient_mode == "symmetric-richardson-coordinate":
+                        gradients.append(estimate_symmetric_richardson_coordinate_gradient(
+                            oracle,
+                            base,
+                            finite_difference_steps,
+                        ))
+                        continue
                     for step in finite_difference_steps:
                         if args.gradient_mode == "coordinate":
                             gradients.append(estimate_coordinate_gradient(oracle, base, step))
@@ -5893,8 +8727,29 @@ def run_solver(args: argparse.Namespace) -> int:
                     cubic_rng,
                     basis,
                     args.cubic_direction_count,
-                    args.cubic_step,
+                    cubic_steps,
                 )
+                cubic_holdout_directions, cubic_holdout_scores = estimate_active_cubic_directions(
+                    oracle,
+                    cubic_holdout_rng,
+                    basis,
+                    args.cubic_holdout_count,
+                    cubic_steps,
+                )
+                if args.basis_diagnostic_only:
+                    return 0 if write_basis_diagnostic(
+                        args,
+                        oracle,
+                        basis,
+                        eigenvalues,
+                        energy_ratio,
+                        gradient_witness_count,
+                        basis_moment,
+                        cubic_gate_directions,
+                        cubic_scores,
+                        output_json,
+                        output_md,
+                    ) else 1
 
                 train_sampling_mode = args.train_sampling_mode.strip().lower()
                 train_inputs = sample_active_region_inputs(
@@ -5908,7 +8763,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 train_targets = oracle.eval(train_inputs)
                 train_coords = train_inputs @ basis.T
                 log_progress(args, "train-sampled", trainCount=int(train_coords.shape[0]), rawOracleCalls=int(oracle.query_count))
-                fit_gradient_coords, fit_gradient_targets = estimate_active_forward_gradients(
+                fit_gradient_coords, fit_gradient_targets = active_gradient_estimator(
                     oracle,
                     fit_gradient_rng,
                     basis,
@@ -5937,23 +8792,106 @@ def run_solver(args: argparse.Namespace) -> int:
                     fit_selection_scale = 0.0
                     fit_selection_coords = None
                     fit_selection_targets = None
-                fit = fit_swiglu_sum(
-                    train_coords,
-                    train_targets,
-                    args.atom_count,
-                    args.seed + 17,
-                    args.fit_steps,
-                    args.fit_learning_rate,
-                    args.fit_restarts if args.fit_restarts > 0 else None,
-                    fit_gradient_coords,
-                    fit_gradient_targets,
-                    cubic_gate_directions,
-                    args.fit_gradient_weight,
-                    args.fit_mode,
-                    args.fit_restart_chunk_size,
-                    fit_selection_coords,
-                    fit_selection_targets,
-                )
+                if args.recovery_path == "asymptotic-cold-start":
+                    asymptotic_line_count = int(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_COUNT",
+                        "24",
+                    ) or "24")
+                    asymptotic_samples_per_line = int(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_SAMPLES_PER_LINE",
+                        "1537",
+                    ) or "1537")
+                    asymptotic_line_range = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_RANGE",
+                        "6.0",
+                    ) or "6.0")
+                    asymptotic_offset_scale = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_OFFSET_SCALE",
+                        "0.75",
+                    ) or "0.75")
+                    asymptotic_scale = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_SCALE",
+                        "512.0",
+                    ) or "512.0")
+                    hessian_representatives = int(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_REPRESENTATIVES",
+                        "5",
+                    ) or "5")
+                    asymptotic_query_bound = asymptotic_stitch_query_upper_bound(
+                        asymptotic_line_count,
+                        asymptotic_samples_per_line,
+                        args.atom_count,
+                        args.active_rank,
+                        hessian_representatives,
+                    )
+                    mandatory_validation_reserve = max(1, int(args.validation_count))
+                    requested_with_reserve = asymptotic_query_bound + mandatory_validation_reserve
+                    if requested_with_reserve > args.max_oracle_calls - oracle.query_count:
+                        raise OracleBudgetExceeded(
+                            stage="asymptotic-cold-start-with-validation-reserve",
+                            requested=requested_with_reserve,
+                            consumed=oracle.query_count,
+                            limit=args.max_oracle_calls,
+                        )
+                    fit = make_asymptotic_cold_start_scaffold(
+                        args.atom_count,
+                        args.active_rank,
+                        train_targets,
+                    )
+                    log_progress(
+                        args,
+                        "asymptotic-cold-start",
+                        lineCount=asymptotic_line_count,
+                        samplesPerLine=asymptotic_samples_per_line,
+                        requestedOracleCallUpperBound=asymptotic_query_bound,
+                        mandatoryValidationReserve=mandatory_validation_reserve,
+                        rawOracleCalls=int(oracle.query_count),
+                    )
+                    fit = asymptotic_gate_stitch_swiglu_candidate(
+                        oracle,
+                        basis,
+                        train_coords,
+                        train_targets,
+                        fit,
+                        args.seed + 71021,
+                        selection_coords=fit_selection_coords,
+                        selection_targets=fit_selection_targets,
+                        gradient_coords=fit_gradient_coords,
+                        gradient_targets=fit_gradient_targets,
+                        cubic_directions=cubic_gate_directions,
+                        cubic_targets=cubic_scores,
+                        line_count=asymptotic_line_count,
+                        samples_per_line=asymptotic_samples_per_line,
+                        line_range=asymptotic_line_range,
+                        offset_scale=asymptotic_offset_scale,
+                        asymptotic_scale=asymptotic_scale,
+                        cold_start=True,
+                    )
+                    if not fit.get("asymptoticGateStitched", False):
+                        failure = str(fit.get("asymptoticGateStitchFailure", "structure-court-rejected"))
+                        raise RuntimeError(f"asymptotic cold start failed: {failure}")
+                else:
+                    fit = fit_swiglu_sum(
+                        train_coords,
+                        train_targets,
+                        args.atom_count,
+                        args.seed + 17,
+                        args.fit_steps,
+                        args.fit_learning_rate,
+                        args.fit_restarts if args.fit_restarts > 0 else None,
+                        fit_gradient_coords,
+                        fit_gradient_targets,
+                        cubic_gate_directions,
+                        args.fit_gradient_weight,
+                        args.fit_mode,
+                        args.fit_restart_chunk_size,
+                        fit_selection_coords,
+                        fit_selection_targets,
+                        cubic_selection_directions=cubic_holdout_directions,
+                        cubic_selection_scores=cubic_holdout_scores,
+                        cubic_directions=cubic_gate_directions,
+                        cubic_targets=cubic_scores,
+                    )
                 log_progress(
                     args,
                     "initial-fit-complete",
@@ -5976,6 +8914,10 @@ def run_solver(args: argparse.Namespace) -> int:
                         energy_ratio=energy_ratio,
                         fit_gradient_coords=fit_gradient_coords,
                         fit_gradient_targets=fit_gradient_targets,
+                        cubic_directions=cubic_gate_directions,
+                        cubic_targets=cubic_scores,
+                        cubic_holdout_directions=cubic_holdout_directions,
+                        cubic_holdout_targets=cubic_holdout_scores,
                     )
                     log_progress(
                         args,
@@ -6143,6 +9085,10 @@ def run_solver(args: argparse.Namespace) -> int:
                             args.fit_restart_chunk_size,
                             fit_selection_coords,
                             fit_selection_targets,
+                            cubic_selection_directions=cubic_holdout_directions,
+                            cubic_selection_scores=cubic_holdout_scores,
+                            cubic_directions=cubic_gate_directions,
+                            cubic_targets=cubic_scores,
                         )
                         tail_refit_prediction = predict_swiglu(tail_refit_coords, tail_refit)
                         tail_refit_metrics = regression_metrics(tail_refit_targets, tail_refit_prediction)
@@ -6240,6 +9186,8 @@ def run_solver(args: argparse.Namespace) -> int:
                 "rawOracleCalls": int(oracle.query_count),
             }]
             fit_attempts.extend(prevalidation_fit_attempts)
+            asymptotic_stitch_posthoc_directions: np.ndarray | None = None
+            asymptotic_stitch_posthoc_up_directions: np.ndarray | None = None
 
             validation_atom_scale_repair_enabled = os.environ.get("GCL_BLIND_SWIGLU_VALIDATION_ATOM_SCALE_REPAIR", "").strip() == "1"
             if (
@@ -6604,8 +9552,30 @@ def run_solver(args: argparse.Namespace) -> int:
                     final_validation_source = "validation-atom-direction-repair-fresh-validation"
 
             validation_full_tail_polish_enabled = os.environ.get("GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH", "").strip() == "1"
+            full_tail_method = os.environ.get(
+                "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_METHOD",
+                "adam",
+            ).strip().lower() or "adam"
+            if full_tail_method not in {"adam", "lbfgs", "gate-norm", "pair-swap", "gradient-polish", "fixed-direction-value-polish", "param-refit", "fixed-gate-up-refit", "gate-dictionary-refit", "residual-gradient-replace", "residual-block-refit", "cancellation-pair-refit", "asymptotic-gate-stitch", "asymptotic-cold-rebuild"}:
+                raise RuntimeError("GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_METHOD must be adam, lbfgs, gate-norm, pair-swap, gradient-polish, fixed-direction-value-polish, param-refit, fixed-gate-up-refit, gate-dictionary-refit, residual-gradient-replace, residual-block-refit, cancellation-pair-refit, or asymptotic-gate-stitch")
+            validation_full_tail_polish_on_cubic = validation_full_tail_polish_cubic_trigger(
+                full_tail_method,
+                int(cubic_scores.size),
+            )
+            needs_full_tail_polish = (
+                not passes_metric_thresholds(
+                    metrics,
+                    args.min_r2,
+                    args.max_mae,
+                    args.max_worst_error,
+                )
+                or (
+                    validation_full_tail_polish_on_cubic
+                    and cubic_scores.size > 0
+                )
+            )
             if (
-                not passes_metric_thresholds(metrics, args.min_r2, args.max_mae, args.max_worst_error)
+                needs_full_tail_polish
                 and validation_full_tail_polish_enabled
                 and args.atom_count >= 4
                 and oracle.query_count < args.max_oracle_calls
@@ -6632,12 +9602,6 @@ def run_solver(args: argparse.Namespace) -> int:
                     str(max(1, full_tail_repeat // 2)),
                 ) or max(1, full_tail_repeat // 2))
                 full_tail_steps = int(os.environ.get("GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_STEPS", "520") or "520")
-                full_tail_method = os.environ.get(
-                    "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_METHOD",
-                    "adam",
-                ).strip().lower() or "adam"
-                if full_tail_method not in {"adam", "lbfgs", "gate-norm", "pair-swap", "gradient-polish", "param-refit", "fixed-gate-up-refit", "gate-dictionary-refit", "residual-gradient-replace", "residual-block-refit"}:
-                    raise RuntimeError("GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_METHOD must be adam, lbfgs, gate-norm, pair-swap, gradient-polish, param-refit, fixed-gate-up-refit, gate-dictionary-refit, residual-gradient-replace, or residual-block-refit")
                 if (
                     full_tail_count <= 0
                     or full_tail_repeat <= 0
@@ -6680,6 +9644,130 @@ def run_solver(args: argparse.Namespace) -> int:
                     full_tail_base_coords = np.vstack([full_tail_base_coords, extra_coords])
                     full_tail_base_targets = np.concatenate([full_tail_base_targets, extra_targets])
                     full_tail_extra_random_evaluated = int(full_tail_extra_random_count)
+                full_tail_radial_train_count = int(os.environ.get(
+                    "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_RADIAL_TRAIN_COUNT",
+                    "0",
+                ) or "0")
+                full_tail_radial_selection_count = int(os.environ.get(
+                    "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_RADIAL_SELECTION_COUNT",
+                    "0",
+                ) or "0")
+                full_tail_radial_scales = parse_float_list(os.environ.get(
+                    "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_RADIAL_SCALES",
+                    "1.0,2.0,4.0,8.0",
+                ))
+                if (
+                    full_tail_radial_train_count < 0
+                    or full_tail_radial_selection_count < 0
+                    or not full_tail_radial_scales
+                    or any(not np.isfinite(scale) or scale <= 0.0 for scale in full_tail_radial_scales)
+                ):
+                    raise RuntimeError("validation full-tail radial witness config is invalid")
+                radial_requested = full_tail_radial_train_count + full_tail_radial_selection_count
+                if radial_requested > args.max_oracle_calls - oracle.query_count:
+                    raise OracleBudgetExceeded(
+                        stage="validation-full-tail-radial-witness",
+                        requested=radial_requested,
+                        consumed=oracle.query_count,
+                        limit=args.max_oracle_calls,
+                    )
+                full_tail_radial_train_evaluated = 0
+                full_tail_radial_selection_evaluated = 0
+                full_tail_radial_gradient_evaluated = 0
+                full_tail_fit_gradient_coords = fit_gradient_coords
+                full_tail_fit_gradient_targets = fit_gradient_targets
+                radial_selection_coords: np.ndarray | None = None
+                radial_selection_targets: np.ndarray | None = None
+                if full_tail_radial_train_count > 0:
+                    radial_train_inputs = sample_active_region_inputs(
+                        full_tail_rng,
+                        full_tail_radial_train_count,
+                        basis,
+                        full_tail_radial_scales[0],
+                        full_tail_radial_scales,
+                        "active-radial-shell",
+                    )
+                    radial_train_targets = oracle.eval(
+                        radial_train_inputs,
+                        stage="validation-full-tail-radial-train",
+                    )
+                    radial_train_coords = radial_train_inputs @ basis.T
+                    full_tail_base_coords = np.vstack([full_tail_base_coords, radial_train_coords])
+                    full_tail_base_targets = np.concatenate([full_tail_base_targets, radial_train_targets])
+                    full_tail_radial_train_evaluated = int(radial_train_coords.shape[0])
+                if full_tail_radial_selection_count > 0:
+                    radial_selection_inputs = sample_active_region_inputs(
+                        full_tail_rng,
+                        full_tail_radial_selection_count,
+                        basis,
+                        full_tail_radial_scales[0],
+                        full_tail_radial_scales,
+                        "active-radial-shell",
+                    )
+                    radial_selection_targets = oracle.eval(
+                        radial_selection_inputs,
+                        stage="validation-full-tail-radial-selection",
+                    )
+                    radial_selection_coords = radial_selection_inputs @ basis.T
+                    full_tail_radial_selection_evaluated = int(radial_selection_coords.shape[0])
+                full_tail_radial_gradient_count = int(os.environ.get(
+                    "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_RADIAL_GRADIENT_COUNT",
+                    "0",
+                ) or "0")
+                full_tail_radial_gradient_scales = parse_float_list(os.environ.get(
+                    "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_RADIAL_GRADIENT_SCALES",
+                    "2.0,4.0,8.0",
+                ))
+                full_tail_radial_gradient_steps = parse_float_list(os.environ.get(
+                    "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_RADIAL_GRADIENT_STEPS",
+                    "0.25,0.5",
+                ))
+                if (
+                    full_tail_radial_gradient_count < 0
+                    or not full_tail_radial_gradient_scales
+                    or not full_tail_radial_gradient_steps
+                    or any(not np.isfinite(scale) or scale <= 0.0 for scale in full_tail_radial_gradient_scales)
+                    or any(not np.isfinite(step) or step <= 0.0 for step in full_tail_radial_gradient_steps)
+                ):
+                    raise RuntimeError("validation full-tail radial gradient config is invalid")
+                radial_gradient_cost = (
+                    full_tail_radial_gradient_count
+                    * (args.active_rank + 1)
+                    * len(full_tail_radial_gradient_steps)
+                )
+                if radial_gradient_cost > args.max_oracle_calls - oracle.query_count:
+                    raise OracleBudgetExceeded(
+                        stage="validation-full-tail-radial-gradient",
+                        requested=radial_gradient_cost,
+                        consumed=oracle.query_count,
+                        limit=args.max_oracle_calls,
+                    )
+                if full_tail_radial_gradient_count > 0:
+                    radial_gradient_inputs = sample_active_region_inputs(
+                        full_tail_rng,
+                        full_tail_radial_gradient_count,
+                        basis,
+                        full_tail_radial_gradient_scales[0],
+                        full_tail_radial_gradient_scales,
+                        "active-radial-shell",
+                    )
+                    radial_gradient_coords = radial_gradient_inputs @ basis.T
+                    radial_gradient_targets = estimate_active_forward_gradients_at_coords(
+                        oracle,
+                        basis,
+                        radial_gradient_coords,
+                        full_tail_radial_gradient_steps,
+                        stage="validation-full-tail-radial-gradient",
+                    )
+                    full_tail_fit_gradient_coords = np.vstack([
+                        full_tail_fit_gradient_coords,
+                        radial_gradient_coords,
+                    ])
+                    full_tail_fit_gradient_targets = np.vstack([
+                        full_tail_fit_gradient_targets,
+                        radial_gradient_targets,
+                    ])
+                    full_tail_radial_gradient_evaluated = int(radial_gradient_coords.shape[0])
                 full_tail_coord_parts = [
                     np.repeat(validation_coords[full_tail_selected], full_tail_repeat, axis=0),
                 ]
@@ -6688,9 +9776,12 @@ def run_solver(args: argparse.Namespace) -> int:
                 ]
                 full_tail_selection_coord_parts: list[np.ndarray] = []
                 full_tail_selection_target_parts: list[np.ndarray] = []
+                if radial_selection_coords is not None and radial_selection_targets is not None:
+                    full_tail_selection_coord_parts.append(radial_selection_coords)
+                    full_tail_selection_target_parts.append(radial_selection_targets)
                 full_tail_selection_include_full = os.environ.get(
                     "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH_SELECTION_INCLUDE_FULL",
-                    "1" if full_tail_method == "residual-block-refit" else "0",
+                    "1" if full_tail_method in {"residual-block-refit", "cancellation-pair-refit", "asymptotic-gate-stitch", "asymptotic-cold-rebuild", "fixed-direction-value-polish"} else "0",
                 ).strip() == "1"
                 full_tail_holdout_selected = 0
                 full_tail_holdout_evaluated = 0
@@ -6751,6 +9842,13 @@ def run_solver(args: argparse.Namespace) -> int:
                     "availableCount": 0,
                     "cutRatios": [],
                 }
+                validation_gradient_weight = 0.0
+                validation_cubic_weight = 0.0
+                asymptotic_stitch_line_count = 0
+                asymptotic_stitch_samples_per_line = 0
+                asymptotic_stitch_line_range = 0.0
+                asymptotic_stitch_offset_scale = 0.0
+                asymptotic_stitch_scale = 0.0
                 if full_tail_method == "lbfgs":
                     full_tail_polished_fit = final_lbfgs_polish_swiglu_candidate(
                         full_tail_polish_coords,
@@ -6782,10 +9880,119 @@ def run_solver(args: argparse.Namespace) -> int:
                         full_tail_polish_coords,
                         full_tail_polish_targets,
                         fit,
-                        fit_gradient_coords,
-                        fit_gradient_targets,
+                        full_tail_fit_gradient_coords,
+                        full_tail_fit_gradient_targets,
                         args.atom_count,
                         args.seed + 70731,
+                    )
+                elif full_tail_method == "cancellation-pair-refit":
+                    full_tail_polished_fit = sequential_cancellation_pair_refit_swiglu_candidate(
+                        full_tail_polish_coords,
+                        full_tail_polish_targets,
+                        fit,
+                        fit_gradient_coords,
+                        fit_gradient_targets,
+                        args.seed + 70861,
+                        full_tail_selection_coords,
+                        full_tail_selection_targets,
+                        cubic_directions=cubic_gate_directions,
+                        cubic_targets=cubic_scores,
+                        cubic_selection_directions=cubic_holdout_directions,
+                        cubic_selection_targets=cubic_holdout_scores,
+                    )
+                elif full_tail_method in {"asymptotic-gate-stitch", "asymptotic-cold-rebuild"}:
+                    asymptotic_stitch_line_count = int(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_COUNT",
+                        "16",
+                    ) or "16")
+                    asymptotic_stitch_samples_per_line = int(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_SAMPLES_PER_LINE",
+                        "1025",
+                    ) or "1025")
+                    asymptotic_stitch_line_range = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_RANGE",
+                        "4.0",
+                    ) or "4.0")
+                    asymptotic_stitch_offset_scale = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_OFFSET_SCALE",
+                        "0.75",
+                    ) or "0.75")
+                    asymptotic_stitch_scale = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_SCALE",
+                        "512.0",
+                    ) or "512.0")
+                    asymptotic_stitch_queries = asymptotic_stitch_line_count * asymptotic_stitch_samples_per_line
+                    asymptotic_stitch_query_bound = asymptotic_stitch_query_upper_bound(
+                        asymptotic_stitch_line_count,
+                        asymptotic_stitch_samples_per_line,
+                        args.atom_count,
+                        args.active_rank,
+                        int(os.environ.get(
+                            "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_REPRESENTATIVES",
+                            "5",
+                        ) or "5"),
+                    )
+                    if asymptotic_stitch_query_bound > args.max_oracle_calls - oracle.query_count:
+                        raise OracleBudgetExceeded(
+                            stage="asymptotic-gate-stitch",
+                            requested=asymptotic_stitch_query_bound,
+                            consumed=oracle.query_count,
+                            limit=args.max_oracle_calls,
+                        )
+                    log_progress(
+                        args,
+                        "asymptotic-gate-stitch-start",
+                        lineCount=int(asymptotic_stitch_line_count),
+                        samplesPerLine=int(asymptotic_stitch_samples_per_line),
+                        lineRange=float(asymptotic_stitch_line_range),
+                        offsetScale=float(asymptotic_stitch_offset_scale),
+                        asymptoticScale=float(asymptotic_stitch_scale),
+                        requestedLineOracleCalls=int(asymptotic_stitch_queries),
+                        requestedOracleCallUpperBound=int(asymptotic_stitch_query_bound),
+                        rawOracleCalls=int(oracle.query_count),
+                    )
+                    stitch_cold_start = full_tail_method == "asymptotic-cold-rebuild"
+                    stitch_candidate = (
+                        make_asymptotic_cold_start_scaffold(
+                            args.atom_count,
+                            args.active_rank,
+                            full_tail_polish_targets,
+                        )
+                        if stitch_cold_start
+                        else fit
+                    )
+                    full_tail_polished_fit = asymptotic_gate_stitch_swiglu_candidate(
+                        oracle,
+                        basis,
+                        full_tail_polish_coords,
+                        full_tail_polish_targets,
+                        stitch_candidate,
+                        args.seed + 71021,
+                        selection_coords=full_tail_selection_coords,
+                        selection_targets=full_tail_selection_targets,
+                        gradient_coords=full_tail_fit_gradient_coords,
+                        gradient_targets=full_tail_fit_gradient_targets,
+                        cubic_directions=cubic_gate_directions,
+                        cubic_targets=cubic_scores,
+                        line_count=asymptotic_stitch_line_count,
+                        samples_per_line=asymptotic_stitch_samples_per_line,
+                        line_range=asymptotic_stitch_line_range,
+                        offset_scale=asymptotic_stitch_offset_scale,
+                        asymptotic_scale=asymptotic_stitch_scale,
+                        cold_start=stitch_cold_start,
+                    )
+                elif full_tail_method == "fixed-direction-value-polish":
+                    fixed_direction_gradient_weight = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_FIXED_DIRECTION_VALUE_GRADIENT_WEIGHT",
+                        "0.0",
+                    ) or "0.0")
+                    full_tail_polished_fit = fixed_gate_direction_value_polish(
+                        full_tail_polish_coords,
+                        full_tail_polish_targets,
+                        fit,
+                        full_tail_fit_gradient_coords,
+                        full_tail_fit_gradient_targets,
+                        fixed_direction_gradient_weight,
                     )
                 elif full_tail_method in {"residual-gradient-replace", "residual-block-refit"}:
                     if atom_tail_diagnostic is None:
@@ -6840,8 +10047,8 @@ def run_solver(args: argparse.Namespace) -> int:
                         gate_weak_ratio=residual_block_gate_weak_ratio,
                         strong_cut_ratio=residual_block_strong_cut_ratio,
                     )
-                    residual_gradient_targets = fit_gradient_targets - predict_swiglu_active_gradients(
-                        fit_gradient_coords,
+                    residual_gradient_targets = full_tail_fit_gradient_targets - predict_swiglu_active_gradients(
+                        full_tail_fit_gradient_coords,
                         fit,
                     )
                     if full_tail_method == "residual-block-refit":
@@ -6850,11 +10057,15 @@ def run_solver(args: argparse.Namespace) -> int:
                             full_tail_polish_targets,
                             fit,
                             residual_gradient_replace_atoms,
-                            fit_gradient_coords,
+                            full_tail_fit_gradient_coords,
                             residual_gradient_targets,
                             args.seed + 70901,
                             full_tail_selection_coords,
                             full_tail_selection_targets,
+                            cubic_directions=cubic_gate_directions,
+                            cubic_targets=cubic_scores,
+                            cubic_selection_directions=cubic_holdout_directions,
+                            cubic_selection_targets=cubic_holdout_scores,
                         )
                         full_tail_polished_fit["residualGradientBlockSelection"] = residual_block_selection
                     else:
@@ -6863,25 +10074,25 @@ def run_solver(args: argparse.Namespace) -> int:
                             full_tail_polish_targets,
                             fit,
                             residual_gradient_replace_atoms,
-                            fit_gradient_coords,
+                            full_tail_fit_gradient_coords,
                             residual_gradient_targets,
                             args.seed + 70771,
                             full_tail_selection_coords,
                             full_tail_selection_targets,
                         )
                 elif full_tail_method == "gradient-polish":
-                    validation_gradient_weight = float(os.environ.get(
-                        "GCL_BLIND_SWIGLU_VALIDATION_GRADIENT_POLISH_WEIGHT",
-                        str(args.fit_gradient_weight),
-                    ) or args.fit_gradient_weight)
+                    validation_gradient_weight, validation_cubic_weight = validation_gradient_polish_weights(args)
                     full_tail_polished_fit = polish_swiglu_candidate(
                         full_tail_polish_coords,
                         full_tail_polish_targets,
                         fit,
                         args.fit_learning_rate,
-                        fit_gradient_coords,
-                        fit_gradient_targets,
+                        full_tail_fit_gradient_coords,
+                        full_tail_fit_gradient_targets,
                         validation_gradient_weight,
+                        cubic_gate_directions,
+                        cubic_scores,
+                        validation_cubic_weight,
                     )
                     full_tail_polished_fit = rescore_swiglu_candidate_on_data(
                         full_tail_polish_coords,
@@ -6938,7 +10149,7 @@ def run_solver(args: argparse.Namespace) -> int:
                             per_gradient = max(1, len(fit_gradient_steps)) * (args.active_rank + 1)
                             param_refit_extra_gradient_target = available // per_gradient
                         if param_refit_extra_gradient_target > 0:
-                            extra_gradient_coords, extra_gradient_targets = estimate_active_forward_gradients(
+                            extra_gradient_coords, extra_gradient_targets = active_gradient_estimator(
                                 oracle,
                                 fit_gradient_rng,
                                 basis,
@@ -7012,6 +10223,26 @@ def run_solver(args: argparse.Namespace) -> int:
                         full_tail_selection_coords,
                         full_tail_selection_targets,
                     )
+                raw_asymptotic_directions = full_tail_polished_fit.get(
+                    "asymptoticGateStitchRecoveredDirections"
+                )
+                if raw_asymptotic_directions is not None:
+                    observed_asymptotic_directions = np.asarray(
+                        raw_asymptotic_directions,
+                        dtype=np.float64,
+                    )
+                    if observed_asymptotic_directions.shape == (args.atom_count, args.active_rank):
+                        asymptotic_stitch_posthoc_directions = observed_asymptotic_directions
+                raw_asymptotic_up_directions = full_tail_polished_fit.get(
+                    "asymptoticGateStitchRecoveredUpDirections"
+                )
+                if raw_asymptotic_up_directions is not None:
+                    observed_asymptotic_up_directions = np.asarray(
+                        raw_asymptotic_up_directions,
+                        dtype=np.float64,
+                    )
+                    if observed_asymptotic_up_directions.shape == (args.atom_count, args.active_rank):
+                        asymptotic_stitch_posthoc_up_directions = observed_asymptotic_up_directions
                 full_tail_probe_prediction = predict_swiglu(validation_coords, full_tail_polished_fit)
                 full_tail_probe_metrics = regression_metrics(validation_targets, full_tail_probe_prediction)
                 full_tail_revalidation_metrics: dict[str, float] | None = None
@@ -7132,6 +10363,10 @@ def run_solver(args: argparse.Namespace) -> int:
                                 args.seed + 70841 + cegis_cycle * 97,
                                 cycle_selection_coords,
                                 cycle_selection_targets,
+                                cubic_directions=cubic_gate_directions,
+                                cubic_targets=cubic_scores,
+                                cubic_selection_directions=cubic_holdout_directions,
+                                cubic_selection_targets=cubic_holdout_scores,
                             )
                         else:
                             cegis_candidate = residual_gradient_atom_replace_swiglu_candidate(
@@ -7226,6 +10461,12 @@ def run_solver(args: argparse.Namespace) -> int:
                     "trainCount": int(full_tail_polish_coords.shape[0]),
                     "baseTrainCount": int(full_tail_base_coords.shape[0]),
                     "extraRandomTrainCount": int(full_tail_extra_random_evaluated),
+                    "radialTrainCount": int(full_tail_radial_train_evaluated),
+                    "radialSelectionCount": int(full_tail_radial_selection_evaluated),
+                    "radialGradientCount": int(full_tail_radial_gradient_evaluated),
+                    "radialGradientScales": [float(scale) for scale in full_tail_radial_gradient_scales],
+                    "radialGradientSteps": [float(step) for step in full_tail_radial_gradient_steps],
+                    "radialScales": [float(scale) for scale in full_tail_radial_scales],
                     "tailCount": int(len(full_tail_selected)),
                     "tailRepeat": int(full_tail_repeat),
                     "holdoutPoolsRequested": int(full_tail_holdout_pools),
@@ -7237,6 +10478,8 @@ def run_solver(args: argparse.Namespace) -> int:
                     "selectionHoldoutTailSelected": int(full_tail_selection_selected),
                     "selectionHoldoutFullCount": int(full_tail_selection_full_count),
                     "method": full_tail_method,
+                    "gradientWeight": float(validation_gradient_weight),
+                    "cubicWeight": float(validation_cubic_weight),
                     "tailErrorPolished": bool(full_tail_polished_fit.get("tailErrorPolished", False)),
                     "finalLbfgsPolished": bool(full_tail_polished_fit.get("finalLbfgsPolished", False)),
                     "finalLbfgsCourt": bool(full_tail_polished_fit.get("finalLbfgsCourt", False)),
@@ -7245,6 +10488,39 @@ def run_solver(args: argparse.Namespace) -> int:
                     "fixedGateUpRefit": bool(full_tail_polished_fit.get("fixedGateUpRefit", False)),
                     "gateDictionaryRefit": bool(full_tail_polished_fit.get("gateDictionaryRefit", False)),
                     "gateDictionaryRefitCandidateCount": int(full_tail_polished_fit.get("gateDictionaryRefitCandidateCount", 0)),
+                    "asymptoticGateStitched": bool(full_tail_polished_fit.get("asymptoticGateStitched", False)),
+                    "asymptoticGateStitchLineCount": int(full_tail_polished_fit.get("asymptoticGateStitchLineCount", asymptotic_stitch_line_count)),
+                    "asymptoticGateStitchUsableLineCount": int(full_tail_polished_fit.get("asymptoticGateStitchUsableLineCount", 0)),
+                    "asymptoticGateStitchFailedLineCount": int(full_tail_polished_fit.get("asymptoticGateStitchFailedLineCount", 0)),
+                    "asymptoticGateStitchSamplesPerLine": int(full_tail_polished_fit.get("asymptoticGateStitchSamplesPerLine", asymptotic_stitch_samples_per_line)),
+                    "asymptoticGateStitchLineRange": float(asymptotic_stitch_line_range),
+                    "asymptoticGateStitchOffsetScale": float(asymptotic_stitch_offset_scale),
+                    "asymptoticGateStitchScale": float(asymptotic_stitch_scale),
+                    "asymptoticGateStitchMedianBoundaryResidual": full_tail_polished_fit.get("asymptoticGateStitchMedianBoundaryResidual"),
+                    "asymptoticGateStitchMaxBoundaryResidual": full_tail_polished_fit.get("asymptoticGateStitchMaxBoundaryResidual"),
+                    "asymptoticGateStitchMeanDirectionDelta": full_tail_polished_fit.get("asymptoticGateStitchMeanDirectionDelta"),
+                    "asymptoticGateStitchBoundaryNormalCount": int(full_tail_polished_fit.get("asymptoticGateStitchBoundaryNormalCount", 0)),
+                    "asymptoticGateStitchClusterCount": int(full_tail_polished_fit.get("asymptoticGateStitchClusterCount", 0)),
+                    "asymptoticGateStitchClusterSupports": full_tail_polished_fit.get("asymptoticGateStitchClusterSupports", []),
+                    "asymptoticGateStitchGradientStep": full_tail_polished_fit.get("asymptoticGateStitchGradientStep"),
+                    "asymptoticGateStitchValuePolished": bool(full_tail_polished_fit.get("asymptoticGateStitchValuePolished", False)),
+                    "asymptoticGateStitchHessianUpComplete": bool(full_tail_polished_fit.get("asymptoticGateStitchHessianUpComplete", False)),
+                    "asymptoticGateStitchHessianUpCount": int(full_tail_polished_fit.get("asymptoticGateStitchHessianUpCount", 0)),
+                    "asymptoticGateStitchHessianUpSupports": full_tail_polished_fit.get("asymptoticGateStitchHessianUpSupports", []),
+                    "asymptoticGateStitchAssignedGateSupports": full_tail_polished_fit.get("asymptoticGateStitchAssignedGateSupports", []),
+                    "asymptoticGateStitchAssignedUpSupports": full_tail_polished_fit.get("asymptoticGateStitchAssignedUpSupports", []),
+                    "asymptoticGateStitchFallbackAtoms": full_tail_polished_fit.get("asymptoticGateStitchFallbackAtoms", []),
+                    "asymptoticGateStitchStructureCalibrated": bool(full_tail_polished_fit.get("asymptoticGateStitchStructureCalibrated", False)),
+                    "asymptoticGateStitchStructureRefined": bool(full_tail_polished_fit.get("asymptoticGateStitchStructureRefined", False)),
+                    "asymptoticGateStitchStructureRefineAttempted": bool(full_tail_polished_fit.get("asymptoticGateStitchStructureRefineAttempted", False)),
+                    "asymptoticGateStitchStructureRefineSelectionScoreBefore": full_tail_polished_fit.get("asymptoticGateStitchStructureRefineSelectionScoreBefore"),
+                    "asymptoticGateStitchStructureRefineSelectionScoreAfter": full_tail_polished_fit.get("asymptoticGateStitchStructureRefineSelectionScoreAfter"),
+                    "asymptoticGateStitchStructureRefineRestarts": full_tail_polished_fit.get("asymptoticGateStitchStructureRefineRestarts", []),
+                    "asymptoticGateStitchTrialR2": full_tail_polished_fit.get("asymptoticGateStitchTrialR2"),
+                    "asymptoticGateStitchTrialMae": full_tail_polished_fit.get("asymptoticGateStitchTrialMae"),
+                    "asymptoticGateStitchTrialWorstError": full_tail_polished_fit.get("asymptoticGateStitchTrialWorstError"),
+                    "asymptoticGateStitchScoreBefore": full_tail_polished_fit.get("asymptoticGateStitchScoreBefore"),
+                    "asymptoticGateStitchScoreAfter": full_tail_polished_fit.get("asymptoticGateStitchScoreAfter"),
                     "residualGradientAtomReplaced": bool(full_tail_polished_fit.get("residualGradientAtomReplaced", False)),
                     "residualGradientAtomReplaceAtoms": residual_gradient_replace_atoms,
                     "residualGradientAtomReplaceProposedAtoms": full_tail_polished_fit.get("residualGradientAtomReplaceProposedAtoms", []),
@@ -7274,6 +10550,34 @@ def run_solver(args: argparse.Namespace) -> int:
                     "residualGradientBlockRefitSelectionCount": int(full_tail_polished_fit.get("residualGradientBlockRefitSelectionCount", 0)),
                     "residualGradientBlockRefitScoreBefore": full_tail_polished_fit.get("residualGradientBlockRefitScoreBefore"),
                     "residualGradientBlockRefitScoreAfter": full_tail_polished_fit.get("residualGradientBlockRefitScoreAfter"),
+                    "residualGradientBlockRefitOutputScoreBefore": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitOutputScoreBefore"
+                    ),
+                    "residualGradientBlockRefitOutputScoreAfter": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitOutputScoreAfter"
+                    ),
+                    "residualGradientBlockRefitCubicRelativeRmseBefore": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCubicRelativeRmseBefore"
+                    ),
+                    "residualGradientBlockRefitCubicRelativeRmseAfter": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCubicRelativeRmseAfter"
+                    ),
+                    "residualGradientBlockRefitCubicSelectionWeight": float(full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCubicSelectionWeight",
+                        0.0,
+                    )),
+                    "residualGradientBlockRefitCubicFitWeight": float(full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCubicFitWeight",
+                        0.0,
+                    )),
+                    "residualGradientBlockRefitCubicDirectionCount": int(full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCubicDirectionCount",
+                        0,
+                    )),
+                    "residualGradientBlockRefitCubicSelectionDirectionCount": int(full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCubicSelectionDirectionCount",
+                        0,
+                    )),
                     "residualGradientBlockRefitCancellationPairsBefore": full_tail_polished_fit.get(
                         "residualGradientBlockRefitCancellationPairsBefore",
                         [],
@@ -7300,6 +10604,10 @@ def run_solver(args: argparse.Namespace) -> int:
                     "residualGradientBlockRefitCancellationRescueScoreAfter": full_tail_polished_fit.get(
                         "residualGradientBlockRefitCancellationRescueScoreAfter"
                     ),
+                    "residualGradientBlockRefitCancellationRescueAttempts": full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCancellationRescueAttempts",
+                        [],
+                    ),
                     "gradientPolished": bool(full_tail_polished_fit.get("polished", False) or full_tail_polished_fit.get("fixedGateDirectionValuePolished", False)),
                     "paramRefit": bool(full_tail_polished_fit.get("paramRefit", False)),
                     "paramRefitFitSteps": int(param_refit_fit_steps),
@@ -7311,6 +10619,23 @@ def run_solver(args: argparse.Namespace) -> int:
                     "paramRefitSelectionCount": int(param_refit_selection_count),
                     "tailErrorPolishSelectionCount": int(full_tail_polished_fit.get("tailErrorPolishSelectionCount", 0)),
                     "gateNormCalibrationSelectionCount": int(full_tail_polished_fit.get("gateNormCalibrationSelectionCount", 0)),
+                    "asymptoticGateStitchStructureCalibrationAttempted": bool(full_tail_polished_fit.get(
+                        "asymptoticGateStitchStructureCalibrationAttempted",
+                        False,
+                    )),
+                    "asymptoticGateStitchStructureCalibrationAttemptR2": full_tail_polished_fit.get(
+                        "asymptoticGateStitchStructureCalibrationAttemptR2"
+                    ),
+                    "asymptoticGateStitchStructureCalibrationAttemptMae": full_tail_polished_fit.get(
+                        "asymptoticGateStitchStructureCalibrationAttemptMae"
+                    ),
+                    "asymptoticGateStitchStructureCalibrationAttemptWorst": full_tail_polished_fit.get(
+                        "asymptoticGateStitchStructureCalibrationAttemptWorst"
+                    ),
+                    "asymptoticGateStitchStructureCalibrationRestarts": full_tail_polished_fit.get(
+                        "asymptoticGateStitchStructureCalibrationRestarts",
+                        [],
+                    ),
                     "probeValidationR2": float(full_tail_probe_metrics["r2"]),
                     "probeValidationMae": float(full_tail_probe_metrics["mae"]),
                     "probeValidationWorstError": float(full_tail_probe_metrics["worstError"]),
@@ -7328,7 +10653,21 @@ def run_solver(args: argparse.Namespace) -> int:
                     args,
                     "validation-full-tail-polish-complete",
                     accepted=bool(full_tail_accepted),
-                    polished=bool(full_tail_polished_fit.get("tailErrorPolished", False)),
+                    polished=bool(
+                        full_tail_polished_fit.get("tailErrorPolished", False)
+                        or full_tail_polished_fit.get("polished", False)
+                        or full_tail_polished_fit.get("fixedGateDirectionValuePolished", False)
+                        or full_tail_polished_fit.get("finalLbfgsPolished", False)
+                        or full_tail_polished_fit.get("gateNormCalibrated", False)
+                        or full_tail_polished_fit.get("structureTrustRegionAccepted", False)
+                        or full_tail_polished_fit.get("pairSwapRefined", False)
+                        or full_tail_polished_fit.get("fixedGateUpRefit", False)
+                        or full_tail_polished_fit.get("gateDictionaryRefit", False)
+                        or full_tail_polished_fit.get("residualGradientAtomReplaced", False)
+                        or full_tail_polished_fit.get("residualGradientBlockRefit", False)
+                        or full_tail_polished_fit.get("asymptoticGateStitched", False)
+                    ),
+                    tailErrorPolished=bool(full_tail_polished_fit.get("tailErrorPolished", False)),
                     method=full_tail_method,
                     lbfgsPolished=bool(full_tail_polished_fit.get("finalLbfgsPolished", False)),
                     lbfgsCourt=bool(full_tail_polished_fit.get("finalLbfgsCourt", False)),
@@ -7336,6 +10675,23 @@ def run_solver(args: argparse.Namespace) -> int:
                     pairSwapRefined=bool(full_tail_polished_fit.get("pairSwapRefined", False)),
                     fixedGateUpRefit=bool(full_tail_polished_fit.get("fixedGateUpRefit", False)),
                     gateDictionaryRefit=bool(full_tail_polished_fit.get("gateDictionaryRefit", False)),
+                    asymptoticGateStitched=bool(full_tail_polished_fit.get("asymptoticGateStitched", False)),
+                    asymptoticGateStitchUsableLineCount=int(full_tail_polished_fit.get("asymptoticGateStitchUsableLineCount", 0)),
+                    asymptoticGateStitchFailedLineCount=int(full_tail_polished_fit.get("asymptoticGateStitchFailedLineCount", 0)),
+                    asymptoticGateStitchMedianBoundaryResidual=full_tail_polished_fit.get("asymptoticGateStitchMedianBoundaryResidual"),
+                    asymptoticGateStitchMaxBoundaryResidual=full_tail_polished_fit.get("asymptoticGateStitchMaxBoundaryResidual"),
+                    asymptoticGateStitchMeanDirectionDelta=full_tail_polished_fit.get("asymptoticGateStitchMeanDirectionDelta"),
+                    asymptoticGateStitchBoundaryNormalCount=int(full_tail_polished_fit.get("asymptoticGateStitchBoundaryNormalCount", 0)),
+                    asymptoticGateStitchClusterCount=int(full_tail_polished_fit.get("asymptoticGateStitchClusterCount", 0)),
+                    asymptoticGateStitchClusterSupports=full_tail_polished_fit.get("asymptoticGateStitchClusterSupports", []),
+                    asymptoticGateStitchValuePolished=bool(full_tail_polished_fit.get("asymptoticGateStitchValuePolished", False)),
+                    asymptoticGateStitchHessianUpComplete=bool(full_tail_polished_fit.get("asymptoticGateStitchHessianUpComplete", False)),
+                    asymptoticGateStitchHessianUpCount=int(full_tail_polished_fit.get("asymptoticGateStitchHessianUpCount", 0)),
+                    asymptoticGateStitchHessianUpSupports=full_tail_polished_fit.get("asymptoticGateStitchHessianUpSupports", []),
+                    asymptoticGateStitchAssignedGateSupports=full_tail_polished_fit.get("asymptoticGateStitchAssignedGateSupports", []),
+                    asymptoticGateStitchAssignedUpSupports=full_tail_polished_fit.get("asymptoticGateStitchAssignedUpSupports", []),
+                    asymptoticGateStitchFallbackAtoms=full_tail_polished_fit.get("asymptoticGateStitchFallbackAtoms", []),
+                    asymptoticGateStitchStructureRefined=bool(full_tail_polished_fit.get("asymptoticGateStitchStructureRefined", False)),
                     residualGradientAtomReplaced=bool(full_tail_polished_fit.get("residualGradientAtomReplaced", False)),
                     residualGradientAtomReplaceAtoms=residual_gradient_replace_atoms,
                     residualGradientAtomReplaceProposedAtoms=full_tail_polished_fit.get("residualGradientAtomReplaceProposedAtoms", []),
@@ -7355,6 +10711,12 @@ def run_solver(args: argparse.Namespace) -> int:
                     residualGradientBlockRefitDirectionCount=int(full_tail_polished_fit.get("residualGradientBlockRefitDirectionCount", 0)),
                     residualGradientBlockRefitRestarts=int(full_tail_polished_fit.get("residualGradientBlockRefitRestarts", 0)),
                     residualGradientBlockRefitSteps=int(full_tail_polished_fit.get("residualGradientBlockRefitSteps", 0)),
+                    residualGradientBlockRefitCubicRelativeRmseBefore=full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCubicRelativeRmseBefore"
+                    ),
+                    residualGradientBlockRefitCubicRelativeRmseAfter=full_tail_polished_fit.get(
+                        "residualGradientBlockRefitCubicRelativeRmseAfter"
+                    ),
                     residualGradientBlockSelection=full_tail_polished_fit.get(
                         "residualGradientBlockSelection",
                         residual_block_selection,
@@ -7385,6 +10747,9 @@ def run_solver(args: argparse.Namespace) -> int:
                     holdoutPools=int(full_tail_holdout_evaluated),
                     holdoutTailSelected=int(full_tail_holdout_selected),
                     extraRandomTrainCount=int(full_tail_extra_random_evaluated),
+                    radialTrainCount=int(full_tail_radial_train_evaluated),
+                    radialSelectionCount=int(full_tail_radial_selection_evaluated),
+                    radialGradientCount=int(full_tail_radial_gradient_evaluated),
                     selectionHoldoutPools=int(full_tail_selection_evaluated),
                     selectionHoldoutTailSelected=int(full_tail_selection_selected),
                     selectionHoldoutFullCount=int(full_tail_selection_full_count),
@@ -7863,7 +11228,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     log_progress(args, "rescue-train-expanded", trainCount=int(train_coords.shape[0]), rawOracleCalls=int(oracle.query_count))
                 extra_gradient = max(0, rescue_gradient_target - fit_gradient_coords.shape[0])
                 if extra_gradient > 0:
-                    extra_coords, extra_targets = estimate_active_forward_gradients(
+                    extra_coords, extra_targets = active_gradient_estimator(
                         oracle,
                         fit_gradient_rng,
                         basis,
@@ -7899,6 +11264,10 @@ def run_solver(args: argparse.Namespace) -> int:
                     args.fit_restart_chunk_size,
                     fit_selection_coords,
                     fit_selection_targets,
+                    cubic_selection_directions=cubic_holdout_directions,
+                    cubic_selection_scores=cubic_holdout_scores,
+                    cubic_directions=cubic_gate_directions,
+                    cubic_targets=cubic_scores,
                 )
                 rescue_prediction = predict_swiglu(validation_coords, rescue_fit)
                 rescue_metrics = regression_metrics(validation_targets, rescue_prediction)
@@ -7914,6 +11283,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "stage": "adaptive-rescue",
                     "trainCount": int(train_coords.shape[0]),
                     "fitGradientCount": int(fit_gradient_coords.shape[0]),
+                    "fitGradientMode": args.fit_gradient_mode,
                     "fitSteps": int(rescue_steps),
                     "fitRestarts": int(rescue_fit["restartCount"]),
                     "fitRandomRestarts": int(rescue_fit.get("randomRestartCount", rescue_fit["restartCount"])),
@@ -8015,6 +11385,10 @@ def run_solver(args: argparse.Namespace) -> int:
                     energy_ratio=energy_ratio,
                     fit_gradient_coords=fit_gradient_coords,
                     fit_gradient_targets=fit_gradient_targets,
+                    cubic_directions=cubic_gate_directions,
+                    cubic_targets=cubic_scores,
+                    cubic_holdout_directions=cubic_holdout_directions,
+                    cubic_holdout_targets=cubic_holdout_scores,
                 )
                 log_progress(
                     args,
@@ -8027,6 +11401,109 @@ def run_solver(args: argparse.Namespace) -> int:
                     rawOracleCalls=int(oracle.query_count),
                 )
 
+            if args.defer_posthoc_truth:
+                frozen_fit_path = Path(args.frozen_fit_output).resolve()
+                save_fit_snapshot(
+                    str(frozen_fit_path),
+                    basis=basis,
+                    train_coords=train_coords,
+                    train_targets=train_targets,
+                    fit=fit,
+                    dimension=dimension,
+                    active_rank=args.active_rank,
+                    atom_count=args.atom_count,
+                    gradient_witness_count=gradient_witness_count,
+                    eigenvalues=eigenvalues,
+                    energy_ratio=energy_ratio,
+                    fit_gradient_coords=fit_gradient_coords,
+                    fit_gradient_targets=fit_gradient_targets,
+                    cubic_directions=cubic_gate_directions,
+                    cubic_targets=cubic_scores,
+                    cubic_holdout_directions=cubic_holdout_directions,
+                    cubic_holdout_targets=cubic_holdout_scores,
+                )
+                forbidden_meta = sorted({
+                    "model", "modelType", "layer", "unit", "units", "intermediateSize",
+                    "device", "oracleMode", "outputChannel",
+                }.intersection(oracle.meta))
+                functional_pass = (
+                    passes_metric_thresholds(metrics, args.min_r2, args.max_mae, args.max_worst_error)
+                    and oracle.query_count <= args.max_oracle_calls
+                    and args.atom_count == unit_count
+                    and not forbidden_meta
+                    and oracle.meta.get("protocolCapabilities") == {"eval": True, "truth": False}
+                    and oracle.truth_request_count == 0
+                )
+                frozen_report = {
+                    "schemaVersion": 1,
+                    "kind": "blind-swiglu-frozen-recovery",
+                    "summary": {
+                        "pass": bool(functional_pass),
+                        "dimension": int(dimension),
+                        "unitCount": int(unit_count),
+                        "activeRank": int(args.active_rank),
+                        "atomCount": int(args.atom_count),
+                        "rawOracleCalls": int(oracle.query_count),
+                        "metrics": metrics,
+                        "selectedGradientEnergyRatio": float(energy_ratio),
+                    },
+                    "frozenRecovery": {
+                        "path": str(frozen_fit_path),
+                        "sha256": sha256_file(frozen_fit_path),
+                        "frozenAfterValidation": True,
+                    },
+                    "accessAudit": {
+                        "solverAccess": "opaque-eval-only-oracle",
+                        "externalOracleTransport": True,
+                        "oracleTransport": "unix-binary-v1" if args.oracle_socket else "anonymous-jsonl-fd",
+                        "weightsUsedBySolver": False,
+                        "hooksUsedBySolver": False,
+                        "sourceIdsUsedBySolver": False,
+                        "teacherManifestFieldsObserved": forbidden_meta,
+                        "truthCapabilityAvailable": False,
+                        "truthRequestCount": int(oracle.truth_request_count),
+                        "fitSnapshotUsedBySolver": False,
+                        "nonlinearInitialFitUsed": False,
+                        "queryTranscriptSha256": getattr(oracle, "transcript_sha256", None),
+                    },
+                    "solver": {
+                        "kind": "blind-active-subspace-explicit-swiglu-sum",
+                        "recoveryPath": str(args.recovery_path),
+                        "fitMode": str(fit.get("fitMode", "unknown")),
+                        "fitRestarts": int(fit.get("restartCount", 0)),
+                        "fitRandomRestarts": int(fit.get("randomRestartCount", 0)),
+                        "gradientMode": args.gradient_mode,
+                        "gradientWitnessCount": int(gradient_witness_count),
+                        "asymptoticStructure": {
+                            "coldStart": bool(fit.get("asymptoticGateStitchColdStart", False)),
+                            "stitched": bool(fit.get("asymptoticGateStitched", False)),
+                            "clusterCount": int(fit.get("asymptoticGateStitchClusterCount", 0)),
+                            "sourceFallbackAtoms": fit.get("asymptoticGateStitchFallbackAtoms", []),
+                        },
+                    },
+                }
+                output_json.write_text(json.dumps(frozen_report, indent=2) + "\n", encoding="utf-8")
+                if output_md:
+                    output_md.write_text(
+                        "\n".join([
+                            "# Blind SwiGLU Frozen Recovery",
+                            "",
+                            f"- pass: `{str(functional_pass).lower()}`",
+                            f"- frozen SHA-256: `{frozen_report['frozenRecovery']['sha256']}`",
+                            f"- raw oracle calls: `{oracle.query_count}`",
+                            f"- validation R2: `{metrics['r2']}`",
+                            f"- validation MAE: `{metrics['mae']}`",
+                            "- source ids observed by solver: `false`",
+                            "- truth capability available to solver: `false`",
+                            "- truth requests by solver: `0`",
+                            "",
+                        ]),
+                        encoding="utf-8",
+                    )
+                print(json.dumps(frozen_report["summary"], indent=2))
+                return 0 if functional_pass else 1
+
+            oracle.unlock_posthoc_truth("final-validation-recovery-frozen")
             truth_gate, truth_up = oracle.truth()
             if truth_gate.ndim == 1:
                 truth_gate = np.expand_dims(truth_gate, axis=0)
@@ -8051,6 +11528,12 @@ def run_solver(args: argparse.Namespace) -> int:
             paired_joint_cosines = np.minimum(paired_gate_cosines, paired_up_cosines)
             atom_assignment = maximum_weight_assignment(paired_joint_cosines)
             source_units = oracle.meta.get("units", list(range(truth_gate.shape[0])))
+            source_cancellation = audit_swiglu_source_cancellation(
+                validation_coords,
+                truth_gate_coords,
+                truth_up_coords,
+                [int(value) for value in source_units],
+            )
             paired_rows = [
                 {
                     "recoveredAtom": int(recovered_atom),
@@ -8085,7 +11568,50 @@ def run_solver(args: argparse.Namespace) -> int:
                 "pairedAtomCountAbove095": int(np.sum(paired_joint_values >= 0.95)),
                 "pairedAtomCountAbove099": int(np.sum(paired_joint_values >= 0.99)),
                 "pairedAtoms": paired_rows,
+                "sourceCancellation": source_cancellation,
             }
+            if asymptotic_stitch_posthoc_directions is not None:
+                normalized_asymptotic_directions = np.vstack([
+                    normalize(row)
+                    for row in asymptotic_stitch_posthoc_directions
+                ])
+                asymptotic_gate_cosines = np.abs(
+                    normalized_asymptotic_directions
+                    @ normalized_truth_gate_coords.T
+                )
+                asymptotic_assignment = maximum_weight_assignment(asymptotic_gate_cosines)
+                asymptotic_paired_cosines = asymptotic_gate_cosines[
+                    np.arange(args.atom_count),
+                    asymptotic_assignment,
+                ]
+                source_alignment["asymptoticGateStitchPostHoc"] = {
+                    "assignmentMethod": "hungarian-max-absolute-gate-cosine",
+                    "minimumGateCosine": float(np.min(asymptotic_paired_cosines)),
+                    "meanGateCosine": float(np.mean(asymptotic_paired_cosines)),
+                    "countAbove095": int(np.sum(asymptotic_paired_cosines >= 0.95)),
+                    "countAbove099": int(np.sum(asymptotic_paired_cosines >= 0.99)),
+                    "pairedGateCosines": [float(value) for value in asymptotic_paired_cosines],
+                }
+                if asymptotic_stitch_posthoc_up_directions is not None:
+                    normalized_asymptotic_up_directions = np.vstack([
+                        normalize(row)
+                        for row in asymptotic_stitch_posthoc_up_directions
+                    ])
+                    asymptotic_up_cosines = np.abs(
+                        normalized_asymptotic_up_directions
+                        @ normalized_truth_up_coords.T
+                    )
+                    paired_up_cosines = asymptotic_up_cosines[
+                        np.arange(args.atom_count),
+                        asymptotic_assignment,
+                    ]
+                    source_alignment["asymptoticGateStitchPostHoc"].update({
+                        "minimumUpCosine": float(np.min(paired_up_cosines)),
+                        "meanUpCosine": float(np.mean(paired_up_cosines)),
+                        "upCountAbove095": int(np.sum(paired_up_cosines >= 0.95)),
+                        "upCountAbove099": int(np.sum(paired_up_cosines >= 0.99)),
+                        "pairedUpCosines": [float(value) for value in paired_up_cosines],
+                    })
 
             pass_gate = (
                 metrics["r2"] >= args.min_r2
@@ -8106,6 +11632,8 @@ def run_solver(args: argparse.Namespace) -> int:
                     "unit": oracle.meta["unit"],
                     "units": oracle.meta.get("units", [oracle.meta["unit"]]),
                     "unitCount": unit_count,
+                    "oracleMode": oracle.meta.get("oracleMode", "selected-unit-sum"),
+                    "outputChannel": oracle.meta.get("outputChannel"),
                     "activeRank": args.active_rank,
                     "atomCount": args.atom_count,
                     "rawOracleCalls": oracle.query_count,
@@ -8118,8 +11646,14 @@ def run_solver(args: argparse.Namespace) -> int:
                     "weightsUsedBySolver": False,
                     "hooksUsedBySolver": False,
                     "sourceIdsUsedBySolver": False,
+                    "fitSnapshotUsedBySolver": bool(args.fit_snapshot_input),
+                    "nonlinearInitialFitUsed": bool(args.recovery_path != "asymptotic-cold-start"),
                     "oracleOwnsWeights": True,
                     "postHocWitnessOnly": True,
+                    "truthLockedUntilRecoveryFrozen": True,
+                    "truthUnlockStage": oracle.truth_unlock_stage,
+                    "truthUnlockQueryCount": oracle.truth_unlock_query_count,
+                    "truthRequestCount": int(oracle.truth_request_count),
                     "processBoundary": "solver parent communicates with oracle subprocess via npy batch files and JSONL commands",
                 },
                 "solver": {
@@ -8131,7 +11665,16 @@ def run_solver(args: argparse.Namespace) -> int:
                     "gradientWitnessCount": gradient_witness_count,
                     "cubicDirectionCount": int(cubic_gate_directions.shape[0]),
                     "cubicStep": float(args.cubic_step),
+                    "cubicSteps": [float(value) for value in cubic_steps],
+                    "cubicHoldoutCount": int(cubic_holdout_directions.shape[0]),
                     "cubicMaxAbsScore": float(np.max(np.abs(cubic_scores))) if cubic_scores.size else 0.0,
+                    "fitCubicWeight": float(fit.get("fitCubicWeight", 0.0)),
+                    "selectionCubicWeight": float(fit.get("selectionCubicWeight", 0.0)),
+                    "cubicRelativeRmse": (
+                        None
+                        if fit.get("cubicRelativeRmse") is None
+                        else float(fit["cubicRelativeRmse"])
+                    ),
                     "subspaceCount": args.subspace_count if args.subspace_count > 0 else None,
                     "finiteDifferenceStep": args.finite_difference_step,
                     "finiteDifferenceSteps": [float(step) for step in finite_difference_steps],
@@ -8153,8 +11696,11 @@ def run_solver(args: argparse.Namespace) -> int:
                     "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                     "fitRestartChunkSize": None if fit.get("restartChunkSize") is None else int(fit["restartChunkSize"]),
                     "fitMode": str(fit.get("fitMode", "unknown")),
+                    "recoveryPath": str(args.recovery_path),
+                    "nonlinearInitialFitUsed": bool(args.recovery_path != "asymptotic-cold-start"),
                     "randomInitScales": fit.get("randomInitScales", [0.6]),
                     "fitGradientCount": int(fit_gradient_coords.shape[0]),
+                    "fitGradientMode": args.fit_gradient_mode,
                     "fitGradientSteps": [float(step) for step in fit_gradient_steps],
                     "fitGradientWeight": float(args.fit_gradient_weight),
                     "selectionTailWeight": float(fit.get("selectionTailWeight", 0.0)),
@@ -8166,6 +11712,28 @@ def run_solver(args: argparse.Namespace) -> int:
                     "dictionaryCandidateRankScore": fit.get("dictionaryCandidateRankScore"),
                     "forcedPolishCandidateCount": int(fit.get("forcedPolishCandidateCount", 0)),
                     "extraGateCandidateCount": int(fit.get("extraGateCandidateCount", 0)),
+                    "residualGradientBlockRefitCubicRelativeRmseBefore": fit.get(
+                        "residualGradientBlockRefitCubicRelativeRmseBefore"
+                    ),
+                    "residualGradientBlockRefitCubicRelativeRmseAfter": fit.get(
+                        "residualGradientBlockRefitCubicRelativeRmseAfter"
+                    ),
+                    "residualGradientBlockRefitCubicSelectionWeight": float(fit.get(
+                        "residualGradientBlockRefitCubicSelectionWeight",
+                        0.0,
+                    )),
+                    "residualGradientBlockRefitCubicFitWeight": float(fit.get(
+                        "residualGradientBlockRefitCubicFitWeight",
+                        0.0,
+                    )),
+                    "residualGradientBlockRefitCubicDirectionCount": int(fit.get(
+                        "residualGradientBlockRefitCubicDirectionCount",
+                        0,
+                    )),
+                    "residualGradientBlockRefitCubicSelectionDirectionCount": int(fit.get(
+                        "residualGradientBlockRefitCubicSelectionDirectionCount",
+                        0,
+                    )),
                     "residualGradientBlockRefitCancellationPairsBefore": fit.get(
                         "residualGradientBlockRefitCancellationPairsBefore",
                         [],
@@ -8191,6 +11759,10 @@ def run_solver(args: argparse.Namespace) -> int:
                     ),
                     "residualGradientBlockRefitCancellationRescueScoreAfter": fit.get(
                         "residualGradientBlockRefitCancellationRescueScoreAfter"
+                    ),
+                    "residualGradientBlockRefitCancellationRescueAttempts": fit.get(
+                        "residualGradientBlockRefitCancellationRescueAttempts",
+                        [],
                     ),
                     "residualRegionAtomReplaced": bool(fit.get("residualRegionAtomReplaced", False)),
                     "residualRegionReplacementCount": int(fit.get("residualRegionReplacementCount", 0)),
@@ -8228,13 +11800,59 @@ def run_solver(args: argparse.Namespace) -> int:
                     "robustScalarCalibrationSteps": int(fit.get("robustScalarCalibrationSteps", 0)),
                     "fitScales": [float(value) for value in fit["scales"]],
                     "fitBias": float(fit["bias"]),
+                    "asymptoticStructure": {
+                        "coldStart": bool(fit.get("asymptoticGateStitchColdStart", False)),
+                        "stitched": bool(fit.get("asymptoticGateStitched", False)),
+                        "orientationMethod": fit.get("asymptoticGateStitchOrientationMethod"),
+                        "lineCount": int(fit.get("asymptoticGateStitchLineCount", 0)),
+                        "usableLineCount": int(fit.get("asymptoticGateStitchUsableLineCount", 0)),
+                        "failedLineCount": int(fit.get("asymptoticGateStitchFailedLineCount", 0)),
+                        "clusterCount": int(fit.get("asymptoticGateStitchClusterCount", 0)),
+                        "clusterSupports": fit.get("asymptoticGateStitchClusterSupports", []),
+                        "assignedGateSupports": fit.get("asymptoticGateStitchAssignedGateSupports", []),
+                        "assignedUpSupports": fit.get("asymptoticGateStitchAssignedUpSupports", []),
+                        "independentHessianUpComplete": bool(fit.get(
+                            "asymptoticGateStitchIndependentHessianUpComplete",
+                            False,
+                        )),
+                        "linearIdentifiedAtoms": fit.get("asymptoticGateStitchLinearIdentifiedAtoms", []),
+                        "sourceFallbackAtoms": fit.get("asymptoticGateStitchFallbackAtoms", []),
+                        "structureCalibrated": bool(fit.get("asymptoticGateStitchStructureCalibrated", False)),
+                        "structureRefined": bool(fit.get("asymptoticGateStitchStructureRefined", False)),
+                        "structureRefineAttempted": bool(fit.get("asymptoticGateStitchStructureRefineAttempted", False)),
+                        "structureRefineSelectionScoreBefore": fit.get(
+                            "asymptoticGateStitchStructureRefineSelectionScoreBefore"
+                        ),
+                        "structureRefineSelectionScoreAfter": fit.get(
+                            "asymptoticGateStitchStructureRefineSelectionScoreAfter"
+                        ),
+                        "structureRefineRestarts": fit.get("asymptoticGateStitchStructureRefineRestarts", []),
+                        "calibrationAttemptR2": fit.get("asymptoticGateStitchStructureCalibrationAttemptR2"),
+                        "calibrationAttemptMae": fit.get("asymptoticGateStitchStructureCalibrationAttemptMae"),
+                        "calibrationAttemptWorst": fit.get("asymptoticGateStitchStructureCalibrationAttemptWorst"),
+                        "calibrationRestarts": fit.get("asymptoticGateStitchStructureCalibrationRestarts", []),
+                        "trialR2": fit.get("asymptoticGateStitchTrialR2"),
+                        "trialMae": fit.get("asymptoticGateStitchTrialMae"),
+                        "trialWorstError": fit.get("asymptoticGateStitchTrialWorstError"),
+                    },
                     "fitAttempts": fit_attempts,
                 },
                 "oracleResponse": {
                     "quantizationStep": float(args.oracle_quantization_step),
+                    "mode": oracle.meta.get("oracleMode", "selected-unit-sum"),
+                    "outputChannel": oracle.meta.get("outputChannel"),
                 },
                 "claimBoundary": [
-                    "This gate proves selected real local SwiGLU unit outputs can be queried as a black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under the recorded budget.",
+                    (
+                        "This gate proves a selected real local down_proj output-channel slice can be queried "
+                        "as a black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under "
+                        "the recorded budget."
+                        if oracle.meta.get("oracleMode") == "down-proj-output-channel"
+                        else
+                        "This gate proves selected real local SwiGLU unit outputs can be queried as a "
+                        "black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under "
+                        "the recorded budget."
+                    ),
                     "It does not prove full FFN extraction, all-channel decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.",
                 ],
             }
@@ -8247,6 +11865,8 @@ def run_solver(args: argparse.Namespace) -> int:
                         f"- pass: `{str(pass_gate).lower()}`",
                         f"- model: `{oracle.meta['model']}`",
                         f"- layer/unit: `{oracle.meta['layer']}/{oracle.meta.get('units', [oracle.meta['unit']])}`",
+                        f"- oracle mode: `{oracle.meta.get('oracleMode', 'selected-unit-sum')}`",
+                        f"- output channel: `{oracle.meta.get('outputChannel')}`",
                         f"- raw oracle calls: `{oracle.query_count}`",
                         f"- validation R2: `{metrics['r2']}`",
                         f"- validation MAE: `{metrics['mae']}`",
@@ -8275,24 +11895,47 @@ def run_solver(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Blind oracle-only recovery for one real 4096D SwiGLU unit.")
     parser.add_argument("--oracle-server", action="store_true")
+    parser.add_argument("--oracle-ready-mode", choices=["full", "opaque"], default="full")
+    parser.add_argument("--oracle-eval-only", action="store_true")
+    parser.add_argument("--oracle-read-fd", type=int, default=-1)
+    parser.add_argument("--oracle-write-fd", type=int, default=-1)
+    parser.add_argument("--oracle-socket", default="")
+    parser.add_argument("--require-opaque-oracle", action="store_true")
+    parser.add_argument("--defer-posthoc-truth", action="store_true")
+    parser.add_argument("--frozen-fit-output", default="")
     parser.add_argument("--model", default="unsloth/mistral-7b-instruct-v0.3-bnb-4bit")
     parser.add_argument("--layer", type=int, default=20)
     parser.add_argument("--unit", type=int, default=0)
     parser.add_argument("--units", default=None)
+    parser.add_argument("--output-channel", type=int, default=-1)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--batch-size", type=int, default=2048)
     parser.add_argument("--oracle-batch-size", type=int, default=2048)
     parser.add_argument("--oracle-quantization-step", type=float, default=0.0)
     parser.add_argument("--active-rank", type=int, default=2)
+    parser.add_argument("--expected-dimension", type=int, default=0)
     parser.add_argument("--atom-count", type=int, default=None)
-    parser.add_argument("--gradient-mode", choices=["coordinate", "forward-coordinate", "random-direction"], default="coordinate")
+    parser.add_argument(
+        "--gradient-mode",
+        choices=[
+            "coordinate",
+            "forward-coordinate",
+            "symmetric-regression-coordinate",
+            "symmetric-richardson-coordinate",
+            "symmetric-multiscale-coordinate",
+            "random-direction",
+        ],
+        default="coordinate",
+    )
     parser.add_argument("--basis-moment", choices=["auto", "centered", "raw"], default="auto")
     parser.add_argument("--probe-points", type=int, default=2)
     parser.add_argument("--direction-count", type=int, default=384)
     parser.add_argument("--subspace-count", type=int, default=0)
     parser.add_argument("--cubic-direction-count", type=int, default=0)
     parser.add_argument("--cubic-step", type=float, default=0.35)
+    parser.add_argument("--cubic-steps", default="")
+    parser.add_argument("--cubic-holdout-count", type=int, default=0)
     parser.add_argument("--finite-difference-step", type=float, default=0.08)
     parser.add_argument("--finite-difference-steps", default="")
     parser.add_argument("--input-scale", type=float, default=0.45)
@@ -8306,7 +11949,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fit-restarts", type=int, default=0)
     parser.add_argument("--fit-restart-chunk-size", type=int, default=0)
     parser.add_argument("--fit-mode", choices=["auto", "sequential", "batched"], default="auto")
+    parser.add_argument(
+        "--recovery-path",
+        choices=["nonlinear-fit", "asymptotic-cold-start"],
+        default="nonlinear-fit",
+    )
     parser.add_argument("--fit-gradient-count", type=int, default=0)
+    parser.add_argument(
+        "--fit-gradient-mode",
+        choices=["forward", "symmetric-regression"],
+        default="forward",
+    )
     parser.add_argument("--fit-gradient-step", type=float, default=0.0)
     parser.add_argument("--fit-gradient-steps", default="")
     parser.add_argument("--fit-gradient-weight", type=float, default=0.2)
@@ -8350,7 +12003,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-mae", type=float, default=0.015)
     parser.add_argument("--max-worst-error", type=float, default=1e30)
     parser.add_argument("--min-subspace-cosine", type=float, default=0.93)
+    parser.add_argument("--max-cubic-witness-relative-rmse", type=float, default=float("inf"))
     parser.add_argument("--max-oracle-calls", type=int, default=20000)
+    parser.add_argument("--basis-diagnostic-only", action="store_true")
     parser.add_argument("--fit-snapshot-input", default="")
     parser.add_argument("--fit-snapshot-output", default="")
     parser.add_argument("--output-json", required=False)

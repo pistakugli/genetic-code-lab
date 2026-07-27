@@ -632,6 +632,70 @@ const CAPABILITIES: Capability[] = [
     ]
   },
   {
+    id: 'nn-live-blind-swiglu-asymptotic-structure',
+    name: 'NN live blind SwiGLU asymptotic structure court',
+    status: 'production',
+    summary: 'Recovers and verifies all 16 gate/up direction pairs in finite-precision real Mistral- and LLaMA-family scalar SwiGLU blocks through asymptotic boundary stitching, Hessian witnesses, and trust-region structure refinement.',
+    scope: 'Real-model oracle-only structure benchmark over configured 4096D Mistral and 3072D LLaMA-family 16-unit scalar blocks at output quantization step 1e-6. Solver access is restricted to oracle values; source weights and ids are post-hoc witnesses only. The court requires 16/16 paired atoms above joint cosine 0.99, R2 >= 0.999, and at most 120000 oracle calls per case.',
+    run: { label: 'NN live blind SwiGLU asymptotic structure court', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-asymptotic-structure'] },
+    proofs: [
+      { label: 'NN live blind SwiGLU asymptotic structure regeneration court', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-asymptotic-structure'] },
+      { label: 'NN live blind SwiGLU asymptotic structure artifact audit', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-asymptotic-structure:audit'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-blind-swiglu-asymptotic-structure/mistral4096d-llama3072d-16unit-q000001-oracle-only/report.json',
+      'benchmarks/release/nn-live-blind-swiglu-asymptotic-structure/mistral4096d-llama3072d-16unit-q000001-oracle-only/report.md'
+    ]
+  },
+  {
+    id: 'nn-live-blind-swiglu-asymptotic-cold-start',
+    name: 'NN live blind SwiGLU asymptotic cold-start recovery',
+    status: 'production',
+    summary: 'Recovers an explicit 16-atom SwiGLU structure from a fresh finite-precision real Mistral scalar oracle without a fit snapshot or nonlinear random atom fit.',
+    scope: 'Real-model 4096D Mistral layer-15 output-channel benchmark at oracle quantization step 1e-6. The solver reconstructs the active subspace and 16 gate/up atom pairs from scalar oracle values, requires all 16 post-hoc pairs above joint cosine 0.99, and enforces a 1.5M-call budget. Source unit ids remain visible to the benchmark orchestrator and source weights are requested only for the post-hoc witness, so this capability does not claim opaque-endpoint process isolation, all-channel FFN extraction, semantic neuron identity, or arbitrary LLM recovery.',
+    run: { label: 'NN live blind SwiGLU asymptotic cold-start regeneration', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-asymptotic-cold-start'] },
+    proofs: [
+      { label: 'NN live blind SwiGLU asymptotic cold-start regeneration', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-asymptotic-cold-start'] },
+      { label: 'NN live blind SwiGLU asymptotic cold-start artifact audit', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-asymptotic-cold-start:audit'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-blind-swiglu-asymptotic-cold-start/mistral4096d-layer15-16unit-q000001-fresh-oracle-only/report.json',
+      'benchmarks/release/nn-live-blind-swiglu-asymptotic-cold-start/mistral4096d-layer15-16unit-q000001-fresh-oracle-only/report.md'
+    ]
+  },
+  {
+    id: 'nn-live-blind-swiglu-isolated-cold-start',
+    name: 'NN live blind SwiGLU process-separated cold-start recovery',
+    status: 'production',
+    summary: 'Recovers a real 4096D Mistral 16-atom SwiGLU structure through an opaque eval-only binary oracle while a separate post-hoc verifier audits the frozen result.',
+    scope: 'Selected real-model Mistral layer-15 scalar-block gate at response quantization step 1e-6. The solver process receives only endpoint, dimension, atom count, query budget, and output paths; it receives no model, layer, source-unit ids, output-channel locator, weights, hooks, truth command, or input snapshot. A hash-chained binary transcript, strace file-access witness, frozen-artifact hash, and verifier-after-solver ordering are release-gated. This is process separation with observed file-access attestation, not an OS sandbox against a malicious same-UID process, all-channel FFN extraction, semantic source-neuron identity, or arbitrary LLM recovery.',
+    run: { label: 'NN live blind SwiGLU isolated cold-start regeneration', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-isolated-cold-start'] },
+    proofs: [
+      { label: 'NN live blind SwiGLU isolated cold-start regeneration', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-isolated-cold-start'] },
+      { label: 'NN live blind SwiGLU isolated cold-start artifact audit', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-isolated-cold-start:audit'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-blind-swiglu-isolated-cold-start/mistral4096d-layer15-16unit-q000001-opaque-oracle/report.json',
+      'benchmarks/release/nn-live-blind-swiglu-isolated-cold-start/mistral4096d-layer15-16unit-q000001-opaque-oracle/report.md'
+    ]
+  },
+  {
+    id: 'nn-live-blind-swiglu-isolated-cold-start-court',
+    name: 'NN live blind SwiGLU cross-family process-separated cold-start court',
+    status: 'production',
+    summary: 'Runs the same opaque eval-only solver protocol against real Mistral 4096D and LLaMA 3072D 16-atom scalar blocks, and passes only when both cases satisfy every isolation, provenance, and recovery invariant.',
+    scope: 'Cross-family real-model court at response quantization step 1e-6 over two oracle modes: a Mistral layer-15 down-proj output channel and a LLaMA layer-9 selected-unit sum. Each case runs a dedicated solver process that receives only endpoint, dimension, atom count, query budget, and output paths inside a private randomized work directory; model, layer, source-unit ids, output-channel locator, weights, hooks, truth command, and input snapshot are absent from solver argv, environment, and transport. Per case the court re-derives the source-unit witness, matching solver/oracle transcript digests, immutable frozen-artifact hashes, verifier-after-solver ordering, runtime source hashes, and a hash-stamped strace witness with zero model/weight and zero control-file access. This proves the solver protocol is not tuned to one model family. It is not an OS sandbox against a malicious same-UID process, randomized layer/unit discovery, all-channel FFN extraction, semantic source-neuron identity, or arbitrary LLM recovery.',
+    run: { label: 'NN live blind SwiGLU isolated cold-start cross-family court', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-isolated-cold-start-court'] },
+    proofs: [
+      { label: 'NN live blind SwiGLU isolated cold-start cross-family court regeneration', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-isolated-cold-start-court'] },
+      { label: 'NN live blind SwiGLU isolated cold-start cross-family artifact audit', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-isolated-cold-start-court:audit'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-blind-swiglu-isolated-cold-start-court/mistral4096d-llama3072d-16unit-q000001-opaque-oracle/report.json',
+      'benchmarks/release/nn-live-blind-swiglu-isolated-cold-start-court/mistral4096d-llama3072d-16unit-q000001-opaque-oracle/report.md'
+    ]
+  },
+  {
     id: 'nn-gelu-ffn-provenance-verifier',
     name: 'NN GELU FFN source-neuron provenance verifier',
     status: 'production',
@@ -762,6 +826,21 @@ const CAPABILITIES: Capability[] = [
     artifacts: [
       'benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json',
       'benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.md'
+    ]
+  },
+  {
+    id: 'nn-live-blackbox-llm-behavior-reader',
+    name: 'NN live black-box LLM behavior reader',
+    status: 'preview',
+    summary: 'Loads a real local LLM as a prompt-to-next-token-logits oracle and builds output-only factual behavior graphs from subject/relation/paraphrase prompt interventions.',
+    scope: 'Live real-model benchmark; proves benchmark-scoped output/logit-only whole-model behavior reading for configured factual prompts. The solver receives prompt strings, target token ids, and next-token logits only. It does not use model weights, hooks, hidden activations, source ids, neuron ablations, or attention patching. This is not original-neuron identity, hook-based circuit recovery, full FFN extraction, arbitrary LLM understanding, or broad SOTA status.',
+    run: { label: 'NN live black-box LLM behavior reader benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-blackbox-llm-behavior-reader:gpu'] },
+    proofs: [
+      { label: 'NN live black-box LLM behavior reader benchmark', command: 'npm', args: ['run', 'benchmark:nn-live-blackbox-llm-behavior-reader:gpu'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/report.json',
+      'benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/report.md'
     ]
   },
   {
