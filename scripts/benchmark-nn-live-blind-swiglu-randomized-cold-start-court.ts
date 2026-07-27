@@ -169,6 +169,46 @@ function bandRange(spec: FamilySpec, band: LayerBand): { min: number; max: numbe
   return { min: first + 2 * third, max: last };
 }
 
+/**
+ * Units whose down-proj coefficient for the chosen channel is zero contribute nothing to
+ * the oracle, so a block containing them asks the solver to recover atoms it can never
+ * observe. On a 4-bit Mistral layer roughly 8.8% of units are zero for a given channel,
+ * which makes a blind 16-unit draw ill-posed about three times out of four. Drawing from
+ * the contributing pool removes an impossible task; it does not soften any threshold.
+ *
+ * The lookup runs entirely on the teacher side and is cached, since it costs a model load.
+ */
+function contributingUnitPool(spec: FamilySpec, layer: number, outputChannel: number): number[] {
+  const cacheDir = path.join(repoRoot, 'benchmarks', 'research', 'contributing-units');
+  const cacheKey = `${spec.family}-l${layer}-c${outputChannel}.json`;
+  const cachePath = path.join(cacheDir, cacheKey);
+  if (fs.existsSync(cachePath)) {
+    const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8')) as { contributingUnits?: number[] };
+    if (Array.isArray(cached.contributingUnits) && cached.contributingUnits.length) return cached.contributingUnits;
+  }
+  fs.mkdirSync(cacheDir, { recursive: true });
+  const result = spawnSync(python, [
+    'tools/llm_reader/list_contributing_units.py',
+    '--model', spec.model,
+    '--layer', String(layer),
+    '--output-channel', String(outputChannel),
+    '--output-json', cachePath,
+  ], { cwd: repoRoot, env: childEnv(), stdio: 'inherit', timeout: 20 * 60 * 1000 });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`contributing-unit lookup failed for ${spec.family} layer ${layer} channel ${outputChannel}`);
+  const payload = JSON.parse(fs.readFileSync(cachePath, 'utf8')) as { contributingUnits?: number[] };
+  if (!Array.isArray(payload.contributingUnits) || payload.contributingUnits.length < atomCount) {
+    throw new Error(`fewer than ${atomCount} contributing units for ${spec.family} layer ${layer} channel ${outputChannel}`);
+  }
+  return payload.contributingUnits;
+}
+
+function pickUniqueFromPool(rand: () => number, count: number, pool: number[]): number[] {
+  const chosen = new Set<number>();
+  while (chosen.size < count) chosen.add(pool[intInRange(rand, 0, pool.length - 1)]);
+  return [...chosen];
+}
+
 function buildCases(): CourtCase[] {
   const cases: CourtCase[] = [];
   for (const spec of families) {
@@ -177,10 +217,13 @@ function buildCases(): CourtCase[] {
       const rand = mulberry32(masterSeed + bandIndex * 1013 + (spec.family === 'mistral' ? 0 : 7919));
       const range = bandRange(spec, band);
       const layer = intInRange(rand, range.min, range.max);
-      const units = pickUniqueUnits(rand, atomCount, spec.intermediateSize);
       // Alternate oracle mode by band so both modes appear in both families.
       const useOutputChannel = bandIndex % 2 === 0;
       const outputChannel = useOutputChannel ? intInRange(rand, 0, spec.hiddenSize - 1) : -1;
+      // In selected-unit-sum mode every unit carries weight one, so no pool filter applies.
+      const units = useOutputChannel
+        ? pickUniqueFromPool(rand, atomCount, contributingUnitPool(spec, layer, outputChannel))
+        : pickUniqueUnits(rand, atomCount, spec.intermediateSize);
       cases.push({
         id: `${spec.family}-${spec.hiddenSize}d-${band}-layer${layer}`,
         family: spec.family,

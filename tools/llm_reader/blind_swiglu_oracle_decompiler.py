@@ -44,6 +44,26 @@ def normalize(vector: np.ndarray) -> np.ndarray:
     return vector / norm
 
 
+def normalize_recovered(vector: np.ndarray) -> np.ndarray:
+    """Normalize a recovered atom, yielding the zero vector when it has collapsed.
+
+    A recovery that misses the quality gate can leave one atom at effectively zero
+    length. Raising on it kills the whole post-hoc comparison and destroys the
+    alignment evidence for every other atom, which is the evidence needed to tell a
+    wrong structure apart from a structure that is right but under-fitted. A zero
+    vector scores cosine 0 against any source row, so the collapsed atom is reported
+    as unaligned rather than hiding the fifteen that did align.
+
+    Source rows keep the strict `normalize`: a near-zero row there would mean the
+    witness itself is malformed, which is a real error and not a recovery outcome.
+    """
+    values = np.asarray(vector, dtype=np.float64)
+    norm = float(np.linalg.norm(values))
+    if norm < 1e-12 or not np.all(np.isfinite(values)):
+        return np.zeros_like(values)
+    return values / norm
+
+
 def parse_units(unit: int, units: str | None) -> list[int]:
     if units is None or not units.strip():
         return [unit]
@@ -11671,16 +11691,16 @@ def run_solver(args: argparse.Namespace) -> int:
                 truth_up = np.expand_dims(truth_up, axis=0)
             truth_basis = np.vstack([normalize(row) for row in truth_gate] + [normalize(row) for row in truth_up])
             cosines = principal_cosines(basis, truth_basis)
-            recovered_gates = np.vstack([normalize(row @ basis) for row in fit["gates"]])
-            recovered_ups = np.vstack([normalize(row @ basis) for row in fit["ups"]])
+            recovered_gates = np.vstack([normalize_recovered(row @ basis) for row in fit["gates"]])
+            recovered_ups = np.vstack([normalize_recovered(row @ basis) for row in fit["ups"]])
             truth_gate_coords = truth_gate @ basis.T
             truth_up_coords = truth_up @ basis.T
-            recovered_gate_coords = np.vstack([normalize(row) for row in np.asarray(fit["gates"], dtype=np.float64)])
+            recovered_gate_coords = np.vstack([normalize_recovered(row) for row in np.asarray(fit["gates"], dtype=np.float64)])
             recovered_effective_ups = np.asarray(fit["ups"], dtype=np.float64) * np.asarray(
                 fit["scales"],
                 dtype=np.float64,
             )[:, None]
-            recovered_up_coords = np.vstack([normalize(row) for row in recovered_effective_ups])
+            recovered_up_coords = np.vstack([normalize_recovered(row) for row in recovered_effective_ups])
             normalized_truth_gate_coords = np.vstack([normalize(row) for row in truth_gate_coords])
             normalized_truth_up_coords = np.vstack([normalize(row) for row in truth_up_coords])
             paired_gate_cosines = recovered_gate_coords @ normalized_truth_gate_coords.T

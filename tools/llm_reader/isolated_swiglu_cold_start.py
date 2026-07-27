@@ -270,7 +270,16 @@ def run_isolated(args: argparse.Namespace) -> int:
         if oracle_process is not None and oracle_process.poll() is None:
             oracle_process.kill()
 
-    if solver_exit != 0 or oracle_exit != 0:
+    # A solver that misses the quality gate still writes its frozen fit and report before
+    # exiting non-zero. Raising here used to throw that away, so a failed case left no
+    # artifact at all: no recovered atoms, no post-hoc alignment, no trace. That makes the
+    # difference between "the atoms are wrong" and "the atoms are right but the fit is
+    # short" impossible to see, which is the difference between two completely different
+    # repairs. When the artifacts exist the run continues and produces a report with
+    # status fail; only a solver that produced nothing is still a hard error.
+    solver_produced_artifacts = private_frozen_fit.is_file() and private_solver_report_path.is_file()
+    recovery_failed = solver_exit != 0 or oracle_exit != 0
+    if recovery_failed and not solver_produced_artifacts:
         raise RuntimeError(
             f"isolated recovery failed: solver={solver_exit} oracle={oracle_exit}; "
             f"solver stderr={solver_stderr_path.read_text(encoding='utf-8', errors='replace')[-4000:]} "
@@ -360,6 +369,8 @@ def run_isolated(args: argparse.Namespace) -> int:
     source_alignment = dict(verifier_summary.get("sourceAlignment", {}))
     metrics = dict(solver_summary.get("metrics", {}))
     failures: list[str] = []
+    if recovery_failed:
+        failures.append(f"solver or oracle exited non-zero: solver={solver_exit} oracle={oracle_exit}")
     if solver_summary.get("pass") is not True:
         failures.append("isolated solver functional gate failed")
     if solver_forbidden_flags:
