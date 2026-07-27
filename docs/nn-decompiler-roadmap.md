@@ -1462,12 +1462,39 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
          held-out worst error is 2-4x over the bar. This looks like a fit-quality
          and probing-budget problem, not an identifiability wall.
        - `recovered-but-low-r2` (1 case): R2 `0.978` with worst error `1.49e-04`.
-         The absolute accuracy is excellent and the R2 is low because the block's
-         output variance is small. R2 is not scale-invariant across randomly
-         selected blocks, so the metric, not the recovery, is what fails here.
-         This needs a scale-aware companion metric reported alongside R2, and it
-         must be added as extra reported evidence, never as a replacement that
-         quietly relaxes the existing bar.
+         An earlier revision of this document claimed the low R2 was a metric
+         artifact on a low-variance block. Direct measurement disproves that. The
+         block's output standard deviation over the validation distribution is
+         `1.453196e-04`, against `3.434522e-02` for the passing Mistral layer-11
+         block, a `237x` difference. The worst error therefore equals roughly the
+         entire signal amplitude, so R2 `0.978` is an honest verdict: the recovery
+         genuinely has near-100% relative error at its worst points. The metric is
+         not at fault and must not be replaced.
+
+         The measured cause is the solver's absolute input scale. Holding
+         everything else fixed and raising `--input-scale` from `0.45` to `0.9`
+         moves this block from R2 `0.978313682106669` / worst
+         `1.4947e-04` to R2 `0.9937954126258921` / worst `6.720740704713169e-05`.
+         Raising it further to `1.4` destroys recovery entirely with
+         `structure-court-rejected`, so there is an optimum, not a monotone gain.
+         Stronger structure refinement is not the lever: `600` refine steps with
+         `5` restarts and `400` gate-norm calibration steps move R2 only from
+         `0.993795` to `0.993873`.
+
+         A single global constant cannot be the fix. The same `--input-scale`
+         `0.9` that helps this block destroys the passing Mistral layer-11 case,
+         taking it from R2 `0.9999999194986897` / worst `9.755e-05` to R2
+         `0.9505607375632952` / worst `0.06374726936482406`. The optimal input
+         scale is block-dependent.
+
+         Required fix: choose the input scale per block from oracle observations
+         only, by probing output amplitude at candidate scales before generating
+         training samples and selecting the scale that keeps the block inside the
+         regime where structure recovery still succeeds. This stays inside the
+         blind-access invariant because output amplitude is an oracle-visible
+         quantity. Validating the selection rule needs an input-scale sweep across
+         all court cases; two measured blocks are not enough to fit a rule, and
+         shipping a guessed rule would not meet the proof standard.
        - `recovered-but-worst-error-over-bar` (1 case): worst error
          `0.00558` against a `0.005` bar with R2 `0.9999991`. A marginal miss.
 
