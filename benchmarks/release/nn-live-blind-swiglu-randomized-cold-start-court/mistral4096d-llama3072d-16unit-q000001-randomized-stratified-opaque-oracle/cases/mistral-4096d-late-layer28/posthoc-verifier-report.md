@@ -1,0 +1,22 @@
+# Blind 4096D SwiGLU Oracle Decompiler
+
+- pass: `false`
+- model: `unsloth/mistral-7b-instruct-v0.3-bnb-4bit`
+- layer/unit: `28/[14215, 5565, 5889, 2863, 9223, 9895, 8226, 13209, 206, 9472, 3117, 1045, 13052, 10353, 2588, 4768]`
+- oracle mode: `down-proj-output-channel`
+- output channel: `443`
+- raw oracle calls: `4096`
+- validation R2: `0.9768274336834395`
+- validation MAE: `1.070318133343465e-05`
+- subspace min principal cosine: `0.9790955523785366`
+- post-hoc paired atom min joint cosine: `-0.2740530596658793`
+- post-hoc paired atoms >= 0.99: `10/16`
+
+Access audit:
+
+- solverAccess: `oracle-only`
+- weightsUsedBySolver: `false`
+- hooksUsedBySolver: `false`
+- postHocWitnessOnly: `true`
+
+Boundary: this is a selected real SwiGLU-unit black-box gate, not full LLM decompilation.

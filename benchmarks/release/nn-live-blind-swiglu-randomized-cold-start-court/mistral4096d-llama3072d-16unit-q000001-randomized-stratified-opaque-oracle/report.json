@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-27T14:37:08.964Z",
+  "generatedAt": "2026-07-27T19:15:17.974Z",
   "kind": "randomized-stratified-cold-start-court",
   "status": "fail",
   "summary": {
@@ -11,10 +11,9 @@
     "passedCases": 1,
     "failedCases": 5,
     "failureCauses": {
-      "structure-not-recovered": 1,
-      "recovered-but-low-r2": 1,
-      "recovered-but-inaccurate": 2,
-      "recovered-but-worst-error-over-bar": 1
+      "recovered-but-low-r2": 3,
+      "recovered-but-worst-error-over-bar": 1,
+      "recovered-but-inaccurate": 1
     },
     "modelFamilies": [
       "llama",
@@ -47,21 +46,21 @@
     ],
     "unitCount": 16,
     "quantizationStep": 0.000001,
-    "minR2": 0.9999999194986897,
-    "maxMae": 0.000007374222481703134,
-    "maxWorstError": 0.00009755367550526306,
+    "minR2": 0.999999919499663,
+    "maxMae": 0.000007374176374382019,
+    "maxWorstError": 0.00009755488953228086,
     "minSubspacePrincipalCosine": 0.9999999511163822,
-    "minPairedAtomJointCosine": 0.9999820862066797,
+    "minPairedAtomJointCosine": 0.999982086544576,
     "minPairedAtomCountAbove099": 16,
     "maxRawOracleCallsPerCase": 1283380,
     "totalRawOracleCalls": 1283380,
     "minTraceLineCount": 3098,
     "failures": [
-      "mistral-4096d-early-layer9: orchestrator produced no report (exit 1); cause=structure-not-recovered; lastPhase=asymptotic-cold-start; runtimeError=asymptotic cold start failed: structure-court-rejected",
-      "mistral-4096d-late-layer28: orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.9937954126258921; observedWorstError=0.00006720740704713169",
-      "llama-3072d-early-layer1: orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9899565033743015; observedWorstError=0.010985830786309943",
-      "llama-3072d-middle-layer10: orchestrator produced no report (exit 1); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991253174392; observedWorstError=0.005582131817034153",
-      "llama-3072d-late-layer23: orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9948086207127055; observedWorstError=0.01800143558433407"
+      "mistral-4096d-early-layer9: orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.990992541335422; observedWorstError=0.00007458601635680038",
+      "mistral-4096d-late-layer28: orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.9781901924679225; observedWorstError=0.00011954657842609196",
+      "llama-3072d-early-layer1: orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.9985555114427959; observedWorstError=0.002785015657273862",
+      "llama-3072d-middle-layer10: orchestrator produced no report (exit 1); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991255648174; observedWorstError=0.0055576882292353025",
+      "llama-3072d-late-layer23: orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9912578823689794; observedWorstError=0.025931410098205068"
     ]
   },
   "cases": [
@@ -78,13 +77,13 @@
       "generatedAt": "",
       "pass": false,
       "outcome": "error",
-      "failureCause": "structure-not-recovered",
+      "failureCause": "recovered-but-low-r2",
       "diagnostics": {
-        "lastPhase": "asymptotic-cold-start",
-        "runtimeError": "asymptotic cold start failed: structure-court-rejected",
-        "observedR2": null,
-        "observedWorstError": null,
-        "observedRawOracleCalls": 1116032
+        "lastPhase": "validation-complete",
+        "runtimeError": null,
+        "observedR2": 0.990992541335422,
+        "observedWorstError": 0.00007458601635680038,
+        "observedRawOracleCalls": 1274282
       },
       "r2": null,
       "mae": null,
@@ -95,7 +94,7 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit 1); cause=structure-not-recovered; lastPhase=asymptotic-cold-start; runtimeError=asymptotic cold start failed: structure-court-rejected"
+        "orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.990992541335422; observedWorstError=0.00007458601635680038"
       ]
     },
     {
@@ -107,17 +106,17 @@
       "oracleMode": "selected-unit-sum",
       "processExitCode": 0,
       "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/mistral-4096d-middle-layer11/report.json",
-      "runId": "5e86fde99b804b67a67407863070f1e7",
-      "generatedAt": "2026-07-27T14:31:47Z",
+      "runId": "ae79af88c88e468cb0a497394cd6d7fc",
+      "generatedAt": "2026-07-27T19:09:43Z",
       "pass": true,
       "outcome": "ok",
       "failureCause": null,
       "diagnostics": null,
-      "r2": 0.9999999194986897,
-      "mae": 0.000007374222481703134,
-      "worstError": 0.00009755367550526306,
+      "r2": 0.999999919499663,
+      "mae": 0.000007374176374382019,
+      "worstError": 0.00009755488953228086,
       "subspaceMinPrincipalCosine": 0.9999999511163822,
-      "pairedAtomMinJointCosine": 0.9999820862066797,
+      "pairedAtomMinJointCosine": 0.999982086544576,
       "pairedAtomCountAbove099": 16,
       "rawOracleCalls": 1283380,
       "traceLineCount": 3098,
@@ -140,9 +139,9 @@
       "diagnostics": {
         "lastPhase": "validation-complete",
         "runtimeError": null,
-        "observedR2": 0.9937954126258921,
-        "observedWorstError": 0.00006720740704713169,
-        "observedRawOracleCalls": 1285592
+        "observedR2": 0.9781901924679225,
+        "observedWorstError": 0.00011954657842609196,
+        "observedRawOracleCalls": 1271606
       },
       "r2": null,
       "mae": null,
@@ -153,7 +152,7 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.9937954126258921; observedWorstError=0.00006720740704713169"
+        "orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.9781901924679225; observedWorstError=0.00011954657842609196"
       ]
     },
     {
@@ -169,13 +168,13 @@
       "generatedAt": "",
       "pass": false,
       "outcome": "error",
-      "failureCause": "recovered-but-inaccurate",
+      "failureCause": "recovered-but-low-r2",
       "diagnostics": {
         "lastPhase": "validation-complete",
         "runtimeError": null,
-        "observedR2": 0.9899565033743015,
-        "observedWorstError": 0.010985830786309943,
-        "observedRawOracleCalls": 1012482
+        "observedR2": 0.9985555114427959,
+        "observedWorstError": 0.002785015657273862,
+        "observedRawOracleCalls": 1012646
       },
       "r2": null,
       "mae": null,
@@ -186,7 +185,7 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9899565033743015; observedWorstError=0.010985830786309943"
+        "orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.9985555114427959; observedWorstError=0.002785015657273862"
       ]
     },
     {
@@ -206,8 +205,8 @@
       "diagnostics": {
         "lastPhase": "validation-complete",
         "runtimeError": null,
-        "observedR2": 0.9999991253174392,
-        "observedWorstError": 0.005582131817034153,
+        "observedR2": 0.9999991255648174,
+        "observedWorstError": 0.0055576882292353025,
         "observedRawOracleCalls": 1019516
       },
       "r2": null,
@@ -219,7 +218,7 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit 1); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991253174392; observedWorstError=0.005582131817034153"
+        "orchestrator produced no report (exit 1); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991255648174; observedWorstError=0.0055576882292353025"
       ]
     },
     {
@@ -239,9 +238,9 @@
       "diagnostics": {
         "lastPhase": "validation-complete",
         "runtimeError": null,
-        "observedR2": 0.9948086207127055,
-        "observedWorstError": 0.01800143558433407,
-        "observedRawOracleCalls": 1016758
+        "observedR2": 0.9912578823689794,
+        "observedWorstError": 0.025931410098205068,
+        "observedRawOracleCalls": 1022288
       },
       "r2": null,
       "mae": null,
@@ -252,15 +251,15 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9948086207127055; observedWorstError=0.01800143558433407"
+        "orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9912578823689794; observedWorstError=0.025931410098205068"
       ]
     }
   ],
   "provenance": {
-    "courtScriptSha256": "2247b9aafc7fc475cff1103bf2b041db003ea0bd0a236ec53d7ef0da3c5df233",
+    "courtScriptSha256": "2d84d8a0704f7c63788ee27ebcd12c4e93f6c20193ee211cec95674cd1874840",
     "runtimeSha256": {
-      "decompilerSha256": "bd907f3c1961635b06a460f97726609cd7f7bea90e15b92af2ee5d4cbe5e4ff7",
-      "orchestratorSha256": "3e06df891a6e2e8a4ec64e85d43dce48b925dca04558d6a742a4362b0b15c9bf",
+      "decompilerSha256": "99b64c54924a636246d1bd29bdaf9da5bc20ad41034b4f0bb6214177d6a53c89",
+      "orchestratorSha256": "9e35efcb252ae2a3c13cd3e8cd33f764ca3352feaa9d73f61c824c1de2d2b15a",
       "oracleServerSha256": "266caa5ea9cb7cfaca85208d5082f42450f80dd3d2f100a7d15ebefe5e63eca5",
       "solverWorkerSha256": "7d7daeb86cfa4a499f55721b2b386f19d1670d6c21b964397c577e57d39f0062",
       "protocolSha256": "6e909ff589e49c45e42b0f91551a33c291dc2ea982725d56eb017142f7f25226"
