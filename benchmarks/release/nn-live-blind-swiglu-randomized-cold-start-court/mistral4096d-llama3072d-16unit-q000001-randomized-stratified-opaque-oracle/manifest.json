@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-27T13:25:38.452Z",
+  "lane": "nn-live-blind-swiglu-randomized-cold-start-court",
+  "variant": "mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle",
+  "status": "fail",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-randomized-cold-start-court.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.1"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle",
+    "GCL_RANDOMIZED_COLD_START_COURT_REGENERATE": "0"
+  },
+  "git": {
+    "commit": "08d8a0a557855b86838742dab79fcc3b64a17bf5",
+    "statusShort": "M package.json\n?? benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/\n?? scripts/benchmark-nn-live-blind-swiglu-randomized-cold-start-court.ts"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/manifest.json"
+  },
+  "summary": {
+    "pass": false,
+    "regenerated": false,
+    "masterSeed": 260729,
+    "caseCount": 6,
+    "passedCases": 1,
+    "failedCases": 5,
+    "failureCauses": {
+      "structure-not-recovered": 1,
+      "recovered-but-low-r2": 1,
+      "recovered-but-inaccurate": 2,
+      "recovered-but-worst-error-over-bar": 1
+    },
+    "modelFamilies": [
+      "llama",
+      "mistral"
+    ],
+    "layerBands": [
+      "early",
+      "late",
+      "middle"
+    ],
+    "oracleModes": [
+      "down-proj-output-channel",
+      "selected-unit-sum"
+    ],
+    "selectedLayers": {
+      "mistral": [
+        9,
+        11,
+        28
+      ],
+      "llama": [
+        1,
+        10,
+        23
+      ]
+    },
+    "dimensions": [
+      3072,
+      4096
+    ],
+    "unitCount": 16,
+    "quantizationStep": 0.000001,
+    "minR2": 0.9999999194986897,
+    "maxMae": 0.000007374222481703134,
+    "maxWorstError": 0.00009755367550526306,
+    "minSubspacePrincipalCosine": 0.9999999511163822,
+    "minPairedAtomJointCosine": 0.9999820862066797,
+    "minPairedAtomCountAbove099": 16,
+    "maxRawOracleCallsPerCase": 1282868,
+    "totalRawOracleCalls": 1282868,
+    "minTraceLineCount": 3098,
+    "failures": [
+      "mistral-4096d-early-layer9: orchestrator produced no report (exit null); cause=structure-not-recovered; lastPhase=asymptotic-cold-start; runtimeError=asymptotic cold start failed: structure-court-rejected",
+      "mistral-4096d-late-layer28: orchestrator produced no report (exit null); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.978313682106669; observedWorstError=0.0001494694114639203",
+      "llama-3072d-early-layer1: orchestrator produced no report (exit null); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9899565033743015; observedWorstError=0.010985830786309943",
+      "llama-3072d-middle-layer10: orchestrator produced no report (exit null); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991253174392; observedWorstError=0.005582131817034153",
+      "llama-3072d-late-layer23: orchestrator produced no report (exit null); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9948086207127055; observedWorstError=0.01800143558433407"
+    ]
+  },
+  "notes": [
+    "Layers, source units, oracle mode, and solver seed are derived from one master seed, not hand-picked.",
+    "The solver protocol, solver worker, oracle server, and query budget are identical to the hand-picked court.",
+    "A failing randomly selected block is reported as a failed case, never repaired by widening thresholds."
+  ]
+}

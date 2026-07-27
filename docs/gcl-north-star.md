@@ -524,6 +524,17 @@ Finite-precision interpretation and boundaries:
   matches. Each solver ran in a private randomized work directory, so no output
   path carried a model or layer name.
 
+Measured boundary on block selection: the randomized stratified court
+(`benchmark:nn-live-blind-swiglu-randomized-cold-start-court`, master seed
+`260729`) runs the same opaque protocol on deterministically randomized blocks
+across early/middle/late layer bands in both families and passes only `1/6`.
+The failures are attributed, not blanket: `structure-not-recovered` 1,
+`recovered-but-inaccurate` 2, `recovered-but-low-r2` 1, and
+`recovered-but-worst-error-over-bar` 1. So the opaque cold-start recovery is
+family-independent but not selection-independent, and the passing courts above
+must be read as evidence for their configured blocks rather than for arbitrary
+blocks. That lane is deliberately kept visible as BLOCKED.
+
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block
 decompilation, an OS sandbox against a malicious same-UID process, or a

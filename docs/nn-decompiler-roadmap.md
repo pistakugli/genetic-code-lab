@@ -1435,14 +1435,43 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     output-only access.
   - Next K5 hardening:
     1. widen the process-separated finite-precision cold-start court across randomized early,
-       middle, and late layers in both model families. PARTIALLY DONE: the
-       cross-family court
-       (`benchmark:nn-live-blind-swiglu-isolated-cold-start-court`) now covers
-       both families and both oracle modes at fixed layers Mistral `15` and
-       LLaMA `9`, passing `2/2`. Deterministic-random layer and unit selection
-       under the same opaque protocol is still open, and is the part that would
-       turn this from "the protocol is family-independent" into "the protocol is
-       selection-independent";
+       middle, and late layers in both model families. DONE AS A GATE, NEGATIVE
+       AS A RESULT. The cross-family court
+       (`benchmark:nn-live-blind-swiglu-isolated-cold-start-court`) covers both
+       families and both oracle modes at fixed layers Mistral `15` and LLaMA
+       `9`, passing `2/2`. The randomized court
+       (`benchmark:nn-live-blind-swiglu-randomized-cold-start-court`, master
+       seed `260729`) removes the hand-picking and passes only `1/6`:
+
+       | case | R2 | worst error | cause |
+       | --- | ---: | ---: | --- |
+       | mistral layer `9`, output-channel | n/a | n/a | structure-not-recovered |
+       | mistral layer `11`, unit-sum | `0.9999999194986897` | `9.755e-05` | PASS |
+       | mistral layer `28`, output-channel | `0.978313682106669` | `1.4947e-04` | recovered-but-low-r2 |
+       | llama layer `1`, output-channel | `0.9899565033743015` | `0.010985830786309943` | recovered-but-inaccurate |
+       | llama layer `10`, unit-sum | `0.9999991253174392` | `0.005582131817034153` | recovered-but-worst-error-over-bar |
+       | llama layer `23`, output-channel | `0.9948086207127055` | `0.01800143558433407` | recovered-but-inaccurate |
+
+       Conclusion: the opaque cold-start recovery is family-independent but it is
+       NOT selection-independent. The failures split into three different
+       problems, and they need different work:
+       - `structure-not-recovered` (1 case): the asymptotic gate stitch rejects
+         the structure before any fit exists. This is the hardest case and the
+         one that most limits the claim.
+       - `recovered-but-inaccurate` (2 cases): a structure is recovered but
+         held-out worst error is 2-4x over the bar. This looks like a fit-quality
+         and probing-budget problem, not an identifiability wall.
+       - `recovered-but-low-r2` (1 case): R2 `0.978` with worst error `1.49e-04`.
+         The absolute accuracy is excellent and the R2 is low because the block's
+         output variance is small. R2 is not scale-invariant across randomly
+         selected blocks, so the metric, not the recovery, is what fails here.
+         This needs a scale-aware companion metric reported alongside R2, and it
+         must be added as extra reported evidence, never as a replacement that
+         quietly relaxes the existing bar.
+       - `recovered-but-worst-error-over-bar` (1 case): worst error
+         `0.00558` against a `0.005` bar with R2 `0.9999991`. A marginal miss.
+
+       Thresholds must not be widened to convert these into passes;
     2. reduce line/Hessian query cost with adaptive support allocation before
        increasing the explicit atom count beyond `16`;
     3. connect recovered scalar block structures into output-channel and
