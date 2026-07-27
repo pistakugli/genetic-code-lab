@@ -68,6 +68,42 @@ Current result:
 - current artifact records `model.device = cuda` after the explicit GPU
   benchmark command.
 
+The first output/logit-only whole-model behavior gate also exists:
+`npm run benchmark:nn-live-blackbox-llm-behavior-reader:gpu`. It loads real
+GPT-2 as a local oracle, but the reader receives only prompt strings, target
+token ids, and next-token logits. It builds a behavior graph from subject-swap
+controls, adaptive capital-template paraphrase search, answer-token
+specificity, relation-control diagnostics, and query-budget accounting.
+
+Current output-only artifact:
+
+```text
+benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/report.json
+```
+
+Current output-only result:
+
+- pass `true`;
+- 10 valid facts, 10 passed cases, 0 failed cases, pass rate `1.0`;
+- gate threshold requires min valid cases `10` and min pass rate `1.0`;
+- query count `240`;
+- median target rank `2`, max target rank `10`;
+- median subject-specificity lift `6.850424766540527`;
+- min subject-specificity lift `5.2599224090576175`;
+- median answer-specificity margin `3.499279022216797`;
+- min answer-specificity margin `2.0098876953125`;
+- median relation-template margin `3.4460906982421875`;
+- min relation-template margin `1.2060317993164062`;
+- median paraphrase retention rate `1.0`;
+- access audit: `solverAccess = prompt-to-next-token-logits-only`,
+  `weightsUsedBySolver = false`, `hooksUsedBySolver = false`,
+  `activationsUsedBySolver = false`.
+
+This output-only rail is separate from the hook-based circuit finder. It may
+claim benchmark-scoped prompt-intervention behavior evidence, not hidden-neuron
+identity, source provenance, full FFN extraction, or arbitrary LLM
+understanding.
+
 The next production path is:
 
 1. Extract a model-agnostic `LLMOracleAdapter` layer
@@ -105,7 +141,13 @@ The next production path is:
    - Pythia/GPT-Neo adapters must prove the framework is not GPT-2-specific.
    - LLaMA/Mistral adapters must prove SwiGLU MLP/value-gate handling without
      weakening graph controls, query budgets, or claim boundaries.
-4. Scale the fact set
+5. Expand the output/logit-only behavior rail
+   - Current status: DONE for first GPT-2 10-fact output-only behavior gate.
+   - Next gates: larger fact set, OOD paraphrase families, and Pythia/LLaMA/
+     Mistral parity through the same prompt-to-logits-only solver boundary.
+   - This rail must not receive hooks, hidden activations, weights, source ids,
+     or intervention handles.
+6. Scale the fact set
    - Run the same graph search over larger factual sets and then larger local
      transformer models only after adapter parity, GPT-2 graph hardening, and
      path recovery gates hold.
@@ -512,18 +554,58 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        `0.9993531509315209`, max worst error `0.04507800353440916`, min paired
        atom joint cosine `0.9942495918505425`, and all `16/16` atoms above
        `0.99` in both cases.
-    19. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
+    19. DONE for fresh structure-first real-Mistral 16-atom recovery without a
+       random nonlinear initial fit:
+       Add `benchmark:nn-live-blind-swiglu-asymptotic-cold-start`. The gate
+       reconstructs the 4096D active subspace and explicit gate/up pairs from
+       a new `1e-6`-quantized scalar-oracle run, forbids fit-snapshot input and
+       nonlinear random initial atom fitting, and hard-gates `16/16` post-hoc pairs at
+       joint cosine `0.99` under `1.5M` oracle calls. Current result: R2
+       `0.9995787659698843`, MAE `0.00000616945597616291`, worst error
+       `0.000032305729901930614`, subspace minimum cosine
+       `0.9996985570973159`, paired minimum `0.9972788963034496`, and raw
+       oracle calls `1279238`.
+    20. DONE for process-separated, access-attested real-Mistral cold start:
+       Add `benchmark:nn-live-blind-swiglu-isolated-cold-start`. The
+       orchestrator sends the teacher manifest only to the oracle server over a
+       private inherited file descriptor. The dedicated solver receives a
+       narrow argv plus an opaque eval-only Unix binary endpoint, and the
+       post-hoc source verifier starts only after the recovered artifact is
+       frozen and the solver has exited. The gate requires matching hash-chained
+       solver/server query transcripts, an immutable frozen artifact, and a
+       non-empty hash-stamped `strace` witness with no model, weight, or control-
+       file access by the solver. Current run: R2 `0.9995787659698843`, all
+       `16/16` paired atoms above `0.99`, and `1279238/1500000` oracle calls.
+    21. DONE for cross-family process-separated cold start: Add
+       `benchmark:nn-live-blind-swiglu-isolated-cold-start-court`. It runs the
+       unchanged opaque solver protocol against two real model families and two
+       oracle modes: Mistral 4096D layer `15` through a
+       `down-proj-output-channel` oracle and LLaMA 3072D layer `9` through a
+       `selected-unit-sum` oracle. Each solver runs inside a private randomized
+       work directory, so no output path carries a model or layer name and
+       `solverSourceLocatorMatches` stays empty. Per case the court re-checks
+       the post-hoc source-unit witness, transcript digest match, frozen-artifact
+       immutability, verifier-after-solver ordering, current runtime source
+       hashes, and a hash-stamped `strace` witness with zero model/weight and
+       zero control-file access. Current aggregate: pass `true`, cases `2/2`,
+       min R2 `0.9995787659698843`, max MAE `0.0003064998140072596`, max worst
+       error `0.0019215374240817429`, `16/16` paired atoms above `0.99` per
+       case, max `1279238/1500000` calls per case, and `2298770` total calls.
+       This answers the previous "widen the process-separated court across model
+       families" hardening item for the fixed-layer case; randomized early/
+       middle/late layer selection is still open.
+    22. NEXT: Add scaling stress as a separate ladder: `768D -> 4096D -> 16384D`,
        then multi-layer smooth composition, always with query budget and
        negative-case behavior. A dimension jump is not a structure claim by
        itself.
-    20. DONE for full-slice/rank-cap negative guarding: Add
+    23. DONE for full-slice/rank-cap negative guarding: Add
        `benchmark:nn-gelu-ffn-rank-cap-negative`, where a self-contained
        synthetic 768D/3072-channel full-slice teacher must report
        `insufficient-rank` under a too-small rank cap instead of promoting a
        weak structure claim. Add
        `research:nn-gpt2-gelu-ffn-full-rank-cap-negative` as a local audit over
        the uncommitted full GPT-2 fixture.
-    21. NEXT: Only after blind top-K is efficient should full FFN slices be used
+    24. NEXT: Only after blind top-K is efficient should full FFN slices be used
        as research stress tests. They must not replace the generic mixed-
        channel gate.
 - Stage D: local transformer MLP hook.
@@ -1272,6 +1354,64 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `0.9942495918505425`, and all `16/16` recovered atoms above `0.99` in
     both cases. Recovery and weak-block selection are oracle-only; source
     weights enter only after fitting for the post-hoc assignment witness.
+  - Current cross-family finite-precision 16-unit asymptotic-structure court:
+    DONE with
+    `npm run benchmark:nn-live-blind-swiglu-asymptotic-structure`.
+    The court regenerates three snapshot-backed real-model cases: Mistral
+    4096D layers `9` and `15` at output channel `2048`, plus LLaMA-family
+    3072D layer `9`; every scalar block contains `16` SwiGLU atoms and every
+    oracle response is quantized at `1e-6`. Asymptotic line boundaries recover
+    gate normals, Richardson gradient/Hessian witnesses recover up directions,
+    source-blind support fallback protects weak clusters, and bounded
+    variable-projection trust-region refinement completes the structure.
+    Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-asymptotic-structure/mistral4096d-llama3072d-16unit-q000001-oracle-only/report.json`.
+    Fresh regeneration result: pass `true`, cases `3/3`, min R2
+    `0.999647819803404`, max MAE `0.0006021497608951118`, max worst error
+    `0.003997934982926221`, min subspace principal cosine
+    `0.9996985570973159`, min one-to-one paired gate/up joint cosine
+    `0.9989749892979034`, all `16/16` paired atoms above `0.99` in every
+    case, max raw oracle calls per case `109808`, total raw oracle calls
+    `319042`, and access invariant `true`. A separate `:audit` command writes
+    to an audit-only variant so it cannot overwrite the regeneration witness.
+  - Current fresh no-snapshot finite-precision 16-unit cold-start gate: DONE
+    with `npm run benchmark:nn-live-blind-swiglu-asymptotic-cold-start`.
+    This gate starts from a newly loaded real quantized Mistral layer-15 scalar
+    oracle, rebuilds the 4096D rank-32 active subspace, and then reconstructs
+    all 16 explicit SwiGLU gate/up atoms through asymptotic line stitching and
+    finite-precision value calibration. Fit snapshots and nonlinear initial
+    atom fitting are forbidden by preflight and audited after the run. Bounded
+    nonlinear calibration/refinement still runs after structure recovery.
+    Artifact:
+    `benchmarks/release/nn-live-blind-swiglu-asymptotic-cold-start/mistral4096d-layer15-16unit-q000001-fresh-oracle-only/report.json`.
+    Fresh result: pass `true`, `regenerated = true`, R2
+    `0.9995787659698843`, MAE `0.00000616945597616291`, worst error
+    `0.000032305729901930614`, subspace minimum principal cosine
+    `0.9996985570973159`, minimum one-to-one paired gate/up joint cosine
+    `0.9972788963034496`, all `16/16` pairs above `0.99`, raw oracle calls
+    `1279238` of `1500000`, `nonlinearInitialFitUsed = false`,
+    `fitSnapshotUsedBySolver = false`, and failures `[]`.
+  - Current process-separated opaque-oracle cold-start gate: DONE with
+    `npm run benchmark:nn-live-blind-swiglu-isolated-cold-start`. The teacher
+    manifest is delivered only to the oracle server through a private inherited
+    file descriptor. The dedicated solver argv contains only endpoint,
+    dimension, atom count, budget, and output paths; its environment contains no
+    model-cache or teacher-manifest variables. It sees an eval-only binary Unix
+    protocol with no path fields or truth capability. A separate verifier starts
+    after solver exit and checks the immutable frozen recovery. Fresh artifact:
+    `benchmarks/release/nn-live-blind-swiglu-isolated-cold-start/mistral4096d-layer15-16unit-q000001-opaque-oracle/report.json`.
+    Run `926693cf03df48e7a26e8466b8b83b11` passed with R2
+    `0.9995787659698843`, MAE `0.00000616945597616291`, worst error
+    `0.000032305729901930614`, all `16/16` pairs above `0.99`, and
+    `1279238/1500000` oracle calls. Solver and oracle transcript SHA-256 values
+    match; the frozen SHA-256 is unchanged across verification; the hash-stamped
+    `3098`-line `strace` witness records no model/weight or orchestrator/oracle/
+    verifier control-file access by the solver. This artifact was regenerated on
+    2026-07-27 against the current runtime source after the earlier
+    `3f82268a921048e7bc21c333d3ecb5e8` artifact went stale relative to the
+    orchestrator and oracle-server hashes. The regeneration reproduced the same
+    R2, MAE, worst error, and oracle-call count bit-for-bit under the fixed seed,
+    so the lane is deterministic across runs as well as gated.
   - Boundary: this proves selected real Mistral-family SwiGLU units can be
     recovered as blind oracle-only explicit SwiGLU atoms under the recorded
     budgets, plus selected real LLaMA-family 16-unit parity under its recorded
@@ -1294,15 +1434,20 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     arbitrary high-count mixtures, or semantic original-neuron identity from
     output-only access.
   - Next K5 hardening:
-    1. add finite-precision/noisy response stress for the 16-unit expansion
-       path after the clean self-rescue default is stable;
-    2. reduce coordinate-family query cost with a validated adaptive
-       directional or block-coordinate probe before claiming larger-block
-       scalability;
-    3. widen randomized 16-unit sweeps beyond 2 cases per family;
-    4. then widen randomized multi-unit block gates beyond 2 cases per
-       unit-count and only promote K5 into full `release:gate` when the
-       cross-family randomized expansion evidence exists.
+    1. widen the process-separated finite-precision cold-start court across randomized early,
+       middle, and late layers in both model families. PARTIALLY DONE: the
+       cross-family court
+       (`benchmark:nn-live-blind-swiglu-isolated-cold-start-court`) now covers
+       both families and both oracle modes at fixed layers Mistral `15` and
+       LLaMA `9`, passing `2/2`. Deterministic-random layer and unit selection
+       under the same opaque protocol is still open, and is the part that would
+       turn this from "the protocol is family-independent" into "the protocol is
+       selection-independent";
+    2. reduce line/Hessian query cost with adaptive support allocation before
+       increasing the explicit atom count beyond `16`;
+    3. connect recovered scalar block structures into output-channel and
+       cross-layer composition courts instead of treating each scalar block
+       as an isolated endpoint.
 - Stage L: `LLMOracleAdapter` control plane.
   - Refactor the current live-reader/fact-finder implementation into a reusable
     oracle interface with typed request/response records for model identity,

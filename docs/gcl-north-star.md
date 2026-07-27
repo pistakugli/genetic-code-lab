@@ -499,10 +499,35 @@ Finite-precision interpretation and boundaries:
   cases, total raw oracle calls `284482`, and oracle-only access invariant.
   The gate-norm/tail-responsibility weak-block selector is source-blind; the
   Hungarian source assignment is post-hoc evidence and does not enter fitting.
+- process-separated opaque-oracle cold-start recovery for one real local
+  Mistral-family 4096D 16-atom scalar block. The teacher manifest is delivered
+  only to the oracle process through a private inherited descriptor. The
+  dedicated solver receives no model/layer/unit/output-channel locator and no
+  truth command; it uses a hash-chained eval-only binary Unix protocol. Current
+  artifact:
+  `benchmarks/release/nn-live-blind-swiglu-isolated-cold-start/mistral4096d-layer15-16unit-q000001-opaque-oracle/report.json`,
+  pass `true`, R2 `0.9995787659698843`, all `16/16` post-hoc pairs above `0.99`,
+  raw calls `1279238/1500000`, matching solver/server transcript digest,
+  immutable frozen recovery, verifier after solver exit, and a complete
+  hash-stamped file-access trace with no model/weight/control-file matches.
+- cross-family confirmation that the opaque solver protocol is not tuned to one
+  model family. The same protocol recovers a Mistral-family 4096D block through
+  a `down-proj-output-channel` oracle and a LLaMA-family 3072D block through a
+  `selected-unit-sum` oracle, with no solver-side protocol change. Current
+  artifact:
+  `benchmarks/release/nn-live-blind-swiglu-isolated-cold-start-court/mistral4096d-llama3072d-16unit-q000001-opaque-oracle/report.json`,
+  pass `true`, cases `2/2`, min R2 `0.9995787659698843`, max MAE
+  `0.0003064998140072596`, min paired joint cosine `0.9972788963034496`,
+  `16/16` pairs above `0.99` per case, max raw calls per case
+  `1279238/1500000`, total raw calls `2298770`, and a per-case file-access
+  witness of at least `3101` lines with no model/weight or control-file
+  matches. Each solver ran in a private randomized work directory, so no output
+  path carried a model or layer name.
 
 Boundary: this is not yet full GPT-2 FFN extraction, arbitrary 3072-channel
 blind decompilation, arbitrary all-channel 4096D production block
-decompilation, or a universal SOTA claim.
+decompilation, an OS sandbox against a malicious same-UID process, or a
+universal SOTA claim.
 
 ### 3. Provenance Rail
 
@@ -598,6 +623,30 @@ nodes `1.56`, mean selected attention heads `1.02`, failed subjects `[]`, and
 `model.device = cuda`. Combined pass/fail uses full component-replacement
 controls; MLP-swap and attention-swap controls remain diagnostic.
 
+The first output/logit-only whole-model behavior gate now exists:
+`npm run benchmark:nn-live-blackbox-llm-behavior-reader:gpu`. It loads real
+GPT-2 as a local oracle but gives the reader only prompt strings, target token
+ids, and next-token logits. It builds factual behavior graphs from subject
+swaps, adaptive capital-template paraphrase search, answer-token specificity,
+and relation-control diagnostics. Current artifact:
+`benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/report.json`.
+Current result: 10 valid facts, 10 passed cases, pass rate `1.0` with gate
+threshold `1.0`, query count `240`, median target rank `2`, max target rank
+`10`, median subject-specificity lift `6.850424766540527`, min
+subject-specificity lift `5.2599224090576175`, median answer-specificity
+margin `3.499279022216797`, min answer-specificity margin
+`2.0098876953125`, median relation-template margin `3.4460906982421875`, min
+relation-template margin `1.2060317993164062`, and median paraphrase
+retention `1.0`. Access audit: `solverAccess =
+prompt-to-next-token-logits-only`, `weightsUsedBySolver = false`,
+`hooksUsedBySolver = false`, `activationsUsedBySolver = false`.
+
+Boundary: this is the first correct black-box whole-model behavior rail. It is
+not hidden-neuron identity, not hook-based circuit recovery, not source
+provenance, not full FFN extraction, and not arbitrary LLM understanding. It
+exists to bridge user-visible model behavior and the deeper instrumented
+circuit/FFN rails without pretending that hook evidence is black-box evidence.
+
 ## Current Mainline
 
 The next development must stay on this order:
@@ -652,10 +701,15 @@ The next development must stay on this order:
    deltas, controls, cache keys, runtime warnings, model/tokenizer identities,
    and query-budget records. This must keep using real model runtimes, not
    synthetic teachers and not fitted surrogates.
-4. Continue blind real GPT-2 top-K FFN recovery and source-structure scaling
+4. Expand the new output/logit-only behavior rail beyond GPT-2:
+   same `prompt -> logits` interface, same access audit, larger factual sets,
+   paraphrase/OOD prompt families, and then Pythia/LLaMA/Mistral parity. The
+   solver must not receive hooks, hidden activations, weights, source ids, or
+   intervention handles in this rail.
+5. Continue blind real GPT-2 top-K FFN recovery and source-structure scaling
    only when it feeds the circuit finder or verifies source/provenance for
    circuits the live oracle selected.
-5. Continue the 768D -> 4096D -> 16384D scaling ladder as a support lane for
+6. Continue the 768D -> 4096D -> 16384D scaling ladder as a support lane for
    active-subspace structure recovery, not as the center of the product.
 
 Do not make 7D/8D ReLU scaling the center of the project. ReLU ND work remains

@@ -47,6 +47,7 @@ canonical structure recovery, and semantic hidden-neuron identity.
 | **"Semantic hidden-neuron identity"** | The benchmark has access to the original hidden basis or proves uniqueness beyond permutation/scaling/equivalent decompositions. | "effective atom identity" or "functional atom identity" |
 | **"Surrogate"** | The model is optimized for output fidelity without claiming recovered atoms or interpretable channel count. | "active-subspace surrogate" |
 | **"Structure finder"** | The gate reports explicit atoms, effective channel count, duplicate/near-parallel diagnostics, held-out output metrics, and query budget. | "GELU FFN structure finder" |
+| **"Opaque oracle-only neural recovery"** | The solver process receives only an eval endpoint and public shape/budget metadata; model, layer, source ids, hooks, weights, truth commands, and input snapshots are absent from solver argv/environment/protocol, and a fresh runtime access witness confirms no model/control-file reads. | "process-separated, access-attested recovery for the selected block" |
 
 The current GELU FFN structure gates may claim controlled oracle-only GELU atom
 recovery, rank-adaptive mixed-channel recovery, near-parallel clean stability,
@@ -62,6 +63,26 @@ structure", "canonical signature", negative cases, and scaling stress live in
 terms must follow that document or explicitly state a narrower local definition.
 The first executable negative-case enforcement gate is
 `npm run benchmark:nn-gelu-ffn-negative-cases`.
+
+---
+
+## 2.2 Output-Only LLM Behavior Reader Terms
+
+Whole-model black-box LLM work must be separated from hook-based
+mechanistic-interpretability work.
+
+| Claim Phrase | Allowed Only When | Safer Wording |
+| :--- | :--- | :--- |
+| **"Black-box LLM behavior reader"** | The solver receives only prompt/input strings, target token ids, and output logits/probabilities from an oracle. | "output/logit-only behavior graph" |
+| **"Circuit finder"** | The gate uses hooks, hidden activations, attention/MLP ablations, or residual path patching and says so explicitly. | "instrumented circuit finder" |
+| **"LLM understands why"** | Never as a broad claim from one benchmark. | "benchmark-scoped behavior evidence for selected factual prompts" |
+| **"Original neuron identity"** | Hidden source ids, weights, hooks, or an identifiability proof are available. | "output-only target behavior evidence" |
+
+The output/logit-only behavior rail may claim prompt-intervention evidence,
+subject specificity, answer specificity, paraphrase/template stability, query
+budget, and model/runtime identity. It may not claim hidden-neuron identity,
+source-provenance, hook-based circuit recovery, full FFN extraction, or
+arbitrary LLM understanding.
 
 ---
 
