@@ -1,11 +1,11 @@
 # Isolated Blind SwiGLU Cold Start
 
 - status: `pass`
-- run id: `2bbde42245e24ddeb5c1d3c6553fde82`
-- R2: `0.9995787659698843`
-- paired atom minimum: `0.9972788963034496`
+- run id: `046a640de4604ac4b5ca98306e3410f3`
+- R2: `0.9999195917546444`
+- paired atom minimum: `0.9999090999451032`
 - paired atoms >= 0.99: `16/16`
-- raw oracle calls: `1279238/1500000`
+- raw oracle calls: `1283860/1500000`
 - solver teacher-manifest fields: `[]`
 - solver truth capability: `false`
 - post-hoc verifier starts after solver exit: `true`

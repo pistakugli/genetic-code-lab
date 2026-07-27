@@ -2,6 +2,6 @@
 
 - status: `pass`
 - cases: `2/2`
-- min R2: `0.9995787659698843`
-- min paired atom cosine: `0.9972788963034496`
-- max oracle calls per case: `1279238/1500000`
+- min R2: `0.9999195917546444`
+- min paired atom cosine: `0.9999090999451032`
+- max oracle calls per case: `1283860/1500000`

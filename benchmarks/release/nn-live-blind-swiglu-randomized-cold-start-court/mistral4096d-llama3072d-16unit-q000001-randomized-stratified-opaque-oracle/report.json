@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-27T13:25:38.451Z",
-  "kind": "randomized-stratified-cold-start-artifact-audit",
+  "generatedAt": "2026-07-27T14:37:08.964Z",
+  "kind": "randomized-stratified-cold-start-court",
   "status": "fail",
   "summary": {
     "pass": false,
-    "regenerated": false,
+    "regenerated": true,
     "masterSeed": 260729,
     "caseCount": 6,
     "passedCases": 1,
@@ -53,15 +53,15 @@
     "minSubspacePrincipalCosine": 0.9999999511163822,
     "minPairedAtomJointCosine": 0.9999820862066797,
     "minPairedAtomCountAbove099": 16,
-    "maxRawOracleCallsPerCase": 1282868,
-    "totalRawOracleCalls": 1282868,
+    "maxRawOracleCallsPerCase": 1283380,
+    "totalRawOracleCalls": 1283380,
     "minTraceLineCount": 3098,
     "failures": [
-      "mistral-4096d-early-layer9: orchestrator produced no report (exit null); cause=structure-not-recovered; lastPhase=asymptotic-cold-start; runtimeError=asymptotic cold start failed: structure-court-rejected",
-      "mistral-4096d-late-layer28: orchestrator produced no report (exit null); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.978313682106669; observedWorstError=0.0001494694114639203",
-      "llama-3072d-early-layer1: orchestrator produced no report (exit null); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9899565033743015; observedWorstError=0.010985830786309943",
-      "llama-3072d-middle-layer10: orchestrator produced no report (exit null); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991253174392; observedWorstError=0.005582131817034153",
-      "llama-3072d-late-layer23: orchestrator produced no report (exit null); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9948086207127055; observedWorstError=0.01800143558433407"
+      "mistral-4096d-early-layer9: orchestrator produced no report (exit 1); cause=structure-not-recovered; lastPhase=asymptotic-cold-start; runtimeError=asymptotic cold start failed: structure-court-rejected",
+      "mistral-4096d-late-layer28: orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.9937954126258921; observedWorstError=0.00006720740704713169",
+      "llama-3072d-early-layer1: orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9899565033743015; observedWorstError=0.010985830786309943",
+      "llama-3072d-middle-layer10: orchestrator produced no report (exit 1); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991253174392; observedWorstError=0.005582131817034153",
+      "llama-3072d-late-layer23: orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9948086207127055; observedWorstError=0.01800143558433407"
     ]
   },
   "cases": [
@@ -72,7 +72,7 @@
       "dimension": 4096,
       "layer": 9,
       "oracleMode": "down-proj-output-channel",
-      "processExitCode": null,
+      "processExitCode": 1,
       "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/mistral-4096d-early-layer9/report.json",
       "runId": "",
       "generatedAt": "",
@@ -84,7 +84,7 @@
         "runtimeError": "asymptotic cold start failed: structure-court-rejected",
         "observedR2": null,
         "observedWorstError": null,
-        "observedRawOracleCalls": 1113984
+        "observedRawOracleCalls": 1116032
       },
       "r2": null,
       "mae": null,
@@ -95,7 +95,7 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit null); cause=structure-not-recovered; lastPhase=asymptotic-cold-start; runtimeError=asymptotic cold start failed: structure-court-rejected"
+        "orchestrator produced no report (exit 1); cause=structure-not-recovered; lastPhase=asymptotic-cold-start; runtimeError=asymptotic cold start failed: structure-court-rejected"
       ]
     },
     {
@@ -105,10 +105,10 @@
       "dimension": 4096,
       "layer": 11,
       "oracleMode": "selected-unit-sum",
-      "processExitCode": null,
+      "processExitCode": 0,
       "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/mistral-4096d-middle-layer11/report.json",
-      "runId": "8debfbcb81a14ac2a3709ba6ba0f5861",
-      "generatedAt": "2026-07-27T12:54:30Z",
+      "runId": "5e86fde99b804b67a67407863070f1e7",
+      "generatedAt": "2026-07-27T14:31:47Z",
       "pass": true,
       "outcome": "ok",
       "failureCause": null,
@@ -119,7 +119,7 @@
       "subspaceMinPrincipalCosine": 0.9999999511163822,
       "pairedAtomMinJointCosine": 0.9999820862066797,
       "pairedAtomCountAbove099": 16,
-      "rawOracleCalls": 1282868,
+      "rawOracleCalls": 1283380,
       "traceLineCount": 3098,
       "failures": []
     },
@@ -130,7 +130,7 @@
       "dimension": 4096,
       "layer": 28,
       "oracleMode": "down-proj-output-channel",
-      "processExitCode": null,
+      "processExitCode": 1,
       "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/mistral-4096d-late-layer28/report.json",
       "runId": "",
       "generatedAt": "",
@@ -140,9 +140,9 @@
       "diagnostics": {
         "lastPhase": "validation-complete",
         "runtimeError": null,
-        "observedR2": 0.978313682106669,
-        "observedWorstError": 0.0001494694114639203,
-        "observedRawOracleCalls": 1282454
+        "observedR2": 0.9937954126258921,
+        "observedWorstError": 0.00006720740704713169,
+        "observedRawOracleCalls": 1285592
       },
       "r2": null,
       "mae": null,
@@ -153,7 +153,7 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit null); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.978313682106669; observedWorstError=0.0001494694114639203"
+        "orchestrator produced no report (exit 1); cause=recovered-but-low-r2; lastPhase=validation-complete; observedR2=0.9937954126258921; observedWorstError=0.00006720740704713169"
       ]
     },
     {
@@ -163,7 +163,7 @@
       "dimension": 3072,
       "layer": 1,
       "oracleMode": "down-proj-output-channel",
-      "processExitCode": null,
+      "processExitCode": 1,
       "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/llama-3072d-early-layer1/report.json",
       "runId": "",
       "generatedAt": "",
@@ -175,7 +175,7 @@
         "runtimeError": null,
         "observedR2": 0.9899565033743015,
         "observedWorstError": 0.010985830786309943,
-        "observedRawOracleCalls": 1011970
+        "observedRawOracleCalls": 1012482
       },
       "r2": null,
       "mae": null,
@@ -186,7 +186,7 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit null); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9899565033743015; observedWorstError=0.010985830786309943"
+        "orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9899565033743015; observedWorstError=0.010985830786309943"
       ]
     },
     {
@@ -196,7 +196,7 @@
       "dimension": 3072,
       "layer": 10,
       "oracleMode": "selected-unit-sum",
-      "processExitCode": null,
+      "processExitCode": 1,
       "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/llama-3072d-middle-layer10/report.json",
       "runId": "",
       "generatedAt": "",
@@ -208,7 +208,7 @@
         "runtimeError": null,
         "observedR2": 0.9999991253174392,
         "observedWorstError": 0.005582131817034153,
-        "observedRawOracleCalls": 1019004
+        "observedRawOracleCalls": 1019516
       },
       "r2": null,
       "mae": null,
@@ -219,7 +219,7 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit null); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991253174392; observedWorstError=0.005582131817034153"
+        "orchestrator produced no report (exit 1); cause=recovered-but-worst-error-over-bar; lastPhase=validation-complete; observedR2=0.9999991253174392; observedWorstError=0.005582131817034153"
       ]
     },
     {
@@ -229,7 +229,7 @@
       "dimension": 3072,
       "layer": 23,
       "oracleMode": "down-proj-output-channel",
-      "processExitCode": null,
+      "processExitCode": 1,
       "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/llama-3072d-late-layer23/report.json",
       "runId": "",
       "generatedAt": "",
@@ -241,7 +241,7 @@
         "runtimeError": null,
         "observedR2": 0.9948086207127055,
         "observedWorstError": 0.01800143558433407,
-        "observedRawOracleCalls": 1016246
+        "observedRawOracleCalls": 1016758
       },
       "r2": null,
       "mae": null,
@@ -252,17 +252,17 @@
       "rawOracleCalls": null,
       "traceLineCount": null,
       "failures": [
-        "orchestrator produced no report (exit null); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9948086207127055; observedWorstError=0.01800143558433407"
+        "orchestrator produced no report (exit 1); cause=recovered-but-inaccurate; lastPhase=validation-complete; observedR2=0.9948086207127055; observedWorstError=0.01800143558433407"
       ]
     }
   ],
   "provenance": {
     "courtScriptSha256": "2247b9aafc7fc475cff1103bf2b041db003ea0bd0a236ec53d7ef0da3c5df233",
     "runtimeSha256": {
-      "decompilerSha256": "b68f5db6cedbb131d996418c05909504de23c39fee19271e3ba4ccf3b8d5931a",
+      "decompilerSha256": "bd907f3c1961635b06a460f97726609cd7f7bea90e15b92af2ee5d4cbe5e4ff7",
       "orchestratorSha256": "3e06df891a6e2e8a4ec64e85d43dce48b925dca04558d6a742a4362b0b15c9bf",
       "oracleServerSha256": "266caa5ea9cb7cfaca85208d5082f42450f80dd3d2f100a7d15ebefe5e63eca5",
-      "solverWorkerSha256": "df6b83e54033b331c9725cb20e74f459bd3f784d88fdf53de01bd8850af5981e",
+      "solverWorkerSha256": "7d7daeb86cfa4a499f55721b2b386f19d1670d6c21b964397c577e57d39f0062",
       "protocolSha256": "6e909ff589e49c45e42b0f91551a33c291dc2ea982725d56eb017142f7f25226"
     }
   }
