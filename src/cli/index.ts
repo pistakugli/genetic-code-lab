@@ -32,7 +32,12 @@ import { compileMathExpression } from '../utils/math-expression-parser';
 
 type BuiltInProblemType = 'math' | 'sort' | 'path';
 type Spinner = ReturnType<typeof ora>;
-type CapabilityStatus = 'production' | 'preview' | 'diagnostic';
+/**
+ * `blocked` exists so a lane whose gate currently fails can stay visible with its concrete
+ * failures instead of being relabelled as `preview` or `diagnostic`. A known-negative result
+ * is evidence; hiding it behind a softer status is not.
+ */
+type CapabilityStatus = 'production' | 'preview' | 'diagnostic' | 'blocked';
 
 type CapabilityCommand = {
   label: string;
@@ -693,6 +698,23 @@ const CAPABILITIES: Capability[] = [
     artifacts: [
       'benchmarks/release/nn-live-blind-swiglu-isolated-cold-start-court/mistral4096d-llama3072d-16unit-q000001-opaque-oracle/report.json',
       'benchmarks/release/nn-live-blind-swiglu-isolated-cold-start-court/mistral4096d-llama3072d-16unit-q000001-opaque-oracle/report.md'
+    ]
+  },
+  {
+    id: 'nn-live-blind-swiglu-randomized-cold-start-court',
+    name: 'NN live blind SwiGLU randomized stratified cold-start court',
+    status: 'blocked',
+    summary: 'Runs the unchanged opaque solver protocol against deterministically randomized blocks stratified over early/middle/late layers in both model families. Currently passes 1 of 6 cases.',
+    scope: 'Selection-independence court at response quantization step 1e-6. Layers, source units, oracle mode, and solver seed come from master seed 260729 instead of hand-picking, over Mistral 4096D layers 9/11/28 and LLaMA 3072D layers 1/10/23. Solver protocol, solver worker, oracle server, and the 1.5M query budget are identical to the hand-picked court; only teacher-side selection changes. Current result: 1/6 pass. Attributed causes: structure-not-recovered 1, recovered-but-inaccurate 2, recovered-but-low-r2 1, recovered-but-worst-error-over-bar 1. This lane is BLOCKED, not preview: the opaque cold-start recovery is proven family-independent by the hand-picked court but is NOT selection-independent, and the thresholds must not be widened to hide that.',
+    run: { label: 'NN live blind SwiGLU randomized stratified cold-start court', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-randomized-cold-start-court'] },
+    proofs: [
+      { label: 'NN live blind SwiGLU randomized cold-start court regeneration', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-randomized-cold-start-court'] },
+      { label: 'NN live blind SwiGLU randomized cold-start artifact audit', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-randomized-cold-start-court:audit'] },
+      { label: 'NN live blind SwiGLU randomized cold-start case plan', command: 'npm', args: ['run', 'benchmark:nn-live-blind-swiglu-randomized-cold-start-court:plan'] }
+    ],
+    artifacts: [
+      'benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/report.json',
+      'benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/report.md'
     ]
   },
   {
@@ -1763,6 +1785,7 @@ function findCapability(id: string): Capability | undefined {
 function statusLabel(status: CapabilityStatus): string {
   if (status === 'production') return chalk.green('[production]');
   if (status === 'preview') return chalk.yellow('[preview]');
+  if (status === 'blocked') return chalk.red('[blocked]');
   return chalk.gray('[diagnostic]');
 }
 
