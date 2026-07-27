@@ -1487,14 +1487,26 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
          `0.9505607375632952` / worst `0.06374726936482406`. The optimal input
          scale is block-dependent.
 
-         Required fix: choose the input scale per block from oracle observations
-         only, by probing output amplitude at candidate scales before generating
-         training samples and selecting the scale that keeps the block inside the
-         regime where structure recovery still succeeds. This stays inside the
-         blind-access invariant because output amplitude is an oracle-visible
-         quantity. Validating the selection rule needs an input-scale sweep across
-         all court cases; two measured blocks are not enough to fit a rule, and
-         shipping a guessed rule would not meet the proof standard.
+         Implemented as `calibrate_input_scale` plus `--auto-input-scale`, enabled
+         in the solver worker. Candidate scales are walked from smallest to
+         largest and the first whose measured output std clears `1000x` the
+         oracle's own quantization step is taken; if none clears it, the largest
+         candidate is used, and that list doubles as the structure-safety cap.
+         The probe uses oracle evaluations only and fits nothing, so the
+         blind-access invariant holds; it costs one `512`-call batch per candidate
+         tried.
+
+         Effect, measured: mistral layer `28` selects `0.9` and moves from R2
+         `0.978313682106669` to `0.9937954126258921`, worst error `1.4947e-04` to
+         `6.720740704713169e-05`. Mistral layer `11` selects `0.45`, reproduces
+         bit-identically, and still passes. Two of the three hand-picked
+         cold-start blocks also select `0.9` and continue to pass, so the rule is
+         not tuned to the single block it was derived from.
+
+         Not yet sufficient: layer `28` remains under the `0.999` bar, so this
+         repairs the amplitude class without closing it. The three LLaMA cases
+         select `0.45`, which means their failures are not amplitude-driven and
+         need a separate lever.
        - `recovered-but-worst-error-over-bar` (1 case): worst error
          `0.00558` against a `0.005` bar with R2 `0.9999991`. A marginal miss.
 
