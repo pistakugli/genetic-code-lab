@@ -143,5 +143,15 @@ writeBenchmarkManifest(repoRoot, output, {
     'Source truth is evaluated only by a separate verifier process after solver exit and frozen-artifact hashing.',
   ],
 });
-console.log(JSON.stringify({ pass: failures.length === 0, regenerated: regenerate, runId: report.runId, ...summary, failures }, null, 2));
+// The gate verdict is written after the spread on purpose. `summary` carries the
+// recovered report's own `pass`, so spreading it last used to overwrite the gate verdict
+// and print `"pass": true` for a run that failed and exited 1.
+console.log(JSON.stringify({
+  ...summary,
+  reportPass: summary.pass === true,
+  pass: failures.length === 0,
+  regenerated: regenerate,
+  runId: report.runId,
+  failures
+}, null, 2));
 if (failures.length) process.exit(1);

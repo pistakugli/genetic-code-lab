@@ -8583,6 +8583,69 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def calibrate_input_scale(
+    oracle: Any,
+    dimension: int,
+    *,
+    candidates: list[float],
+    probe_count: int,
+    quantization_ratio_floor: float,
+    seed: int,
+) -> dict[str, Any]:
+    """Choose the training input scale from oracle-visible output amplitude alone.
+
+    A fixed absolute input scale is not selection-independent. Blocks differ in output
+    amplitude by orders of magnitude, and a scale tuned for a strong block leaves a weak
+    block's signal too close to the oracle's quantization floor to fit accurately, while
+    a scale large enough for the weak block drives a strong block out of the regime where
+    structure recovery succeeds.
+
+    This walks the candidate scales from smallest to largest and stops at the first one
+    whose measured output standard deviation clears `quantization_ratio_floor` multiples
+    of the oracle's own quantization step. Tying the floor to the quantization step rather
+    than to an absolute constant keeps the rule meaningful at any oracle precision. If no
+    candidate clears the floor, the largest candidate is used; the candidate list is the
+    structure-safety cap, because too large a scale breaks recovery outright.
+
+    Only oracle evaluations are used, so this stays inside the blind-access invariant:
+    output amplitude is something any opaque caller can observe. Nothing is fitted here.
+    The probe cost is charged to the same query budget as every other call.
+    """
+    if not candidates:
+        raise RuntimeError("input-scale calibration requires at least one candidate scale")
+    ordered = sorted({float(scale) for scale in candidates if float(scale) > 0.0})
+    if not ordered:
+        raise RuntimeError("input-scale calibration candidates must be positive")
+    quantization_step = float(oracle.meta.get("oracleQuantizationStep", 0.0) or 0.0)
+    calibration_rng = np.random.default_rng(seed)
+    measurements: list[dict[str, Any]] = []
+    chosen = ordered[-1]
+    reason = "no-candidate-cleared-amplitude-floor"
+    for scale in ordered:
+        probes = calibration_rng.normal(0.0, scale, size=(int(probe_count), dimension)).astype(np.float32)
+        values = np.asarray(oracle.eval(probes, stage="input-scale-calibration"), dtype=np.float64)
+        output_std = float(np.std(values))
+        ratio = float(output_std / quantization_step) if quantization_step > 0.0 else float("inf")
+        measurements.append({
+            "scale": float(scale),
+            "outputStd": output_std,
+            "quantizationRatio": ratio,
+        })
+        if ratio >= float(quantization_ratio_floor):
+            chosen = float(scale)
+            reason = "smallest-candidate-above-amplitude-floor"
+            break
+    return {
+        "selectedInputScale": float(chosen),
+        "reason": reason,
+        "candidates": ordered,
+        "probeCount": int(probe_count),
+        "quantizationStep": quantization_step,
+        "quantizationRatioFloor": float(quantization_ratio_floor),
+        "measurements": measurements,
+    }
+
+
 def run_solver(args: argparse.Namespace) -> int:
     if args.recovery_path == "asymptotic-cold-start":
         if args.fit_snapshot_input:
@@ -8618,6 +8681,25 @@ def run_solver(args: argparse.Namespace) -> int:
                 args.atom_count = unit_count
             if args.atom_count != unit_count:
                 raise RuntimeError(f"atom_count={args.atom_count} does not match oracle unit_count={unit_count}")
+            input_scale_calibration: dict[str, Any] | None = None
+            if args.auto_input_scale:
+                input_scale_calibration = calibrate_input_scale(
+                    oracle,
+                    dimension,
+                    candidates=parse_float_list(args.auto_input_scale_candidates),
+                    probe_count=args.auto_input_scale_probe_count,
+                    quantization_ratio_floor=args.auto_input_scale_quantization_ratio,
+                    seed=args.seed + 90210,
+                )
+                args.input_scale = float(input_scale_calibration["selectedInputScale"])
+                log_progress(
+                    args,
+                    "input-scale-calibration",
+                    selectedInputScale=args.input_scale,
+                    reason=input_scale_calibration["reason"],
+                    measurements=input_scale_calibration["measurements"],
+                    rawOracleCalls=int(oracle.query_count),
+                )
             rng = np.random.default_rng(args.seed)
             independent_rng = os.environ.get("GCL_BLIND_SWIGLU_INDEPENDENT_RNG", "").strip() == "1"
             basis_rng = np.random.default_rng(args.seed + 101) if independent_rng else rng
@@ -11697,6 +11779,9 @@ def run_solver(args: argparse.Namespace) -> int:
                     "fitRestartChunkSize": None if fit.get("restartChunkSize") is None else int(fit["restartChunkSize"]),
                     "fitMode": str(fit.get("fitMode", "unknown")),
                     "recoveryPath": str(args.recovery_path),
+                    "inputScale": float(args.input_scale),
+                    "autoInputScale": bool(args.auto_input_scale),
+                    "inputScaleCalibration": input_scale_calibration,
                     "nonlinearInitialFitUsed": bool(args.recovery_path != "asymptotic-cold-start"),
                     "randomInitScales": fit.get("randomInitScales", [0.6]),
                     "fitGradientCount": int(fit_gradient_coords.shape[0]),
@@ -11939,6 +12024,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--finite-difference-step", type=float, default=0.08)
     parser.add_argument("--finite-difference-steps", default="")
     parser.add_argument("--input-scale", type=float, default=0.45)
+    parser.add_argument(
+        "--auto-input-scale",
+        action="store_true",
+        help="pick --input-scale per block from oracle-observed output amplitude instead of using a fixed value",
+    )
+    parser.add_argument(
+        "--auto-input-scale-candidates",
+        default="0.45,0.6,0.75,0.9",
+        help="ascending candidate scales; the last one is the structure-safety cap",
+    )
+    parser.add_argument("--auto-input-scale-probe-count", type=int, default=512)
+    parser.add_argument(
+        "--auto-input-scale-quantization-ratio",
+        type=float,
+        default=1000.0,
+        help="required output std as a multiple of the oracle quantization step",
+    )
     parser.add_argument("--train-scale-mixture", default="")
     parser.add_argument("--train-sampling-mode", choices=["gaussian", "full-gaussian", "radial-shell", "active-radial-shell", "sobol-active-gaussian", "gaussian-sobol-active-mix"], default="gaussian")
     parser.add_argument("--validation-scale", type=float, default=0.65)

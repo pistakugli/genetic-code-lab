@@ -83,7 +83,18 @@ def main() -> int:
         "--cubic-steps", "0.35,0.25",
         "--train-count", "16000",
         "--train-sampling-mode", "gaussian",
+        # A fixed input scale is not selection-independent. Blocks differ in output
+        # amplitude by orders of magnitude, and 0.45 leaves a weak block's signal too
+        # close to the oracle quantization floor to fit accurately. The solver now picks
+        # the scale per block from oracle-observed amplitude; 0.45 stays the first
+        # candidate, so a block that does not need the adaptation is unaffected apart
+        # from one 512-call probe batch. The 0.9 ceiling is measured: 1.1 is already past
+        # the optimum and 1.4 destroys structure recovery outright.
         "--input-scale", "0.45",
+        "--auto-input-scale",
+        "--auto-input-scale-candidates", "0.45,0.6,0.75,0.9",
+        "--auto-input-scale-probe-count", "512",
+        "--auto-input-scale-quantization-ratio", "1000",
         "--validation-count", "4096",
         "--validation-scale", "0.65",
         "--fit-gradient-count", "256",
