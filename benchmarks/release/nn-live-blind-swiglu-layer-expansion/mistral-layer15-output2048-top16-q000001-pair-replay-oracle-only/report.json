@@ -1,0 +1,101 @@
+{
+  "summary": {
+    "pass": false,
+    "caseCount": 1,
+    "passedCases": 0,
+    "failedCases": 1,
+    "maxExpandedUnitCount": 16,
+    "minR2": 0.9985167459524236,
+    "maxMae": 0.000011494504746791434,
+    "maxWorstError": 0.00007521856025931892,
+    "minSubspacePrincipalCosine": 0.9996985570973159,
+    "minPairedAtomJointCosine": 0.9767338526662039,
+    "minPairedAtomCountAboveThreshold": 12,
+    "pairedAtomThreshold": 0.99,
+    "minSourceCancellationFraction": 0.6935123485059438,
+    "minimumSourcePairCorrelation": -0.04442603547600881,
+    "totalRawOracleCalls": 16384,
+    "accessInvariant": true,
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "cases": [
+    {
+      "case": {
+        "family": "mistral",
+        "layer": 15,
+        "unitCount": 16,
+        "units": [
+          7885,
+          2037,
+          13787,
+          2761,
+          5013,
+          3496,
+          5314,
+          9185,
+          2434,
+          2487,
+          223,
+          5617,
+          12804,
+          5572,
+          12373,
+          10618
+        ],
+        "activeRank": 32,
+        "minR2": 0.995,
+        "maxMae": 0.00003,
+        "maxWorstError": 0.0003,
+        "minSubspaceCosine": 0.999
+      },
+      "sweepVariant": "mistral-4096d-layer15-16unit-output2048-q000001-expansion-oracle-only",
+      "sweepReportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer15-16unit-output2048-q000001-expansion-oracle-only/report.json",
+      "pass": false,
+      "failures": [
+        "sweep summary pass=false"
+      ],
+      "sweepSummary": {
+        "pass": false,
+        "caseCount": 1,
+        "passedCases": 0,
+        "failedCases": 1,
+        "minR2": 0.9985167459524236,
+        "maxMae": 0.000011494504746791434,
+        "maxWorstError": 0.00007521856025931892,
+        "minSubspacePrincipalCosine": 0.9996985570973159,
+        "minPairedAtomJointCosine": 0.9767338526662039,
+        "minPairedAtomCountAboveThreshold": 12,
+        "minSourceCancellationFraction": 0.6935123485059438,
+        "minimumSourcePairCorrelation": -0.04442603547600881,
+        "pairedAtomThreshold": 0.99,
+        "maxRawOracleCallsPerCase": 16384,
+        "totalRawOracleCalls": 16384,
+        "maxUnitCount": 16,
+        "maxAtomCount": 16,
+        "accessInvariant": true
+      }
+    }
+  ],
+  "config": {
+    "caseSpec": "mistral:15:16:7885+2037+13787+2761+5013+3496+5314+9185+2434+2487+223+5617+12804+5572+12373+10618:0.995:0.00003:0.999:0.0003",
+    "randomCount": 0,
+    "randomSeed": null,
+    "randomFamily": null,
+    "randomUnitCount": null,
+    "randomLayers": null,
+    "defaultVariant": "mistral-layer15-16unit-expansion-oracle-only",
+    "gradientMode": "forward-coordinate",
+    "outputChannel": 2048
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "delegatedSweepReportsEnforceInvariant": true
+  }
+}

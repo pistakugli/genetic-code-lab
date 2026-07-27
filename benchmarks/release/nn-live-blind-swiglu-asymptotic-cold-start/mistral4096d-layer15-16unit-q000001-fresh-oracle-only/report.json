@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-26T10:39:02.798Z",
+  "lane": "nn-live-blind-swiglu-asymptotic-cold-start",
+  "status": "pass",
+  "summary": {
+    "pass": true,
+    "regenerated": true,
+    "modelFamily": "mistral",
+    "dimension": 4096,
+    "layer": 15,
+    "unitCount": 16,
+    "quantizationStep": 0.000001,
+    "r2": 0.9995787659698843,
+    "mae": 0.00000616945597616291,
+    "worstError": 0.000032305729901930614,
+    "subspaceMinPrincipalCosine": 0.9996985570973159,
+    "pairedAtomMinJointCosine": 0.9972788963034496,
+    "pairedAtomCountAbove099": 16,
+    "rawOracleCalls": 1279238,
+    "maxOracleCalls": 1500000,
+    "recoveryPath": "asymptotic-cold-start",
+    "nonlinearInitialFitUsed": false,
+    "fitSnapshotUsedBySolver": false,
+    "failures": []
+  },
+  "sourceReport": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/mistral-layer15-output2048-top16-q000001-asymptotic-cold-start-fresh-oracle-only/report.json",
+  "detailedReport": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-layer15-units7885-2037-13787-2761-5013-3496-5314-9185-2434-2487-223-5617-12804-5572-12373-10618-16atom-output2048-q000001-cubic-richardson-2048h512s0-35-0-25-symmetric-multiscale-coordinate-oracle-only/report.json",
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "fitSnapshotUsedBySolver": false,
+    "nonlinearInitialFitUsed": false,
+    "teacherCaseManifestVisibleToOrchestrator": true,
+    "postHocTruthOnly": true
+  }
+}

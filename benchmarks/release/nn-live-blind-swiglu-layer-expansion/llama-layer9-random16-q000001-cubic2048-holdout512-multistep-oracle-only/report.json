@@ -1,0 +1,94 @@
+{
+  "summary": {
+    "pass": true,
+    "caseCount": 1,
+    "passedCases": 1,
+    "failedCases": 0,
+    "maxExpandedUnitCount": 16,
+    "minR2": 0.9996022410326608,
+    "maxMae": 0.0036226998892415745,
+    "maxWorstError": 0.03205623326481288,
+    "minSubspacePrincipalCosine": 0.9999935586279501,
+    "minPairedAtomJointCosine": 0.9943894160746654,
+    "minPairedAtomCountAboveThreshold": 16,
+    "pairedAtomThreshold": 0.99,
+    "totalRawOracleCalls": 261057,
+    "accessInvariant": true,
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "cases": [
+    {
+      "case": {
+        "family": "llama",
+        "layer": 9,
+        "unitCount": 16,
+        "units": [
+          192,
+          331,
+          1612,
+          5025,
+          5229,
+          5288,
+          5508,
+          5553,
+          5623,
+          5701,
+          6097,
+          6372,
+          6510,
+          6653,
+          7591,
+          7666
+        ],
+        "activeRank": 32,
+        "minR2": 0.995,
+        "maxMae": 0.015,
+        "maxWorstError": 0.12,
+        "minSubspaceCosine": 0.999
+      },
+      "sweepVariant": "llama-3072d-layer9-16unit-q000001-cubic2048h512s0-35-0-25w10-expansion-oracle-only",
+      "sweepReportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer9-16unit-q000001-cubic2048h512s0-35-0-25w10-expansion-oracle-only/report.json",
+      "pass": true,
+      "failures": [],
+      "sweepSummary": {
+        "pass": true,
+        "caseCount": 1,
+        "passedCases": 1,
+        "failedCases": 0,
+        "minR2": 0.9996022410326608,
+        "maxMae": 0.0036226998892415745,
+        "maxWorstError": 0.03205623326481288,
+        "minSubspacePrincipalCosine": 0.9999935586279501,
+        "minPairedAtomJointCosine": 0.9943894160746654,
+        "minPairedAtomCountAboveThreshold": 16,
+        "pairedAtomThreshold": 0.99,
+        "maxRawOracleCallsPerCase": 261057,
+        "totalRawOracleCalls": 261057,
+        "maxUnitCount": 16,
+        "maxAtomCount": 16,
+        "accessInvariant": true
+      }
+    }
+  ],
+  "config": {
+    "caseSpec": "llama:9:16:192+331+1612+5025+5229+5288+5508+5553+5623+5701+6097+6372+6510+6653+7591+7666:0.995:0.015:0.999:0.12",
+    "randomCount": 0,
+    "randomSeed": null,
+    "randomFamily": null,
+    "randomUnitCount": null,
+    "randomLayers": null,
+    "defaultVariant": "llama-layer9-16unit-expansion-oracle-only",
+    "gradientMode": "forward-coordinate"
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "delegatedSweepReportsEnforceInvariant": true
+  }
+}

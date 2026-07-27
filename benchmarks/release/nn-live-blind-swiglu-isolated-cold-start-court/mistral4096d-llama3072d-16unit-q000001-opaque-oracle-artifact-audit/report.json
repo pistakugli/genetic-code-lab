@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-27T12:17:48.526Z",
+  "kind": "isolated-swiglu-cold-start-cross-family-artifact-audit",
+  "status": "pass",
+  "summary": {
+    "pass": true,
+    "regenerated": false,
+    "caseCount": 2,
+    "passedCases": 2,
+    "modelFamilies": [
+      "llama",
+      "mistral"
+    ],
+    "dimensions": [
+      3072,
+      4096
+    ],
+    "unitCount": 16,
+    "quantizationStep": 0.000001,
+    "minR2": 0.9995787659698843,
+    "maxMae": 0.0003064998140072596,
+    "maxWorstError": 0.0019215374240817429,
+    "minSubspacePrincipalCosine": 0.9996985570973159,
+    "minPairedAtomJointCosine": 0.9972788963034496,
+    "minPairedAtomCountAbove099": 16,
+    "maxRawOracleCallsPerCase": 1279238,
+    "totalRawOracleCalls": 2298770,
+    "minTraceLineCount": 3101,
+    "failures": []
+  },
+  "cases": [
+    {
+      "id": "mistral-4096d-layer15-output2048",
+      "family": "mistral",
+      "dimension": 4096,
+      "layer": 15,
+      "oracleMode": "down-proj-output-channel",
+      "runId": "2bbde42245e24ddeb5c1d3c6553fde82",
+      "pass": true,
+      "r2": 0.9995787659698843,
+      "mae": 0.00000616945597616291,
+      "worstError": 0.000032305729901930614,
+      "subspaceMinPrincipalCosine": 0.9996985570973159,
+      "pairedAtomMinJointCosine": 0.9972788963034496,
+      "pairedAtomCountAbove099": 16,
+      "rawOracleCalls": 1279238,
+      "traceLineCount": 3101,
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-isolated-cold-start-court/mistral4096d-llama3072d-16unit-q000001-opaque-oracle/cases/mistral-4096d-layer15-output2048/report.json",
+      "failures": []
+    },
+    {
+      "id": "llama-3072d-layer9-selected-sum",
+      "family": "llama",
+      "dimension": 3072,
+      "layer": 9,
+      "oracleMode": "selected-unit-sum",
+      "runId": "b2943046f5404f749f13253f42df9183",
+      "pass": true,
+      "r2": 0.9999998577715394,
+      "mae": 0.0003064998140072596,
+      "worstError": 0.0019215374240817429,
+      "subspaceMinPrincipalCosine": 0.9999997806246076,
+      "pairedAtomMinJointCosine": 0.9999999405614127,
+      "pairedAtomCountAbove099": 16,
+      "rawOracleCalls": 1019532,
+      "traceLineCount": 3101,
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-isolated-cold-start-court/mistral4096d-llama3072d-16unit-q000001-opaque-oracle/cases/llama-3072d-layer9-selected-sum/report.json",
+      "failures": []
+    }
+  ],
+  "provenance": {
+    "courtScriptSha256": "89c6e3195bfc2cdaf0bf328c9ff8d6030c2b027854f803abb81783f56bb51e64",
+    "runtimeSha256": {
+      "decompilerSha256": "b68f5db6cedbb131d996418c05909504de23c39fee19271e3ba4ccf3b8d5931a",
+      "orchestratorSha256": "3e06df891a6e2e8a4ec64e85d43dce48b925dca04558d6a742a4362b0b15c9bf",
+      "oracleServerSha256": "266caa5ea9cb7cfaca85208d5082f42450f80dd3d2f100a7d15ebefe5e63eca5",
+      "solverWorkerSha256": "df6b83e54033b331c9725cb20e74f459bd3f784d88fdf53de01bd8850af5981e",
+      "protocolSha256": "6e909ff589e49c45e42b0f91551a33c291dc2ea982725d56eb017142f7f25226"
+    }
+  }
+}

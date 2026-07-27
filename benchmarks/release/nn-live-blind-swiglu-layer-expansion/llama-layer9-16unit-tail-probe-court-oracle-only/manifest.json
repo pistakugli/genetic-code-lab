@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-11T02:02:16.949Z",
+  "lane": "nn-live-blind-swiglu-layer-expansion",
+  "variant": "llama-layer9-16unit-tail-probe-court-oracle-only",
+  "status": "fail",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-layer-expansion.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.1"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "llama-layer9-16unit-tail-probe-court-oracle-only",
+    "GCL_BLIND_SWIGLU_EXPERIMENTAL_POLISH": "1",
+    "GCL_BLIND_SWIGLU_FINAL_LBFGS_STEPS": "500",
+    "GCL_BLIND_SWIGLU_FINAL_LBFGS_TAIL_FRACTION": "0.25",
+    "GCL_BLIND_SWIGLU_FINAL_LBFGS_TAIL_WEIGHT": "1.25",
+    "GCL_BLIND_SWIGLU_TAIL_PROBE_POLISH_STEPS": "900",
+    "GCL_LAYER_EXPANSION_CASES": "llama:9:16:958+1532+1647+1765+2755+3182+3856+4191+4371+4373+5442+7098+7145+7305+7679+7685:0.995:0.015:0.999:0.12",
+    "GCL_LAYER_EXPANSION_DISABLE_ADAPTIVE_RESCUE": "1",
+    "GCL_LAYER_EXPANSION_FIT_RESTART_CHUNK_SIZE": "128",
+    "GCL_LAYER_EXPANSION_FIT_RESTARTS": "768",
+    "GCL_LAYER_EXPANSION_FIT_STEPS": "3000",
+    "GCL_LAYER_EXPANSION_MAX_ORACLE_CALLS": "450000",
+    "GCL_LAYER_EXPANSION_POLISH_TOP_K": "8",
+    "GCL_LAYER_EXPANSION_PROBE_POINTS": "41",
+    "GCL_LAYER_EXPANSION_PROGRESS": "1",
+    "GCL_LAYER_EXPANSION_ROBUST_SCALAR_CALIBRATION": "1",
+    "GCL_LAYER_EXPANSION_SCALAR_CALIBRATION_STEPS": "900",
+    "GCL_LAYER_EXPANSION_SELECTION_TAIL_WEIGHT": "0.25",
+    "GCL_LAYER_EXPANSION_SELECTION_WORST_WEIGHT": "0.10",
+    "GCL_LAYER_EXPANSION_TAIL_POLISH_FRACTION": "0.30",
+    "GCL_LAYER_EXPANSION_TAIL_POLISH_STEPS": "1200",
+    "GCL_LAYER_EXPANSION_TAIL_POLISH_WEIGHT": "2.0",
+    "GCL_LAYER_EXPANSION_TAIL_PROBE_COUNT": "8192",
+    "GCL_LAYER_EXPANSION_TAIL_PROBE_REPEAT": "4",
+    "GCL_LAYER_EXPANSION_TAIL_PROBE_SCALE": "0.35",
+    "GCL_LAYER_EXPANSION_TRAIN_COUNT": "24000",
+    "GCL_LAYER_EXPANSION_VALIDATION_COUNT": "4096",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "90f32de16b58f01deca2dfe5b2bca9eccade0811",
+    "statusShort": "M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-16unit-expansion-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/report.md\n M docs/claim-policy.md\n M docs/evidence-map.md\n M docs/gcl-north-star.md\n M docs/nn-decompiler-roadmap.md\n M docs/release-lane-status.md\n M package.json\n M scripts/benchmark-nn-live-blind-swiglu-layer-expansion.ts\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler.ts\n M src/cli/index.ts\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? benchmarks/release/nn-live-blackbox-llm-behavior-reader/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-layer-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-bagged-quadratic-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-final-lbfgs-minimax-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-final-lbfgs-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-gradient1024-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-scale-mixture-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-selection-tail-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-selection-worst-court-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-probe-court-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-rescue-probe-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units43-796-1214-1411-1682-2450-3485-3887-4315-4469-4980-5329-5536-7625-8063-8158-16atom-forward-coordinate-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer9-16unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer9-units958-1532-1647-1765-2755-3182-3856-4191-4371-4373-5442-7098-7145-7305-7679-7685-16atom-forward-coordinate-oracle-only/\n?? scripts/benchmark-nn-live-blackbox-llm-behavior-reader.ts\n?? tools/llm-reader-blackbox-behavior.py"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-probe-court-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-probe-court-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-probe-court-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": false,
+    "caseCount": 1,
+    "passedCases": 0,
+    "failedCases": 1,
+    "maxExpandedUnitCount": 16,
+    "minR2": 0.9934722709870264,
+    "maxMae": 0.01635361087162263,
+    "maxWorstError": 0.21137660350972498,
+    "minSubspacePrincipalCosine": 0.9999976562289214,
+    "totalRawOracleCalls": 170729,
+    "accessInvariant": true,
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "notes": [
+    "Runs configured real-model multi-unit SwiGLU layer expansion through the oracle-only sweep runner.",
+    "This gate is intended to push beyond selected 8-unit blocks while preserving solver access invariants."
+  ]
+}

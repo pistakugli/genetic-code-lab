@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-09T19:23:05.188Z",
+  "lane": "nn-live-blackbox-llm-behavior-reader",
+  "variant": "gpt2-output-only-10-facts-behavior-graph",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blackbox-llm-behavior-reader.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blackbox-llm-behavior-reader:gpu",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.1"
+  },
+  "env": {
+    "GCL_BLACKBOX_LLM_DEVICE": "cuda",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "90f32de16b58f01deca2dfe5b2bca9eccade0811",
+    "statusShort": "M package.json\n M src/cli/index.ts\n?? benchmarks/release/nn-live-blackbox-llm-behavior-reader/\n?? scripts/benchmark-nn-live-blackbox-llm-behavior-reader.ts\n?? tools/llm-reader-blackbox-behavior.py"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/report.md",
+    "manifest": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "validCases": 10,
+    "passedCases": 10,
+    "failedCases": 0,
+    "skippedCases": 0,
+    "passRate": 1,
+    "queryCount": 240,
+    "medianTargetRank": 2,
+    "maxTargetRank": 10,
+    "medianSubjectSpecificityLift": 6.850424766540527,
+    "minSubjectSpecificityLift": 5.2599224090576175,
+    "medianAnswerSpecificityMargin": 3.499279022216797,
+    "minAnswerSpecificityMargin": 2.0098876953125,
+    "medianRelationTemplateMargin": 3.4460906982421875,
+    "minRelationTemplateMargin": 1.2060317993164062,
+    "medianParaphraseRetentionRate": 1,
+    "thresholds": {
+      "minValidCases": 10,
+      "minPassRate": 1,
+      "maxTargetRank": 100,
+      "minSubjectLift": 0.05,
+      "minAnswerSpecificityMargin": 0.02,
+      "minRelationTemplateMargin": 0.02,
+      "minParaphraseRetentionRate": 0.5
+    }
+  },
+  "notes": [
+    "Output/logit-only whole-model factual behavior reader.",
+    "Solver receives prompt strings, target token ids, and next-token logits only.",
+    "No weights, hooks, hidden activations, source ids, or ablation hooks are used by the solver."
+  ]
+}

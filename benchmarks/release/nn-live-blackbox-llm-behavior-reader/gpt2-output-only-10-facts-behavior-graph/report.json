@@ -1,0 +1,2486 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-09T19:23:04.705211Z",
+  "lane": "nn-live-blackbox-llm-behavior-reader",
+  "variant": "gpt2-output-only-factual-behavior",
+  "model": {
+    "id": "gpt2",
+    "class": "GPT2LMHeadModel",
+    "modelType": "gpt2",
+    "device": "cuda",
+    "localFilesOnly": true
+  },
+  "runtime": {
+    "python": "3.12.3",
+    "torch": "2.10.0+cu128",
+    "transformers": "5.5.0",
+    "cudaAvailable": true
+  },
+  "access": {
+    "solverAccess": "prompt-to-next-token-logits-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "activationsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "allowedSolverObservation": "prompt string, target token id, next-token logits returned by oracle"
+  },
+  "summary": {
+    "pass": true,
+    "validCases": 10,
+    "passedCases": 10,
+    "failedCases": 0,
+    "skippedCases": 0,
+    "passRate": 1.0,
+    "queryCount": 240,
+    "medianTargetRank": 2.0,
+    "maxTargetRank": 10,
+    "medianSubjectSpecificityLift": 6.850424766540527,
+    "minSubjectSpecificityLift": 5.2599224090576175,
+    "medianAnswerSpecificityMargin": 3.499279022216797,
+    "minAnswerSpecificityMargin": 2.0098876953125,
+    "medianRelationTemplateMargin": 3.4460906982421875,
+    "minRelationTemplateMargin": 1.2060317993164062,
+    "medianParaphraseRetentionRate": 1.0,
+    "thresholds": {
+      "minValidCases": 10,
+      "minPassRate": 1.0,
+      "maxTargetRank": 100,
+      "minSubjectLift": 0.05,
+      "minAnswerSpecificityMargin": 0.02,
+      "minRelationTemplateMargin": 0.02,
+      "minParaphraseRetentionRate": 0.5
+    }
+  },
+  "cases": [
+    {
+      "subject": "France",
+      "answer": "Paris",
+      "targetTokenId": 6342,
+      "targetToken": " Paris",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of France is",
+        "targetLogit": -101.21427154541016,
+        "targetRank": 5,
+        "answerPoolMargin": 2.457000732421875
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -102.16809844970703,
+          "targetRank": 82,
+          "answerPoolMargin": -3.694183349609375
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -100.81578826904297,
+          "targetRank": 106,
+          "answerPoolMargin": -5.252693176269531
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -103.71320343017578,
+          "targetRank": 84,
+          "answerPoolMargin": -4.518524169921875
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -99.76044464111328,
+          "targetRank": 108,
+          "answerPoolMargin": -4.1752777099609375
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -107.81002044677734,
+          "targetRank": 1164,
+          "answerPoolMargin": -8.203971862792969
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -104.07911682128906,
+          "targetRank": 581,
+          "answerPoolMargin": -5.815956115722656
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -109.98077392578125,
+          "targetRank": 1386,
+          "answerPoolMargin": -7.2621612548828125
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": -109.2911376953125,
+          "targetRank": 921,
+          "answerPoolMargin": -5.36029052734375
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of France is",
+          "targetLogit": -106.98823547363281,
+          "targetRank": 206,
+          "answerPoolMargin": 1.8880081176757812
+        },
+        {
+          "prompt": "The main language of France is",
+          "targetLogit": -96.725830078125,
+          "targetRank": 174,
+          "answerPoolMargin": 1.826446533203125
+        },
+        {
+          "prompt": "The largest city in France is",
+          "targetLogit": -104.07752990722656,
+          "targetRank": 6,
+          "answerPoolMargin": 2.033966064453125
+        },
+        {
+          "prompt": "The weather in France is",
+          "targetLogit": -132.68389892578125,
+          "targetRank": 4546,
+          "answerPoolMargin": 0.526519775390625
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of France is",
+          "targetLogit": -96.44214630126953,
+          "targetRank": 1,
+          "answerPoolMargin": 3.507965087890625
+        },
+        {
+          "prompt": "In France, the capital is",
+          "targetLogit": -105.78610229492188,
+          "targetRank": 14,
+          "answerPoolMargin": 2.4061355590820312
+        },
+        {
+          "prompt": "For France, the capital is",
+          "targetLogit": -111.49534606933594,
+          "targetRank": 16,
+          "answerPoolMargin": 2.2289047241210938
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of France is",
+          "targetLogit": -106.62971496582031,
+          "targetRank": 26,
+          "answerPoolMargin": 1.3664474487304688
+        },
+        {
+          "prompt": "France has its capital in",
+          "targetLogit": -90.72222900390625,
+          "targetRank": 5,
+          "answerPoolMargin": -0.28801727294921875
+        },
+        {
+          "prompt": "France is governed from",
+          "targetLogit": -103.9061279296875,
+          "targetRank": 23,
+          "answerPoolMargin": -1.5939559936523438
+        },
+        {
+          "prompt": "The city that is the capital of France is",
+          "targetLogit": -109.290771484375,
+          "targetRank": 22,
+          "answerPoolMargin": 2.2184600830078125
+        },
+        {
+          "prompt": "The main capital of France is",
+          "targetLogit": -96.44214630126953,
+          "targetRank": 1,
+          "answerPoolMargin": 3.507965087890625
+        },
+        {
+          "prompt": "France's main capital is",
+          "targetLogit": -106.28710174560547,
+          "targetRank": 22,
+          "answerPoolMargin": -0.556243896484375
+        },
+        {
+          "prompt": "France's capital is",
+          "targetLogit": -108.73340606689453,
+          "targetRank": 446,
+          "answerPoolMargin": -0.8665695190429688
+        },
+        {
+          "prompt": "For France, the capital is",
+          "targetLogit": -111.49534606933594,
+          "targetRank": 16,
+          "answerPoolMargin": 2.2289047241210938
+        },
+        {
+          "prompt": "In France, the capital is",
+          "targetLogit": -105.78610229492188,
+          "targetRank": 14,
+          "answerPoolMargin": 2.4061355590820312
+        },
+        {
+          "prompt": "In France, the capital city is",
+          "targetLogit": -107.9166259765625,
+          "targetRank": 23,
+          "answerPoolMargin": 1.9434814453125
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Copenhagen",
+          "tokenId": 31104,
+          "token": " Copenhagen",
+          "logit": -107.37264251708984,
+          "rank": 1253
+        },
+        {
+          "answer": "Lisbon",
+          "tokenId": 41898,
+          "token": " Lisbon",
+          "logit": -106.44974517822266,
+          "rank": 570
+        },
+        {
+          "answer": "Ottawa",
+          "tokenId": 14074,
+          "token": " Ottawa",
+          "logit": -107.37821960449219,
+          "rank": 1263
+        },
+        {
+          "answer": "Athens",
+          "tokenId": 21891,
+          "token": " Athens",
+          "logit": -104.15584564208984,
+          "rank": 64
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "France"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Paris"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 6.319567108154297,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 2.4061355590820312,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 2.457000732421875,
+        "subjectSpecificityLift": 6.319567108154297,
+        "relationTemplateMargin": 2.4061355590820312,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -3.8625663757324222,
+        "relationControlP95TargetLogit": -97.82858505249024
+      }
+    },
+    {
+      "subject": "Germany",
+      "answer": "Berlin",
+      "targetTokenId": 11307,
+      "targetToken": " Berlin",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Germany is",
+        "targetLogit": -98.47391510009766,
+        "targetRank": 2,
+        "answerPoolMargin": 2.5028610229492188
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -104.22681427001953,
+          "targetRank": 68,
+          "answerPoolMargin": -3.012542724609375
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -100.42218017578125,
+          "targetRank": 75,
+          "answerPoolMargin": -4.8590850830078125
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -104.6283950805664,
+          "targetRank": 212,
+          "answerPoolMargin": -5.4337158203125
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -100.47018432617188,
+          "targetRank": 237,
+          "answerPoolMargin": -4.885017395019531
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -105.30510711669922,
+          "targetRank": 127,
+          "answerPoolMargin": -5.699058532714844
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -105.2860107421875,
+          "targetRank": 1436,
+          "answerPoolMargin": -7.022850036621094
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -108.79106140136719,
+          "targetRank": 569,
+          "answerPoolMargin": -6.07244873046875
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": -108.89906311035156,
+          "targetRank": 672,
+          "answerPoolMargin": -4.9682159423828125
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Germany is",
+          "targetLogit": -103.04923248291016,
+          "targetRank": 191,
+          "answerPoolMargin": 2.8683013916015625
+        },
+        {
+          "prompt": "The main language of Germany is",
+          "targetLogit": -96.275146484375,
+          "targetRank": 107,
+          "answerPoolMargin": 3.3961181640625
+        },
+        {
+          "prompt": "The largest city in Germany is",
+          "targetLogit": -101.68658447265625,
+          "targetRank": 5,
+          "answerPoolMargin": 2.0317001342773438
+        },
+        {
+          "prompt": "The weather in Germany is",
+          "targetLogit": -134.05703735351562,
+          "targetRank": 6256,
+          "answerPoolMargin": -0.5685577392578125
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of Germany is",
+          "targetLogit": -95.81510925292969,
+          "targetRank": 1,
+          "answerPoolMargin": 3.12469482421875
+        },
+        {
+          "prompt": "In Germany, the capital is",
+          "targetLogit": -104.43368530273438,
+          "targetRank": 7,
+          "answerPoolMargin": 2.738525390625
+        },
+        {
+          "prompt": "The city that is the capital of Germany is",
+          "targetLogit": -106.16429138183594,
+          "targetRank": 11,
+          "answerPoolMargin": 2.7089080810546875
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of Germany is",
+          "targetLogit": -102.98833465576172,
+          "targetRank": 13,
+          "answerPoolMargin": 2.00445556640625
+        },
+        {
+          "prompt": "Germany has its capital in",
+          "targetLogit": -89.94412231445312,
+          "targetRank": 5,
+          "answerPoolMargin": -0.517730712890625
+        },
+        {
+          "prompt": "Germany is governed from",
+          "targetLogit": -103.02079772949219,
+          "targetRank": 19,
+          "answerPoolMargin": -1.4597625732421875
+        },
+        {
+          "prompt": "The city that is the capital of Germany is",
+          "targetLogit": -106.16429138183594,
+          "targetRank": 11,
+          "answerPoolMargin": 2.7089080810546875
+        },
+        {
+          "prompt": "The main capital of Germany is",
+          "targetLogit": -95.81510925292969,
+          "targetRank": 1,
+          "answerPoolMargin": 3.12469482421875
+        },
+        {
+          "prompt": "Germany's main capital is",
+          "targetLogit": -106.19481658935547,
+          "targetRank": 10,
+          "answerPoolMargin": 0.9185943603515625
+        },
+        {
+          "prompt": "Germany's capital is",
+          "targetLogit": -108.86814880371094,
+          "targetRank": 198,
+          "answerPoolMargin": 0.6087646484375
+        },
+        {
+          "prompt": "For Germany, the capital is",
+          "targetLogit": -109.5545654296875,
+          "targetRank": 3,
+          "answerPoolMargin": 2.6494979858398438
+        },
+        {
+          "prompt": "In Germany, the capital is",
+          "targetLogit": -104.43368530273438,
+          "targetRank": 7,
+          "answerPoolMargin": 2.738525390625
+        },
+        {
+          "prompt": "In Germany, the capital city is",
+          "targetLogit": -106.01182556152344,
+          "targetRank": 9,
+          "answerPoolMargin": 2.467498779296875
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Canberra",
+          "tokenId": 33452,
+          "token": " Canberra",
+          "logit": -107.21830749511719,
+          "rank": 4515
+        },
+        {
+          "answer": "Madrid",
+          "tokenId": 14708,
+          "token": " Madrid",
+          "logit": -103.52783966064453,
+          "rank": 293
+        },
+        {
+          "answer": "Oslo",
+          "tokenId": 39636,
+          "token": " Oslo",
+          "logit": -105.2265625,
+          "rank": 1254
+        },
+        {
+          "answer": "Warsaw",
+          "tokenId": 32955,
+          "token": " Warsaw",
+          "logit": -101.74173736572266,
+          "rank": 54
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Germany"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Berlin"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 6.161693572998048,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 2.738525390625,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 2.5028610229492188,
+        "subjectSpecificityLift": 6.161693572998048,
+        "relationTemplateMargin": 2.738525390625,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -3.658832550048829,
+        "relationControlP95TargetLogit": -97.0868621826172
+      }
+    },
+    {
+      "subject": "Italy",
+      "answer": "Rome",
+      "targetTokenId": 10598,
+      "targetToken": " Rome",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Italy is",
+        "targetLogit": -95.56309509277344,
+        "targetRank": 1,
+        "answerPoolMargin": 3.7907791137695312
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -103.67127227783203,
+          "targetRank": 37,
+          "answerPoolMargin": -2.457000732421875
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -101.67247009277344,
+          "targetRank": 48,
+          "answerPoolMargin": -3.1985549926757812
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -102.10010528564453,
+          "targetRank": 22,
+          "answerPoolMargin": -2.905426025390625
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -98.6806411743164,
+          "targetRank": 41,
+          "answerPoolMargin": -3.0954742431640625
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -104.33407592773438,
+          "targetRank": 55,
+          "answerPoolMargin": -4.72802734375
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -102.32255554199219,
+          "targetRank": 115,
+          "answerPoolMargin": -4.059394836425781
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -108.28678894042969,
+          "targetRank": 402,
+          "answerPoolMargin": -5.56817626953125
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": -108.6797103881836,
+          "targetRank": 573,
+          "answerPoolMargin": -4.748863220214844
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Italy is",
+          "targetLogit": -101.33181762695312,
+          "targetRank": 104,
+          "answerPoolMargin": 2.5354843139648438
+        },
+        {
+          "prompt": "The main language of Italy is",
+          "targetLogit": -90.30171203613281,
+          "targetRank": 104,
+          "answerPoolMargin": 4.1100921630859375
+        },
+        {
+          "prompt": "The largest city in Italy is",
+          "targetLogit": -97.95980834960938,
+          "targetRank": 1,
+          "answerPoolMargin": 3.2680816650390625
+        },
+        {
+          "prompt": "The weather in Italy is",
+          "targetLogit": -133.60848999023438,
+          "targetRank": 5838,
+          "answerPoolMargin": -0.1903839111328125
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of Italy is",
+          "targetLogit": -91.31910705566406,
+          "targetRank": 1,
+          "answerPoolMargin": 5.100730895996094
+        },
+        {
+          "prompt": "The capital city of Italy is",
+          "targetLogit": -100.28961944580078,
+          "targetRank": 3,
+          "answerPoolMargin": 3.1881790161132812
+        },
+        {
+          "prompt": "The city that is the capital of Italy is",
+          "targetLogit": -105.97068786621094,
+          "targetRank": 10,
+          "answerPoolMargin": 2.874359130859375
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of Italy is",
+          "targetLogit": -100.28961944580078,
+          "targetRank": 3,
+          "answerPoolMargin": 3.1881790161132812
+        },
+        {
+          "prompt": "Italy has its capital in",
+          "targetLogit": -91.5769271850586,
+          "targetRank": 10,
+          "answerPoolMargin": -0.7719192504882812
+        },
+        {
+          "prompt": "Italy is governed from",
+          "targetLogit": -105.44465637207031,
+          "targetRank": 18,
+          "answerPoolMargin": -0.7874069213867188
+        },
+        {
+          "prompt": "The city that is the capital of Italy is",
+          "targetLogit": -105.97068786621094,
+          "targetRank": 10,
+          "answerPoolMargin": 2.874359130859375
+        },
+        {
+          "prompt": "The main capital of Italy is",
+          "targetLogit": -91.31910705566406,
+          "targetRank": 1,
+          "answerPoolMargin": 5.100730895996094
+        },
+        {
+          "prompt": "Italy's main capital is",
+          "targetLogit": -105.14368438720703,
+          "targetRank": 14,
+          "answerPoolMargin": 0.45827484130859375
+        },
+        {
+          "prompt": "Italy's capital is",
+          "targetLogit": -107.14871978759766,
+          "targetRank": 207,
+          "answerPoolMargin": 0.39501190185546875
+        },
+        {
+          "prompt": "For Italy, the capital is",
+          "targetLogit": -106.80093383789062,
+          "targetRank": 6,
+          "answerPoolMargin": 2.6217041015625
+        },
+        {
+          "prompt": "In Italy, the capital is",
+          "targetLogit": -101.32853698730469,
+          "targetRank": 6,
+          "answerPoolMargin": 2.857879638671875
+        },
+        {
+          "prompt": "In Italy, the capital city is",
+          "targetLogit": -104.06608581542969,
+          "targetRank": 10,
+          "answerPoolMargin": 2.591094970703125
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Copenhagen",
+          "tokenId": 31104,
+          "token": " Copenhagen",
+          "logit": -103.99491882324219,
+          "rank": 1741
+        },
+        {
+          "answer": "Lisbon",
+          "tokenId": 41898,
+          "token": " Lisbon",
+          "logit": -102.0045394897461,
+          "rank": 344
+        },
+        {
+          "answer": "Athens",
+          "tokenId": 21891,
+          "token": " Athens",
+          "logit": -99.35387420654297,
+          "rank": 28
+        },
+        {
+          "answer": "Vienna",
+          "tokenId": 23825,
+          "token": " Vienna",
+          "logit": -101.54356384277344,
+          "rank": 230
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Italy"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Rome"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 6.4047286987304695,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 3.1881790161132812,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 3.7907791137695312,
+        "subjectSpecificityLift": 6.4047286987304695,
+        "relationTemplateMargin": 3.1881790161132812,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -2.6139495849609378,
+        "relationControlP95TargetLogit": -91.4504264831543
+      }
+    },
+    {
+      "subject": "Spain",
+      "answer": "Madrid",
+      "targetTokenId": 14708,
+      "targetToken": " Madrid",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Spain is",
+        "targetLogit": -99.1946792602539,
+        "targetRank": 1,
+        "answerPoolMargin": 2.905426025390625
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -104.20875549316406,
+          "targetRank": 67,
+          "answerPoolMargin": -2.9944839477539062
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -103.52783966064453,
+          "targetRank": 293,
+          "answerPoolMargin": -5.053924560546875
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -100.33074951171875,
+          "targetRank": 67,
+          "answerPoolMargin": -4.7676544189453125
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -97.59505462646484,
+          "targetRank": 16,
+          "answerPoolMargin": -2.0098876953125
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -106.73994445800781,
+          "targetRank": 516,
+          "answerPoolMargin": -7.1338958740234375
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -106.2362289428711,
+          "targetRank": 2614,
+          "answerPoolMargin": -7.9730682373046875
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -110.1904296875,
+          "targetRank": 1609,
+          "answerPoolMargin": -7.4718170166015625
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": -110.6613540649414,
+          "targetRank": 2389,
+          "answerPoolMargin": -6.730506896972656
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Spain is",
+          "targetLogit": -102.45974731445312,
+          "targetRank": 54,
+          "answerPoolMargin": 3.3802337646484375
+        },
+        {
+          "prompt": "The main language of Spain is",
+          "targetLogit": -92.4697036743164,
+          "targetRank": 278,
+          "answerPoolMargin": 2.215972900390625
+        },
+        {
+          "prompt": "The largest city in Spain is",
+          "targetLogit": -101.40817260742188,
+          "targetRank": 2,
+          "answerPoolMargin": 2.9788360595703125
+        },
+        {
+          "prompt": "The weather in Spain is",
+          "targetLogit": -134.65121459960938,
+          "targetRank": 10479,
+          "answerPoolMargin": -1.3741302490234375
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of Spain is",
+          "targetLogit": -96.09686279296875,
+          "targetRank": 1,
+          "answerPoolMargin": 3.8426513671875
+        },
+        {
+          "prompt": "For Spain, the capital is",
+          "targetLogit": -111.04920959472656,
+          "targetRank": 13,
+          "answerPoolMargin": 2.530426025390625
+        },
+        {
+          "prompt": "The city that is the capital of Spain is",
+          "targetLogit": -107.87095642089844,
+          "targetRank": 18,
+          "answerPoolMargin": 2.1864395141601562
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of Spain is",
+          "targetLogit": -104.29473876953125,
+          "targetRank": 7,
+          "answerPoolMargin": 1.971038818359375
+        },
+        {
+          "prompt": "Spain has its capital in",
+          "targetLogit": -90.85944366455078,
+          "targetRank": 4,
+          "answerPoolMargin": 0.1891632080078125
+        },
+        {
+          "prompt": "Spain is governed from",
+          "targetLogit": -108.59980773925781,
+          "targetRank": 4,
+          "answerPoolMargin": 0.961822509765625
+        },
+        {
+          "prompt": "The city that is the capital of Spain is",
+          "targetLogit": -107.87095642089844,
+          "targetRank": 18,
+          "answerPoolMargin": 2.1864395141601562
+        },
+        {
+          "prompt": "The main capital of Spain is",
+          "targetLogit": -96.09686279296875,
+          "targetRank": 1,
+          "answerPoolMargin": 3.8426513671875
+        },
+        {
+          "prompt": "Spain's main capital is",
+          "targetLogit": -105.60657501220703,
+          "targetRank": 15,
+          "answerPoolMargin": -0.0712738037109375
+        },
+        {
+          "prompt": "Spain's capital is",
+          "targetLogit": -107.99320220947266,
+          "targetRank": 364,
+          "answerPoolMargin": -0.46373748779296875
+        },
+        {
+          "prompt": "For Spain, the capital is",
+          "targetLogit": -111.04920959472656,
+          "targetRank": 13,
+          "answerPoolMargin": 2.530426025390625
+        },
+        {
+          "prompt": "In Spain, the capital is",
+          "targetLogit": -104.82598876953125,
+          "targetRank": 12,
+          "answerPoolMargin": 2.1783523559570312
+        },
+        {
+          "prompt": "In Spain, the capital city is",
+          "targetLogit": -107.21556091308594,
+          "targetRank": 19,
+          "answerPoolMargin": 2.0373077392578125
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Tokyo",
+          "tokenId": 11790,
+          "token": " Tokyo",
+          "logit": -106.59724426269531,
+          "rank": 1083
+        },
+        {
+          "answer": "Rome",
+          "tokenId": 10598,
+          "token": " Rome",
+          "logit": -102.10010528564453,
+          "rank": 22
+        },
+        {
+          "answer": "Brussels",
+          "tokenId": 16445,
+          "token": " Brussels",
+          "logit": -104.95955657958984,
+          "rank": 287
+        },
+        {
+          "answer": "Copenhagen",
+          "tokenId": 31104,
+          "token": " Copenhagen",
+          "logit": -107.90998077392578,
+          "rank": 2642
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Spain"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Madrid"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 5.2599224090576175,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 2.530426025390625,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 2.905426025390625,
+        "subjectSpecificityLift": 5.2599224090576175,
+        "relationTemplateMargin": 2.530426025390625,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -2.3544963836669925,
+        "relationControlP95TargetLogit": -93.81047401428224
+      }
+    },
+    {
+      "subject": "Portugal",
+      "answer": "Lisbon",
+      "targetTokenId": 41898,
+      "targetToken": " Lisbon",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Portugal is",
+        "targetLogit": -95.58516693115234,
+        "targetRank": 2,
+        "answerPoolMargin": 2.0098876953125
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -106.44974517822266,
+          "targetRank": 570,
+          "answerPoolMargin": -5.2354736328125
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -104.89093017578125,
+          "targetRank": 965,
+          "answerPoolMargin": -6.417015075683594
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -102.0045394897461,
+          "targetRank": 344,
+          "answerPoolMargin": -6.441444396972656
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -103.09571838378906,
+          "targetRank": 47,
+          "answerPoolMargin": -3.9010391235351562
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -108.58221435546875,
+          "targetRank": 1965,
+          "answerPoolMargin": -8.976165771484375
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -109.8040542602539,
+          "targetRank": 13820,
+          "answerPoolMargin": -11.5408935546875
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -112.76414489746094,
+          "targetRank": 7439,
+          "answerPoolMargin": -10.0455322265625
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": -112.49139404296875,
+          "targetRank": 6798,
+          "answerPoolMargin": -8.560546875
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Portugal is",
+          "targetLogit": -102.70955657958984,
+          "targetRank": 92,
+          "answerPoolMargin": 2.0609893798828125
+        },
+        {
+          "prompt": "The main language of Portugal is",
+          "targetLogit": -88.90139770507812,
+          "targetRank": 102,
+          "answerPoolMargin": 2.7099533081054688
+        },
+        {
+          "prompt": "The largest city in Portugal is",
+          "targetLogit": -96.23133850097656,
+          "targetRank": 1,
+          "answerPoolMargin": 1.8182220458984375
+        },
+        {
+          "prompt": "The weather in Portugal is",
+          "targetLogit": -134.772705078125,
+          "targetRank": 9725,
+          "answerPoolMargin": -1.4196624755859375
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of Portugal is",
+          "targetLogit": -89.72669982910156,
+          "targetRank": 1,
+          "answerPoolMargin": 3.3116683959960938
+        },
+        {
+          "prompt": "The city that is the capital of Portugal is",
+          "targetLogit": -106.05520629882812,
+          "targetRank": 27,
+          "answerPoolMargin": 1.2060317993164062
+        },
+        {
+          "prompt": "The capital city of Portugal is",
+          "targetLogit": -101.31793212890625,
+          "targetRank": 15,
+          "answerPoolMargin": 0.8572006225585938
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of Portugal is",
+          "targetLogit": -101.31793212890625,
+          "targetRank": 15,
+          "answerPoolMargin": 0.8572006225585938
+        },
+        {
+          "prompt": "Portugal has its capital in",
+          "targetLogit": -79.96881103515625,
+          "targetRank": 2,
+          "answerPoolMargin": 0.7175445556640625
+        },
+        {
+          "prompt": "Portugal is governed from",
+          "targetLogit": -91.9477767944336,
+          "targetRank": 3,
+          "answerPoolMargin": 0.26300811767578125
+        },
+        {
+          "prompt": "The city that is the capital of Portugal is",
+          "targetLogit": -106.05520629882812,
+          "targetRank": 27,
+          "answerPoolMargin": 1.2060317993164062
+        },
+        {
+          "prompt": "The main capital of Portugal is",
+          "targetLogit": -89.72669982910156,
+          "targetRank": 1,
+          "answerPoolMargin": 3.3116683959960938
+        },
+        {
+          "prompt": "Portugal's main capital is",
+          "targetLogit": -104.2752456665039,
+          "targetRank": 19,
+          "answerPoolMargin": -0.24793243408203125
+        },
+        {
+          "prompt": "Portugal's capital is",
+          "targetLogit": -108.12567138671875,
+          "targetRank": 680,
+          "answerPoolMargin": -1.5575027465820312
+        },
+        {
+          "prompt": "For Portugal, the capital is",
+          "targetLogit": -112.37213134765625,
+          "targetRank": 127,
+          "answerPoolMargin": -0.169189453125
+        },
+        {
+          "prompt": "In Portugal, the capital is",
+          "targetLogit": -106.41256713867188,
+          "targetRank": 110,
+          "answerPoolMargin": -0.05464935302734375
+        },
+        {
+          "prompt": "In Portugal, the capital city is",
+          "targetLogit": -108.05006408691406,
+          "targetRank": 185,
+          "answerPoolMargin": -0.3874053955078125
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Helsinki",
+          "tokenId": 47688,
+          "token": " Helsinki",
+          "logit": -103.40013122558594,
+          "rank": 2456
+        },
+        {
+          "answer": "Cairo",
+          "tokenId": 23732,
+          "token": " Cairo",
+          "logit": -103.46202850341797,
+          "rank": 2550
+        },
+        {
+          "answer": "Copenhagen",
+          "tokenId": 31104,
+          "token": " Copenhagen",
+          "logit": -102.9626235961914,
+          "rank": 1813
+        },
+        {
+          "answer": "Paris",
+          "tokenId": 6342,
+          "token": " Paris",
+          "logit": -99.76044464111328,
+          "rank": 108
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Portugal"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Lisbon"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 6.377978897094727,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 1.2060317993164062,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 2.0098876953125,
+        "subjectSpecificityLift": 6.377978897094727,
+        "relationTemplateMargin": 1.2060317993164062,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -4.368091201782227,
+        "relationControlP95TargetLogit": -90.00088882446289
+      }
+    },
+    {
+      "subject": "Greece",
+      "answer": "Athens",
+      "targetTokenId": 21891,
+      "targetToken": " Athens",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Greece is",
+        "targetLogit": -99.60604858398438,
+        "targetRank": 1,
+        "answerPoolMargin": 4.72802734375
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -104.15584564208984,
+          "targetRank": 64,
+          "answerPoolMargin": -2.9415740966796875
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -100.97677612304688,
+          "targetRank": 29,
+          "answerPoolMargin": -2.5028610229492188
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -99.35387420654297,
+          "targetRank": 28,
+          "answerPoolMargin": -3.7907791137695312
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -103.46358489990234,
+          "targetRank": 65,
+          "answerPoolMargin": -4.2689056396484375
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -98.27440643310547,
+          "targetRank": 30,
+          "answerPoolMargin": -2.689239501953125
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -103.53527069091797,
+          "targetRank": 366,
+          "answerPoolMargin": -5.2721099853515625
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -108.54346466064453,
+          "targetRank": 484,
+          "answerPoolMargin": -5.824851989746094
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": -110.09646606445312,
+          "targetRank": 1652,
+          "answerPoolMargin": -6.165618896484375
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Greece is",
+          "targetLogit": -108.09789276123047,
+          "targetRank": 270,
+          "answerPoolMargin": 3.48126220703125
+        },
+        {
+          "prompt": "The main language of Greece is",
+          "targetLogit": -96.72209167480469,
+          "targetRank": 73,
+          "answerPoolMargin": 3.1776123046875
+        },
+        {
+          "prompt": "The largest city in Greece is",
+          "targetLogit": -100.15104675292969,
+          "targetRank": 1,
+          "answerPoolMargin": 4.842735290527344
+        },
+        {
+          "prompt": "The weather in Greece is",
+          "targetLogit": -134.68939208984375,
+          "targetRank": 7784,
+          "answerPoolMargin": -1.06988525390625
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of Greece is",
+          "targetLogit": -94.41951751708984,
+          "targetRank": 1,
+          "answerPoolMargin": 5.9581756591796875
+        },
+        {
+          "prompt": "Greece's main capital is",
+          "targetLogit": -93.04371643066406,
+          "targetRank": 1,
+          "answerPoolMargin": 4.772468566894531
+        },
+        {
+          "prompt": "In Greece, the capital is",
+          "targetLogit": -103.69900512695312,
+          "targetRank": 3,
+          "answerPoolMargin": 3.6063385009765625
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of Greece is",
+          "targetLogit": -103.61686706542969,
+          "targetRank": 3,
+          "answerPoolMargin": 3.3244476318359375
+        },
+        {
+          "prompt": "Greece has its capital in",
+          "targetLogit": -81.66476440429688,
+          "targetRank": 1,
+          "answerPoolMargin": 2.99932861328125
+        },
+        {
+          "prompt": "Greece is governed from",
+          "targetLogit": -90.63540649414062,
+          "targetRank": 3,
+          "answerPoolMargin": 0.96112060546875
+        },
+        {
+          "prompt": "The city that is the capital of Greece is",
+          "targetLogit": -107.54878997802734,
+          "targetRank": 8,
+          "answerPoolMargin": 3.2533645629882812
+        },
+        {
+          "prompt": "The main capital of Greece is",
+          "targetLogit": -94.41951751708984,
+          "targetRank": 1,
+          "answerPoolMargin": 5.9581756591796875
+        },
+        {
+          "prompt": "Greece's main capital is",
+          "targetLogit": -93.04371643066406,
+          "targetRank": 1,
+          "answerPoolMargin": 4.772468566894531
+        },
+        {
+          "prompt": "Greece's capital is",
+          "targetLogit": -104.37533569335938,
+          "targetRank": 16,
+          "answerPoolMargin": 2.9383544921875
+        },
+        {
+          "prompt": "For Greece, the capital is",
+          "targetLogit": -107.66645812988281,
+          "targetRank": 3,
+          "answerPoolMargin": 3.5374908447265625
+        },
+        {
+          "prompt": "In Greece, the capital is",
+          "targetLogit": -103.69900512695312,
+          "targetRank": 3,
+          "answerPoolMargin": 3.6063385009765625
+        },
+        {
+          "prompt": "In Greece, the capital city is",
+          "targetLogit": -106.54935455322266,
+          "targetRank": 10,
+          "answerPoolMargin": 2.8606643676757812
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Oslo",
+          "tokenId": 39636,
+          "token": " Oslo",
+          "logit": -111.84526062011719,
+          "rank": 10374
+        },
+        {
+          "answer": "Copenhagen",
+          "tokenId": 31104,
+          "token": " Copenhagen",
+          "logit": -110.39469146728516,
+          "rank": 5387
+        },
+        {
+          "answer": "Beijing",
+          "tokenId": 11618,
+          "token": " Beijing",
+          "logit": -110.49955749511719,
+          "rank": 5698
+        },
+        {
+          "answer": "Canberra",
+          "tokenId": 33452,
+          "token": " Canberra",
+          "logit": -111.29194641113281,
+          "rank": 8283
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Greece"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Athens"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 7.296120834350586,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 4.772468566894531,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 4.72802734375,
+        "subjectSpecificityLift": 7.296120834350586,
+        "relationTemplateMargin": 4.772468566894531,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -2.568093490600586,
+        "relationControlP95TargetLogit": -97.23643493652344
+      }
+    },
+    {
+      "subject": "Egypt",
+      "answer": "Cairo",
+      "targetTokenId": 23732,
+      "targetToken": " Cairo",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Egypt is",
+        "targetLogit": -98.2631607055664,
+        "targetRank": 2,
+        "answerPoolMargin": 4.059394836425781
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -105.91107177734375,
+          "targetRank": 364,
+          "answerPoolMargin": -4.696800231933594
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -106.27056884765625,
+          "targetRank": 2528,
+          "answerPoolMargin": -7.796653747558594
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -102.55732727050781,
+          "targetRank": 562,
+          "answerPoolMargin": -6.994232177734375
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -106.71343231201172,
+          "targetRank": 1175,
+          "answerPoolMargin": -7.5187530517578125
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -103.46202850341797,
+          "targetRank": 2550,
+          "answerPoolMargin": -7.876861572265625
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -109.0286636352539,
+          "targetRank": 2577,
+          "answerPoolMargin": -9.422615051269531
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -111.95903778076172,
+          "targetRank": 4898,
+          "answerPoolMargin": -9.240425109863281
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": -109.87696075439453,
+          "targetRank": 1400,
+          "answerPoolMargin": -5.946113586425781
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Egypt is",
+          "targetLogit": -100.97972106933594,
+          "targetRank": 63,
+          "answerPoolMargin": 4.745674133300781
+        },
+        {
+          "prompt": "The main language of Egypt is",
+          "targetLogit": -91.1692886352539,
+          "targetRank": 79,
+          "answerPoolMargin": 5.675605773925781
+        },
+        {
+          "prompt": "The largest city in Egypt is",
+          "targetLogit": -102.80767822265625,
+          "targetRank": 2,
+          "answerPoolMargin": 5.138435363769531
+        },
+        {
+          "prompt": "The weather in Egypt is",
+          "targetLogit": -132.80450439453125,
+          "targetRank": 7530,
+          "answerPoolMargin": -0.77398681640625
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of Egypt is",
+          "targetLogit": -91.91796875,
+          "targetRank": 1,
+          "answerPoolMargin": 6.1148223876953125
+        },
+        {
+          "prompt": "In Egypt, the capital is",
+          "targetLogit": -106.11414337158203,
+          "targetRank": 17,
+          "answerPoolMargin": 3.7128219604492188
+        },
+        {
+          "prompt": "For Egypt, the capital is",
+          "targetLogit": -105.5640869140625,
+          "targetRank": 11,
+          "answerPoolMargin": 3.7077255249023438
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of Egypt is",
+          "targetLogit": -103.10305786132812,
+          "targetRank": 15,
+          "answerPoolMargin": 3.16644287109375
+        },
+        {
+          "prompt": "Egypt has its capital in",
+          "targetLogit": -94.13980102539062,
+          "targetRank": 4,
+          "answerPoolMargin": 1.1642608642578125
+        },
+        {
+          "prompt": "Egypt is governed from",
+          "targetLogit": -103.93929290771484,
+          "targetRank": 8,
+          "answerPoolMargin": 0.5991973876953125
+        },
+        {
+          "prompt": "The city that is the capital of Egypt is",
+          "targetLogit": -106.87561798095703,
+          "targetRank": 24,
+          "answerPoolMargin": 2.7735061645507812
+        },
+        {
+          "prompt": "The main capital of Egypt is",
+          "targetLogit": -91.91796875,
+          "targetRank": 1,
+          "answerPoolMargin": 6.1148223876953125
+        },
+        {
+          "prompt": "Egypt's main capital is",
+          "targetLogit": -104.24286651611328,
+          "targetRank": 10,
+          "answerPoolMargin": 1.2742080688476562
+        },
+        {
+          "prompt": "Egypt's capital is",
+          "targetLogit": -106.9082260131836,
+          "targetRank": 291,
+          "answerPoolMargin": -0.075836181640625
+        },
+        {
+          "prompt": "For Egypt, the capital is",
+          "targetLogit": -105.5640869140625,
+          "targetRank": 11,
+          "answerPoolMargin": 3.7077255249023438
+        },
+        {
+          "prompt": "In Egypt, the capital is",
+          "targetLogit": -106.11414337158203,
+          "targetRank": 17,
+          "answerPoolMargin": 3.7128219604492188
+        },
+        {
+          "prompt": "In Egypt, the capital city is",
+          "targetLogit": -109.384033203125,
+          "targetRank": 58,
+          "answerPoolMargin": 2.8177337646484375
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Moscow",
+          "tokenId": 9070,
+          "token": " Moscow",
+          "logit": -104.91596984863281,
+          "rank": 1111
+        },
+        {
+          "answer": "Beijing",
+          "tokenId": 11618,
+          "token": " Beijing",
+          "logit": -104.70219421386719,
+          "rank": 933
+        },
+        {
+          "answer": "Berlin",
+          "tokenId": 11307,
+          "token": " Berlin",
+          "logit": -105.2860107421875,
+          "rank": 1436
+        },
+        {
+          "answer": "Vienna",
+          "tokenId": 23825,
+          "token": " Vienna",
+          "logit": -106.44796752929688,
+          "rank": 2934
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Egypt"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Cairo"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 9.19345474243164,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 3.7128219604492188,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 4.059394836425781,
+        "subjectSpecificityLift": 9.19345474243164,
+        "relationTemplateMargin": 3.7128219604492188,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -5.13405990600586,
+        "relationControlP95TargetLogit": -92.64085350036622
+      }
+    },
+    {
+      "subject": "Japan",
+      "answer": "Tokyo",
+      "targetTokenId": 11790,
+      "targetToken": " Tokyo",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Japan is",
+        "targetLogit": -102.71861267089844,
+        "targetRank": 2,
+        "answerPoolMargin": 4.4239044189453125
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -107.14659881591797,
+          "targetRank": 1043,
+          "answerPoolMargin": -5.9323272705078125
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -103.47610473632812,
+          "targetRank": 281,
+          "answerPoolMargin": -5.002189636230469
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -102.84535217285156,
+          "targetRank": 730,
+          "answerPoolMargin": -7.282257080078125
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -106.59724426269531,
+          "targetRank": 1083,
+          "answerPoolMargin": -7.402565002441406
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -102.52043151855469,
+          "targetRank": 1340,
+          "answerPoolMargin": -6.935264587402344
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -108.31491088867188,
+          "targetRank": 1665,
+          "answerPoolMargin": -8.7088623046875
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -106.4338150024414,
+          "targetRank": 2910,
+          "answerPoolMargin": -8.170654296875
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": -107.13862609863281,
+          "targetRank": 167,
+          "answerPoolMargin": -3.2077789306640625
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Japan is",
+          "targetLogit": -107.65457153320312,
+          "targetRank": 205,
+          "answerPoolMargin": 4.260429382324219
+        },
+        {
+          "prompt": "The main language of Japan is",
+          "targetLogit": -98.6613998413086,
+          "targetRank": 223,
+          "answerPoolMargin": 4.363807678222656
+        },
+        {
+          "prompt": "The largest city in Japan is",
+          "targetLogit": -102.09435272216797,
+          "targetRank": 1,
+          "answerPoolMargin": 5.3112335205078125
+        },
+        {
+          "prompt": "The weather in Japan is",
+          "targetLogit": -135.94418334960938,
+          "targetRank": 6648,
+          "answerPoolMargin": -0.524627685546875
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of Japan is",
+          "targetLogit": -100.05377197265625,
+          "targetRank": 1,
+          "answerPoolMargin": 6.090606689453125
+        },
+        {
+          "prompt": "In Japan, the capital is",
+          "targetLogit": -108.63531494140625,
+          "targetRank": 1,
+          "answerPoolMargin": 4.517127990722656
+        },
+        {
+          "prompt": "For Japan, the capital is",
+          "targetLogit": -113.47980499267578,
+          "targetRank": 1,
+          "answerPoolMargin": 4.402778625488281
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of Japan is",
+          "targetLogit": -104.93899536132812,
+          "targetRank": 7,
+          "answerPoolMargin": 3.6766204833984375
+        },
+        {
+          "prompt": "Japan has its capital in",
+          "targetLogit": -88.26786041259766,
+          "targetRank": 2,
+          "answerPoolMargin": 0.18541717529296875
+        },
+        {
+          "prompt": "Japan is governed from",
+          "targetLogit": -101.44982147216797,
+          "targetRank": 6,
+          "answerPoolMargin": 1.0052032470703125
+        },
+        {
+          "prompt": "The city that is the capital of Japan is",
+          "targetLogit": -109.74705505371094,
+          "targetRank": 11,
+          "answerPoolMargin": 3.8805770874023438
+        },
+        {
+          "prompt": "The main capital of Japan is",
+          "targetLogit": -100.05377197265625,
+          "targetRank": 1,
+          "answerPoolMargin": 6.090606689453125
+        },
+        {
+          "prompt": "Japan's main capital is",
+          "targetLogit": -105.84197998046875,
+          "targetRank": 1,
+          "answerPoolMargin": 1.1402740478515625
+        },
+        {
+          "prompt": "Japan's capital is",
+          "targetLogit": -108.14586639404297,
+          "targetRank": 96,
+          "answerPoolMargin": 0.34899139404296875
+        },
+        {
+          "prompt": "For Japan, the capital is",
+          "targetLogit": -113.47980499267578,
+          "targetRank": 1,
+          "answerPoolMargin": 4.402778625488281
+        },
+        {
+          "prompt": "In Japan, the capital is",
+          "targetLogit": -108.63531494140625,
+          "targetRank": 1,
+          "answerPoolMargin": 4.517127990722656
+        },
+        {
+          "prompt": "In Japan, the capital city is",
+          "targetLogit": -109.027587890625,
+          "targetRank": 4,
+          "answerPoolMargin": 4.2191314697265625
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Paris",
+          "tokenId": 6342,
+          "token": " Paris",
+          "logit": -109.98077392578125,
+          "rank": 1386
+        },
+        {
+          "answer": "Helsinki",
+          "tokenId": 47688,
+          "token": " Helsinki",
+          "logit": -110.62110900878906,
+          "rank": 2150
+        },
+        {
+          "answer": "Cairo",
+          "tokenId": 23732,
+          "token": " Cairo",
+          "logit": -111.95903778076172,
+          "rank": 4898
+        },
+        {
+          "answer": "Copenhagen",
+          "tokenId": 31104,
+          "token": " Copenhagen",
+          "logit": -111.75696563720703,
+          "rank": 4375
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Japan"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Tokyo"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 8.259727096557619,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 4.517127990722656,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 4.4239044189453125,
+        "subjectSpecificityLift": 8.259727096557619,
+        "relationTemplateMargin": 4.517127990722656,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -3.8358226776123057,
+        "relationControlP95TargetLogit": -99.1763427734375
+      }
+    },
+    {
+      "subject": "China",
+      "answer": "Beijing",
+      "targetTokenId": 11618,
+      "targetToken": " Beijing",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of China is",
+        "targetLogit": -103.93084716796875,
+        "targetRank": 10,
+        "answerPoolMargin": 3.2077789306640625
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -107.07722473144531,
+          "targetRank": 972,
+          "answerPoolMargin": -5.862953186035156
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -104.48859405517578,
+          "targetRank": 690,
+          "answerPoolMargin": -6.014678955078125
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -103.9437026977539,
+          "targetRank": 1678,
+          "answerPoolMargin": -8.380607604980469
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -107.29222106933594,
+          "targetRank": 1780,
+          "answerPoolMargin": -8.097541809082031
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -102.92379760742188,
+          "targetRank": 1758,
+          "answerPoolMargin": -7.338630676269531
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -110.49955749511719,
+          "targetRank": 5698,
+          "answerPoolMargin": -10.893508911132812
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -104.70219421386719,
+          "targetRank": 933,
+          "answerPoolMargin": -6.439033508300781
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -107.14251708984375,
+          "targetRank": 132,
+          "answerPoolMargin": -4.4239044189453125
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of China is",
+          "targetLogit": -106.86418914794922,
+          "targetRank": 259,
+          "answerPoolMargin": 4.381431579589844
+        },
+        {
+          "prompt": "The main language of China is",
+          "targetLogit": -97.884521484375,
+          "targetRank": 161,
+          "answerPoolMargin": 4.2622222900390625
+        },
+        {
+          "prompt": "The largest city in China is",
+          "targetLogit": -104.14683532714844,
+          "targetRank": 8,
+          "answerPoolMargin": 2.9679412841796875
+        },
+        {
+          "prompt": "The weather in China is",
+          "targetLogit": -134.03160095214844,
+          "targetRank": 3259,
+          "answerPoolMargin": 1.29486083984375
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of China is",
+          "targetLogit": -100.12904357910156,
+          "targetRank": 2,
+          "answerPoolMargin": 4.491676330566406
+        },
+        {
+          "prompt": "In China, the capital is",
+          "targetLogit": -109.63406372070312,
+          "targetRank": 7,
+          "answerPoolMargin": 3.7040023803710938
+        },
+        {
+          "prompt": "For China, the capital is",
+          "targetLogit": -113.4070816040039,
+          "targetRank": 4,
+          "answerPoolMargin": 3.4950714111328125
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of China is",
+          "targetLogit": -106.51628875732422,
+          "targetRank": 18,
+          "answerPoolMargin": 2.56646728515625
+        },
+        {
+          "prompt": "China has its capital in",
+          "targetLogit": -88.72836303710938,
+          "targetRank": 1,
+          "answerPoolMargin": 1.6117324829101562
+        },
+        {
+          "prompt": "China is governed from",
+          "targetLogit": -90.49668884277344,
+          "targetRank": 8,
+          "answerPoolMargin": 1.2228164672851562
+        },
+        {
+          "prompt": "The city that is the capital of China is",
+          "targetLogit": -111.31439208984375,
+          "targetRank": 31,
+          "answerPoolMargin": 2.8519210815429688
+        },
+        {
+          "prompt": "The main capital of China is",
+          "targetLogit": -100.12904357910156,
+          "targetRank": 2,
+          "answerPoolMargin": 4.491676330566406
+        },
+        {
+          "prompt": "China's main capital is",
+          "targetLogit": -104.79911041259766,
+          "targetRank": 1,
+          "answerPoolMargin": 1.61456298828125
+        },
+        {
+          "prompt": "China's capital is",
+          "targetLogit": -109.24443054199219,
+          "targetRank": 135,
+          "answerPoolMargin": 1.0559005737304688
+        },
+        {
+          "prompt": "For China, the capital is",
+          "targetLogit": -113.4070816040039,
+          "targetRank": 4,
+          "answerPoolMargin": 3.4950714111328125
+        },
+        {
+          "prompt": "In China, the capital is",
+          "targetLogit": -109.63406372070312,
+          "targetRank": 7,
+          "answerPoolMargin": 3.7040023803710938
+        },
+        {
+          "prompt": "In China, the capital city is",
+          "targetLogit": -109.17042541503906,
+          "targetRank": 14,
+          "answerPoolMargin": 3.3030014038085938
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Ottawa",
+          "tokenId": 14074,
+          "token": " Ottawa",
+          "logit": -111.30570220947266,
+          "rank": 3534
+        },
+        {
+          "answer": "Berlin",
+          "tokenId": 11307,
+          "token": " Berlin",
+          "logit": -108.89906311035156,
+          "rank": 672
+        },
+        {
+          "answer": "Madrid",
+          "tokenId": 14708,
+          "token": " Madrid",
+          "logit": -110.6613540649414,
+          "rank": 2389
+        },
+        {
+          "answer": "Cairo",
+          "tokenId": 23732,
+          "token": " Cairo",
+          "logit": -109.87696075439453,
+          "rank": 1400
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "China"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Beijing"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 8.135350418090821,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 3.7040023803710938,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 3.2077789306640625,
+        "subjectSpecificityLift": 8.135350418090821,
+        "relationTemplateMargin": 3.7040023803710938,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -4.927571487426759,
+        "relationControlP95TargetLogit": -98.82386856079101
+      }
+    },
+    {
+      "subject": "Russia",
+      "answer": "Moscow",
+      "targetTokenId": 9070,
+      "targetToken": " Moscow",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Russia is",
+        "targetLogit": -98.29158782958984,
+        "targetRank": 7,
+        "answerPoolMargin": 3.8311996459960938
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": -105.96928405761719,
+          "targetRank": 378,
+          "answerPoolMargin": -4.755012512207031
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": -103.35328674316406,
+          "targetRank": 260,
+          "answerPoolMargin": -4.879371643066406
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": -102.41943359375,
+          "targetRank": 501,
+          "answerPoolMargin": -6.8563385009765625
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": -106.76392364501953,
+          "targetRank": 1218,
+          "answerPoolMargin": -7.569244384765625
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": -102.28157043457031,
+          "targetRank": 1113,
+          "answerPoolMargin": -6.696403503417969
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": -108.14794921875,
+          "targetRank": 1495,
+          "answerPoolMargin": -8.541900634765625
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -104.91596984863281,
+          "targetRank": 1111,
+          "answerPoolMargin": -6.652809143066406
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": -109.30362701416016,
+          "targetRank": 861,
+          "answerPoolMargin": -6.585014343261719
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Russia is",
+          "targetLogit": -99.65090942382812,
+          "targetRank": 83,
+          "answerPoolMargin": 4.996131896972656
+        },
+        {
+          "prompt": "The main language of Russia is",
+          "targetLogit": -94.71197509765625,
+          "targetRank": 100,
+          "answerPoolMargin": 4.875885009765625
+        },
+        {
+          "prompt": "The largest city in Russia is",
+          "targetLogit": -101.39431762695312,
+          "targetRank": 4,
+          "answerPoolMargin": 4.408622741699219
+        },
+        {
+          "prompt": "The weather in Russia is",
+          "targetLogit": -132.3633575439453,
+          "targetRank": 2407,
+          "answerPoolMargin": 1.761260986328125
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "The main capital of Russia is",
+          "targetLogit": -93.531005859375,
+          "targetRank": 3,
+          "answerPoolMargin": 5.064064025878906
+        },
+        {
+          "prompt": "In Russia, the capital is",
+          "targetLogit": -101.60294342041016,
+          "targetRank": 5,
+          "answerPoolMargin": 4.574676513671875
+        },
+        {
+          "prompt": "In Russia, the capital city is",
+          "targetLogit": -103.62616729736328,
+          "targetRank": 8,
+          "answerPoolMargin": 4.269744873046875
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "The capital city of Russia is",
+          "targetLogit": -102.7431640625,
+          "targetRank": 14,
+          "answerPoolMargin": 3.5713043212890625
+        },
+        {
+          "prompt": "Russia has its capital in",
+          "targetLogit": -84.763671875,
+          "targetRank": 1,
+          "answerPoolMargin": 1.20208740234375
+        },
+        {
+          "prompt": "Russia is governed from",
+          "targetLogit": -86.11168670654297,
+          "targetRank": 6,
+          "answerPoolMargin": 0.6183700561523438
+        },
+        {
+          "prompt": "The city that is the capital of Russia is",
+          "targetLogit": -105.83920288085938,
+          "targetRank": 17,
+          "answerPoolMargin": 2.9473876953125
+        },
+        {
+          "prompt": "The main capital of Russia is",
+          "targetLogit": -93.531005859375,
+          "targetRank": 3,
+          "answerPoolMargin": 5.064064025878906
+        },
+        {
+          "prompt": "Russia's main capital is",
+          "targetLogit": -102.5920181274414,
+          "targetRank": 2,
+          "answerPoolMargin": 1.8178558349609375
+        },
+        {
+          "prompt": "Russia's capital is",
+          "targetLogit": -105.29611206054688,
+          "targetRank": 59,
+          "answerPoolMargin": 1.2434005737304688
+        },
+        {
+          "prompt": "For Russia, the capital is",
+          "targetLogit": -104.12495422363281,
+          "targetRank": 3,
+          "answerPoolMargin": 3.9254608154296875
+        },
+        {
+          "prompt": "In Russia, the capital is",
+          "targetLogit": -101.60294342041016,
+          "targetRank": 5,
+          "answerPoolMargin": 4.574676513671875
+        },
+        {
+          "prompt": "In Russia, the capital city is",
+          "targetLogit": -103.62616729736328,
+          "targetRank": 8,
+          "answerPoolMargin": 4.269744873046875
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Oslo",
+          "tokenId": 39636,
+          "token": " Oslo",
+          "logit": -106.89974212646484,
+          "rank": 5991
+        },
+        {
+          "answer": "Madrid",
+          "tokenId": 14708,
+          "token": " Madrid",
+          "logit": -106.0971450805664,
+          "rank": 3937
+        },
+        {
+          "answer": "Copenhagen",
+          "tokenId": 31104,
+          "token": " Copenhagen",
+          "logit": -106.57321166992188,
+          "rank": 5060
+        },
+        {
+          "answer": "Stockholm",
+          "tokenId": 29679,
+          "token": " Stockholm",
+          "logit": -104.11882781982422,
+          "rank": 1069
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Russia"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": " Moscow"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 8.629737854003906,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 4.574676513671875,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 3.8311996459960938,
+        "subjectSpecificityLift": 8.629737854003906,
+        "relationTemplateMargin": 4.574676513671875,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -4.7985382080078125,
+        "relationControlP95TargetLogit": -95.45281524658203
+      }
+    }
+  ]
+}

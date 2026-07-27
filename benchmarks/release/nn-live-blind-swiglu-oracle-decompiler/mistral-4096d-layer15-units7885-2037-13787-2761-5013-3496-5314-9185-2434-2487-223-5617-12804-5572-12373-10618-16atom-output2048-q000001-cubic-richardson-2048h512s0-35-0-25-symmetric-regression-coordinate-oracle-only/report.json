@@ -1,0 +1,807 @@
+{
+  "summary": {
+    "pass": false,
+    "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+    "modelType": "mistral",
+    "dimension": 4096,
+    "layer": 15,
+    "unit": 7885,
+    "units": [
+      7885,
+      2037,
+      13787,
+      2761,
+      5013,
+      3496,
+      5314,
+      9185,
+      2434,
+      2487,
+      223,
+      5617,
+      12804,
+      5572,
+      12373,
+      10618
+    ],
+    "unitCount": 16,
+    "oracleMode": "down-proj-output-channel",
+    "outputChannel": 2048,
+    "activeRank": 32,
+    "atomCount": 16,
+    "rawOracleCalls": 634496,
+    "metrics": {
+      "mae": 8.453385653242291e-05,
+      "mse": 1.2834759178458273e-08,
+      "r2": 0.9125318082557777,
+      "worstError": 0.0007668425532936642
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.49234077522537273,
+      "upMaxAbsCosine": 0.5790035071673074,
+      "subspaceMinPrincipalCosine": 0.6622584293375741,
+      "subspaceCosines": [
+        0.9998879518650142,
+        0.999852731259997,
+        0.9998067988183963,
+        0.9997932073583187,
+        0.9997359206513049,
+        0.9997016102520292,
+        0.9996957670084523,
+        0.9996693050839718,
+        0.9996442151540302,
+        0.9995798049944451,
+        0.999537005200655,
+        0.9994637190424062,
+        0.99936525818154,
+        0.9993023869572597,
+        0.9991711475639221,
+        0.9991350061680302,
+        0.9989489924711162,
+        0.9987813291744116,
+        0.9985536673722522,
+        0.9984761700562219,
+        0.9976074784723185,
+        0.9970301651034358,
+        0.9964165659125492,
+        0.9953854575221683,
+        0.9941603311185175,
+        0.9916992398134084,
+        0.9837298047397394,
+        0.9785990988076424,
+        0.9704047543732947,
+        0.93756718220339,
+        0.7902375895430512,
+        0.6622584293375741
+      ],
+      "projectedSourceMae": 7.373788741695222e-05,
+      "projectedSourceR2": 0.9327644102325057,
+      "projectedSourceWorstError": 0.0005728817087869756,
+      "pairedAtomAssignmentMethod": "hungarian-max-joint-signed-cosine",
+      "pairedAtomMinJointCosine": -0.047469815838226376,
+      "pairedAtomMeanJointCosine": 0.21975217636942074,
+      "pairedAtomCountAbove095": 0,
+      "pairedAtomCountAbove099": 0,
+      "pairedAtoms": [
+        {
+          "recoveredAtom": 0,
+          "sourceIndex": 12,
+          "sourceUnit": 12804,
+          "gateCosine": 0.2656554338477119,
+          "upCosine": 0.24416352852011938,
+          "jointMinCosine": 0.24416352852011938
+        },
+        {
+          "recoveredAtom": 1,
+          "sourceIndex": 9,
+          "sourceUnit": 2487,
+          "gateCosine": 0.15711109661772482,
+          "upCosine": 0.3868184386445154,
+          "jointMinCosine": 0.15711109661772482
+        },
+        {
+          "recoveredAtom": 2,
+          "sourceIndex": 2,
+          "sourceUnit": 13787,
+          "gateCosine": 0.16324050133598647,
+          "upCosine": 0.20598899704923634,
+          "jointMinCosine": 0.16324050133598647
+        },
+        {
+          "recoveredAtom": 3,
+          "sourceIndex": 0,
+          "sourceUnit": 7885,
+          "gateCosine": 0.1596461589116875,
+          "upCosine": 0.21430910974262551,
+          "jointMinCosine": 0.1596461589116875
+        },
+        {
+          "recoveredAtom": 4,
+          "sourceIndex": 1,
+          "sourceUnit": 2037,
+          "gateCosine": 0.37247387893868555,
+          "upCosine": 0.3148987114176529,
+          "jointMinCosine": 0.3148987114176529
+        },
+        {
+          "recoveredAtom": 5,
+          "sourceIndex": 3,
+          "sourceUnit": 2761,
+          "gateCosine": 0.40643569059634344,
+          "upCosine": 0.35754884631929545,
+          "jointMinCosine": 0.35754884631929545
+        },
+        {
+          "recoveredAtom": 6,
+          "sourceIndex": 7,
+          "sourceUnit": 9185,
+          "gateCosine": 0.27553301159352817,
+          "upCosine": 0.3473820332091856,
+          "jointMinCosine": 0.27553301159352817
+        },
+        {
+          "recoveredAtom": 7,
+          "sourceIndex": 13,
+          "sourceUnit": 5572,
+          "gateCosine": 0.4120996760542507,
+          "upCosine": 0.37562006325793657,
+          "jointMinCosine": 0.37562006325793657
+        },
+        {
+          "recoveredAtom": 8,
+          "sourceIndex": 5,
+          "sourceUnit": 3496,
+          "gateCosine": 0.24849735206394352,
+          "upCosine": 0.23549681917674592,
+          "jointMinCosine": 0.23549681917674592
+        },
+        {
+          "recoveredAtom": 9,
+          "sourceIndex": 6,
+          "sourceUnit": 5314,
+          "gateCosine": 0.3032482269512575,
+          "upCosine": 0.26519237984733146,
+          "jointMinCosine": 0.26519237984733146
+        },
+        {
+          "recoveredAtom": 10,
+          "sourceIndex": 4,
+          "sourceUnit": 5013,
+          "gateCosine": 0.1145776944546218,
+          "upCosine": -0.047469815838226376,
+          "jointMinCosine": -0.047469815838226376
+        },
+        {
+          "recoveredAtom": 11,
+          "sourceIndex": 15,
+          "sourceUnit": 10618,
+          "gateCosine": 0.21180907836424132,
+          "upCosine": 0.19533146844800073,
+          "jointMinCosine": 0.19533146844800073
+        },
+        {
+          "recoveredAtom": 12,
+          "sourceIndex": 14,
+          "sourceUnit": 12373,
+          "gateCosine": 0.10149030847873393,
+          "upCosine": 0.09125179044532246,
+          "jointMinCosine": 0.09125179044532246
+        },
+        {
+          "recoveredAtom": 13,
+          "sourceIndex": 10,
+          "sourceUnit": 223,
+          "gateCosine": 0.0905456417191178,
+          "upCosine": 0.16070177842873212,
+          "jointMinCosine": 0.0905456417191178
+        },
+        {
+          "recoveredAtom": 14,
+          "sourceIndex": 8,
+          "sourceUnit": 2434,
+          "gateCosine": 0.379539550591218,
+          "upCosine": 0.3654463727688353,
+          "jointMinCosine": 0.3654463727688353
+        },
+        {
+          "recoveredAtom": 15,
+          "sourceIndex": 11,
+          "sourceUnit": 5617,
+          "gateCosine": 0.3467661364899181,
+          "upCosine": 0.2724782473696731,
+          "jointMinCosine": 0.2724782473696731
+        }
+      ],
+      "sourceCancellation": {
+        "meanGrossContribution": 0.000942729309372227,
+        "meanNetContribution": 0.00029226462094806324,
+        "cancellationFraction": 0.6899803389557442,
+        "negativePairCount": 66,
+        "pairCountAtOrBelowMinus050": 0,
+        "minimumPairCorrelation": -0.05116038563544401,
+        "mostNegativePairs": [
+          {
+            "sourceIndices": [
+              10,
+              11
+            ],
+            "sourceUnits": [
+              223,
+              5617
+            ],
+            "contributionCorrelation": -0.05116038563544401,
+            "meanAbsContributionLeft": 5.221785474159421e-05,
+            "meanAbsContributionRight": 6.402070629671203e-05
+          },
+          {
+            "sourceIndices": [
+              6,
+              11
+            ],
+            "sourceUnits": [
+              5314,
+              5617
+            ],
+            "contributionCorrelation": -0.03838027445704554,
+            "meanAbsContributionLeft": 5.192681665221761e-05,
+            "meanAbsContributionRight": 6.402070629671203e-05
+          },
+          {
+            "sourceIndices": [
+              3,
+              5
+            ],
+            "sourceUnits": [
+              2761,
+              3496
+            ],
+            "contributionCorrelation": -0.0298061734135947,
+            "meanAbsContributionLeft": 6.401346795714676e-05,
+            "meanAbsContributionRight": 5.810477364009613e-05
+          },
+          {
+            "sourceIndices": [
+              4,
+              12
+            ],
+            "sourceUnits": [
+              5013,
+              12804
+            ],
+            "contributionCorrelation": -0.02810029674088919,
+            "meanAbsContributionLeft": 6.412884128348322e-05,
+            "meanAbsContributionRight": 5.409630283617944e-05
+          },
+          {
+            "sourceIndices": [
+              2,
+              11
+            ],
+            "sourceUnits": [
+              13787,
+              5617
+            ],
+            "contributionCorrelation": -0.02795160026267325,
+            "meanAbsContributionLeft": 4.64628969845604e-05,
+            "meanAbsContributionRight": 6.402070629671203e-05
+          },
+          {
+            "sourceIndices": [
+              0,
+              7
+            ],
+            "sourceUnits": [
+              7885,
+              9185
+            ],
+            "contributionCorrelation": -0.026701711389783066,
+            "meanAbsContributionLeft": 6.651875186951312e-05,
+            "meanAbsContributionRight": 7.05409401568043e-05
+          },
+          {
+            "sourceIndices": [
+              2,
+              10
+            ],
+            "sourceUnits": [
+              13787,
+              223
+            ],
+            "contributionCorrelation": -0.02428166711737205,
+            "meanAbsContributionLeft": 4.64628969845604e-05,
+            "meanAbsContributionRight": 5.221785474159421e-05
+          },
+          {
+            "sourceIndices": [
+              2,
+              7
+            ],
+            "sourceUnits": [
+              13787,
+              9185
+            ],
+            "contributionCorrelation": -0.0237568890777102,
+            "meanAbsContributionLeft": 4.64628969845604e-05,
+            "meanAbsContributionRight": 7.05409401568043e-05
+          }
+        ]
+      }
+    },
+    "selectedGradientEnergyRatio": 0.9999999999999982
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "oracleOwnsWeights": true,
+    "postHocWitnessOnly": true,
+    "processBoundary": "solver parent communicates with oracle subprocess via npy batch files and JSONL commands"
+  },
+  "solver": {
+    "kind": "blind-active-subspace-explicit-swiglu-sum",
+    "probePoints": 33,
+    "gradientMode": "symmetric-regression-coordinate",
+    "basisMoment": "centered",
+    "directionCount": 384,
+    "gradientWitnessCount": 33,
+    "cubicDirectionCount": 2048,
+    "cubicStep": 0.35,
+    "cubicSteps": [
+      0.35,
+      0.25
+    ],
+    "cubicHoldoutCount": 512,
+    "cubicMaxAbsScore": 0.000167109816313837,
+    "fitCubicWeight": 1.0,
+    "selectionCubicWeight": 0.02,
+    "cubicRelativeRmse": 0.9999970420477678,
+    "subspaceCount": null,
+    "finiteDifferenceStep": 0.04,
+    "finiteDifferenceSteps": [
+      0.25,
+      0.5
+    ],
+    "independentRng": true,
+    "trainScaleMixture": null,
+    "trainSamplingMode": "gaussian",
+    "trainCount": 16000,
+    "validationCount": 4096,
+    "validationScale": 0.65,
+    "finalValidationSource": "initial-validation",
+    "gradientEigenvalues": [
+      4.630403977191296e-08,
+      3.3944065949152246e-08,
+      2.6704673654098444e-08,
+      2.453291864479958e-08,
+      2.3150223523543786e-08,
+      2.15904730524126e-08,
+      2.0308027753394865e-08,
+      1.832745698748075e-08,
+      1.6556323259704087e-08,
+      1.4359013051207159e-08,
+      1.3944029382571923e-08,
+      1.2946072804633163e-08,
+      9.091079136626855e-09,
+      8.73727784112081e-09,
+      7.104661251214209e-09,
+      6.7059735248033924e-09,
+      6.423438517626538e-09,
+      5.343682090558393e-09,
+      4.884050704937812e-09,
+      3.9073595212736885e-09,
+      3.1673950141793734e-09,
+      2.372786212952159e-09,
+      1.964174172308634e-09,
+      1.6125323753445436e-09,
+      1.1375525864928543e-09,
+      8.078170378896617e-10,
+      4.915110320703674e-10,
+      3.8547579040599344e-10,
+      2.4324578533372793e-10,
+      1.209727663368234e-10,
+      3.041931161598855e-11,
+      2.7422414408453477e-11
+    ],
+    "fitTrainMae": 3.80483643814502e-05,
+    "fitRestarts": 530,
+    "fitRandomRestarts": 512,
+    "fitStructuredStarts": 18,
+    "selectedStartKind": "random",
+    "selectedRandomRestartIndex": 76,
+    "bestScoreByStartKind": {
+      "structured": 0.02015112597390391,
+      "random": 0.019945548357277444
+    },
+    "bestMetricsByStartKind": {
+      "structured": {
+        "restart": 1,
+        "randomRestartIndex": null,
+        "mae": 0.0001424401718668145,
+        "mse": 3.3361681264069005e-08,
+        "r2": 0.02739616533728917,
+        "selectionScore": 0.02015112597390391
+      },
+      "random": {
+        "restart": 94,
+        "randomRestartIndex": 76,
+        "mae": 0.0001427124883821405,
+        "mse": 3.3498037001699686e-08,
+        "r2": 0.023420942618502028,
+        "selectionScore": 0.019945548357277444
+      }
+    },
+    "fitRestartChunkSize": 128,
+    "fitMode": "batched-cuda-chunked+structured-starts+fixed-gate-value-polish",
+    "randomInitScales": [
+      0.6
+    ],
+    "fitGradientCount": 256,
+    "fitGradientMode": "symmetric-regression",
+    "fitGradientSteps": [
+      0.15,
+      0.3
+    ],
+    "fitGradientWeight": 1.0,
+    "selectionTailWeight": 0.0,
+    "selectionTailQuantile": 0.995,
+    "selectionWorstWeight": 0.0,
+    "fitSelectionCount": 0,
+    "fitSelectionScale": 0.0,
+    "fitExternalSelectionCount": 0,
+    "dictionaryCandidateRankScore": 0.020129982968065903,
+    "forcedPolishCandidateCount": 1,
+    "extraGateCandidateCount": 1536,
+    "residualGradientBlockRefitCubicRelativeRmseBefore": null,
+    "residualGradientBlockRefitCubicRelativeRmseAfter": null,
+    "residualGradientBlockRefitCubicSelectionWeight": 0.0,
+    "residualGradientBlockRefitCubicDirectionCount": 0,
+    "residualGradientBlockRefitCubicSelectionDirectionCount": 0,
+    "residualGradientBlockRefitCancellationPairsBefore": [],
+    "residualGradientBlockRefitCancellationPairsAfter": [],
+    "residualGradientBlockRefitCancellationRescueAttempted": false,
+    "residualGradientBlockRefitCancellationRescued": false,
+    "residualGradientBlockRefitCancellationRescueAtoms": [],
+    "residualGradientBlockRefitCancellationRescueScoreBefore": null,
+    "residualGradientBlockRefitCancellationRescueScoreAfter": null,
+    "residualRegionAtomReplaced": false,
+    "residualRegionReplacementCount": 0,
+    "residualRegionReplacementCycles": 0,
+    "residualRegionReplacementMaeBefore": null,
+    "residualRegionReplacementWorstBefore": null,
+    "splitMergeTailAtomRefined": false,
+    "splitMergeTailAtomTrials": 0,
+    "splitMergeTailAtomMaeBefore": null,
+    "splitMergeTailAtomWorstBefore": null,
+    "selectiveAtomScaleRepaired": false,
+    "selectiveAtomScaleRepairAtoms": [],
+    "selectiveAtomScaleRepairDeltas": [],
+    "selectiveAtomScaleRepairMaeBefore": null,
+    "selectiveAtomScaleRepairWorstBefore": null,
+    "directionalAtomRepaired": false,
+    "directionalAtomRepairAtoms": [],
+    "directionalAtomRepairSteps": 0,
+    "directionalAtomRepairMaeBefore": null,
+    "directionalAtomRepairWorstBefore": null,
+    "atomTailDiagnostic": {
+      "enabled": true,
+      "tailFraction": 0.06,
+      "tailCount": 246,
+      "tailMeanAbs": 0.00028719386688871005,
+      "tailWorstError": 0.0007668425532936642,
+      "topAtoms": [
+        {
+          "atom": 6,
+          "tailContributionMeanAbs": 0.00011759878001107988,
+          "tailResidualCorrelation": -0.10683283858087828,
+          "tailResponsibilityScore": 3.455068785982455e-08,
+          "tailMeanAbsAfterRemoval": 0.0002874702309904305,
+          "tailWorstAfterRemoval": 0.00110451446327924,
+          "tailScaleDelta": -0.1794425837988629,
+          "tailMeanAbsAfterScaleDelta": 0.0002826325516921362,
+          "tailWorstAfterScaleDelta": 0.0007750924371042762
+        },
+        {
+          "atom": 10,
+          "tailContributionMeanAbs": 0.0001168996028873399,
+          "tailResidualCorrelation": 0.06955199931443154,
+          "tailResponsibilityScore": 3.438226022717221e-08,
+          "tailMeanAbsAfterRemoval": 0.0003115832887650116,
+          "tailWorstAfterRemoval": 0.0016308438531979985,
+          "tailScaleDelta": 0.12230001123654953,
+          "tailMeanAbsAfterScaleDelta": 0.00028561749595025737,
+          "tailWorstAfterScaleDelta": 0.0007679891887332547
+        },
+        {
+          "atom": 7,
+          "tailContributionMeanAbs": 0.00011538065380825611,
+          "tailResidualCorrelation": -0.044585193757778,
+          "tailResponsibilityScore": 3.2716147890572344e-08,
+          "tailMeanAbsAfterRemoval": 0.0002962689948210014,
+          "tailWorstAfterRemoval": 0.0010150896985201786,
+          "tailScaleDelta": -0.09246296392867864,
+          "tailMeanAbsAfterScaleDelta": 0.00028578659256238415,
+          "tailWorstAfterScaleDelta": 0.0007647069698177804
+        },
+        {
+          "atom": 5,
+          "tailContributionMeanAbs": 0.00010113324860958521,
+          "tailResidualCorrelation": 0.023032544800306476,
+          "tailResponsibilityScore": 3.059878350962559e-08,
+          "tailMeanAbsAfterRemoval": 0.00029920355707609565,
+          "tailWorstAfterRemoval": 0.001141355833395972,
+          "tailScaleDelta": 0.03326946022323652,
+          "tailMeanAbsAfterScaleDelta": 0.00028723678363635363,
+          "tailWorstAfterScaleDelta": 0.0007545157097895835
+        },
+        {
+          "atom": 2,
+          "tailContributionMeanAbs": 0.00010006391828913272,
+          "tailResidualCorrelation": -0.0022518928207607408,
+          "tailResponsibilityScore": 2.9289702096956973e-08,
+          "tailMeanAbsAfterRemoval": 0.0002954155599271191,
+          "tailWorstAfterRemoval": 0.0011537861860753357,
+          "tailScaleDelta": 0.00904506473955021,
+          "tailMeanAbsAfterScaleDelta": 0.00028721681026181307,
+          "tailWorstAfterScaleDelta": 0.0007673038450647255
+        },
+        {
+          "atom": 0,
+          "tailContributionMeanAbs": 0.00010098034993448147,
+          "tailResidualCorrelation": 0.10340156887795192,
+          "tailResponsibilityScore": 2.9029524907159885e-08,
+          "tailMeanAbsAfterRemoval": 0.0003174850938494211,
+          "tailWorstAfterRemoval": 0.0011139917209521029,
+          "tailScaleDelta": 0.1692366382525896,
+          "tailMeanAbsAfterScaleDelta": 0.0002841878300824064,
+          "tailWorstAfterScaleDelta": 0.0007658915553720261
+        },
+        {
+          "atom": 11,
+          "tailContributionMeanAbs": 9.547242222043088e-05,
+          "tailResidualCorrelation": 0.010446310954259025,
+          "tailResponsibilityScore": 2.7773636507853838e-08,
+          "tailMeanAbsAfterRemoval": 0.00029392790632146344,
+          "tailWorstAfterRemoval": 0.0009363907076051531,
+          "tailScaleDelta": 0.009204686379174092,
+          "tailMeanAbsAfterScaleDelta": 0.00028718069552829284,
+          "tailWorstAfterScaleDelta": 0.0007657785021030583
+        },
+        {
+          "atom": 12,
+          "tailContributionMeanAbs": 9.403492698832864e-05,
+          "tailResidualCorrelation": -0.07608232847780735,
+          "tailResponsibilityScore": 2.7666421413123465e-08,
+          "tailMeanAbsAfterRemoval": 0.00029025226512877246,
+          "tailWorstAfterRemoval": 0.0007949139616080568,
+          "tailScaleDelta": -0.1561276861745549,
+          "tailMeanAbsAfterScaleDelta": 0.0002854289906370521,
+          "tailWorstAfterScaleDelta": 0.000763045785934351
+        }
+      ]
+    },
+    "counterexampleCount": 0,
+    "counterexampleRepeat": 4,
+    "counterexampleJitterCount": 0,
+    "counterexampleJitterScale": 0.025,
+    "tailProbeCount": 0,
+    "tailProbeRepeat": 4,
+    "tailProbeScale": 0.65,
+    "tailProbeSelected": 0,
+    "fitSelectionScore": 0.02003785103029597,
+    "chebyshevCalibrated": false,
+    "chebyshevSampleCount": 0,
+    "chebyshevObjective": null,
+    "robustScalarCalibrated": false,
+    "robustScalarCalibrationSteps": 0,
+    "fitScales": [
+      0.9999999999993766,
+      1.0000000000000095,
+      0.9999999999999862,
+      1.0000000000001903,
+      1.0000000000000309,
+      0.9999999999999457,
+      0.9999999999999849,
+      1.000000000000047,
+      0.9999999999999907,
+      0.9999999999999033,
+      1.0000000000000362,
+      1.000000000000076,
+      0.9999999999999322,
+      0.9999999999999213,
+      0.9999999999999125,
+      1.000000000000002
+    ],
+    "fitBias": -3.358800148068663e-06,
+    "fitAttempts": [
+      {
+        "stage": "initial",
+        "trainCount": 16000,
+        "fitGradientCount": 256,
+        "fitSteps": 2600,
+        "fitRestarts": 530,
+        "fitRandomRestarts": 512,
+        "fitStructuredStarts": 18,
+        "selectedStartKind": "random",
+        "selectedRandomRestartIndex": 76,
+        "bestScoreByStartKind": {
+          "structured": 0.02015112597390391,
+          "random": 0.019945548357277444
+        },
+        "bestMetricsByStartKind": {
+          "structured": {
+            "restart": 1,
+            "randomRestartIndex": null,
+            "mae": 0.0001424401718668145,
+            "mse": 3.3361681264069005e-08,
+            "r2": 0.02739616533728917,
+            "selectionScore": 0.02015112597390391
+          },
+          "random": {
+            "restart": 94,
+            "randomRestartIndex": 76,
+            "mae": 0.0001427124883821405,
+            "mse": 3.3498037001699686e-08,
+            "r2": 0.023420942618502028,
+            "selectionScore": 0.019945548357277444
+          }
+        },
+        "fitMode": "batched-cuda-chunked+structured-starts+fixed-gate-value-polish",
+        "fitTrainMae": 3.80483643814502e-05,
+        "fitSelectionScore": 0.02003785103029597,
+        "fitSelectionCount": 0,
+        "fitSelectionScale": 0.0,
+        "fitExternalSelectionCount": 0,
+        "extraGateCandidateCount": 1536,
+        "tailProbeCount": 0,
+        "tailProbeSelected": 0,
+        "tailProbeRepeat": 4,
+        "validationR2": 0.9125318082557777,
+        "validationMae": 8.453385653242291e-05,
+        "validationWorstError": 0.0007668425532936642,
+        "rawOracleCalls": 614016
+      },
+      {
+        "stage": "validation-full-tail-polish",
+        "trainCount": 16768,
+        "baseTrainCount": 16000,
+        "extraRandomTrainCount": 0,
+        "tailCount": 256,
+        "tailRepeat": 1,
+        "holdoutPoolsRequested": 4,
+        "holdoutPoolsEvaluated": 2,
+        "holdoutTailSelected": 512,
+        "holdoutTailRepeat": 1,
+        "selectionHoldoutPoolsRequested": 2,
+        "selectionHoldoutPoolsEvaluated": 2,
+        "selectionHoldoutTailSelected": 512,
+        "selectionHoldoutFullCount": 4096,
+        "method": "residual-block-refit",
+        "tailErrorPolished": true,
+        "finalLbfgsPolished": false,
+        "finalLbfgsCourt": false,
+        "gateNormCalibrated": false,
+        "pairSwapRefined": false,
+        "fixedGateUpRefit": false,
+        "gateDictionaryRefit": false,
+        "gateDictionaryRefitCandidateCount": 0,
+        "residualGradientAtomReplaced": false,
+        "residualGradientAtomReplaceAtoms": [
+          6,
+          10,
+          7,
+          5,
+          2,
+          0
+        ],
+        "residualGradientAtomReplaceProposedAtoms": [],
+        "residualGradientAtomReplaceAcceptedAtoms": [],
+        "residualGradientAtomReplaceDirectionCount": 0,
+        "residualGradientAtomReplaceCandidateCount": 0,
+        "residualGradientAtomReplaceSubsetCount": 0,
+        "residualGradientAtomReplaceGradientScoreBefore": null,
+        "residualGradientAtomReplaceGradientScoreAfter": null,
+        "residualGradientAtomReplaceSelectionCount": 0,
+        "residualGradientAtomReplaceDecisionScoreBefore": null,
+        "residualGradientAtomReplaceDecisionScoreAfter": null,
+        "residualGradientAtomReplaceCegisCycles": 2,
+        "residualGradientAtomReplaceCegisSelectionCount": 8576,
+        "residualGradientAtomReplaceCegisCounterexampleCount": 256,
+        "residualGradientBlockRefit": true,
+        "residualGradientBlockRefitAtoms": [
+          0,
+          2,
+          5,
+          6,
+          7,
+          10
+        ],
+        "residualGradientBlockRefitDirectionCount": 576,
+        "residualGradientBlockRefitRestarts": 320,
+        "residualGradientBlockRefitSteps": 2200,
+        "residualGradientBlockSelection": {
+          "method": "responsibility-elbow",
+          "selectedCount": 6,
+          "availableCount": 8,
+          "minAtoms": 4,
+          "maxAtoms": 8,
+          "cutRatios": [
+            {
+              "selectedCount": 4,
+              "scoreBeforeCut": 3.059878350962559e-08,
+              "scoreAfterCut": 2.9289702096956973e-08,
+              "ratio": 0.957217860891208
+            },
+            {
+              "selectedCount": 5,
+              "scoreBeforeCut": 2.9289702096956973e-08,
+              "scoreAfterCut": 2.9029524907159885e-08,
+              "ratio": 0.9911171104118495
+            },
+            {
+              "selectedCount": 6,
+              "scoreBeforeCut": 2.9029524907159885e-08,
+              "scoreAfterCut": 2.7773636507853838e-08,
+              "ratio": 0.9567375489842656
+            },
+            {
+              "selectedCount": 7,
+              "scoreBeforeCut": 2.7773636507853838e-08,
+              "scoreAfterCut": 2.7666421413123465e-08,
+              "ratio": 0.9961396810712903
+            }
+          ]
+        },
+        "residualGradientBlockRefitSelectionCount": 4608,
+        "residualGradientBlockRefitScoreBefore": 0.020374121378952476,
+        "residualGradientBlockRefitScoreAfter": 0.020334825052271105,
+        "residualGradientBlockRefitOutputScoreBefore": 0.00037356254489615513,
+        "residualGradientBlockRefitOutputScoreAfter": 0.0003876869191444424,
+        "residualGradientBlockRefitCubicRelativeRmseBefore": 1.0000279417028162,
+        "residualGradientBlockRefitCubicRelativeRmseAfter": 0.9973569066563331,
+        "residualGradientBlockRefitCubicSelectionWeight": 0.02,
+        "residualGradientBlockRefitCubicDirectionCount": 2048,
+        "residualGradientBlockRefitCubicSelectionDirectionCount": 512,
+        "residualGradientBlockRefitCancellationPairsBefore": [],
+        "residualGradientBlockRefitCancellationPairsAfter": [],
+        "residualGradientBlockRefitCancellationRescueAttempted": false,
+        "residualGradientBlockRefitCancellationRescued": false,
+        "residualGradientBlockRefitCancellationRescueAtoms": [],
+        "residualGradientBlockRefitCancellationRescueScoreBefore": 0.020334825052271105,
+        "residualGradientBlockRefitCancellationRescueScoreAfter": 0.020334825052271105,
+        "gradientPolished": true,
+        "paramRefit": false,
+        "paramRefitFitSteps": 0,
+        "paramRefitRestarts": 0,
+        "paramRefitGradientWeight": 0.0,
+        "paramRefitExtraGradientCount": 0,
+        "paramRefitGradientCount": 0,
+        "paramRefitTrainCount": 0,
+        "paramRefitSelectionCount": 0,
+        "tailErrorPolishSelectionCount": 0,
+        "gateNormCalibrationSelectionCount": 0,
+        "probeValidationR2": 0.9095432286858358,
+        "probeValidationMae": 8.886889829894377e-05,
+        "probeValidationWorstError": 0.0006004609141826206,
+        "revalidationPerformed": true,
+        "baselineRevalidationR2": 0.916415545626865,
+        "baselineRevalidationMae": 8.543245391328487e-05,
+        "baselineRevalidationWorstError": 0.0005575568108641555,
+        "revalidationR2": 0.9025050357664179,
+        "revalidationMae": 9.301431095881127e-05,
+        "revalidationWorstError": 0.0006219160345859191,
+        "accepted": false,
+        "rawOracleCalls": 634496
+      }
+    ]
+  },
+  "oracleResponse": {
+    "quantizationStep": 1e-06,
+    "mode": "down-proj-output-channel",
+    "outputChannel": 2048
+  },
+  "claimBoundary": [
+    "This gate proves a selected real local down_proj output-channel slice can be queried as a black-box oracle and recovered as an explicit sum of rank-2 SwiGLU atoms under the recorded budget.",
+    "It does not prove full FFN extraction, all-channel decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}
