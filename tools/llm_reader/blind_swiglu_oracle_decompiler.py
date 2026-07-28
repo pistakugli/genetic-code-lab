@@ -9009,26 +9009,89 @@ def run_solver(args: argparse.Namespace) -> int:
                         mandatoryValidationReserve=mandatory_validation_reserve,
                         rawOracleCalls=int(oracle.query_count),
                     )
-                    fit = asymptotic_gate_stitch_swiglu_candidate(
-                        oracle,
-                        basis,
-                        train_coords,
-                        train_targets,
-                        fit,
-                        args.seed + 71021,
-                        selection_coords=fit_selection_coords,
-                        selection_targets=fit_selection_targets,
-                        gradient_coords=fit_gradient_coords,
-                        gradient_targets=fit_gradient_targets,
-                        cubic_directions=cubic_gate_directions,
-                        cubic_targets=cubic_scores,
-                        line_count=asymptotic_line_count,
-                        samples_per_line=asymptotic_samples_per_line,
-                        line_range=asymptotic_line_range,
-                        offset_scale=asymptotic_offset_scale,
-                        asymptotic_scale=asymptotic_scale,
-                        cold_start=True,
-                    )
+                    # The probe line range that best beats the quantization floor is
+                    # block-dependent: widening it from 6 to 12 lifts mistral layer 28 from
+                    # R2 0.978190 to 0.992712, while llama layer 1 is slightly better at 6.
+                    # A single constant therefore leaves accuracy on the table for one block
+                    # or the other, the same way a single input scale did.
+                    #
+                    # Each candidate range is stitched and scored on the solver's own
+                    # selection sample, which is a separate oracle draw from the validation
+                    # set the gate measures, so nothing here fits to the graded points. The
+                    # scaffold is rebuilt per attempt so an attempt cannot inherit the
+                    # previous one's state, and a candidate is only tried when its query
+                    # bound still fits inside the remaining budget.
+                    stitch_scaffold = fit
+                    range_ladder: list[float] = [float(asymptotic_line_range)]
+                    ladder_raw = os.environ.get("GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_RANGE_LADDER", "").strip()
+                    for value in (float(item) for item in ladder_raw.split(",") if item.strip()):
+                        if value > 0.0 and value not in range_ladder:
+                            range_ladder.append(value)
+
+                    def score_stitched_candidate(candidate: dict[str, Any]) -> float:
+                        if fit_selection_coords is None or fit_selection_targets is None:
+                            score_coords, score_targets = train_coords, train_targets
+                        else:
+                            score_coords, score_targets = fit_selection_coords, fit_selection_targets
+                        try:
+                            prediction = predict_swiglu(score_coords, candidate)
+                        except Exception:
+                            return float("inf")
+                        if prediction.shape != score_targets.shape or not np.all(np.isfinite(prediction)):
+                            return float("inf")
+                        return float(np.mean(np.abs(prediction - score_targets)))
+
+                    fit = None
+                    best_score = float("inf")
+                    attempted_ranges: list[dict[str, Any]] = []
+                    for candidate_range in range_ladder:
+                        if attempted_ranges:
+                            remaining = args.max_oracle_calls - oracle.query_count - mandatory_validation_reserve
+                            if asymptotic_query_bound > remaining:
+                                break
+                        candidate_fit = asymptotic_gate_stitch_swiglu_candidate(
+                            oracle,
+                            basis,
+                            train_coords,
+                            train_targets,
+                            dict(stitch_scaffold),
+                            args.seed + 71021,
+                            selection_coords=fit_selection_coords,
+                            selection_targets=fit_selection_targets,
+                            gradient_coords=fit_gradient_coords,
+                            gradient_targets=fit_gradient_targets,
+                            cubic_directions=cubic_gate_directions,
+                            cubic_targets=cubic_scores,
+                            line_count=asymptotic_line_count,
+                            samples_per_line=asymptotic_samples_per_line,
+                            line_range=candidate_range,
+                            offset_scale=asymptotic_offset_scale,
+                            asymptotic_scale=asymptotic_scale,
+                            cold_start=True,
+                        )
+                        stitched = bool(candidate_fit.get("asymptoticGateStitched", False))
+                        candidate_score = score_stitched_candidate(candidate_fit) if stitched else float("inf")
+                        attempted_ranges.append({
+                            "lineRange": float(candidate_range),
+                            "stitched": stitched,
+                            "selectionMae": None if candidate_score == float("inf") else candidate_score,
+                            "rawOracleCalls": int(oracle.query_count),
+                        })
+                        if fit is None or candidate_score < best_score:
+                            fit = candidate_fit
+                            best_score = candidate_score
+                    if len(attempted_ranges) > 1:
+                        log_progress(
+                            args,
+                            "asymptotic-stitch-range-search",
+                            attempts=attempted_ranges,
+                            selectedLineRange=next(
+                                (row["lineRange"] for row in attempted_ranges
+                                 if row["selectionMae"] is not None and row["selectionMae"] == best_score),
+                                float(asymptotic_line_range),
+                            ),
+                            rawOracleCalls=int(oracle.query_count),
+                        )
                     if not fit.get("asymptoticGateStitched", False):
                         failure = str(fit.get("asymptoticGateStitchFailure", "structure-court-rejected"))
                         # The stitch already computed why it refused: usable lines, boundary

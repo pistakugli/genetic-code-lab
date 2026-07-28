@@ -34,6 +34,15 @@ def configure_solver_environment() -> None:
         # too, R2 0.999999920 to 0.999999950 and worst 9.755e-05 to 3.206e-05, so this is
         # not a weak-block trade.
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_RANGE": "12",
+        # Which range wins is block-dependent, so it is chosen rather than assumed: the
+        # stitch runs at 12 and at 6 and the candidate with the lower error on the solver's
+        # own selection sample is kept. That sample is a separate oracle draw from the
+        # validation set the gate scores, so nothing is fitted to the graded points.
+        # Measured on llama layer 1, which prefers the narrower range: the search returns
+        # R2 0.998556 and worst 2.785e-03, matching a fixed range-6 run exactly, against
+        # R2 0.998301 and worst 3.123e-03 for a fixed range 12. One extra stitch costs
+        # about 120k queries inside the 1.5M budget.
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_RANGE_LADDER": "6",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_OFFSET_SCALE": "0.75",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_SCALE": "512",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_NORMAL_DELTA": "0.10",
