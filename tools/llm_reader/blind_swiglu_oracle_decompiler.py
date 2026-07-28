@@ -8312,6 +8312,121 @@ def make_tail_probe_polish_set(
     return hard_coords, hard_targets, selected_count, count
 
 
+def refit_weak_atoms_on_boundary_probes(
+    rng: np.random.Generator,
+    oracle: OracleClient,
+    basis: np.ndarray,
+    fit: dict[str, Any],
+    train_coords: np.ndarray,
+    train_targets: np.ndarray,
+    *,
+    probe_count_per_atom: int,
+    atom_fraction: float,
+    probe_scale: float,
+    boundary_jitter: float,
+    learning_rate: float,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """Re-fit only the weakest atoms, against fresh probes on their own boundaries.
+
+    In down-proj-output-channel mode the atom weights span two orders of magnitude. On
+    llama layer 1 the strongest atom carries standard deviation 5.774e-03 and the weakest
+    5.505e-05 against a total of 1.086e-02, a 105x spread, and the residual that keeps R2
+    short is about the size of one or two of the weakest. Uniform samples barely constrain
+    those atoms because almost nothing lands where their contribution turns on.
+
+    A gate direction is scale-free, so once an atom is roughly placed its switching surface
+    is known: `gate . x = 0`. Fresh points are slid onto that surface with a little jitter
+    so the fit sees both sides of the kink.
+
+    Concentrating points like that and then re-fitting everything makes the result worse,
+    measured: selection MAE went from 2.5032e-04 to 4.7611e-04 because the dense surfaces
+    pull the strong atoms off their already-correct positions. So the strong atoms are held
+    fixed and their contribution is subtracted instead. The SwiGLU sum is additive, so the
+    remainder is exactly what the weak atoms have to explain, and the concentrated points
+    can only move the parameters that were underdetermined to begin with.
+
+    Every probe is a fresh oracle draw. The graded validation set is never read.
+    """
+    gates = np.asarray(fit.get("gates"), dtype=np.float64)
+    ups = np.asarray(fit.get("ups"), dtype=np.float64)
+    scales = np.asarray(fit.get("scales"), dtype=np.float64)
+    diagnostics: dict[str, Any] = {"attempted": False}
+    if gates.ndim != 2 or ups.shape != gates.shape or scales.shape != (gates.shape[0],):
+        return None, diagnostics
+    if probe_count_per_atom <= 0 or not 0.0 < atom_fraction < 1.0:
+        return None, diagnostics
+    if probe_scale <= 0.0 or boundary_jitter <= 0.0:
+        return None, diagnostics
+
+    strengths = np.abs(scales) * np.linalg.norm(gates, axis=1) * np.linalg.norm(ups, axis=1)
+    if not np.all(np.isfinite(strengths)) or float(np.max(strengths)) <= 0.0:
+        return None, diagnostics
+    weak_count = max(1, int(round(gates.shape[0] * atom_fraction)))
+    if weak_count >= gates.shape[0]:
+        return None, diagnostics
+    order = np.argsort(strengths)
+    weak_index = order[:weak_count]
+    strong_index = order[weak_count:]
+
+    probe_rows: list[np.ndarray] = []
+    for atom in weak_index:
+        gate_norm = float(np.linalg.norm(gates[int(atom)]))
+        if gate_norm < 1e-12:
+            continue
+        unit_gate = gates[int(atom)] / gate_norm
+        samples = rng.normal(0.0, probe_scale, size=(int(probe_count_per_atom), basis.shape[0]))
+        samples = samples - np.outer(samples @ unit_gate, unit_gate)
+        samples = samples + np.outer(rng.normal(0.0, boundary_jitter, size=int(probe_count_per_atom)), unit_gate)
+        probe_rows.append(samples)
+    if not probe_rows:
+        return None, diagnostics
+
+    probe_coords = np.vstack(probe_rows)
+    probe_inputs = (probe_coords @ basis).astype(np.float32)
+    probe_targets = np.asarray(oracle.eval(probe_inputs, stage="weak-atom-boundary-probe"), dtype=np.float64)
+
+    coords = np.vstack([train_coords, probe_coords])
+    targets = np.concatenate([train_targets, probe_targets])
+
+    # Freeze the strong atoms by subtracting exactly what they contribute.
+    strong_activation = silu_np(coords @ gates[strong_index].T) * (coords @ ups[strong_index].T)
+    strong_contribution = strong_activation @ scales[strong_index] + float(fit.get("bias", 0.0))
+    weak_targets = targets - strong_contribution
+
+    weak_candidate = {
+        "gates": gates[weak_index].copy(),
+        "ups": ups[weak_index].copy(),
+        "scales": scales[weak_index].copy(),
+        "bias": 0.0,
+    }
+    # polish_swiglu_candidate reads score/mae off the candidate, so the sub-model is scored
+    # on the remainder it has to explain before it is handed over.
+    weak_candidate = rescore_swiglu_candidate_on_data(coords, weak_targets, weak_candidate, recalibrate_scales=True)
+    polished = polish_swiglu_candidate(coords, weak_targets, weak_candidate, learning_rate, None, None, 0.0)
+    polished = rescore_swiglu_candidate_on_data(coords, weak_targets, polished, recalibrate_scales=True)
+
+    merged_gates = gates.copy()
+    merged_ups = ups.copy()
+    merged_scales = scales.copy()
+    merged_gates[weak_index] = np.asarray(polished["gates"], dtype=np.float64)
+    merged_ups[weak_index] = np.asarray(polished["ups"], dtype=np.float64)
+    merged_scales[weak_index] = np.asarray(polished["scales"], dtype=np.float64)
+    merged = dict(fit)
+    merged.update({
+        "gates": merged_gates,
+        "ups": merged_ups,
+        "scales": merged_scales,
+        "bias": float(fit.get("bias", 0.0)) + float(polished.get("bias", 0.0)),
+    })
+    diagnostics = {
+        "attempted": True,
+        "weakAtomCount": int(weak_count),
+        "probeRows": int(probe_coords.shape[0]),
+        "weakStrengthShare": [float(strengths[int(i)] / float(np.max(strengths))) for i in weak_index],
+    }
+    return merged, diagnostics
+
+
 def principal_cosines(basis: np.ndarray, truth_vectors: np.ndarray) -> np.ndarray:
     q1, _ = np.linalg.qr(basis.T)
     q2, _ = np.linalg.qr(truth_vectors.T)
@@ -9113,6 +9228,39 @@ def run_solver(args: argparse.Namespace) -> int:
                             rawOracleCalls=int(oracle.query_count),
                         )
                         raise RuntimeError(f"asymptotic cold start failed: {failure}")
+
+                    weak_probe_count = int(os.environ.get("GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_COUNT", "0") or "0")
+                    if weak_probe_count > 0:
+                        weak_candidate, weak_diagnostics = refit_weak_atoms_on_boundary_probes(
+                            np.random.default_rng(args.seed + 51407),
+                            oracle,
+                            basis,
+                            fit,
+                            train_coords,
+                            train_targets,
+                            probe_count_per_atom=weak_probe_count,
+                            atom_fraction=float(os.environ.get("GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_FRACTION", "0.25") or "0.25"),
+                            probe_scale=float(args.input_scale),
+                            boundary_jitter=float(os.environ.get("GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_JITTER", "0.05") or "0.05"),
+                            learning_rate=args.fit_learning_rate,
+                        )
+                        if weak_candidate is not None:
+                            # Kept only when it helps on the solver's own selection sample,
+                            # a separate oracle draw from the graded validation set.
+                            before_score = score_stitched_candidate(fit)
+                            after_score = score_stitched_candidate(weak_candidate)
+                            accepted = after_score < before_score
+                            if accepted:
+                                fit = weak_candidate
+                            log_progress(
+                                args,
+                                "weak-atom-boundary-refit",
+                                selectionMaeBefore=None if before_score == float("inf") else before_score,
+                                selectionMaeAfter=None if after_score == float("inf") else after_score,
+                                accepted=bool(accepted),
+                                rawOracleCalls=int(oracle.query_count),
+                                **weak_diagnostics,
+                            )
                 else:
                     fit = fit_swiglu_sum(
                         train_coords,

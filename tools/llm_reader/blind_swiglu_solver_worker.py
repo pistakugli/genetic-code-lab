@@ -43,6 +43,19 @@ def configure_solver_environment() -> None:
         # R2 0.998301 and worst 3.123e-03 for a fixed range 12. One extra stitch costs
         # about 120k queries inside the 1.5M budget.
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_RANGE_LADDER": "6",
+        # Atom weights in a channel block span two orders of magnitude, and the residual
+        # that keeps R2 short is about the size of the weakest atoms, which uniform samples
+        # barely constrain. Fresh probes are placed on those atoms' own switching surfaces
+        # and only their parameters are re-fitted; the strong atoms are held fixed by
+        # subtracting their contribution. Re-fitting everything against the same probes
+        # makes it worse, selection MAE 2.5032e-04 to 4.7611e-04, because the dense
+        # surfaces pull correct atoms off position.
+        # Measured on llama layer 1: selection MAE 2.5032e-04 to 2.3106e-04, R2 0.998556
+        # to 0.998835. Refitting half the atoms instead of a quarter is rejected by the
+        # guard, and the passing mistral layer-11 block is bit-identical because the guard
+        # declines there too.
+        "GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_COUNT": "1024",
+        "GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_FRACTION": "0.25",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_OFFSET_SCALE": "0.75",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_SCALE": "512",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_NORMAL_DELTA": "0.10",
