@@ -6,10 +6,10 @@
 - oracle mode: `down-proj-output-channel`
 - output channel: `443`
 - raw oracle calls: `4096`
-- validation R2: `0.9925367000746828`
-- validation MAE: `6.437900093358e-06`
+- validation R2: `0.9925362329914829`
+- validation MAE: `6.438603808956368e-06`
 - subspace min principal cosine: `0.9790955523785366`
-- post-hoc paired atom min joint cosine: `0.06574003182738468`
+- post-hoc paired atom min joint cosine: `0.06556068217791547`
 - post-hoc paired atoms >= 0.99: `11/16`
 
 Access audit:

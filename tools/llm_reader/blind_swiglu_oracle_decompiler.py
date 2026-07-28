@@ -2348,7 +2348,26 @@ def polish_swiglu_candidate(
         lr=max(0.2, min(0.8, learning_rate * 28.0)),
         max_iter=520 if gates.shape[0] >= 12 else 360,
         line_search_fn="strong_wolfe",
+        # Left at the torch defaults of 1e-7 and 1e-9 this stopped early on quiet blocks.
+        # The sibling refiners in this file already use these tighter values.
+        tolerance_grad=1e-10,
+        tolerance_change=1e-12,
     )
+
+    # The data term was a mean square in raw oracle units, so it scales as amplitude
+    # squared, while the gradient and cubic witness terms below are already divided by
+    # their own scales. On a quiet block that leaves the data term around 1e-8 against
+    # witnesses of order one, so the witnesses dominate the objective and the fit barely
+    # follows the data at all. It also puts the loss under LBFGS's default
+    # tolerance_change of 1e-9, which stops the optimiser after a step or two. Dividing by
+    # the target scale makes the objective comparable across blocks, exactly as
+    # fixed_gate_direction_value_polish and trust_region_structure_refine already do.
+    polish_target_scale = max(
+        float(np.std(np.asarray(targets, dtype=np.float64))),
+        float(np.mean(np.abs(np.asarray(targets, dtype=np.float64)))),
+        1e-30,
+    )
+    polish_scale_tensor = torch.tensor(polish_target_scale, dtype=fit_dtype, device=device)
 
     def closure() -> torch.Tensor:
         lbfgs.zero_grad()
@@ -2356,7 +2375,7 @@ def polish_swiglu_candidate(
         up_projection = x @ ups.T
         activations = torch.nn.functional.silu(gate_projection) * up_projection
         prediction = activations @ scales + bias
-        loss = torch.mean((prediction - y) ** 2)
+        loss = torch.mean(((prediction - y) / polish_scale_tensor) ** 2)
         if has_gradient_witness and gx is not None and gy is not None and target_grad_scale is not None:
             grad_gate_projection = gx @ gates.T
             grad_up_projection = gx @ ups.T
@@ -5700,7 +5719,19 @@ def recover_up_direction_from_hessian_gate_action(
     action = np.asarray(hessian_jump_times_gate, dtype=np.float64)
     if gate is None or action.shape != gate.shape or not np.all(np.isfinite(action)):
         return None
-    effective_up = action - 0.5 * float(np.dot(gate, action)) * gate
+    # `action` is a second difference of oracle gradients, so it carries the block's output
+    # amplitude and nothing here normalises it. Only its direction is wanted, but
+    # canonical_direction rejects below an absolute norm of 1e-9, so on a quiet block a
+    # perfectly good up-direction is returned as None and the atom falls back. Dividing by
+    # the action norm first makes the degeneracy test relative: what should disqualify this
+    # sample is the effective up collapsing because the action is parallel to the gate, not
+    # the block being quiet.
+    action_norm = float(np.linalg.norm(action))
+    if not np.isfinite(action_norm) or action_norm <= 0.0:
+        return None
+    effective_up = (action - 0.5 * float(np.dot(gate, action)) * gate) / action_norm
+    if float(np.linalg.norm(effective_up)) < 1e-6:
+        return None
     return canonical_direction(effective_up)
 
 
@@ -6136,8 +6167,20 @@ def asymptotic_gate_stitch_swiglu_candidate(
         inlier_directions[np.sum(inlier_directions * anchor, axis=1) < 0.0] *= -1.0
         inlier_weights = sample_weights[inlier_mask]
         weight_cap = max(float(np.quantile(inlier_weights, 0.80)), 1e-12)
+        # Same construction as the gate-normal cluster centre, and it needs the same
+        # rescale. These weights are a product of two amplitude-carrying quantities, the
+        # gradient-jump norm and the boundary score, so they scale as amplitude squared:
+        # across a 237x block range that is a factor of about 5.6e4. The weighted sum of a
+        # handful of unit vectors then lands under the 1e-9 floor inside
+        # canonical_direction, which returns None, and the atom silently drops to the
+        # linear-up fallback that the isolated gate refuses on sourceFallbackAtoms.
+        # Rescaling to a peak of one cannot change the resulting direction.
+        robust_up_weights = np.minimum(inlier_weights, weight_cap)
+        up_weight_peak = float(np.max(robust_up_weights)) if robust_up_weights.size else 0.0
+        if up_weight_peak > 0.0:
+            robust_up_weights = robust_up_weights / up_weight_peak
         recovered_up_centers.append(canonical_direction(np.sum(
-            inlier_directions * np.minimum(inlier_weights, weight_cap)[:, None],
+            inlier_directions * robust_up_weights[:, None],
             axis=0,
         )))
         recovered_up_supports.append(int(np.sum(inlier_mask)))
@@ -9231,35 +9274,59 @@ def run_solver(args: argparse.Namespace) -> int:
 
                     weak_probe_count = int(os.environ.get("GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_COUNT", "0") or "0")
                     if weak_probe_count > 0:
-                        weak_candidate, weak_diagnostics = refit_weak_atoms_on_boundary_probes(
-                            np.random.default_rng(args.seed + 51407),
-                            oracle,
-                            basis,
-                            fit,
-                            train_coords,
-                            train_targets,
-                            probe_count_per_atom=weak_probe_count,
-                            atom_fraction=float(os.environ.get("GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_FRACTION", "0.25") or "0.25"),
-                            probe_scale=float(args.input_scale),
-                            boundary_jitter=float(os.environ.get("GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_JITTER", "0.05") or "0.05"),
-                            learning_rate=args.fit_learning_rate,
-                        )
-                        if weak_candidate is not None:
-                            # Kept only when it helps on the solver's own selection sample,
-                            # a separate oracle draw from the graded validation set.
-                            before_score = score_stitched_candidate(fit)
-                            after_score = score_stitched_candidate(weak_candidate)
-                            accepted = after_score < before_score
+                        # How many atoms count as weak is block-dependent. A quarter of them
+                        # is accepted on llama layer 1 and a half is rejected there, so the
+                        # boundary sits between, and it has no reason to sit in the same
+                        # place on another block. Each fraction is tried and scored on the
+                        # solver's own selection sample, which is a separate oracle draw
+                        # from the graded validation set, and the best is kept only when it
+                        # beats leaving the fit alone.
+                        weak_fraction_ladder = [
+                            float(item) for item in
+                            (os.environ.get("GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_FRACTION", "0.25") or "0.25").split(",")
+                            if item.strip()
+                        ]
+                        before_score = score_stitched_candidate(fit)
+                        best_weak_candidate: dict[str, Any] | None = None
+                        best_weak_score = before_score
+                        weak_attempts: list[dict[str, Any]] = []
+                        for fraction in weak_fraction_ladder:
+                            weak_candidate, weak_diagnostics = refit_weak_atoms_on_boundary_probes(
+                                np.random.default_rng(args.seed + 51407),
+                                oracle,
+                                basis,
+                                fit,
+                                train_coords,
+                                train_targets,
+                                probe_count_per_atom=weak_probe_count,
+                                atom_fraction=fraction,
+                                probe_scale=float(args.input_scale),
+                                boundary_jitter=float(os.environ.get("GCL_BLIND_SWIGLU_WEAK_ATOM_PROBE_JITTER", "0.05") or "0.05"),
+                                learning_rate=args.fit_learning_rate,
+                            )
+                            if weak_candidate is None:
+                                continue
+                            candidate_score = score_stitched_candidate(weak_candidate)
+                            weak_attempts.append({
+                                "atomFraction": float(fraction),
+                                "weakAtomCount": weak_diagnostics.get("weakAtomCount"),
+                                "selectionMae": None if candidate_score == float("inf") else candidate_score,
+                            })
+                            if candidate_score < best_weak_score:
+                                best_weak_candidate = weak_candidate
+                                best_weak_score = candidate_score
+                        if weak_attempts:
+                            accepted = best_weak_candidate is not None
                             if accepted:
-                                fit = weak_candidate
+                                fit = best_weak_candidate
                             log_progress(
                                 args,
                                 "weak-atom-boundary-refit",
+                                attempts=weak_attempts,
                                 selectionMaeBefore=None if before_score == float("inf") else before_score,
-                                selectionMaeAfter=None if after_score == float("inf") else after_score,
+                                selectionMaeAfter=None if best_weak_score == float("inf") else best_weak_score,
                                 accepted=bool(accepted),
                                 rawOracleCalls=int(oracle.query_count),
-                                **weak_diagnostics,
                             )
                 else:
                     fit = fit_swiglu_sum(
