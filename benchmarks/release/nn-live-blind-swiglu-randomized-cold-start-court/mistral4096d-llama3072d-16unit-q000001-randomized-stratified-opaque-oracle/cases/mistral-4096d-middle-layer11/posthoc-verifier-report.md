@@ -6,10 +6,10 @@
 - oracle mode: `selected-unit-sum`
 - output channel: `None`
 - raw oracle calls: `4096`
-- validation R2: `0.9999999156894925`
-- validation MAE: `7.497751031247532e-06`
+- validation R2: `0.9999999498066959`
+- validation MAE: `5.952318906435572e-06`
 - subspace min principal cosine: `0.9999999511163822`
-- post-hoc paired atom min joint cosine: `0.999982086544576`
+- post-hoc paired atom min joint cosine: `0.9999996141368153`
 - post-hoc paired atoms >= 0.99: `16/16`
 
 Access audit:

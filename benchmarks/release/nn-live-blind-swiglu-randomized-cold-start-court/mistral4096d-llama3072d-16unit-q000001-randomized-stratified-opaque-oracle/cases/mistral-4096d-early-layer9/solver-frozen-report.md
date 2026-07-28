@@ -1,10 +1,10 @@
 # Blind SwiGLU Frozen Recovery
 
 - pass: `false`
-- frozen SHA-256: `f1c44a19de2f6b5765dbce0b3e7c7516c4f983bc59d7d79045748c18c1e3fe60`
-- raw oracle calls: `1274282`
-- validation R2: `0.990992541335422`
-- validation MAE: `7.56014601240881e-06`
+- frozen SHA-256: `366721ded73fad0357953e65d669dda58a1a8f328c8b1e17a15c29257b7db1bd`
+- raw oracle calls: `1280010`
+- validation R2: `0.9924715090375857`
+- validation MAE: `6.969054856097936e-06`
 - source ids observed by solver: `false`
 - truth capability available to solver: `false`
 - truth requests by solver: `0`

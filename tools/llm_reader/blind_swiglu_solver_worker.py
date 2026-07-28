@@ -23,7 +23,17 @@ def configure_solver_environment() -> None:
         "GCL_BLIND_SWIGLU_VALIDATION_FULL_TAIL_POLISH": "0",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_COUNT": "48",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_SAMPLES_PER_LINE": "1537",
-        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_RANGE": "6",
+        # Boundary crossings are located from output differences along a probe line, and
+        # the oracle quantizes to 1e-6. A narrow range packs the samples close together,
+        # which shrinks those differences and lets quantization dominate the localization.
+        # Widening the range costs no extra queries because the sample count is unchanged.
+        # Measured on mistral layer 28: range 6 gives R2 0.978190 and worst 1.195e-04,
+        # range 12 gives 0.992712 and 5.846e-05, range 24 gives 0.993663 and 5.421e-05.
+        # 12 is taken because 24 only adds 0.001 for twice the deviation from the setting
+        # the passing lanes were proven on. The passing mistral layer-11 block improves
+        # too, R2 0.999999920 to 0.999999950 and worst 9.755e-05 to 3.206e-05, so this is
+        # not a weak-block trade.
+        "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_LINE_RANGE": "12",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_OFFSET_SCALE": "0.75",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_SCALE": "512",
         "GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_NORMAL_DELTA": "0.10",
