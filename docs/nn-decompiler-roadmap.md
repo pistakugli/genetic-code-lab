@@ -1499,9 +1499,19 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
          Effect, measured: mistral layer `28` selects `0.9` and moves from R2
          `0.978313682106669` to `0.9937954126258921`, worst error `1.4947e-04` to
          `6.720740704713169e-05`. Mistral layer `11` selects `0.45`, reproduces
-         bit-identically, and still passes. Two of the three hand-picked
-         cold-start blocks also select `0.9` and continue to pass, so the rule is
-         not tuned to the single block it was derived from.
+         bit-identically, and still passes. One further distinct hand-picked
+         block, mistral layer `15`, also selects `0.9` and continues to pass, so
+         the rule is not tuned to the single block it was derived from.
+
+         Correction: an earlier revision of this paragraph said "two of the three
+         hand-picked cold-start blocks". There are two distinct hand-picked
+         blocks, not three. The single-case isolated lane and the cross-family
+         court's `mistral-4096d-layer15-output2048` case are the same block, the
+         same 16 units, the same output channel `2048` and the same seed
+         `260723`, and their artifacts agree to 16 significant digits. Counting
+         it twice overstated the weight of evidence. The substance survives,
+         because layer `15` is still a different block from the layer `28` the
+         rule was derived from, but the count was wrong.
 
          Not yet sufficient: layer `28` remains under the `0.999` bar, so this
          repairs the amplitude class without closing it. The three LLaMA cases

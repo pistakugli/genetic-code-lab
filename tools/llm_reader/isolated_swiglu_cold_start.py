@@ -353,7 +353,14 @@ def run_isolated(args: argparse.Namespace) -> int:
             check=False,
         )
         verifier_exit = verifier.returncode
-    if verifier_exit != 0:
+    # The verifier is the decompiler re-run with the same quality bars, so it exits
+    # non-zero for exactly the runs that fail. Raising here undid the earlier fix one
+    # layer down: the solver's artifacts were kept, and then this raise threw them away
+    # again before output_json was ever written, so a failing case still produced no
+    # report at all. As with the solver, a verifier that produced its report is a verdict,
+    # not a crash; only a verifier that produced nothing is still a hard error.
+    verifier_produced_report = verifier_report_path.is_file()
+    if verifier_exit != 0 and not verifier_produced_report:
         raise RuntimeError(
             f"post-hoc verifier failed: exit={verifier_exit}; "
             f"stderr={verifier_stderr_path.read_text(encoding='utf-8', errors='replace')[-4000:]}"
@@ -371,6 +378,8 @@ def run_isolated(args: argparse.Namespace) -> int:
     failures: list[str] = []
     if recovery_failed:
         failures.append(f"solver or oracle exited non-zero: solver={solver_exit} oracle={oracle_exit}")
+    if verifier_exit != 0:
+        failures.append(f"post-hoc verifier exited non-zero: {verifier_exit}")
     if solver_summary.get("pass") is not True:
         failures.append("isolated solver functional gate failed")
     if solver_forbidden_flags:
@@ -529,9 +538,14 @@ def run_isolated(args: argparse.Namespace) -> int:
             f"- paired atom minimum: `{source_alignment.get('pairedAtomMinJointCosine')}`",
             f"- paired atoms >= 0.99: `{source_alignment.get('pairedAtomCountAbove099')}/{atom_count}`",
             f"- raw oracle calls: `{solver_summary.get('rawOracleCalls')}/{max_oracle_calls}`",
-            "- solver teacher-manifest fields: `[]`",
-            "- solver truth capability: `false`",
-            "- post-hoc verifier starts after solver exit: `true`",
+            # These three were string literals, printed unchanged on every run. A reader
+            # of this markdown saw three isolation invariants presented as findings when
+            # they were constants: had the solver observed manifest fields or requested
+            # truth, the bullets would still have asserted the clean values. They now
+            # interpolate the same measured values the pass gate above checks.
+            f"- solver teacher-manifest fields: `{solver_access.get('teacherManifestFieldsObserved')}`",
+            f"- solver truth capability: `{str(bool(solver_access.get('truthCapabilityAvailableToSolver'))).lower()}`",
+            f"- post-hoc verifier starts after solver exit: `{str(bool(verifier_started_ns > solver_finished_ns)).lower()}`",
             "",
         ]),
         encoding="utf-8",

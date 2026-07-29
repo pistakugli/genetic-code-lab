@@ -629,6 +629,15 @@ const summary = {
   dimensions: [...new Set(rows.map(row => row.dimension))].sort((a, b) => a - b),
   unitCount: atomCount,
   quantizationStep,
+  // These aggregates only cover cases that produced a gated report. A case that dies
+  // before writing one carries NaN, and dropping those silently made a 1-of-6 run
+  // headline the single passing case's numbers as if they were court-wide: minR2 read
+  // 0.99999995 while five cases sat between 0.9927 and 0.99999. The coverage fields
+  // below make that impossible to read by accident, and the observed variants carry the
+  // solver's own progress values for the cases that have no gated report, so the real
+  // spread is visible even when the gated set is incomplete.
+  measuredCaseCount: finite(rows.map(row => row.r2)).length,
+  metricsCoverAllCases: finite(rows.map(row => row.r2)).length === rows.length,
   minR2: minOf(rows.map(row => row.r2)),
   maxMae: maxOf(rows.map(row => row.mae)),
   maxWorstError: maxOf(rows.map(row => row.worstError)),
@@ -638,6 +647,11 @@ const summary = {
   maxRawOracleCallsPerCase: maxOf(rows.map(row => row.rawOracleCalls)),
   totalRawOracleCalls: finite(rows.map(row => row.rawOracleCalls)).reduce((sum, value) => sum + value, 0),
   minTraceLineCount: minOf(rows.map(row => row.traceLineCount)),
+  minR2IncludingUngatedCases: minOf(rows.map(row => (Number.isFinite(row.r2) ? row.r2 : (row.diagnostics?.observedR2 ?? Number.NaN)))),
+  maxWorstErrorIncludingUngatedCases: maxOf(rows.map(row => (Number.isFinite(row.worstError) ? row.worstError : (row.diagnostics?.observedWorstError ?? Number.NaN)))),
+  totalRawOracleCallsIncludingUngatedCases: finite(
+    rows.map(row => (Number.isFinite(row.rawOracleCalls) ? row.rawOracleCalls : (row.diagnostics?.observedRawOracleCalls ?? Number.NaN)))
+  ).reduce((sum, value) => sum + value, 0),
   failures
 };
 
@@ -664,7 +678,9 @@ fs.writeFileSync(output.markdownOutputPath, [
   `- families: \`${summary.modelFamilies.join(', ')}\``,
   `- layer bands: \`${summary.layerBands.join(', ')}\``,
   `- oracle modes: \`${summary.oracleModes.join(', ')}\``,
-  `- min R2: \`${String(summary.minR2)}\``,
+  `- metric coverage: \`${summary.measuredCaseCount}/${summary.caseCount}\` cases produced a gated report`,
+  `- min R2 over gated cases: \`${String(summary.minR2)}\``,
+  `- min R2 including ungated cases: \`${String(summary.minR2IncludingUngatedCases)}\``,
   `- min paired atom cosine: \`${String(summary.minPairedAtomJointCosine)}\``,
   `- max oracle calls per case: \`${String(summary.maxRawOracleCallsPerCase)}/${maxOracleCalls}\``,
   '',

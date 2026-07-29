@@ -485,6 +485,87 @@ class ResidualBlockSelectionTest(unittest.TestCase):
         assert observed is not None
         self.assertGreater(abs(float(observed @ up)), 0.999999999)
 
+    def test_hessian_gate_action_recovers_up_direction_on_a_quiet_block(self) -> None:
+        """The test above uses unit vectors, so the action has norm of order one and sits
+        far above canonical_direction's absolute 1e-9 rejection floor. That is the regime
+        where the bug never existed. Real blocks differ in output amplitude by a factor of
+        237, and per-atom contributions by a further 105, so a weak atom on a quiet block
+        produces an action many orders smaller. Scaled down by 1e-8 the old code returned
+        None and the atom was discarded as unrecoverable."""
+        gate = np.array([0.4, -0.2, 0.7, -0.55])
+        gate /= np.linalg.norm(gate)
+        up = np.array([-0.3, 0.8, 0.25, 0.45])
+        up /= np.linalg.norm(up)
+        hessian_jump = (np.outer(gate, up) + np.outer(up, gate)) * 1e-8
+
+        observed = recover_up_direction_from_hessian_gate_action(gate, hessian_jump @ gate)
+
+        self.assertIsNotNone(observed)
+        assert observed is not None
+        self.assertGreater(abs(float(observed @ up)), 0.999999999)
+
+    def test_hessian_gate_action_rejects_a_degenerate_action(self) -> None:
+        """The amplitude fix must not turn the degeneracy test off.
+
+        Writing this test corrected a wrong assumption in the fix's own comment. For
+        `effective_up = action - 0.5 (gate.action) gate` with a unit gate, an action of
+        `c * gate` yields `0.5 c gate`, which is not a collapse. The map only degenerates
+        when the action itself vanishes, so that is what the guard has to catch, and it
+        has to catch it independently of amplitude."""
+        gate = np.array([0.4, -0.2, 0.7, -0.55])
+        gate /= np.linalg.norm(gate)
+
+        self.assertIsNone(recover_up_direction_from_hessian_gate_action(gate, np.zeros(4)))
+        self.assertIsNone(
+            recover_up_direction_from_hessian_gate_action(gate, np.array([np.nan, 0.0, 0.0, 0.0]))
+        )
+
+    def test_hessian_gate_action_direction_is_scale_invariant(self) -> None:
+        """The recovered direction must not depend on how loud the block is. This is the
+        property the amplitude fix is really claiming, so it is asserted directly rather
+        than inferred from one amplitude passing."""
+        gate = np.array([0.4, -0.2, 0.7, -0.55])
+        gate /= np.linalg.norm(gate)
+        up = np.array([-0.3, 0.8, 0.25, 0.45])
+        up /= np.linalg.norm(up)
+        action = (np.outer(gate, up) + np.outer(up, gate)) @ gate
+
+        loud = recover_up_direction_from_hessian_gate_action(gate, action)
+        quiet = recover_up_direction_from_hessian_gate_action(gate, action * 1e-9)
+
+        self.assertIsNotNone(loud)
+        self.assertIsNotNone(quiet)
+        assert loud is not None and quiet is not None
+        np.testing.assert_allclose(loud, quiet, rtol=1e-9, atol=1e-12)
+
+    def test_gate_normal_clustering_survives_amplitude_scaled_weights(self) -> None:
+        """cluster_repeated_gate_normals sums weights that carry the block's amplitude and
+        hands the sum to canonical_direction, which rejects below an absolute 1e-9. On a
+        quiet block a valid cluster was discarded as centre-undefined. Weights of 1e-10
+        reproduce that regime; the directions are identical to the loud case, so the only
+        thing under test is whether amplitude alone can destroy the clustering."""
+        rng = np.random.default_rng(1701)
+        directions = []
+        weights = []
+        for atom in range(3):
+            axis = np.zeros(4)
+            axis[atom] = 1.0
+            for repeat in range(7):
+                jitter = rng.normal(0.0, 0.01, size=4)
+                direction = axis + jitter
+                directions.append(direction / np.linalg.norm(direction))
+                weights.append((1.0 + 0.1 * repeat) * 1e-10)
+
+        observed = cluster_repeated_gate_normals(
+            np.vstack(directions),
+            np.asarray(weights, dtype=np.float64),
+            3,
+        )
+
+        self.assertEqual(len(observed), 3)
+        for cluster in observed:
+            self.assertEqual(cluster["support"], 7)
+
     def test_repeated_gate_normal_clustering_recovers_signed_direction_families(self) -> None:
         rng = np.random.default_rng(260729)
         truth = np.linalg.qr(rng.normal(size=(6, 6)))[0].T[:4]
@@ -791,6 +872,7 @@ class ResidualBlockSelectionTest(unittest.TestCase):
                 cubic_targets=np.array([0.7, -0.2]),
                 cubic_holdout_directions=np.array([[0.6, 0.8]]),
                 cubic_holdout_targets=np.array([0.11]),
+                access_audit=self._clean_snapshot_audit(),
             )
 
             observed = load_fit_snapshot(path, dimension=2, active_rank=2, atom_count=1)
@@ -799,6 +881,79 @@ class ResidualBlockSelectionTest(unittest.TestCase):
             np.testing.assert_allclose(observed["cubicTargets"], [0.7, -0.2])
             np.testing.assert_allclose(observed["cubicHoldoutDirections"], [[0.6, 0.8]])
             np.testing.assert_allclose(observed["cubicHoldoutTargets"], [0.11])
+
+    @staticmethod
+    def _clean_snapshot_audit() -> dict:
+        return {
+            "solverAccess": "oracle-only",
+            "weightsUsedBySolver": False,
+            "hooksUsedBySolver": False,
+            "truthRequestCount": 0,
+            "externalOracleTransport": True,
+        }
+
+    def _write_snapshot_with_audit(self, path: str, audit: dict) -> None:
+        save_fit_snapshot(
+            path,
+            basis=np.eye(2),
+            train_coords=np.array([[0.1, 0.2], [0.3, 0.4]]),
+            train_targets=np.array([0.5, 0.6]),
+            fit={
+                "gates": np.array([[1.0, 0.0]]),
+                "ups": np.array([[0.0, 1.0]]),
+                "scales": np.array([0.75]),
+                "bias": 0.01,
+                "mae": 0.02,
+                "mse": 0.0004,
+                "r2": 0.99,
+                "worstError": 0.03,
+                "restartCount": 4,
+            },
+            dimension=2,
+            active_rank=2,
+            atom_count=1,
+            gradient_witness_count=3,
+            eigenvalues=np.array([2.0, 1.0]),
+            energy_ratio=0.95,
+            fit_gradient_coords=np.array([[0.2, -0.1]]),
+            fit_gradient_targets=np.array([[0.3, 0.4]]),
+            cubic_directions=np.array([[1.0, 0.0], [0.0, 1.0]]),
+            cubic_targets=np.array([0.7, -0.2]),
+            cubic_holdout_directions=np.array([[0.6, 0.8]]),
+            cubic_holdout_targets=np.array([0.11]),
+            access_audit=audit,
+        )
+
+    def test_fit_snapshot_loader_rejects_a_run_that_requested_truth(self) -> None:
+        """The loader's access check used to read back constants the writer had just
+        written, so it could never refuse anything. It now reads measured state, and this
+        proves it actually refuses a snapshot whose producing run touched the truth
+        channel."""
+        audit = self._clean_snapshot_audit()
+        audit["truthRequestCount"] = 3
+        with tempfile.TemporaryDirectory() as raw_tmp:
+            path = str(Path(raw_tmp) / "fit.npz")
+            self._write_snapshot_with_audit(path, audit)
+            with self.assertRaises(RuntimeError) as caught:
+                load_fit_snapshot(path, dimension=2, active_rank=2, atom_count=1)
+            self.assertIn("requested truth", str(caught.exception))
+
+    def test_fit_snapshot_loader_rejects_a_run_that_used_hooks(self) -> None:
+        audit = self._clean_snapshot_audit()
+        audit["hooksUsedBySolver"] = True
+        with tempfile.TemporaryDirectory() as raw_tmp:
+            path = str(Path(raw_tmp) / "fit.npz")
+            self._write_snapshot_with_audit(path, audit)
+            with self.assertRaises(RuntimeError) as caught:
+                load_fit_snapshot(path, dimension=2, active_rank=2, atom_count=1)
+            self.assertIn("used hooks", str(caught.exception))
+
+    def test_fit_snapshot_loader_accepts_a_clean_run(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_tmp:
+            path = str(Path(raw_tmp) / "fit.npz")
+            self._write_snapshot_with_audit(path, self._clean_snapshot_audit())
+            observed = load_fit_snapshot(path, dimension=2, active_rank=2, atom_count=1)
+            np.testing.assert_allclose(observed["cubicTargets"], [0.7, -0.2])
 
     def test_symmetric_multiscale_retains_each_secant_witness(self) -> None:
         class Oracle:

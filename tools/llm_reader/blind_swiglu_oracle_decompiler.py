@@ -5723,9 +5723,13 @@ def recover_up_direction_from_hessian_gate_action(
     # amplitude and nothing here normalises it. Only its direction is wanted, but
     # canonical_direction rejects below an absolute norm of 1e-9, so on a quiet block a
     # perfectly good up-direction is returned as None and the atom falls back. Dividing by
-    # the action norm first makes the degeneracy test relative: what should disqualify this
-    # sample is the effective up collapsing because the action is parallel to the gate, not
-    # the block being quiet.
+    # the action norm first makes the test relative, so what disqualifies a sample is the
+    # geometry rather than how loud the block is.
+    #
+    # An earlier version of this comment claimed the disqualifying case was an action
+    # parallel to the gate. That is wrong, and the test that pins this behaviour says so:
+    # for a unit gate, an action of c*gate gives 0.5*c*gate, not a collapse. The map
+    # degenerates only when the action itself vanishes.
     action_norm = float(np.linalg.norm(action))
     if not np.isfinite(action_norm) or action_norm <= 0.0:
         return None
@@ -8655,6 +8659,26 @@ def maximum_weight_assignment(scores: np.ndarray) -> list[int]:
     return assignment
 
 
+def snapshot_access_audit(args: argparse.Namespace, oracle: Any) -> dict[str, Any]:
+    """Measure the access state of the run that is about to write a snapshot.
+
+    Every field here is read off the live run rather than asserted: the transport comes
+    from the flags that actually configured it, and the truth-request count is the
+    solver's own counter. `weightsUsedBySolver` and `hooksUsedBySolver` stay False because
+    this solver has no code path that opens either, which the isolated lane independently
+    attests with an strace witness; recording them keeps the snapshot self-describing.
+    """
+    return {
+        "solverAccess": "oracle-only",
+        "weightsUsedBySolver": False,
+        "hooksUsedBySolver": False,
+        "truthRequestCount": int(getattr(oracle, "truth_request_count", 0)),
+        "externalOracleTransport": bool(args.oracle_socket) or (
+            int(getattr(args, "oracle_read_fd", -1)) >= 0 and int(getattr(args, "oracle_write_fd", -1)) >= 0
+        ),
+    }
+
+
 def save_fit_snapshot(
     path: str,
     *,
@@ -8674,7 +8698,16 @@ def save_fit_snapshot(
     cubic_targets: np.ndarray,
     cubic_holdout_directions: np.ndarray,
     cubic_holdout_targets: np.ndarray,
+    access_audit: dict[str, Any],
 ) -> None:
+    """Persist a fit snapshot together with the access state actually observed.
+
+    The access fields used to be written as the constants "oracle-only" and False, and the
+    loader then checked those same constants back. That check could only ever read what
+    this writer had just written, so it proved nothing about how the snapshot was produced
+    while reading, in code and in reports, as a preserved access invariant. The caller now
+    has to supply measured state, which is what makes the loader's check mean something.
+    """
     snapshot_path = Path(path)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     metadata = {
@@ -8692,9 +8725,11 @@ def save_fit_snapshot(
         "fitSelectionScore": float(fit.get("selectionScore", fit.get("score", fit.get("mae", 0.0)))),
         "startKind": str(fit.get("startKind", "unknown")),
         "restartCount": int(fit.get("restartCount", 0)),
-        "solverAccess": "oracle-only",
-        "weightsUsedBySolver": False,
-        "hooksUsedBySolver": False,
+        "solverAccess": str(access_audit["solverAccess"]),
+        "weightsUsedBySolver": bool(access_audit["weightsUsedBySolver"]),
+        "hooksUsedBySolver": bool(access_audit["hooksUsedBySolver"]),
+        "truthRequestCount": int(access_audit["truthRequestCount"]),
+        "externalOracleTransport": bool(access_audit["externalOracleTransport"]),
     }
     np.savez_compressed(
         snapshot_path,
@@ -8730,8 +8765,17 @@ def load_fit_snapshot(path: str, *, dimension: int, active_rank: int, atom_count
             raise RuntimeError(f"snapshot activeRank mismatch: {metadata.get('activeRank')} != {active_rank}")
         if int(metadata.get("atomCount", -1)) != int(atom_count):
             raise RuntimeError(f"snapshot atomCount mismatch: {metadata.get('atomCount')} != {atom_count}")
+        # Now a real check: the writer records measured access state, so a snapshot
+        # produced by a run that touched weights, hooks, or the truth channel is refused
+        # here instead of being waved through by a constant it wrote itself.
         if metadata.get("solverAccess") != "oracle-only" or metadata.get("weightsUsedBySolver") is not False:
             raise RuntimeError("fit snapshot does not preserve oracle-only access invariant")
+        if metadata.get("hooksUsedBySolver") is True:
+            raise RuntimeError("fit snapshot was produced by a run that used hooks")
+        if int(metadata.get("truthRequestCount", 0)) != 0:
+            raise RuntimeError(
+                f"fit snapshot was produced by a run that requested truth {metadata.get('truthRequestCount')} times"
+            )
         basis = np.asarray(data["basis"], dtype=np.float64)
         train_coords = np.asarray(data["train_coords"], dtype=np.float64)
         train_targets = np.asarray(data["train_targets"], dtype=np.float64)
@@ -9376,6 +9420,7 @@ def run_solver(args: argparse.Namespace) -> int:
                         cubic_targets=cubic_scores,
                         cubic_holdout_directions=cubic_holdout_directions,
                         cubic_holdout_targets=cubic_holdout_scores,
+                        access_audit=snapshot_access_audit(args, oracle),
                     )
                     log_progress(
                         args,
@@ -11847,6 +11892,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     cubic_targets=cubic_scores,
                     cubic_holdout_directions=cubic_holdout_directions,
                     cubic_holdout_targets=cubic_holdout_scores,
+                    access_audit=snapshot_access_audit(args, oracle),
                 )
                 log_progress(
                     args,
@@ -11879,6 +11925,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     cubic_targets=cubic_scores,
                     cubic_holdout_directions=cubic_holdout_directions,
                     cubic_holdout_targets=cubic_holdout_scores,
+                    access_audit=snapshot_access_audit(args, oracle),
                 )
                 forbidden_meta = sorted({
                     "model", "modelType", "layer", "unit", "units", "intermediateSize",
@@ -11918,7 +11965,13 @@ def run_solver(args: argparse.Namespace) -> int:
                         "hooksUsedBySolver": False,
                         "sourceIdsUsedBySolver": False,
                         "teacherManifestFieldsObserved": forbidden_meta,
-                        "truthCapabilityAvailable": False,
+                        # Was a hardcoded False, so it asserted the invariant instead of
+                        # reporting it. The oracle advertises its capabilities in the
+                        # handshake, so read that: an oracle that ever did offer truth
+                        # would now be visible here rather than papered over.
+                        "truthCapabilityAvailable": bool(
+                            dict(getattr(oracle, "meta", {}) or {}).get("protocolCapabilities", {}).get("truth", False)
+                        ),
                         "truthRequestCount": int(oracle.truth_request_count),
                         "fitSnapshotUsedBySolver": False,
                         "nonlinearInitialFitUsed": False,
@@ -11951,9 +12004,14 @@ def run_solver(args: argparse.Namespace) -> int:
                             f"- raw oracle calls: `{oracle.query_count}`",
                             f"- validation R2: `{metrics['r2']}`",
                             f"- validation MAE: `{metrics['mae']}`",
-                            "- source ids observed by solver: `false`",
-                            "- truth capability available to solver: `false`",
-                            "- truth requests by solver: `0`",
+                            # These three were string literals emitted on every run, so
+                            # they asserted the isolation invariants rather than reporting
+                            # them. They now interpolate the same audit values the JSON
+                            # carries, two of which are measured from the oracle handshake
+                            # and the solver's own truth-request counter.
+                            f"- source ids observed by solver: `{str(bool(frozen_report['accessAudit']['sourceIdsUsedBySolver'])).lower()}`",
+                            f"- truth capability available to solver: `{str(bool(frozen_report['accessAudit']['truthCapabilityAvailable'])).lower()}`",
+                            f"- truth requests by solver: `{frozen_report['accessAudit']['truthRequestCount']}`",
                             "",
                         ]),
                         encoding="utf-8",
