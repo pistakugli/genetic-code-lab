@@ -1,7 +1,7 @@
 # Blind SwiGLU Frozen Recovery
 
 - pass: `true`
-- frozen SHA-256: `63c8e98dfec4d709096a39a32c5b9edf00c2852003eaa73ce0d02f840d5c500a`
+- frozen SHA-256: `534ef4bf72532a491724b223d4f2377f92745ea6eaba6c9eac8bf8bd7de38ec7`
 - raw oracle calls: `1204372`
 - validation R2: `0.9999998574297342`
 - validation MAE: `0.0003069224845170176`
