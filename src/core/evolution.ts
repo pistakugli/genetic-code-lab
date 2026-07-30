@@ -42,6 +42,7 @@ import { DiscoveryAgent, RefinedCandidate } from '../agents/discovery-agent';
 import { AsyncAgentBridge } from './async-agent-bridge';
 import { evaluateSPEA2Buffer } from './spea2';
 import { DomainAnalyzer, DomainProfile } from './domain-analyzer';
+import { generateTranscendentalSeeds } from './seed-templates';
 
 export type { EvolutionResult, EvolutionStats, EvolutionConfig, PopulationConfig };
 
@@ -2003,6 +2004,65 @@ export class EvolutionEngine<TInput = unknown, TOutput = unknown> {
       const targetIdx = size - 2 - injected;
       if (targetIdx < 0) break;
       this.currentBuffer.writeGenome(targetIdx, opcodes, [], new Float64Array([1]));
+      injected++;
+    }
+    this.injectTranscendentalSeeds(size - 2 - injected);
+  }
+
+  /**
+   * Inject the transcendental structural seeds from `core/seed-templates`.
+   *
+   * `generateTranscendentalSeeds` was written, exported, and then never imported by
+   * anything: dead code carrying damped-oscillator and decay skeletons that the rational
+   * and trigonometric scaffolds above do not cover. It also drew its constants from
+   * unseeded `Math.random()`, so it would have broken run-to-run reproducibility the moment
+   * it was connected; that is fixed at the source, and it now uses the seeded `random()`.
+   *
+   * It is wired here because this is where structural priors belong, and gated separately
+   * from the analytic scaffolds so its effect can be measured on its own. It is off by
+   * default: measured on the 4-task open-source smoke suite it changed neither winRate
+   * (0.75) nor comparableRate (1) nor any per-task MAE, so switching it on by default would
+   * be an unmeasured change to every search for no observed gain. Enable with
+   * GCL_TRANSCENDENTAL_SEED=1 on problems whose targets are exponential-times-periodic,
+   * which is the family these skeletons actually describe and which that suite does not
+   * contain.
+   */
+  private injectTranscendentalSeeds(startIndex: number): void {
+    if (
+      process.env.GCL_TRANSCENDENTAL_SEED !== '1'
+      || !this.currentBuffer
+      || this.fitnessMode !== 'regression'
+      || this.inputSize !== 1
+      || this.domainProfile?.domainClass === 'discrete'
+    ) {
+      return;
+    }
+
+    const allowed = new Set(this.getEffectiveOperatorSet());
+    // The skeletons are exp/trig products; without those operators they cannot be
+    // expressed and injecting them would corrupt the slot rather than seed it.
+    if (![OpCode.MUL, OpCode.EXP, OpCode.COS, OpCode.SIN].every(op => allowed.has(op))) return;
+
+    const maxGenomeSize = this.config.population.maxGenomeSize || 128;
+    const requested = Number(process.env.GCL_TRANSCENDENTAL_SEED_COUNT || '4');
+    const count = Math.max(1, Math.min(Number.isFinite(requested) ? requested : 4, 8));
+    const varMap = Array.from({ length: this.inputSize }, (_, i) => (i === 0 ? 'x' : `x${i}`));
+
+    let injected = 0;
+    for (const genome of generateTranscendentalSeeds(count)) {
+      const targetIdx = startIndex - injected;
+      if (targetIdx < 0) break;
+      let baked: { opcodes: OpCode[]; data: number[]; constants: number[] };
+      try {
+        baked = PostfixBridge.bake(genome, varMap);
+      } catch {
+        // A skeleton the bridge cannot express is skipped rather than written as a
+        // malformed genome; the slot keeps its random initialisation.
+        continue;
+      }
+      if (!baked.opcodes.length || baked.opcodes.length > maxGenomeSize) continue;
+      const packed = baked.opcodes.map((op, index) => PopulationBuffer.pack(op, baked.data[index] ?? 0));
+      this.currentBuffer.writeGenome(targetIdx, packed, [], new Float64Array(baked.constants));
       injected++;
     }
   }

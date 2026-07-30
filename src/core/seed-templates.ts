@@ -11,7 +11,7 @@
  */
 
 import { Genome, Gene } from './types';
-import { generateId } from '../utils/helpers';
+import { generateId, random } from '../utils/helpers';
 
 // Helper to create a terminal gene
 function terminal(op: string, value?: number): Gene {
@@ -86,28 +86,28 @@ export function buildSeedGenome(tree: TreeNode): Genome {
 export function generateTranscendentalSeeds(count: number): Genome[] {
   const templates: TreeNode[] = [
     // Pattern 1: mul(exp(mul(const, x)), cos(x))  -- Damped oscillator skeleton
-    ['mul', ['exp', ['mul', ['const', -0.5 + Math.random() * 0.4], 'x']], ['cos', 'x']],
+    ['mul', ['exp', ['mul', ['const', -0.5 + random() * 0.4], 'x']], ['cos', 'x']],
     
     // Pattern 2: mul(exp(mul(const, x)), cos(mul(const, x)))  -- Full damped oscillator
-    ['mul', ['exp', ['mul', ['const', -0.3 + Math.random() * 0.2], 'x']], ['cos', ['mul', ['const', 0.5 + Math.random()], 'x']]],
+    ['mul', ['exp', ['mul', ['const', -0.3 + random() * 0.2], 'x']], ['cos', ['mul', ['const', 0.5 + random()], 'x']]],
 
     // Pattern 3: mul(exp(neg(x)), sin(x))  -- Decay * sin variant
-    ['mul', ['exp', ['neg', ['mul', ['const', 0.05 + Math.random() * 0.2], 'x']]], ['sin', 'x']],
+    ['mul', ['exp', ['neg', ['mul', ['const', 0.05 + random() * 0.2], 'x']]], ['sin', 'x']],
 
     // Pattern 4: mul(exp(mul(const, x)), x)  -- Exponential growth/decay * linear
-    ['mul', ['exp', ['mul', ['const', -0.2 + Math.random() * 0.1], 'x']], 'x'],
+    ['mul', ['exp', ['mul', ['const', -0.2 + random() * 0.1], 'x']], 'x'],
 
     // Pattern 5: mul(cos(x), cos(x))  -- Trig product
-    ['mul', ['cos', 'x'], ['cos', ['mul', ['const', 0.5 + Math.random()], 'x']]],
+    ['mul', ['cos', 'x'], ['cos', ['mul', ['const', 0.5 + random()], 'x']]],
 
     // Pattern 6: add(mul(exp(neg(x)), cos(x)), const)  -- damped osc + offset
-    ['add', ['mul', ['exp', ['neg', ['mul', ['const', 0.05 + Math.random() * 0.15], 'x']]], ['cos', 'x']], ['const', Math.random() * 0.1]],
+    ['add', ['mul', ['exp', ['neg', ['mul', ['const', 0.05 + random() * 0.15], 'x']]], ['cos', 'x']], ['const', random() * 0.1]],
 
     // Pattern 7: mul(exp(mul(const, x)), sub(cos(x), sin(x)))  -- Complex oscillation
-    ['mul', ['exp', ['mul', ['const', -0.2 + Math.random() * 0.1], 'x']], ['sub', ['cos', 'x'], ['sin', 'x']]],
+    ['mul', ['exp', ['mul', ['const', -0.2 + random() * 0.1], 'x']], ['sub', ['cos', 'x'], ['sin', 'x']]],
 
     // Pattern 8: exp(mul(const, x))  -- Pure decay
-    ['exp', ['mul', ['const', -0.15 + Math.random() * 0.1], 'x']],
+    ['exp', ['mul', ['const', -0.15 + random() * 0.1], 'x']],
   ];
 
   const seeds: Genome[] = [];
@@ -116,14 +116,14 @@ export function generateTranscendentalSeeds(count: number): Genome[] {
     const templateIdx = i % templates.length;
     // Re-generate the template to get fresh random constants
     const freshTemplates: TreeNode[] = [
-      ['mul', ['exp', ['mul', ['const', -0.5 + Math.random() * 0.4], 'x']], ['cos', 'x']],
-      ['mul', ['exp', ['mul', ['const', -0.3 + Math.random() * 0.2], 'x']], ['cos', ['mul', ['const', 0.5 + Math.random()], 'x']]],
-      ['mul', ['exp', ['neg', ['mul', ['const', 0.05 + Math.random() * 0.2], 'x']]], ['sin', 'x']],
-      ['mul', ['exp', ['mul', ['const', -0.2 + Math.random() * 0.1], 'x']], 'x'],
-      ['mul', ['cos', 'x'], ['cos', ['mul', ['const', 0.5 + Math.random()], 'x']]],
-      ['add', ['mul', ['exp', ['neg', ['mul', ['const', 0.05 + Math.random() * 0.15], 'x']]], ['cos', 'x']], ['const', Math.random() * 0.1]],
-      ['mul', ['exp', ['mul', ['const', -0.2 + Math.random() * 0.1], 'x']], ['sub', ['cos', 'x'], ['sin', 'x']]],
-      ['exp', ['mul', ['const', -0.15 + Math.random() * 0.1], 'x']],
+      ['mul', ['exp', ['mul', ['const', -0.5 + random() * 0.4], 'x']], ['cos', 'x']],
+      ['mul', ['exp', ['mul', ['const', -0.3 + random() * 0.2], 'x']], ['cos', ['mul', ['const', 0.5 + random()], 'x']]],
+      ['mul', ['exp', ['neg', ['mul', ['const', 0.05 + random() * 0.2], 'x']]], ['sin', 'x']],
+      ['mul', ['exp', ['mul', ['const', -0.2 + random() * 0.1], 'x']], 'x'],
+      ['mul', ['cos', 'x'], ['cos', ['mul', ['const', 0.5 + random()], 'x']]],
+      ['add', ['mul', ['exp', ['neg', ['mul', ['const', 0.05 + random() * 0.15], 'x']]], ['cos', 'x']], ['const', random() * 0.1]],
+      ['mul', ['exp', ['mul', ['const', -0.2 + random() * 0.1], 'x']], ['sub', ['cos', 'x'], ['sin', 'x']]],
+      ['exp', ['mul', ['const', -0.15 + random() * 0.1], 'x']],
     ];
     seeds.push(buildSeedGenome(freshTemplates[templateIdx]));
   }
