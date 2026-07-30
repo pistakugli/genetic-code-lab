@@ -40,8 +40,13 @@ describe('Evolution Integration Tests', () => {
     const testArr = [3, 1, 4, 2];
     const ops = extractCompareExchanges(result.bestGenome, 4);
     const sorted = executeSortingNetwork(testArr, ops);
-    // Even if not perfectly sorted, it should be different from input
-    expect(sorted).not.toEqual(testArr);
+    // This asserted only that the output differed from the input, which any permutation
+    // satisfies including one that leaves the array less sorted than it started. The
+    // isSorted import at the top of this file was unused, which is what a weakened
+    // assertion leaves behind. A sorting network is either correct on this input or it is
+    // not, so that is what gets asserted.
+    expect(sorted).toEqual([1, 2, 3, 4]);
+    expect(isSorted(sorted)).toBe(true);
   });
 
   test('Pathfinding evolution should improve fitness', async () => {

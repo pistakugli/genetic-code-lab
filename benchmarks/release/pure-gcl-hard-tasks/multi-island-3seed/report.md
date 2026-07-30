@@ -1,6 +1,6 @@
 # Pure GCL hard-task diagnostic
 
-Generated: 2026-06-30T19:14:50.007Z
+Generated: 2026-07-30T17:39:37.415Z
 
 ## Scope
 

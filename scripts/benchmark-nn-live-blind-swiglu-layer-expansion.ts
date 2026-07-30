@@ -1,6 +1,7 @@
 #!/usr/bin/env ts-node
 
 import { spawnSync } from 'child_process';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { resolveBenchmarkOutput, writeBenchmarkManifest } from './benchmark-paths';
@@ -286,6 +287,7 @@ const caseResults: Array<{
   case: ExpansionCase;
   sweepVariant: string;
   sweepReportPath: string;
+  sweepReportSha256?: string;
   pass: boolean;
   failures: string[];
   sweepSummary?: SweepSummary;
@@ -405,9 +407,22 @@ for (const testCase of cases) {
   const sweepReportPath = sweepAggregatePath(sweepVariant);
   const failures: string[] = [];
   let sweepSummary: SweepSummary | undefined;
+  // This lane does not carry its own evidence: it copies the summary out of a shared
+  // report in the oracle-decompiler lane, and later runs overwrite that file. An audit
+  // found 209 of 241 such citations no longer matching what they cite, and two variants
+  // published pass while their cited witness had since been rewritten to fail. The
+  // reference was to a mutable path, so nothing detected the drift.
+  //
+  // Recording the digest of the exact bytes this run read turns the citation into a
+  // content address. It cannot stop the target being overwritten, but it makes the
+  // divergence provable afterwards instead of invisible, which is what
+  // :verify-citations now checks.
+  let sweepReportSha256: string | undefined;
   if (!fs.existsSync(sweepReportPath)) failures.push('missing sweep report.json');
   else {
-    const sweepReport = JSON.parse(fs.readFileSync(sweepReportPath, 'utf8')) as SweepReport;
+    const sweepReportBytes = fs.readFileSync(sweepReportPath);
+    sweepReportSha256 = crypto.createHash('sha256').update(sweepReportBytes).digest('hex');
+    const sweepReport = JSON.parse(sweepReportBytes.toString('utf8')) as SweepReport;
     sweepSummary = sweepReport.summary;
     if (!sweepSummary.pass) failures.push('sweep summary pass=false');
     if (!sweepSummary.accessInvariant) failures.push('accessInvariant=false');
@@ -419,6 +434,7 @@ for (const testCase of cases) {
     case: testCase,
     sweepVariant,
     sweepReportPath: path.relative(repoRoot, sweepReportPath),
+    sweepReportSha256,
     pass: failures.length === 0,
     failures,
     sweepSummary

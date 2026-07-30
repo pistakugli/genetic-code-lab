@@ -24,6 +24,11 @@ type BoundaryAudit = {
 };
 
 export class DiscoveryAgent {
+    /** Stagnation count at which mutation intensity reaches its cap. */
+    private static readonly STAGNATION_INTENSITY_SPAN = 20;
+    /** Ceiling on mutation intensity, so a long plateau cannot become a random walk. */
+    private static readonly MAX_MUTATION_INTENSITY = 3.0;
+
     private problemMemory: Map<string, any[]> = new Map();
     private lastBestFitPerProblem: Map<string, number> = new Map();
     private currentAction: string | null = null;
@@ -278,8 +283,54 @@ export class DiscoveryAgent {
         }
     }
 
+    /**
+     * Derive a diversity bias and a mutation intensity from the live island statistics.
+     *
+     * This returned `{ avgBias: 0.5, globalIntensity: 1.0 }` unconditionally and never read
+     * `stats`, so a function named "analyze" on a live path analysed nothing. The two
+     * numbers it produces feed `getDiversityBias` and `getMutationIntensity`, which is
+     * exactly the wrong place for a constant: a search that cannot tell a stalled,
+     * collapsed population from a healthy one will keep applying the same pressure to both.
+     *
+     * Each caller reports `populationEntropy` (normalised structural diversity),
+     * `stagnationCount` (generations since the best fitness improved) and `bestFitness`.
+     * Both outputs are computed from those and clamped to the ranges the consumers expect:
+     *
+     * - `avgBias` rises as entropy falls, so selection is pushed toward diversity exactly
+     *   when the population is converging. It is the mean over islands of `1 - entropy`.
+     * - `globalIntensity` starts at the neutral 1.0 and grows with sustained stagnation,
+     *   capped at 3.0 so a long plateau cannot turn the search into a random walk. Islands
+     *   that are still improving hold it at neutral.
+     *
+     * Both formulas are monotone in a single input, which keeps the behaviour predictable
+     * and lets `tests/discovery-agent-dynamics.test.ts` pin the directions rather than the
+     * exact constants.
+     */
     public analyzeMultiIslandDynamics(stats: any[]): { avgBias: number, globalIntensity: number } {
-        return { avgBias: 0.5, globalIntensity: 1.0 };
+        const rows = Array.isArray(stats) ? stats.filter(row => row && typeof row === 'object') : [];
+        if (rows.length === 0) return { avgBias: 0.5, globalIntensity: 1.0 };
+
+        const finite = (value: unknown, fallback: number): number =>
+            typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+
+        // Entropy is reported normalised; clamp defensively so a caller that reports an
+        // out-of-range value cannot push the bias outside [0, 1].
+        const biases = rows.map(row => 1 - Math.min(1, Math.max(0, finite(row.populationEntropy, 0.5))));
+        const avgBias = biases.reduce((sum, value) => sum + value, 0) / biases.length;
+
+        // The worst-stalled island sets the pressure: one island stuck for many generations
+        // is the case this signal exists to react to, and averaging would hide it.
+        const worstStagnation = rows.reduce(
+            (worst, row) => Math.max(worst, Math.max(0, finite(row.stagnationCount, 0))),
+            0
+        );
+        const stagnationRamp = Math.min(1, worstStagnation / DiscoveryAgent.STAGNATION_INTENSITY_SPAN);
+        const globalIntensity = 1.0 + stagnationRamp * (DiscoveryAgent.MAX_MUTATION_INTENSITY - 1.0);
+
+        return {
+            avgBias: Math.min(1, Math.max(0, avgBias)),
+            globalIntensity: Math.min(DiscoveryAgent.MAX_MUTATION_INTENSITY, Math.max(1.0, globalIntensity))
+        };
     }
 
     private generateLogicMotifs(type: LogicMotifType, selectorBits: number[] = [], dataBits: number[] = []): LogicMotifSeed[] {

@@ -98,6 +98,8 @@ export class EvolutionEngine<TInput = unknown, TOutput = unknown> {
   public onStats?: (stats: any) => void;
   public preferredSource?: number;
   private currentMutationIntensity: number = 1.0;
+  /** Diversity-driven multiplier on the configured mutation rate; 1.0 means unmodified. */
+  private diversityMutationBoost: number = 1.0;
   private caseScratch: Uint32Array = new Uint32Array(0);
   private casePressure: Float64Array = new Float64Array(0);
   private boundaryCaseMask: Uint8Array = new Uint8Array(0);
@@ -2166,6 +2168,24 @@ export class EvolutionEngine<TInput = unknown, TOutput = unknown> {
         };
         if (this.agentBridge) {
           this.agentBridge.pushGlobalAnalytics([problemStats], 'CURRENT_PROBLEM');
+          // getMutationIntensity had no caller anywhere in the tree, so the analytics the
+          // bridge computed each cycle were written to a field and dropped. Raising the
+          // floor rather than assigning keeps an explicit agent command, which sets a
+          // deliberately higher value, from being overwritten by the routine signal.
+          const analyticIntensity = this.agentBridge.getMutationIntensity();
+          if (Number.isFinite(analyticIntensity) && analyticIntensity > this.currentMutationIntensity) {
+            this.currentMutationIntensity = analyticIntensity;
+          }
+          // getDiversityBias had no caller either. The bias is high exactly when the
+          // population has converged, which is when mutation probability should rise, so
+          // it scales the configured rate by at most 1.5x and never below it. Bounded and
+          // one-directional on purpose: this runs every fifth generation on a live search,
+          // and an unbounded feedback term there is how a search turns into a random walk.
+          const diversityBias = this.agentBridge.getDiversityBias();
+          if (Number.isFinite(diversityBias)) {
+            const clamped = Math.min(1, Math.max(0, diversityBias));
+            this.diversityMutationBoost = 1 + 0.5 * clamped;
+          }
           const bridgeCommand = this.agentBridge.pollCommand();
           if (bridgeCommand) this.applyCommand(bridgeCommand);
         }
@@ -2449,7 +2469,7 @@ export class EvolutionEngine<TInput = unknown, TOutput = unknown> {
         this.nextBuffer!.copyGenome(p1, i, this.currentBuffer!);
       }
 
-      if (random() < this.config.population.mutationRate) {
+      if (random() < Math.min(1, this.config.population.mutationRate * this.diversityMutationBoost)) {
         const mutationIntensity = parsimonyActive
           ? Math.max(1, this.currentMutationIntensity * 0.75)
           : Math.max(1, this.currentMutationIntensity);
