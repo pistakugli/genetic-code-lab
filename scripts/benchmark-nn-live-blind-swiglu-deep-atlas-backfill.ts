@@ -234,10 +234,19 @@ function readResult(testCase: BackfillCase, reportPath: string, skippedExisting:
     };
   }
   const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  // `status` was recorded and then never consulted: pass came from the report on disk
+  // alone. So a child that OOMed or hit the timeout after an earlier successful run left
+  // report.json in place scored as a pass, and the lane claimed a backfill it never
+  // performed. A run that actually executed must agree with its own exit code; a skipped
+  // case has no exit code to agree with, which is why skippedExisting is excluded here and
+  // counted separately in the summary.
+  const exitCodeAgrees = skippedExisting || status === 0;
   return {
     ...testCase,
     reportPath: path.relative(repoRoot, reportPath),
-    pass: Boolean(report.summary?.pass),
+    pass: Boolean(report.summary?.pass) && exitCodeAgrees,
+    reportPass: Boolean(report.summary?.pass),
+    exitCodeAgrees,
     status,
     r2: report.summary?.metrics?.r2,
     mae: report.summary?.metrics?.mae,

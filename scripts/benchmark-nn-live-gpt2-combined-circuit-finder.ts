@@ -100,3 +100,19 @@ if (result.status !== 0) {
   console.error(JSON.stringify({ pass: false, summary }, null, 2));
   process.exit(result.status ?? 1);
 }
+
+// The wrapper's verdict used to be the child's exit code alone, so a child that exited 0
+// while writing summary.pass false, or that exited 0 without writing report.json at all,
+// produced a manifest reading "status": "fail" from a process that exited 0. Four of these
+// wrappers are release-gated, where runStep only sees the exit status and would mark the
+// step green against a failing manifest on disk. The Python tools currently raise
+// SystemExit(1) themselves, so this is defence in depth rather than a live false pass, but
+// the TypeScript side must not depend on that to stay honest.
+if (!fs.existsSync(output.jsonOutputPath)) {
+  console.error(JSON.stringify({ pass: false, reason: 'missing report.json', summary }, null, 2));
+  process.exit(1);
+}
+if (summary?.pass !== true) {
+  console.error(JSON.stringify({ pass: false, reason: 'report does not report pass', summary }, null, 2));
+  process.exit(1);
+}

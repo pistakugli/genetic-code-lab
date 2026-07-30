@@ -426,8 +426,42 @@ for (const testCase of cases) {
 }
 
 const summaries = caseResults.map(result => result.sweepSummary).filter((summary): summary is SweepSummary => Boolean(summary));
+
+// A caseSpec can override the lane's own quality bars, which is legitimate for a smoke or
+// exploration run. What was not legitimate is that 23 variants ran with
+// `0.0:999:0.0:999`, bars that cannot fail, and still published `pass` with measured MAE
+// between 0.0765 and 0.1116 while sibling variants on the same model and layer used
+// 0.015. `pass` there meant "the process completed", not what `pass` means elsewhere in
+// the same lane.
+//
+// The relaxed mode stays available. What changes is that the artifact has to say so: a run
+// whose effective bars are weaker than the lane's release defaults cannot report `pass`,
+// and the deltas are recorded so a reader sees exactly which bar was loosened and by how
+// much.
+const laneReleaseThresholds = {
+  minR2: Number(envValue('GCL_LAYER_EXPANSION_RELEASE_MIN_R2', '0.995')),
+  maxMae: Number(envValue('GCL_LAYER_EXPANSION_RELEASE_MAX_MAE', '0.015')),
+  maxWorstError: Number(envValue('GCL_LAYER_EXPANSION_RELEASE_MAX_WORST_ERROR', '0.12')),
+  minSubspaceCosine: Number(envValue('GCL_LAYER_EXPANSION_RELEASE_MIN_SUBSPACE_COSINE', '0.98'))
+};
+const relaxedThresholdCases = expansionCases
+  .map(testCase => {
+    const weakened: string[] = [];
+    if (testCase.minR2 < laneReleaseThresholds.minR2) weakened.push(`minR2 ${testCase.minR2} < ${laneReleaseThresholds.minR2}`);
+    if (testCase.maxMae > laneReleaseThresholds.maxMae) weakened.push(`maxMae ${testCase.maxMae} > ${laneReleaseThresholds.maxMae}`);
+    if (testCase.maxWorstError > laneReleaseThresholds.maxWorstError) weakened.push(`maxWorstError ${testCase.maxWorstError} > ${laneReleaseThresholds.maxWorstError}`);
+    if (testCase.minSubspaceCosine < laneReleaseThresholds.minSubspaceCosine) weakened.push(`minSubspaceCosine ${testCase.minSubspaceCosine} < ${laneReleaseThresholds.minSubspaceCosine}`);
+    return weakened.length ? { case: `${testCase.family}:${testCase.layer}:${testCase.unitCount}`, weakened } : null;
+  })
+  .filter((entry): entry is { case: string; weakened: string[] } => entry !== null);
+const thresholdsMeetLaneRelease = relaxedThresholdCases.length === 0;
+
 const summary = {
-  pass: caseResults.every(result => result.pass),
+  pass: thresholdsMeetLaneRelease && caseResults.every(result => result.pass),
+  casesPassedAtConfiguredThresholds: caseResults.every(result => result.pass),
+  thresholdsMeetLaneRelease,
+  laneReleaseThresholds,
+  relaxedThresholdCases,
   caseCount: caseResults.length,
   passedCases: caseResults.filter(result => result.pass).length,
   failedCases: caseResults.filter(result => !result.pass).length,
@@ -518,13 +552,24 @@ fs.writeFileSync(
 );
 writeBenchmarkManifest(repoRoot, output, {
   lane,
-  status: summary.pass ? 'pass' : 'fail',
+  // A run under relaxed bars is neither a pass nor a failure of the recovery, so it is
+  // recorded as `generated`: the work happened, the artifact exists, and it is not release
+  // evidence.
+  status: summary.pass ? 'pass' : (summary.casesPassedAtConfiguredThresholds ? 'generated' : 'fail'),
   summary,
   notes: [
     'Runs configured real-model multi-unit SwiGLU layer expansion through the oracle-only sweep runner.',
-    'This gate is intended to push beyond selected 8-unit blocks while preserving solver access invariants.'
+    'This gate is intended to push beyond selected 8-unit blocks while preserving solver access invariants.',
+    'A caseSpec may relax the quality bars for smoke or exploration runs. When it does, thresholdsMeetLaneRelease is false, relaxedThresholdCases lists what was loosened, and the artifact is marked generated rather than pass.'
   ]
 });
 
 console.log(JSON.stringify(summary, null, 2));
+if (!thresholdsMeetLaneRelease) {
+  console.error(
+    `[layer-expansion] not release evidence: ran below the lane's release bars ` +
+    `(${relaxedThresholdCases.map(entry => `${entry.case}: ${entry.weakened.join(', ')}`).join(' | ')}). ` +
+    `Cases passed at the configured bars: ${summary.casesPassedAtConfiguredThresholds}.`
+  );
+}
 if (!summary.pass) process.exit(1);

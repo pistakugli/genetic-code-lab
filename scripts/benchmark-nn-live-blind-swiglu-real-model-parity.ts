@@ -153,18 +153,33 @@ function accessInvariant(report: JsonRecord, summary: JsonRecord): boolean {
 }
 
 function assertModelWitness(input: ParityInput, summary: JsonRecord): string[] {
+  // Every check here used to be skipped when its field was absent, so a source report
+  // carrying no dimension, modelType or model satisfied all three. This gate's stated job
+  // is to separate real 4096D Mistral and 3072D LLaMA parity from synthetic teacher
+  // claims, which makes an identity witness that degrades to a pass on absence the one
+  // thing it must not do. A missing witness is now a failure, and a wrong witness stays a
+  // failure. Dimension is required unconditionally; the model identity fields are required
+  // for the family whose identity this gate asserts.
   const failures: string[] = [];
   const observedDimension = optionalNumber(summary.dimension);
-  if (observedDimension !== undefined && observedDimension !== input.dimension) {
+  if (observedDimension === undefined) {
+    failures.push(`${input.id}: source report carries no dimension witness`);
+  } else if (observedDimension !== input.dimension) {
     failures.push(`${input.id}: dimension=${observedDimension}<expected ${input.dimension}`);
   }
-  const observedModelType = summary.modelType;
-  if (input.modelFamily === 'LLaMA-family' && observedModelType !== undefined && observedModelType !== 'llama') {
-    failures.push(`${input.id}: modelType=${String(observedModelType)}<expected llama`);
-  }
-  const observedModel = summary.model;
-  if (input.modelFamily === 'LLaMA-family' && observedModel !== undefined && observedModel !== input.modelId) {
-    failures.push(`${input.id}: model=${String(observedModel)}<expected ${input.modelId}`);
+  if (input.modelFamily === 'LLaMA-family') {
+    const observedModelType = summary.modelType;
+    if (observedModelType === undefined) {
+      failures.push(`${input.id}: source report carries no modelType witness`);
+    } else if (observedModelType !== 'llama') {
+      failures.push(`${input.id}: modelType=${String(observedModelType)}<expected llama`);
+    }
+    const observedModel = summary.model;
+    if (observedModel === undefined) {
+      failures.push(`${input.id}: source report carries no model identity witness`);
+    } else if (observedModel !== input.modelId) {
+      failures.push(`${input.id}: model=${String(observedModel)}<expected ${input.modelId}`);
+    }
   }
   return failures;
 }
@@ -210,7 +225,21 @@ function randomizedRow(input: ParityInput, report: JsonRecord): { row: ParityRow
     atomCount: asNumber(summary.maxAtomCount, `${input.id}.summary.maxAtomCount`),
     accessInvariant: accessInvariant(report, summary)
   };
-  return { row, failures: assertModelWitness(input, summary) };
+  // An aggregate sweep does not carry the model identity at the top level; each case does,
+  // under cases[].summary. Reading only the top level meant the witness was always absent
+  // here, which the old optional checks silently accepted. Every case must now carry the
+  // witness and every case must agree, so a sweep that mixed families or dimensions is
+  // caught rather than averaged away.
+  const cases = Array.isArray(report.cases) ? report.cases : [];
+  if (cases.length === 0) {
+    return { row, failures: [`${input.id}: aggregate report carries no cases to witness`] };
+  }
+  const failures = cases.flatMap((entry, index) => {
+    const caseRecord = asRecord(entry, `${input.id}.cases[${index}]`);
+    const caseSummary = asRecord(caseRecord.summary, `${input.id}.cases[${index}].summary`);
+    return assertModelWitness({ ...input, id: `${input.id}.cases[${index}]` }, caseSummary);
+  });
+  return { row, failures };
 }
 
 function buildRow(input: ParityInput): { row: ParityRow; failures: string[] } {

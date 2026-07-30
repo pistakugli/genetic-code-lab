@@ -99,28 +99,39 @@ function main(): void {
 
   let gclWinnerCount = 0;
   let gclComparableCount = 0;
-  const failures: string[] = [];
+  // These used to be one list, asserted only in pure-smoke. The release gate runs this
+  // script in hybrid-production (package.json benchmark:gcl-hybrid:gate, release-gate.ts),
+  // where the list was computed and thrown away, and it was not printed either. A degraded
+  // gplearn/deap venv turns into failedRun rows rather than a throw upstream, so a lane
+  // whose whole purpose is comparison against open-source baselines could pass with no
+  // working baseline at all.
+  //
+  // Split by what the check actually proves. Integrity failures say whether the benchmark
+  // ran at all with the baselines it claims to compare against; those bind in every mode.
+  // Pure-GCL quality claims stay mode-gated, because hybrid-production is not making them.
+  const integrityFailures: string[] = [];
+  const pureGclFailures: string[] = [];
 
   for (const taskId of taskIds) {
     const rows = report.summary.filter(row => row.taskId === taskId);
     for (const baseline of requiredBaselines) {
       const row = rows.find(candidate => candidate.baseline === baseline);
       if (!row) {
-        failures.push(`${taskId}/${baseline}: missing summary row`);
+        integrityFailures.push(`${taskId}/${baseline}: missing summary row`);
         continue;
       }
-      if (row.runs <= 0) failures.push(`${taskId}/${baseline}: no runs`);
-      if (row.failedRuns !== 0) failures.push(`${taskId}/${baseline}: failedRuns=${row.failedRuns}`);
-      if (!Number.isFinite(row.meanMae)) failures.push(`${taskId}/${baseline}: non-finite meanMae`);
+      if (row.runs <= 0) integrityFailures.push(`${taskId}/${baseline}: no runs`);
+      if (row.failedRuns !== 0) integrityFailures.push(`${taskId}/${baseline}: failedRuns=${row.failedRuns}`);
+      if (!Number.isFinite(row.meanMae)) integrityFailures.push(`${taskId}/${baseline}: non-finite meanMae`);
     }
 
     const gcl = rows.find(row => row.baseline === 'gcl');
     if (!gcl) continue;
-    if (gcl.successRate < 1) failures.push(`${taskId}/gcl: successRate=${gcl.successRate}`);
+    if (gcl.successRate < 1) pureGclFailures.push(`${taskId}/gcl: successRate=${gcl.successRate}`);
 
     const externalRows = rows.filter(row => row.baseline === 'gplearn' || row.baseline === 'deap');
     if (externalRows.length === 0) {
-      failures.push(`${taskId}: no external baseline rows`);
+      integrityFailures.push(`${taskId}: no external baseline rows`);
       continue;
     }
     const bestExternalMae = Math.min(...externalRows.map(row => row.meanMae));
@@ -128,8 +139,13 @@ function main(): void {
     if (gcl.meanMae <= bestExternalMae * 1.05 + 1e-12) gclComparableCount++;
   }
 
+  // Binds in every mode, including hybrid-production.
+  assert(
+    integrityFailures.length === 0,
+    `open-source benchmark integrity failures (${gateMode}):\n${integrityFailures.join('\n')}`
+  );
   if (gateMode === 'pure-smoke') {
-    assert(failures.length === 0, `open-source benchmark smoke gate failures:\n${failures.join('\n')}`);
+    assert(pureGclFailures.length === 0, `open-source benchmark smoke gate failures:\n${pureGclFailures.join('\n')}`);
   }
 
   const minimumWinRate = parsePositiveRatio('GCL_OPEN_SOURCE_GATE_MIN_WIN_RATE', 0.75);
@@ -170,6 +186,13 @@ function main(): void {
       minimumComparableRate,
       gateMode
     },
+    // Both lists were absent from this output, so a reader could not see what had been
+    // checked, let alone what had been skipped. Reaching this line means integrity is
+    // empty in every mode; pureGclFailures is only asserted in pure-smoke, so printing it
+    // shows what hybrid-production deliberately does not enforce.
+    integrityFailures,
+    pureGclFailures,
+    pureGclFailuresEnforced: gateMode === 'pure-smoke',
     claimAudit: report.claimAudit,
     note: gateMode === 'hybrid-production'
       ? 'Hybrid production gate. This establishes the gated hybrid capability only, not a pure-GCL public superiority claim.'
