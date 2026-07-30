@@ -449,7 +449,11 @@ function metrics(actual: number[], predicted: number[]): { mae: number; rmse: nu
   return {
     mae: absolute / count,
     rmse: Math.sqrt(squared / count),
-    r2: total > 0 ? 1 - squared / total : 1
+    // See the note in deep-blackbox-relu2d-region-graph: a zero-variance target made R2
+    // report a perfect 1 no matter what was predicted, which auto-passes the R2 bar.
+    r2: total > 0
+      ? 1 - squared / total
+      : (squared <= 1e-12 * Math.max(meanActual * meanActual * count, 1e-300) ? 1 : 0)
   };
 }
 

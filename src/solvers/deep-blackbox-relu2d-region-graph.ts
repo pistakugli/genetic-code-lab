@@ -237,7 +237,7 @@ function aggregate(values: number[], mode: 'mean' | 'median'): number {
     : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-function regressionQuality(actual: number[], predicted: number[]): { mae: number; r2: number } {
+export function regressionQuality(actual: number[], predicted: number[]): { mae: number; r2: number } {
   const count = Math.max(1, actual.length);
   const meanActual = actual.reduce((sum, value) => sum + value, 0) / count;
   let absoluteError = 0;
@@ -252,7 +252,16 @@ function regressionQuality(actual: number[], predicted: number[]): { mae: number
   }
   return {
     mae: absoluteError / count,
-    r2: total > 1e-20 ? 1 - residual / total : 1
+    // On a constant target the variance is zero and R2 is undefined, but the prediction
+    // is still either right or wrong. Returning 1 unconditionally meant a degenerate
+    // validation slice auto-passed every R2 bar in this file regardless of how badly the
+    // model predicted that constant. A model that reproduces the constant scores 1; one
+    // that does not scores 0, which is what "no better than predicting the mean" means
+    // here. The residual is compared against the data's own magnitude so the test does not
+    // depend on the absolute scale of the block.
+    r2: total > 1e-20
+      ? 1 - residual / total
+      : (residual <= 1e-12 * Math.max(meanActual * meanActual * count, 1e-300) ? 1 : 0)
   };
 }
 

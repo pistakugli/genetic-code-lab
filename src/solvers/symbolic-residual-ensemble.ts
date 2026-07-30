@@ -262,7 +262,11 @@ export function regressionMetrics(actual: number[], predicted: number[]): Regres
   return {
     mae: abs / n,
     rmse: Math.sqrt(ssRes / n),
-    r2: ssTot > 0 ? 1 - ssRes / ssTot : 1
+    // See the note in deep-blackbox-relu2d-region-graph: a zero-variance target made R2
+    // report a perfect 1 no matter what was predicted, which auto-passes the R2 bar.
+    r2: ssTot > 0
+      ? 1 - ssRes / ssTot
+      : (ssRes <= 1e-12 * Math.max(mean * mean * n, 1e-300) ? 1 : 0)
   };
 }
 
