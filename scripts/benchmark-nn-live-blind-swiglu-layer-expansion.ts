@@ -288,6 +288,7 @@ const caseResults: Array<{
   sweepVariant: string;
   sweepReportPath: string;
   sweepReportSha256?: string;
+  citedSweepReportCopy?: string;
   pass: boolean;
   failures: string[];
   sweepSummary?: SweepSummary;
@@ -418,10 +419,21 @@ for (const testCase of cases) {
   // divergence provable afterwards instead of invisible, which is what
   // :verify-citations now checks.
   let sweepReportSha256: string | undefined;
+  let citedSweepReportCopy: string | undefined;
   if (!fs.existsSync(sweepReportPath)) failures.push('missing sweep report.json');
   else {
     const sweepReportBytes = fs.readFileSync(sweepReportPath);
     sweepReportSha256 = crypto.createHash('sha256').update(sweepReportBytes).digest('hex');
+    // Recording the digest makes drift provable, but it does not stop the cited file from
+    // being overwritten, and a variant whose evidence lives somewhere else is only ever one
+    // rerun away from citing numbers it never published. Keeping the bytes here makes the
+    // citation self-contained: the copy is immutable from this lane's point of view, so the
+    // class of bug that produced 210 stale references cannot recur for artifacts written
+    // from now on, whatever later runs do to the shared path.
+    fs.mkdirSync(output.outputDir, { recursive: true });
+    const citedCopyName = `cited-sweep-report-${sweepVariant}.json`;
+    fs.writeFileSync(path.join(output.outputDir, citedCopyName), sweepReportBytes);
+    citedSweepReportCopy = citedCopyName;
     const sweepReport = JSON.parse(sweepReportBytes.toString('utf8')) as SweepReport;
     sweepSummary = sweepReport.summary;
     if (!sweepSummary.pass) failures.push('sweep summary pass=false');
@@ -435,6 +447,7 @@ for (const testCase of cases) {
     sweepVariant,
     sweepReportPath: path.relative(repoRoot, sweepReportPath),
     sweepReportSha256,
+    citedSweepReportCopy,
     pass: failures.length === 0,
     failures,
     sweepSummary

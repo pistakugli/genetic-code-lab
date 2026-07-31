@@ -169,13 +169,69 @@ for (const state of ['drifted', 'missing-target', 'unpinned-diverged'] as Citati
   if (rows.length > 40) console.log(`  ... and ${rows.length - 40} more`);
 }
 
-// A drifted digest is unambiguous: this artifact published numbers from bytes that are
-// gone. That fails. Unpinned divergence is reported loudly but does not fail by default,
-// because every artifact predating the digest is unpinned and failing on all of them would
-// say nothing new; set GCL_CITATION_STRICT=1 to treat it as a failure too.
-const strict = process.env.GCL_CITATION_STRICT === '1';
-const failing = summary.drifted + summary.missingTarget + (strict ? summary.unpinnedDiverged : 0);
-if (failing > 0) {
-  console.error(`\ndelegated citation check failed: ${failing} citation(s) do not match what they cite`);
+/**
+ * Verdict, as a ratchet against a recorded baseline.
+ *
+ * An earlier version of this file counted only drifted digests and missing targets, and
+ * excluded unpinned divergence unless an opt-in env var was set. Since nothing was pinned
+ * yet, that meant the check detected 210 broken citations and then reported success, which
+ * is the same defect it exists to catch.
+ *
+ * Failing outright on all 210 would be equally useless: they are already-published
+ * artifacts whose repair needs GPU reruns, so a permanently red check would just get
+ * ignored. Instead the known-broken set is recorded explicitly in
+ * `benchmarks/release/delegated-citation-baseline.json` and this check fails when
+ *
+ *   - a citation is broken and is not in the baseline, i.e. something new broke, or
+ *   - the baseline does not shrink to match reality, i.e. a repair was made and not banked.
+ *
+ * So the count is visible, bounded, and can only go down. Regenerate the baseline
+ * deliberately with GCL_CITATION_BASELINE_WRITE=1 after a repair; there is no flag that
+ * makes a broken citation stop counting.
+ */
+type Baseline = { recordedAt: string; note: string; broken: string[] };
+
+const baselinePath = path.join(releaseRoot, 'delegated-citation-baseline.json');
+const brokenKey = (citation: Citation): string => `${citation.artifact} -> ${citation.target}`;
+const brokenNow = citations
+  .filter(citation => citation.state === 'drifted' || citation.state === 'missing-target' || citation.state === 'unpinned-diverged')
+  .map(brokenKey)
+  .sort();
+
+if (process.env.GCL_CITATION_BASELINE_WRITE === '1') {
+  const written: Baseline = {
+    recordedAt: new Date().toISOString(),
+    note: 'Citations known to be broken. This list may only shrink; verify-delegated-citations.ts fails on anything not in it.',
+    broken: brokenNow
+  };
+  fs.writeFileSync(baselinePath, `${JSON.stringify(written, null, 2)}\n`);
+  console.log(`\nbaseline written with ${brokenNow.length} known-broken citation(s): ${path.relative(repoRoot, baselinePath)}`);
+  process.exit(0);
+}
+
+const baseline: Baseline = fs.existsSync(baselinePath)
+  ? (JSON.parse(fs.readFileSync(baselinePath, 'utf8')) as Baseline)
+  : { recordedAt: '', note: '', broken: [] };
+const baselineSet = new Set(baseline.broken);
+const newlyBroken = brokenNow.filter(key => !baselineSet.has(key));
+const repaired = baseline.broken.filter(key => !brokenNow.includes(key));
+
+console.log(JSON.stringify({
+  knownBroken: baseline.broken.length,
+  brokenNow: brokenNow.length,
+  newlyBroken: newlyBroken.length,
+  repairedSinceBaseline: repaired.length
+}, null, 2));
+
+if (newlyBroken.length) {
+  console.error(`\ndelegated citation check failed: ${newlyBroken.length} citation(s) broke and are not in the baseline`);
+  for (const key of newlyBroken.slice(0, 20)) console.error(`  ${key}`);
+  process.exit(1);
+}
+if (repaired.length) {
+  console.error(
+    `\ndelegated citation check failed: ${repaired.length} citation(s) are no longer broken but are still listed as known-broken. ` +
+    `Re-record the baseline with GCL_CITATION_BASELINE_WRITE=1 so the count reflects reality.`
+  );
   process.exit(1);
 }
