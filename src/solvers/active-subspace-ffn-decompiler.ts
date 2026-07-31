@@ -401,24 +401,48 @@ function localRegression(
   }
 }
 
+/**
+ * Counts the times a prediction could not use the declared local model.
+ *
+ * Both fallbacks below are silent: too few neighbours returns the global mean, and a
+ * singular local system falls through to a kernel mean, while the model keeps advertising
+ * `localModel: 'local-quadratic-knn'`. The reported error metrics are honestly recomputed
+ * against the degraded predictions, so no number is fabricated, but a reader cannot tell a
+ * model that used its declared method from one that mostly did not. Counting makes that
+ * visible without changing what is predicted.
+ */
+export type LocalModelFallbackCounts = {
+  insufficientNeighbors: number;
+  singularLocalSystem: number;
+  total: number;
+};
+
 function predictFromSamples(
   samples: ActiveSubspaceFfnTrainingSample[],
   activeRank: number,
   neighborCount: number,
   ridge: number,
   localModel: ActiveSubspaceFfnDecompilerModel['localModel'],
-  coords: number[]
+  coords: number[],
+  fallbacks?: LocalModelFallbackCounts
 ): number {
   const neighbors: Array<{ distance: number; sample: ActiveSubspaceFfnTrainingSample }> = [];
   for (const sample of samples) {
     insertNeighbor(neighbors, { distance: squaredDistance(coords, sample.coords), sample }, neighborCount);
   }
-  if (neighbors.length < activeRank + 1) return meanTarget(samples);
+  if (neighbors.length < activeRank + 1) {
+    if (fallbacks) { fallbacks.insufficientNeighbors++; fallbacks.total++; }
+    return meanTarget(samples);
+  }
   const predicted = localModel === 'local-quadratic-knn'
     ? localRegression(neighbors, coords, 2, ridge) ?? localRegression(neighbors, coords, 1, ridge)
     : localModel === 'local-affine-knn'
       ? localRegression(neighbors, coords, 1, ridge)
       : null;
+  if (predicted === null && localModel !== 'kernel-mean-knn' && fallbacks) {
+    fallbacks.singularLocalSystem++;
+    fallbacks.total++;
+  }
   return predicted ?? kernelMean(neighbors);
 }
 
@@ -563,6 +587,37 @@ export function predictActiveSubspaceFfnModel(model: ActiveSubspaceFfnDecompiler
   if (input.length !== model.dimension) throw new Error('active-subspace FFN prediction dimension mismatch');
   const coords = projectInput(model.activeDirections, input);
   return predictFromSamples(model.samples, model.activeRank, model.neighborCount, model.ridge, model.localModel, coords);
+}
+
+/**
+ * Report how often a set of inputs could not be predicted with the model's declared local
+ * method, and had to fall back to a global or kernel mean.
+ *
+ * `model.localModel` states the intended method, but two paths in `predictFromSamples`
+ * silently degrade: too few neighbours returns the global mean, and a singular local system
+ * falls through to a kernel mean. Nothing in the model distinguished a run that used its
+ * declared method throughout from one that mostly did not, which is the difference between
+ * a local model and a smoothed average wearing its name.
+ *
+ * The predictions themselves are unchanged; this only measures them. `appliedRate` is the
+ * fraction of inputs that were predicted with the declared method.
+ */
+export function auditActiveSubspaceFfnFallbacks(
+  model: ActiveSubspaceFfnDecompilerModel,
+  inputs: number[][]
+): LocalModelFallbackCounts & { predictionCount: number; appliedRate: number } {
+  const fallbacks: LocalModelFallbackCounts = { insufficientNeighbors: 0, singularLocalSystem: 0, total: 0 };
+  for (const input of inputs) {
+    if (input.length !== model.dimension) throw new Error('active-subspace FFN prediction dimension mismatch');
+    const coords = projectInput(model.activeDirections, input);
+    predictFromSamples(model.samples, model.activeRank, model.neighborCount, model.ridge, model.localModel, coords, fallbacks);
+  }
+  const predictionCount = inputs.length;
+  return {
+    ...fallbacks,
+    predictionCount,
+    appliedRate: predictionCount === 0 ? 1 : (predictionCount - fallbacks.total) / predictionCount
+  };
 }
 
 export function predictActiveSubspaceFfnBatch(model: ActiveSubspaceFfnDecompilerModel, inputs: number[][]): number[] {
