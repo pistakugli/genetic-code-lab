@@ -325,7 +325,7 @@ function generateRandomGrid(
   for (let y = 0; y < height; y++) {
     const row: number[] = [];
     for (let x = 0; x < width; x++) {
-      row.push(Math.random() < obstacleProbability ? 1 : 0);
+      row.push(random() < obstacleProbability ? 1 : 0);
     }
     grid.push(row);
   }

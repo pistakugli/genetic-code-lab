@@ -13,7 +13,7 @@ import {
   FitnessFunction
 } from '../core/types';
 import { genomeToString } from '../core/genome';
-import { isValidNumber, safeDivide } from '../utils/helpers';
+import { isValidNumber, safeDivide, random } from '../utils/helpers';
 
 // Re-export genomeToString for convenience
 export { genomeToString };
@@ -166,7 +166,7 @@ export function createMathTerminals(
 
   // Add random constants in range
   for (let i = 0; i < 5; i++) {
-    const value = constantRange[0] + Math.random() * (constantRange[1] - constantRange[0]);
+    const value = constantRange[0] + random() * (constantRange[1] - constantRange[0]);
     terminals.push({
       name: 'const',
       type: 'constant',
@@ -292,7 +292,7 @@ export function createMathProblem(
   for (let i = 0; i < testCount; i++) {
     const inputs: number[] = [];
     for (let j = 0; j < variableCount; j++) {
-      inputs.push((Math.random() - 0.5) * 20); // Random values between -10 and 10
+      inputs.push((random() - 0.5) * 20); // Random values between -10 and 10
     }
 
     const expected = targetExpression(inputs);

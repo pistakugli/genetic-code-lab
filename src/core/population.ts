@@ -17,8 +17,7 @@ import {
   mean,
   stdDev,
   sortBy,
-  deepClone
-} from '../utils/helpers';
+  deepClone, random } from '../utils/helpers';
 
 // Re-export for backward compatibility
 export { DEFAULT_POPULATION_CONFIG };
@@ -262,7 +261,7 @@ export class PopulationManager {
           .filter(idx => idx !== -1);
           
         if (functionIndices.length > 0) {
-            const targetIdx = functionIndices[Math.floor(Math.random() * functionIndices.length)];
+            const targetIdx = functionIndices[Math.floor(random() * functionIndices.length)];
             const targetId = mutated.genes[targetIdx].id;
             // Generate a heavy new subtree (depth 5)
             const newSubtreeGenes = factory.createRandomTree(5);
@@ -276,7 +275,7 @@ export class PopulationManager {
                // Fallback: mutate a terminal
                const termIndices = mutated.genes.map((g, idx) => g.type === 'terminal' ? idx : -1).filter(idx => idx !== -1);
                if (termIndices.length > 0) {
-                   const tIdx = termIndices[Math.floor(Math.random() * termIndices.length)];
+                   const tIdx = termIndices[Math.floor(random() * termIndices.length)];
                    mutated.genes[tIdx] = factory.createRandomTree(1)[0];
                }
             }

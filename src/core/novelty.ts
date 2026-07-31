@@ -1,4 +1,5 @@
 import { Genome, Population } from './types';
+import { random } from '../utils/helpers';
 
 /**
  * Novelty Search Manager
@@ -19,7 +20,7 @@ export class NoveltyManager {
     // SCALING LOGIC: Use sparser sampling for massive populations (Beyond SOTA)
     const sampleSize = genomes.length > 5000 ? 50 : Math.min(genomes.length, 250);
     const sampleNodes = Array.from({ length: sampleSize }, () => 
-      genomes[Math.floor(Math.random() * genomes.length)]
+      genomes[Math.floor(random() * genomes.length)]
     );
 
     for (const genome of genomes) {

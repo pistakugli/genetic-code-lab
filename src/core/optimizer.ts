@@ -1,6 +1,7 @@
 import { PopulationBuffer, OpCode } from './pop-buffer';
 import { BlockEvaluator } from './block-evaluator';
 import { PostfixBridge } from './postfix-bridge';
+import { random } from '../utils/helpers';
 
 /**
  * PHASE 42: HYBRID NUMERICAL OPTIMIZER
@@ -89,7 +90,7 @@ export class NumericalOptimizer {
                     } else {
                         // Trial 2: Periodic Stochastic Jump (Phase 62 Forensic Schedule)
                         if (iter % 10 === 0) {
-                            const jump = (Math.random() * 2 - 1) * 0.1;
+                            const jump = (random() * 2 - 1) * 0.1;
                             const jumpCandidate = original + jump;
                             buffer.constBuffer[constOffset + cIdx] = jumpCandidate;
                             BlockEvaluator.evaluateBlock(buffer, genomeIdx, 1, testX, testY, inputSize, fitnessMode, classificationWeight);

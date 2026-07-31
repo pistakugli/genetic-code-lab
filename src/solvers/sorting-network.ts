@@ -12,6 +12,7 @@ import {
   Gene,
   FitnessFunction
 } from '../core/types';
+import { random } from '../utils/helpers';
 
 // ============================================================================
 // SORTING NETWORK GENE TYPES
@@ -190,7 +191,7 @@ function generateTestArrays(size: number, count: number): number[][] {
     const arr = Array.from({ length: size }, (_, j) => j);
     // Fisher-Yates shuffle
     for (let j = arr.length - 1; j > 0; j--) {
-      const k = Math.floor(Math.random() * (j + 1));
+      const k = Math.floor(random() * (j + 1));
       [arr[j], arr[k]] = [arr[k], arr[j]];
     }
     arrays.push(arr);

@@ -1,3 +1,4 @@
+import { random } from '../utils/helpers';
 /**
  * 🧠 Genetic Code Lab — Pure TypeScript Neural Network
  * Hand-coded MLP with backpropagation. Zero dependencies.
@@ -36,7 +37,7 @@ function sigmoid(x: number): number { return 1 / (1 + Math.exp(-Math.max(-500, M
 function xavierInit(fanIn: number, fanOut: number): number[][] {
     const limit = Math.sqrt(6 / (fanIn + fanOut));
     return Array.from({ length: fanIn }, () =>
-        Array.from({ length: fanOut }, () => (Math.random() * 2 - 1) * limit)
+        Array.from({ length: fanOut }, () => (random() * 2 - 1) * limit)
     );
 }
 
@@ -189,7 +190,7 @@ export class MLP {
             // Shuffle
             const indices = Array.from({ length: n }, (_, i) => i);
             for (let i = n - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
+                const j = Math.floor(random() * (i + 1));
                 [indices[i], indices[j]] = [indices[j], indices[i]];
             }
             
