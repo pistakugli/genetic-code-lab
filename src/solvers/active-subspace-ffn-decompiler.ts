@@ -13,6 +13,17 @@ export type ActiveSubspaceFfnDecompilerModel = {
   neighborCount: number;
   ridge: number;
   localModel: 'local-quadratic-knn' | 'local-affine-knn' | 'kernel-mean-knn';
+  /**
+   * How often the declared localModel could not actually be used, measured over the
+   * model's own training samples during the solve.
+   *
+   * predictFromSamples degrades in two places without saying so: too few neighbours
+   * returns the global mean, and a singular local system falls through to a kernel mean.
+   * Carrying the counts on the model is what makes that visible to every reader and gate
+   * without anyone having to call an extra function; appliedRate is the fraction predicted
+   * with the declared method.
+   */
+  localModelFallbacks: LocalModelFallbackCounts & { predictionCount: number; appliedRate: number };
   recoveryKind: 'active-subspace-ffn-surrogate';
   directionEstimator: 'finite-difference' | 'moment-sir';
   directionCandidateScores: Array<{
@@ -542,6 +553,24 @@ export function decompileActiveSubspaceFfn(
     validationCount: score.validationCount
   }));
 
+  // Measured here rather than left to an optional audit call: a degradation nobody queries
+  // is indistinguishable from one that never happened.
+  const localModelFallbackCounts: LocalModelFallbackCounts = {
+    insufficientNeighbors: 0,
+    singularLocalSystem: 0,
+    total: 0
+  };
+  for (const sample of samples) {
+    predictFromSamples(samples, activeRank, neighborCount, ridge, localModel, sample.coords, localModelFallbackCounts);
+  }
+  const localModelFallbacks = {
+    ...localModelFallbackCounts,
+    predictionCount: samples.length,
+    appliedRate: samples.length === 0
+      ? 1
+      : (samples.length - localModelFallbackCounts.total) / samples.length
+  };
+
   const selectedEnergy = eigenvalues.reduce((sum, value) => sum + value, 0);
   const selectedGradientEnergyRatio = Math.min(1, selectedEnergy / Math.max(1e-12, totalEnergy));
   let residualRatioSum = 0;
@@ -561,6 +590,7 @@ export function decompileActiveSubspaceFfn(
     neighborCount,
     ridge,
     localModel,
+    localModelFallbacks,
     recoveryKind: 'active-subspace-ffn-surrogate' as const,
     directionEstimator: selectedCandidate.estimator,
     directionCandidateScores,

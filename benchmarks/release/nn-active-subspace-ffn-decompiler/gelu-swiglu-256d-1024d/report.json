@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-11T20:10:39.143Z",
+  "generatedAt": "2026-08-01T05:32:08.909Z",
   "task": "active-subspace FFN decompiler for controlled high-dimensional GELU/SwiGLU teachers",
   "blackBox": {
     "type": "256D/1024D single-channel GELU and two-direction SwiGLU FFN teachers",
@@ -17,6 +17,7 @@
     "allR2ThresholdsPassed": true,
     "allMaeThresholdsPassed": true,
     "activeEnergyRatioAtLeast099": true,
+    "localModelAppliedThroughout": true,
     "projectionScoreAtLeast098": true,
     "gclWinsEveryBaselineCourt": true,
     "maxGclMaeRatioVsBestBaselineAtMost08": true,
@@ -43,7 +44,8 @@
     "bestBaselineWinsByMae": 0,
     "maxGclMaeRatioVsBestBaseline": 0.0015387058230135334,
     "maxRawOracleCalls": 45360,
-    "maxBaselineRawOracleCalls": 4400
+    "maxBaselineRawOracleCalls": 4400,
+    "minLocalModelAppliedRate": 1
   },
   "results": [
     {
@@ -78,6 +80,14 @@
             0.9999999887415834
           ],
           "minProjectionScore": 0.9999999887415834
+        },
+        "localModel": "local-quadratic-knn",
+        "localModelFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularLocalSystem": 0,
+          "total": 0,
+          "predictionCount": 2200,
+          "appliedRate": 1
         }
       },
       "baselines": [
@@ -185,6 +195,14 @@
             0.9999999997424742
           ],
           "minProjectionScore": 0.99999999462753
+        },
+        "localModel": "local-quadratic-knn",
+        "localModelFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularLocalSystem": 0,
+          "total": 0,
+          "predictionCount": 3600,
+          "appliedRate": 1
         }
       },
       "baselines": [
@@ -290,6 +308,14 @@
             0.999999998371069
           ],
           "minProjectionScore": 0.999999998371069
+        },
+        "localModel": "local-quadratic-knn",
+        "localModelFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularLocalSystem": 0,
+          "total": 0,
+          "predictionCount": 2400,
+          "appliedRate": 1
         }
       },
       "baselines": [
@@ -397,6 +423,14 @@
             0.9999999999914131
           ],
           "minProjectionScore": 0.9999999996785565
+        },
+        "localModel": "local-quadratic-knn",
+        "localModelFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularLocalSystem": 0,
+          "total": 0,
+          "predictionCount": 4400,
+          "appliedRate": 1
         }
       },
       "baselines": [
@@ -472,5 +506,5 @@
     }
   ],
   "conclusion": "Active-subspace FFN foundation passed on controlled 256D/1024D GELU and SwiGLU teachers; next step is 4096D stress plus package-backed external baselines.",
-  "runtimeMs": 6359
+  "runtimeMs": 10218
 }

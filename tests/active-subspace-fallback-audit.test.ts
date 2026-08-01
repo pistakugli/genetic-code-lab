@@ -76,6 +76,20 @@ describe('active-subspace local-model fallback audit', () => {
     expect(audit.appliedRate).toBe(0);
   });
 
+  test('the model carries its own fallback record, so nothing has to call the audit', () => {
+    // The audit function alone would have been another unused helper: the degradation still
+    // happens during the solve, and a rate nobody queries is indistinguishable from one that
+    // never happened. The model now measures itself over its own samples.
+    const model = buildModel();
+
+    expect(model.localModelFallbacks.predictionCount).toBe(model.samples.length);
+    expect(model.localModelFallbacks.total).toBe(
+      model.localModelFallbacks.insufficientNeighbors + model.localModelFallbacks.singularLocalSystem
+    );
+    expect(model.localModelFallbacks.appliedRate).toBeGreaterThan(0);
+    expect(model.localModelFallbacks.appliedRate).toBeLessThanOrEqual(1);
+  });
+
   test('an empty input set is reported as fully applied rather than dividing by zero', () => {
     const audit = auditActiveSubspaceFfnFallbacks(buildModel(), []);
 

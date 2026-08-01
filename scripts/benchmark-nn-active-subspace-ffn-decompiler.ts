@@ -377,7 +377,13 @@ const results = makeCases().map(testCase => {
         gradientEigenvalues: model.gradientEigenvalues,
         projectionScores,
         minProjectionScore: Math.min(...projectionScores)
-      }
+      },
+      // The solver's declared localModel degrades silently to a global or kernel mean when
+      // a point has too few neighbours or the local system is singular. Reporting the rate
+      // here is what stops a surrogate that mostly averaged from reading, in a release
+      // artifact, exactly like one that used the method it names.
+      localModel: model.localModel,
+      localModelFallbacks: model.localModelFallbacks
     },
     baselines,
     ranking: ranking.map(item => ({
@@ -417,7 +423,8 @@ const summary = {
   bestBaselineWinsByMae: results.filter(result => !result.comparison.gclBeatsBestBaselineByMae).length,
   maxGclMaeRatioVsBestBaseline: Math.max(...results.map(result => result.comparison.gclMaeRatioVsBestBaseline)),
   maxRawOracleCalls: Math.max(...results.map(result => result.gcl.queryBudget.rawOracleCalls)),
-  maxBaselineRawOracleCalls: Math.max(...results.flatMap(result => result.baselines.map(baseline => baseline.queryBudget)))
+  maxBaselineRawOracleCalls: Math.max(...results.flatMap(result => result.baselines.map(baseline => baseline.queryBudget))),
+  minLocalModelAppliedRate: Math.min(...results.map(result => result.gcl.localModelFallbacks.appliedRate))
 };
 
 const gates = {
@@ -428,6 +435,12 @@ const gates = {
   allR2ThresholdsPassed: results.every(result => result.gcl.metrics.r2 >= result.thresholds.minR2),
   allMaeThresholdsPassed: results.every(result => result.gcl.metrics.mae <= result.thresholds.maxMae),
   activeEnergyRatioAtLeast099: summary.minSelectedGradientEnergyRatio >= 0.99,
+  // A model that fell back to a global or kernel mean on most of its own samples is not the
+  // local model it declares, however good its MAE happens to look. Binding the gate to the
+  // applied rate is what turns that from a number in the report into something that can
+  // fail; the floor is set at the whole set having to be supported, which every teacher in
+  // this suite currently is.
+  localModelAppliedThroughout: summary.minLocalModelAppliedRate >= 1,
   projectionScoreAtLeast098: summary.minProjectionScore >= 0.98,
   gclWinsEveryBaselineCourt: summary.gclWinsByMae === summary.teacherCount,
   maxGclMaeRatioVsBestBaselineAtMost08: summary.maxGclMaeRatioVsBestBaseline <= 0.8,
