@@ -504,15 +504,38 @@ def candidate_ablation_positions(candidate: Dict[str, Any], token_index: int) ->
 
 
 def summarize_validation_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
-    if not items:
-        return {"count": 0, "passed": 0, "passRate": 0.0}
-    passed = [item for item in items if item.get("pass")]
-    target_drops = [float(item.get("targetLogitDrop", 0.0)) for item in items]
-    ratios = [float(item.get("ratioToPrimaryGraphDrop", 0.0)) for item in items]
+    """Summarise validation items, counting only the controls that actually ran.
+
+    A control whose answer is not a single GPT-2 token is appended with
+    ``status="skipped"``, ``pass=True`` and ``targetLogitDrop=0.0`` so the record of the
+    attempt survives. This function used to count every item in both ``count`` and
+    ``passed``, so a control that never ran raised the specificity pass rate, and its
+    placeholder 0.0 drop entered the median, pulling a specificity statistic in the
+    flattering direction. Case-level skips are already excluded elsewhere in this file; this
+    is the item-level path catching up.
+
+    Skipped items are reported separately rather than dropped, because how many controls
+    could not be built is itself worth seeing.
+    """
+    skipped = [item for item in items if item.get("status") == "skipped"]
+    evaluated = [item for item in items if item.get("status") != "skipped"]
+    if not evaluated:
+        return {
+            "count": 0,
+            "passed": 0,
+            "passRate": 0.0,
+            "skippedCount": len(skipped),
+            "itemCount": len(items),
+        }
+    passed = [item for item in evaluated if item.get("pass")]
+    target_drops = [float(item.get("targetLogitDrop", 0.0)) for item in evaluated]
+    ratios = [float(item.get("ratioToPrimaryGraphDrop", 0.0)) for item in evaluated]
     return {
-        "count": len(items),
+        "count": len(evaluated),
         "passed": len(passed),
-        "passRate": len(passed) / len(items),
+        "passRate": len(passed) / len(evaluated),
+        "skippedCount": len(skipped),
+        "itemCount": len(items),
         "medianTargetLogitDrop": percentile(target_drops, 0.50),
         "maxTargetLogitDrop": max(target_drops) if target_drops else 0.0,
         "medianRatioToPrimaryGraphDrop": percentile(ratios, 0.50),
