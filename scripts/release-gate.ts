@@ -104,6 +104,10 @@ function main(): void {
 
     runStep('build', 'npm', ['run', 'build'], { timeoutMs: 2 * 60 * 1000 });
     runStep('unit/integration tests', 'npm', ['test', '--', '--runInBand'], { timeoutMs: 2 * 60 * 1000 });
+    // tsconfig.json includes only src/**, so the build step above never type checked the
+    // benchmark and gate entrypoints under scripts/. They were checked only when ts-node ran
+    // them, which let a type error hide in any gate that had not been invoked recently.
+    runStep('scripts typecheck', 'npm', ['run', 'typecheck:scripts'], { timeoutMs: 3 * 60 * 1000 });
     runStep('default threshold policy invariant', 'npm', ['run', 'verify:default-threshold-policy'], { timeoutMs: 3 * 60 * 1000 });
     runStep('Santa Fe trail verifier', 'npm', ['run', 'verify:santa-fe-trail'], { timeoutMs: 2 * 60 * 1000 });
     runStep('delegated citation integrity', 'npm', ['run', 'verify:delegated-citations'], { timeoutMs: 3 * 60 * 1000 });

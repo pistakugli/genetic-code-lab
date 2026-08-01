@@ -10752,6 +10752,9 @@ def run_solver(args: argparse.Namespace) -> int:
                 full_tail_revalidation_baseline_metrics: dict[str, float] | None = None
                 full_tail_accepted = False
                 residual_gradient_cegis_cycles = 0
+                # Initialised at this scope, alongside the cycle counter, because the report
+                # is assembled here whether or not the CEGIS branch below runs.
+                cegis_cycle_metrics: list[dict[str, Any]] = []
                 residual_gradient_cegis_selection_count = 0
                 residual_gradient_cegis_counterexample_count = 0
                 if oracle.query_count + args.validation_count <= args.max_oracle_calls:
@@ -10802,6 +10805,14 @@ def run_solver(args: argparse.Namespace) -> int:
                     cegis_train_coords = full_tail_polish_coords.copy()
                     cegis_train_targets = full_tail_polish_targets.copy()
                     cegis_candidate_pool = [full_tail_polished_fit]
+                    # Every cycle draws a fresh oracle validation set, assigns its numbers to
+                    # the reported metrics, and the loop breaks the moment a draw clears the
+                    # thresholds. That is not train-on-test, since each cycle is evaluated on
+                    # points the candidate has not seen, but it is a stopping rule: the
+                    # published figure is the first of up to `cegis_limit` independent draws
+                    # that happened to pass, which biases a max statistic like worstError.
+                    # Recording every draw, not just the accepted one, is what lets a reader
+                    # see that and judge the margin.
                     for cegis_cycle in range(cegis_limit):
                         if oracle.query_count + args.validation_count > args.max_oracle_calls:
                             break
@@ -10955,12 +10966,34 @@ def run_solver(args: argparse.Namespace) -> int:
                             )),
                             rawOracleCalls=int(oracle.query_count),
                         )
-                        if passes_metric_thresholds(cegis_metrics, args.min_r2, args.max_mae, args.max_worst_error):
+                        cegis_cycle_passed = bool(passes_metric_thresholds(
+                            cegis_metrics, args.min_r2, args.max_mae, args.max_worst_error
+                        ))
+                        cegis_cycle_metrics.append({
+                            "cycle": int(cegis_cycle + 1),
+                            "r2": float(cegis_metrics["r2"]),
+                            "mae": float(cegis_metrics["mae"]),
+                            "worstError": float(cegis_metrics["worstError"]),
+                            "passedThresholds": cegis_cycle_passed,
+                            "rawOracleCalls": int(oracle.query_count),
+                        })
+                        if cegis_cycle_passed:
                             break
                         cegis_selection_coords = cegis_validation_coords
                         cegis_selection_targets = cegis_validation_targets
                 fit_attempts.append({
                     "stage": "validation-full-tail-polish",
+                    "cegisCycleMetrics": cegis_cycle_metrics,
+                    "cegisCyclesRun": len(cegis_cycle_metrics),
+                    "cegisAcceptedCycle": (
+                        cegis_cycle_metrics[-1]["cycle"]
+                        if cegis_cycle_metrics and cegis_cycle_metrics[-1]["passedThresholds"]
+                        else None
+                    ),
+                    "cegisStoppingRule": (
+                        "first draw clearing the thresholds; reported metrics are that draw's, "
+                        "so compare them against cegisCycleMetrics before treating the margin as typical"
+                    ),
                     "trainCount": int(full_tail_polish_coords.shape[0]),
                     "baseTrainCount": int(full_tail_base_coords.shape[0]),
                     "extraRandomTrainCount": int(full_tail_extra_random_evaluated),

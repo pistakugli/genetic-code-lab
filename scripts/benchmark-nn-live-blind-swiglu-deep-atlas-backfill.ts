@@ -21,6 +21,10 @@ type BackfillCase = {
 type CaseResult = BackfillCase & {
   reportPath: string;
   pass: boolean;
+  /** The report's own verdict, before it is required to agree with the exit code. */
+  reportPass?: boolean;
+  /** False when a case that actually ran exited non-zero, so pass cannot be trusted. */
+  exitCodeAgrees?: boolean;
   status: number | null;
   r2?: number;
   mae?: number;

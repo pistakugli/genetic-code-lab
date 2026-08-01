@@ -1,0 +1,15 @@
+{
+  // The base tsconfig includes only src/**, so `tsc -p tsconfig.json` never checked the
+  // 117 files under scripts/, which are the benchmark and gate entrypoints. They were type
+  // checked only when ts-node happened to run them, so a type error in a rarely-run gate
+  // could sit unnoticed until that gate was next invoked. This config closes that gap and
+  // is wired to `npm run typecheck:scripts`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["scripts/**/*.ts", "src/**/*"],
+  "exclude": ["node_modules", "dist", "tests"]
+}

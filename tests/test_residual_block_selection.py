@@ -98,6 +98,37 @@ class ResidualBlockSelectionTest(unittest.TestCase):
 
         self.assertEqual(observed, [])
 
+    def test_cegis_cycle_record_shows_every_draw_not_just_the_accepted_one(self) -> None:
+        """The CEGIS loop breaks on the first fresh validation draw that clears the
+        thresholds, and the reported metrics are that draw's. That is a stopping rule, not
+        train-on-test, but it biases a max statistic like worstError, and the artifact
+        previously carried only the winning draw. This pins the shape of the record that
+        makes the rule visible."""
+        cycles = [
+            {"cycle": 1, "r2": 0.98, "mae": 0.02, "worstError": 0.2, "passedThresholds": False, "rawOracleCalls": 100},
+            {"cycle": 2, "r2": 0.994, "mae": 0.009, "worstError": 0.11, "passedThresholds": False, "rawOracleCalls": 200},
+            {"cycle": 3, "r2": 0.9995, "mae": 0.0008, "worstError": 0.004, "passedThresholds": True, "rawOracleCalls": 300},
+        ]
+        accepted = cycles[-1]["cycle"] if cycles and cycles[-1]["passedThresholds"] else None
+
+        # Three draws were taken and the third is what gets published, so a reader comparing
+        # the reported worstError against the earlier draws can see it is a best-of-three.
+        self.assertEqual(len(cycles), 3)
+        self.assertEqual(accepted, 3)
+        self.assertTrue(cycles[-1]["passedThresholds"])
+        self.assertFalse(any(row["passedThresholds"] for row in cycles[:-1]))
+        self.assertLess(cycles[-1]["worstError"], min(row["worstError"] for row in cycles[:-1]))
+
+    def test_cegis_accepted_cycle_is_none_when_no_draw_passed(self) -> None:
+        cycles = [
+            {"cycle": 1, "r2": 0.9, "mae": 0.1, "worstError": 0.5, "passedThresholds": False, "rawOracleCalls": 100},
+            {"cycle": 2, "r2": 0.91, "mae": 0.09, "worstError": 0.4, "passedThresholds": False, "rawOracleCalls": 200},
+        ]
+        accepted = cycles[-1]["cycle"] if cycles and cycles[-1]["passedThresholds"] else None
+
+        self.assertIsNone(accepted)
+        self.assertEqual(len(cycles), 2)
+
     def test_solver_file_access_classifier_separates_package_metadata_from_weights(self) -> None:
         control = Path("/tmp/private-orchestrator.py")
         observed = classify_solver_file_access(

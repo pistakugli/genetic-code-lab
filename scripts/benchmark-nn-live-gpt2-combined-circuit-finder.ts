@@ -112,7 +112,7 @@ if (!fs.existsSync(output.jsonOutputPath)) {
   console.error(JSON.stringify({ pass: false, reason: 'missing report.json', summary }, null, 2));
   process.exit(1);
 }
-if (summary?.pass !== true) {
+if ((summary as { pass?: unknown } | undefined)?.pass !== true) {
   console.error(JSON.stringify({ pass: false, reason: 'report does not report pass', summary }, null, 2));
   process.exit(1);
 }

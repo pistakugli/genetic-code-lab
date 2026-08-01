@@ -473,8 +473,8 @@ const laneReleaseThresholds = {
   maxWorstError: Number(envValue('GCL_LAYER_EXPANSION_RELEASE_MAX_WORST_ERROR', '0.12')),
   minSubspaceCosine: Number(envValue('GCL_LAYER_EXPANSION_RELEASE_MIN_SUBSPACE_COSINE', '0.98'))
 };
-const relaxedThresholdCases = expansionCases
-  .map(testCase => {
+const relaxedThresholdCases = cases
+  .map((testCase: ExpansionCase) => {
     const weakened: string[] = [];
     if (testCase.minR2 < laneReleaseThresholds.minR2) weakened.push(`minR2 ${testCase.minR2} < ${laneReleaseThresholds.minR2}`);
     if (testCase.maxMae > laneReleaseThresholds.maxMae) weakened.push(`maxMae ${testCase.maxMae} > ${laneReleaseThresholds.maxMae}`);
@@ -482,7 +482,7 @@ const relaxedThresholdCases = expansionCases
     if (testCase.minSubspaceCosine < laneReleaseThresholds.minSubspaceCosine) weakened.push(`minSubspaceCosine ${testCase.minSubspaceCosine} < ${laneReleaseThresholds.minSubspaceCosine}`);
     return weakened.length ? { case: `${testCase.family}:${testCase.layer}:${testCase.unitCount}`, weakened } : null;
   })
-  .filter((entry): entry is { case: string; weakened: string[] } => entry !== null);
+  .filter((entry: { case: string; weakened: string[] } | null): entry is { case: string; weakened: string[] } => entry !== null);
 const thresholdsMeetLaneRelease = relaxedThresholdCases.length === 0;
 
 const summary = {
