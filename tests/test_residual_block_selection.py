@@ -17,6 +17,8 @@ if str(REPO_ROOT) not in sys.path:
 
 import tools.llm_reader.blind_swiglu_oracle_decompiler as swiglu_module
 from tools.llm_reader.blind_swiglu_oracle_decompiler import (
+    dump_report_json,
+    json_safe,
     audit_swiglu_source_cancellation,
     apply_asymptotic_support_fallback,
     asymptotic_stitch_query_upper_bound,
@@ -128,6 +130,54 @@ class ResidualBlockSelectionTest(unittest.TestCase):
 
         self.assertIsNone(accepted)
         self.assertEqual(len(cycles), 2)
+
+    def test_report_json_is_parseable_outside_python(self) -> None:
+        """Python's json.dump writes bare NaN and Infinity, which is valid Python but not
+        valid JSON. Every TypeScript consumer in this repo rejects it, so a lane whose metric
+        went non-finite wrote an artifact nobody could parse: the run was not recorded as
+        failed, its evidence simply vanished. That is how a CEGIS lane finished with
+        cubicRelativeRmse NaN and left no report.json at all."""
+        import json as _json
+
+        payload = {
+            "summary": {"r2": 0.99, "rmse": float("nan"), "worst": float("inf")},
+            "cases": [{"mae": float("nan")}, {"mae": 0.5}],
+        }
+        text = dump_report_json(payload)
+
+        # The old form is what a JS parser chokes on; the new form must not contain it.
+        self.assertNotIn("NaN", text)
+        self.assertNotIn("Infinity", text)
+        parsed = _json.loads(text)
+        self.assertIsNone(parsed["summary"]["rmse"])
+        self.assertIsNone(parsed["summary"]["worst"])
+        self.assertIsNone(parsed["cases"][0]["mae"])
+
+    def test_non_finite_fields_are_named_rather_than_silently_dropped(self) -> None:
+        payload = {"summary": {"rmse": float("nan")}, "cases": [{"mae": float("-inf")}]}
+        parsed = json_safe(payload)
+
+        self.assertIn("nonFiniteFields", parsed)
+        self.assertEqual(len(parsed["nonFiniteFields"]), 2)
+        self.assertTrue(any("summary.rmse" in entry for entry in parsed["nonFiniteFields"]))
+        self.assertTrue(any("cases[0].mae" in entry for entry in parsed["nonFiniteFields"]))
+
+    def test_finite_values_and_shape_are_untouched(self) -> None:
+        payload = {"summary": {"r2": 0.99, "count": 7}, "cases": [{"mae": 0.5}, {"mae": 0.25}]}
+        parsed = json_safe(payload)
+
+        self.assertEqual(parsed, payload)
+        self.assertNotIn("nonFiniteFields", parsed)
+
+    def test_numpy_scalars_and_arrays_survive_serialisation(self) -> None:
+        import json as _json
+
+        payload = {"eigenvalues": np.array([1.5, 2.5]), "count": np.int64(4), "bad": np.float64("nan")}
+        parsed = _json.loads(dump_report_json(payload))
+
+        self.assertEqual(parsed["eigenvalues"], [1.5, 2.5])
+        self.assertEqual(parsed["count"], 4)
+        self.assertIsNone(parsed["bad"])
 
     def test_solver_file_access_classifier_separates_package_metadata_from_weights(self) -> None:
         control = Path("/tmp/private-orchestrator.py")

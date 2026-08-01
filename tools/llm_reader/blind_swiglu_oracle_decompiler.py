@@ -33,6 +33,52 @@ except ModuleNotFoundError:
     )
 
 
+
+def json_safe(value: Any) -> Any:
+    """Convert a report payload into something JSON parsers outside Python can actually read.
+
+    Python's json.dump writes bare NaN and Infinity by default. That is valid Python but not
+    valid JSON, and every TypeScript consumer in this repo rejects it, so a lane whose metric
+    went non-finite produced an artifact nobody could parse. The run was not recorded as
+    failed; its evidence simply vanished, which is how a CEGIS lane finished with
+    `"cubicRelativeRmse": NaN` and left no report.json at all.
+
+    Non-finite floats become null, and every path that held one is listed under
+    `nonFiniteFields` on the report, so the condition is stated rather than encoded in a
+    token the reader cannot decode. Dropping the value silently would be the same defect in
+    a quieter form.
+    """
+    non_finite: list[str] = []
+
+    def convert(node: Any, path: str) -> Any:
+        if isinstance(node, float):
+            if math.isnan(node) or math.isinf(node):
+                non_finite.append(f"{path} = {node}")
+                return None
+            return node
+        if isinstance(node, dict):
+            return {key: convert(item, f"{path}.{key}" if path else str(key)) for key, item in node.items()}
+        if isinstance(node, (list, tuple)):
+            return [convert(item, f"{path}[{index}]") for index, item in enumerate(node)]
+        if isinstance(node, np.floating):
+            return convert(float(node), path)
+        if isinstance(node, np.integer):
+            return int(node)
+        if isinstance(node, np.ndarray):
+            return convert(node.tolist(), path)
+        return node
+
+    converted = convert(value, "")
+    if isinstance(converted, dict) and non_finite:
+        converted["nonFiniteFields"] = sorted(non_finite)
+    return converted
+
+
+def dump_report_json(payload: Any) -> str:
+    """Serialise a report so it is parseable everywhere, and fail loudly if it is not."""
+    return json.dumps(json_safe(payload), indent=2, allow_nan=False)
+
+
 def silu_np(values: np.ndarray) -> np.ndarray:
     return values / (1.0 + np.exp(-values))
 
@@ -8574,7 +8620,7 @@ def write_basis_diagnostic(
             "postHocWitnessOnly": True,
         },
     }
-    output_json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    output_json.write_text(dump_report_json(report) + "\n", encoding="utf-8")
     if output_md:
         output_md.write_text(
             "\n".join([
@@ -12026,7 +12072,7 @@ def run_solver(args: argparse.Namespace) -> int:
                         },
                     },
                 }
-                output_json.write_text(json.dumps(frozen_report, indent=2) + "\n", encoding="utf-8")
+                output_json.write_text(dump_report_json(frozen_report) + "\n", encoding="utf-8")
                 if output_md:
                     output_md.write_text(
                         "\n".join([
@@ -12408,7 +12454,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "It does not prove full FFN extraction, all-channel decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.",
                 ],
             }
-            output_json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+            output_json.write_text(dump_report_json(report) + "\n", encoding="utf-8")
             if output_md:
                 output_md.write_text(
                     "\n".join([
