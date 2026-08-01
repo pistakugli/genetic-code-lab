@@ -52,6 +52,21 @@ type CourtCase = {
   outputChannel: number;
   oracleMode: 'down-proj-output-channel' | 'selected-unit-sum';
   seed: number;
+  /**
+   * Which units the draw was allowed to pick from, and why.
+   *
+   * The lane is named "randomized", but in channel mode the draw is restricted to units that
+   * actually reach the chosen output channel. That is well-posedness, since a zero-coefficient
+   * unit is unrecoverable, but the published artifact said nothing about it, so a reader had
+   * to take the word at face value. Recording the pool size makes the narrowing explicit.
+   */
+  unitSelection: {
+    kind: 'contributing-units-only' | 'all-units';
+    poolSize: number;
+    totalUnits: number;
+    excludedUnits: number;
+    reason: string;
+  };
 };
 
 type CourtRow = {
@@ -221,8 +236,14 @@ function buildCases(): CourtCase[] {
       const useOutputChannel = bandIndex % 2 === 0;
       const outputChannel = useOutputChannel ? intInRange(rand, 0, spec.hiddenSize - 1) : -1;
       // In selected-unit-sum mode every unit carries weight one, so no pool filter applies.
-      const units = useOutputChannel
-        ? pickUniqueFromPool(rand, atomCount, contributingUnitPool(spec, layer, outputChannel))
+      // In channel mode the draw is restricted to units that actually reach the channel,
+      // which is well-posedness rather than softening: a unit whose down-proj coefficient is
+      // zero contributes nothing to the oracle and can never be recovered. It does mean the
+      // word "randomized" in this lane's name is narrower than it sounds, so the size of the
+      // pool it drew from is recorded per case rather than left to the module docstring.
+      const pool = useOutputChannel ? contributingUnitPool(spec, layer, outputChannel) : null;
+      const units = pool
+        ? pickUniqueFromPool(rand, atomCount, pool)
         : pickUniqueUnits(rand, atomCount, spec.intermediateSize);
       cases.push({
         id: `${spec.family}-${spec.hiddenSize}d-${band}-layer${layer}`,
@@ -234,6 +255,21 @@ function buildCases(): CourtCase[] {
         units,
         outputChannel,
         oracleMode: useOutputChannel ? 'down-proj-output-channel' : 'selected-unit-sum',
+        unitSelection: pool
+          ? {
+              kind: 'contributing-units-only' as const,
+              poolSize: pool.length,
+              totalUnits: spec.intermediateSize,
+              excludedUnits: spec.intermediateSize - pool.length,
+              reason: 'a unit with a zero down-proj coefficient for this channel contributes nothing to the oracle and is unrecoverable'
+            }
+          : {
+              kind: 'all-units' as const,
+              poolSize: spec.intermediateSize,
+              totalUnits: spec.intermediateSize,
+              excludedUnits: 0,
+              reason: 'selected-unit-sum weights every unit equally, so no unit is unrecoverable'
+            },
         seed: intInRange(rand, 100000, 999999)
       });
     }
@@ -623,6 +659,15 @@ const summary = {
   modelFamilies: [...new Set(rows.map(row => row.family))].sort(),
   layerBands: [...new Set(rows.map(row => row.band))].sort(),
   oracleModes: [...new Set(rows.map(row => row.oracleMode))].sort(),
+  // Published so the lane's name cannot outrun what it did. Channel-mode cases draw only
+  // from units that reach the channel; unit-sum cases draw from everything.
+  unitSelection: cases.map(testCase => ({
+    case: testCase.id,
+    ...testCase.unitSelection
+  })),
+  maxExcludedUnitFraction: Math.max(
+    ...cases.map(testCase => testCase.unitSelection.excludedUnits / testCase.unitSelection.totalUnits)
+  ),
   selectedLayers: Object.fromEntries(
     families.map(spec => [spec.family, rows.filter(row => row.family === spec.family).map(row => row.layer).sort((a, b) => a - b)])
   ),

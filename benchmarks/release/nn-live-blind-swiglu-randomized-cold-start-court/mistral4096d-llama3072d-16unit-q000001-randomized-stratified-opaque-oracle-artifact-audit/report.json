@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-01T17:36:34.346Z",
+  "kind": "randomized-stratified-cold-start-artifact-audit",
+  "status": "fail",
+  "summary": {
+    "pass": false,
+    "regenerated": false,
+    "masterSeed": 260729,
+    "caseCount": 6,
+    "passedCases": 1,
+    "failedCases": 5,
+    "failureCauses": {
+      "report-failed-court-checks": 5
+    },
+    "modelFamilies": [
+      "llama",
+      "mistral"
+    ],
+    "layerBands": [
+      "early",
+      "late",
+      "middle"
+    ],
+    "oracleModes": [
+      "down-proj-output-channel",
+      "selected-unit-sum"
+    ],
+    "unitSelection": [
+      {
+        "case": "mistral-4096d-early-layer9",
+        "kind": "contributing-units-only",
+        "poolSize": 13076,
+        "totalUnits": 14336,
+        "excludedUnits": 1260,
+        "reason": "a unit with a zero down-proj coefficient for this channel contributes nothing to the oracle and is unrecoverable"
+      },
+      {
+        "case": "mistral-4096d-middle-layer11",
+        "kind": "all-units",
+        "poolSize": 14336,
+        "totalUnits": 14336,
+        "excludedUnits": 0,
+        "reason": "selected-unit-sum weights every unit equally, so no unit is unrecoverable"
+      },
+      {
+        "case": "mistral-4096d-late-layer28",
+        "kind": "contributing-units-only",
+        "poolSize": 13064,
+        "totalUnits": 14336,
+        "excludedUnits": 1272,
+        "reason": "a unit with a zero down-proj coefficient for this channel contributes nothing to the oracle and is unrecoverable"
+      },
+      {
+        "case": "llama-3072d-early-layer1",
+        "kind": "contributing-units-only",
+        "poolSize": 8191,
+        "totalUnits": 8192,
+        "excludedUnits": 1,
+        "reason": "a unit with a zero down-proj coefficient for this channel contributes nothing to the oracle and is unrecoverable"
+      },
+      {
+        "case": "llama-3072d-middle-layer10",
+        "kind": "all-units",
+        "poolSize": 8192,
+        "totalUnits": 8192,
+        "excludedUnits": 0,
+        "reason": "selected-unit-sum weights every unit equally, so no unit is unrecoverable"
+      },
+      {
+        "case": "llama-3072d-late-layer23",
+        "kind": "contributing-units-only",
+        "poolSize": 7490,
+        "totalUnits": 8192,
+        "excludedUnits": 702,
+        "reason": "a unit with a zero down-proj coefficient for this channel contributes nothing to the oracle and is unrecoverable"
+      }
+    ],
+    "maxExcludedUnitFraction": 0.08872767857142858,
+    "selectedLayers": {
+      "mistral": [
+        9,
+        11,
+        28
+      ],
+      "llama": [
+        1,
+        10,
+        23
+      ]
+    },
+    "dimensions": [
+      3072,
+      4096
+    ],
+    "unitCount": 16,
+    "quantizationStep": 0.000001,
+    "measuredCaseCount": 6,
+    "metricsCoverAllCases": true,
+    "minR2": 0.992711805955406,
+    "maxMae": 0.0009331265039026081,
+    "maxWorstError": 0.0068207934774785345,
+    "minSubspacePrincipalCosine": 0.9790955523785366,
+    "minPairedAtomJointCosine": -0.06442893806971481,
+    "minPairedAtomCountAbove099": 11,
+    "maxRawOracleCallsPerCase": 1455778,
+    "totalRawOracleCalls": 7932316,
+    "minTraceLineCount": 3110,
+    "minR2IncludingUngatedCases": 0.992711805955406,
+    "maxWorstErrorIncludingUngatedCases": 0.0068207934774785345,
+    "totalRawOracleCallsIncludingUngatedCases": 7932316,
+    "failures": [
+      "mistral-4096d-early-layer9: report is not pass",
+      "mistral-4096d-early-layer9: R2=0.9939420260874505 < 0.999",
+      "mistral-4096d-early-layer9: subspace cosine=0.9853595369461892 < 0.999",
+      "mistral-4096d-early-layer9: paired atom minimum=-0.06442893806971481 < 0.99",
+      "mistral-4096d-early-layer9: paired atom count is not 16/16: 11",
+      "mistral-4096d-late-layer28: report is not pass",
+      "mistral-4096d-late-layer28: R2=0.992711805955406 < 0.999",
+      "mistral-4096d-late-layer28: subspace cosine=0.9790955523785366 < 0.999",
+      "mistral-4096d-late-layer28: paired atom minimum=0.06556068217791547 < 0.99",
+      "mistral-4096d-late-layer28: paired atom count is not 16/16: 11",
+      "llama-3072d-early-layer1: report is not pass",
+      "llama-3072d-early-layer1: R2=0.9988458593119249 < 0.999",
+      "llama-3072d-early-layer1: subspace cosine=0.9982453221496379 < 0.999",
+      "llama-3072d-early-layer1: paired atom minimum=0.011313265986362696 < 0.99",
+      "llama-3072d-early-layer1: paired atom count is not 16/16: 12",
+      "llama-3072d-middle-layer10: report is not pass",
+      "llama-3072d-middle-layer10: worstError=0.005560692837129122 > 0.005",
+      "llama-3072d-late-layer23: report is not pass",
+      "llama-3072d-late-layer23: R2=0.9980053437372589 < 0.999",
+      "llama-3072d-late-layer23: worstError=0.0068207934774785345 > 0.005",
+      "llama-3072d-late-layer23: paired atom minimum=0.10087696558935158 < 0.99",
+      "llama-3072d-late-layer23: paired atom count is not 16/16: 12"
+    ]
+  },
+  "cases": [
+    {
+      "id": "mistral-4096d-early-layer9",
+      "family": "mistral",
+      "band": "early",
+      "dimension": 4096,
+      "layer": 9,
+      "oracleMode": "down-proj-output-channel",
+      "processExitCode": null,
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/mistral-4096d-early-layer9/report.json",
+      "runId": "79ba8b6ce73f42e6bf729610e3cf1786",
+      "generatedAt": "2026-07-29T17:19:45Z",
+      "pass": false,
+      "outcome": "ok",
+      "failureCause": "report-failed-court-checks",
+      "diagnostics": null,
+      "r2": 0.9939420260874505,
+      "mae": 0.000006337947798012341,
+      "worstError": 0.00005758570751607735,
+      "subspaceMinPrincipalCosine": 0.9853595369461892,
+      "pairedAtomMinJointCosine": -0.06442893806971481,
+      "pairedAtomCountAbove099": 11,
+      "rawOracleCalls": 1438260,
+      "traceLineCount": 3113,
+      "failures": [
+        "report is not pass",
+        "R2=0.9939420260874505 < 0.999",
+        "subspace cosine=0.9853595369461892 < 0.999",
+        "paired atom minimum=-0.06442893806971481 < 0.99",
+        "paired atom count is not 16/16: 11"
+      ]
+    },
+    {
+      "id": "mistral-4096d-middle-layer11",
+      "family": "mistral",
+      "band": "middle",
+      "dimension": 4096,
+      "layer": 11,
+      "oracleMode": "selected-unit-sum",
+      "processExitCode": null,
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/mistral-4096d-middle-layer11/report.json",
+      "runId": "d67a7a4071cc468b9f3a5db0df4f38fa",
+      "generatedAt": "2026-07-29T17:21:59Z",
+      "pass": true,
+      "outcome": "ok",
+      "failureCause": null,
+      "diagnostics": null,
+      "r2": 0.9999999496492865,
+      "mae": 0.000005958255192970336,
+      "worstError": 0.0000320648452153266,
+      "subspaceMinPrincipalCosine": 0.9999999511163822,
+      "pairedAtomMinJointCosine": 0.9999996141369001,
+      "pairedAtomCountAbove099": 16,
+      "rawOracleCalls": 1455778,
+      "traceLineCount": 3122,
+      "failures": []
+    },
+    {
+      "id": "mistral-4096d-late-layer28",
+      "family": "mistral",
+      "band": "late",
+      "dimension": 4096,
+      "layer": 28,
+      "oracleMode": "down-proj-output-channel",
+      "processExitCode": null,
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/mistral-4096d-late-layer28/report.json",
+      "runId": "94f1da9b77444e2886bc23578941c254",
+      "generatedAt": "2026-07-29T17:24:13Z",
+      "pass": false,
+      "outcome": "ok",
+      "failureCause": "report-failed-court-checks",
+      "diagnostics": null,
+      "r2": 0.992711805955406,
+      "mae": 0.000006430997314521364,
+      "worstError": 0.00005844894483986487,
+      "subspaceMinPrincipalCosine": 0.9790955523785366,
+      "pairedAtomMinJointCosine": 0.06556068217791547,
+      "pairedAtomCountAbove099": 11,
+      "rawOracleCalls": 1435962,
+      "traceLineCount": 3122,
+      "failures": [
+        "report is not pass",
+        "R2=0.992711805955406 < 0.999",
+        "subspace cosine=0.9790955523785366 < 0.999",
+        "paired atom minimum=0.06556068217791547 < 0.99",
+        "paired atom count is not 16/16: 11"
+      ]
+    },
+    {
+      "id": "llama-3072d-early-layer1",
+      "family": "llama",
+      "band": "early",
+      "dimension": 3072,
+      "layer": 1,
+      "oracleMode": "down-proj-output-channel",
+      "processExitCode": null,
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/llama-3072d-early-layer1/report.json",
+      "runId": "de2732d5f39646d9865095cb74c56126",
+      "generatedAt": "2026-07-29T17:25:41Z",
+      "pass": false,
+      "outcome": "ok",
+      "failureCause": "report-failed-court-checks",
+      "diagnostics": null,
+      "r2": 0.9988458593119249,
+      "mae": 0.0002820523684130448,
+      "worstError": 0.0028897546313992415,
+      "subspaceMinPrincipalCosine": 0.9982453221496379,
+      "pairedAtomMinJointCosine": 0.011313265986362696,
+      "pairedAtomCountAbove099": 12,
+      "rawOracleCalls": 1193210,
+      "traceLineCount": 3120,
+      "failures": [
+        "report is not pass",
+        "R2=0.9988458593119249 < 0.999",
+        "subspace cosine=0.9982453221496379 < 0.999",
+        "paired atom minimum=0.011313265986362696 < 0.99",
+        "paired atom count is not 16/16: 12"
+      ]
+    },
+    {
+      "id": "llama-3072d-middle-layer10",
+      "family": "llama",
+      "band": "middle",
+      "dimension": 3072,
+      "layer": 10,
+      "oracleMode": "selected-unit-sum",
+      "processExitCode": null,
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/llama-3072d-middle-layer10/report.json",
+      "runId": "91e0b7bba64c43dfb36e757ed86d280d",
+      "generatedAt": "2026-07-29T17:27:07Z",
+      "pass": false,
+      "outcome": "ok",
+      "failureCause": "report-failed-court-checks",
+      "diagnostics": null,
+      "r2": 0.9999991252803332,
+      "mae": 0.0006536881304545849,
+      "worstError": 0.005560692837129122,
+      "subspaceMinPrincipalCosine": 0.9999951123701174,
+      "pairedAtomMinJointCosine": 0.9999995396592926,
+      "pairedAtomCountAbove099": 16,
+      "rawOracleCalls": 1202986,
+      "traceLineCount": 3110,
+      "failures": [
+        "report is not pass",
+        "worstError=0.005560692837129122 > 0.005"
+      ]
+    },
+    {
+      "id": "llama-3072d-late-layer23",
+      "family": "llama",
+      "band": "late",
+      "dimension": 3072,
+      "layer": 23,
+      "oracleMode": "down-proj-output-channel",
+      "processExitCode": null,
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-randomized-cold-start-court/mistral4096d-llama3072d-16unit-q000001-randomized-stratified-opaque-oracle/cases/llama-3072d-late-layer23/report.json",
+      "runId": "a6b868d76a5f45d3942dddab8df8f410",
+      "generatedAt": "2026-07-29T17:28:34Z",
+      "pass": false,
+      "outcome": "ok",
+      "failureCause": "report-failed-court-checks",
+      "diagnostics": null,
+      "r2": 0.9980053437372589,
+      "mae": 0.0009331265039026081,
+      "worstError": 0.0068207934774785345,
+      "subspaceMinPrincipalCosine": 0.99999864749214,
+      "pairedAtomMinJointCosine": 0.10087696558935158,
+      "pairedAtomCountAbove099": 12,
+      "rawOracleCalls": 1206120,
+      "traceLineCount": 3120,
+      "failures": [
+        "report is not pass",
+        "R2=0.9980053437372589 < 0.999",
+        "worstError=0.0068207934774785345 > 0.005",
+        "paired atom minimum=0.10087696558935158 < 0.99",
+        "paired atom count is not 16/16: 12"
+      ]
+    }
+  ],
+  "provenance": {
+    "courtScriptSha256": "d2df81272b512d5db9b3c42157a912f7b52f88fee81b8f591c2c68423a54fb14",
+    "runtimeSha256": {
+      "decompilerSha256": "073e27b394f723a212f5d80def3627a34b2484e90d1222a37e53a7b6ffc30db7",
+      "orchestratorSha256": "f5b43a0867e61e2a97ae1f764826bc795a1298fd300b49a58931e029e45a7c8b",
+      "oracleServerSha256": "266caa5ea9cb7cfaca85208d5082f42450f80dd3d2f100a7d15ebefe5e63eca5",
+      "solverWorkerSha256": "27c7c2d132bdbeff4dd65af32b3e85458b89ae2c94251cee09a20397817a0d01",
+      "protocolSha256": "6e909ff589e49c45e42b0f91551a33c291dc2ea982725d56eb017142f7f25226"
+    }
+  }
+}
