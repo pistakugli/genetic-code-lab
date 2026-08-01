@@ -275,7 +275,15 @@ const summary = {
   failures
 };
 
-const output = resolveBenchmarkOutput(repoRoot, lane, defaultVariant);
+// A stale-audit run (GCL_ASYMPTOTIC_STRUCTURE_REGENERATE=0) executes no case and validates
+// whatever reports are already on disk. Writing that verdict to the canonical variant meant
+// an audit could overwrite the real artifact with a pass derived entirely from stale
+// reports, and the only thing separating the two was an env var set by hand in package.json.
+// The three sibling cold-start lanes already split the variant; this one now matches them,
+// so the canonical artifact can only be produced by a run that actually regenerated it.
+// Matches the directory the audit has always written to, so no third path appears.
+const variant = regenerate ? defaultVariant : defaultVariant.replace(/-oracle-only$/, '-artifact-audit');
+const output = resolveBenchmarkOutput(repoRoot, lane, variant);
 fs.mkdirSync(output.outputDir, { recursive: true });
 const report = {
   schemaVersion: 1,

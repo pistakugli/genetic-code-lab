@@ -173,18 +173,42 @@ function inferQuantizationFromVariant(variant: string): number {
   return 0;
 }
 
+/** Source reports that did not become atlas rows, and why. */
+const droppedSources: Array<{ report: string; reason: string }> = [];
+/** Source reports declaring their own oracle-only invariant violated. */
+const accessInvariantViolations: string[] = [];
+
 function buildRows(): AtlasRow[] {
+  // Every exclusion here used to be silent. A report that crashed before writing metrics,
+  // or one declaring accessInvariant false, simply vanished from the population, and the
+  // aggregate floors below were then computed over the survivors, so a dropped row could
+  // never drag a minimum down. sourceReportCount and atlasRowCount were both emitted, which
+  // made the gap visible to a careful reader, but nothing bound to it.
+  //
+  // Exclusions are now recorded with a reason and counted, and an access-invariant
+  // violation is promoted to a failure rather than a filter: an atlas that claims
+  // oracle-only coverage must not quietly drop the one report that says the invariant broke.
   const rows: AtlasRow[] = [];
   for (const reportPath of listReports()) {
     const report = asRecord(JSON.parse(fs.readFileSync(reportPath, 'utf8')), reportPath);
     const selected = rowFromSelected(reportPath, report);
-    if (selected) rows.push(selected);
-    else {
-      const aggregate = rowFromAggregate(reportPath, report);
-      if (aggregate) rows.push(aggregate);
+    const row = selected ?? rowFromAggregate(reportPath, report);
+    if (!row) {
+      droppedSources.push({ report: path.relative(repoRoot, reportPath), reason: 'no readable metrics' });
+      continue;
     }
+    if (!row.accessInvariant) {
+      accessInvariantViolations.push(path.relative(repoRoot, reportPath));
+      droppedSources.push({ report: path.relative(repoRoot, reportPath), reason: 'accessInvariant=false' });
+      continue;
+    }
+    if (row.modelFamily === 'unknown') {
+      droppedSources.push({ report: path.relative(repoRoot, reportPath), reason: 'unknown model family' });
+      continue;
+    }
+    rows.push(row);
   }
-  return rows.filter(row => row.modelFamily !== 'unknown' && row.accessInvariant);
+  return rows;
 }
 
 function contiguousRuns(layers: number[]): number[][] {
@@ -317,11 +341,19 @@ for (const family of familySummaries) {
   }
 }
 if (rows.length < 80) failures.push(`totalRows=${rows.length}<80`);
+// A source report that says its own oracle-only invariant was violated cannot be excluded
+// from an atlas that then reports oracle-only coverage over what remains.
+for (const violation of accessInvariantViolations) {
+  failures.push(`source report declares accessInvariant=false: ${violation}`);
+}
 
 const summary = {
   pass: failures.length === 0,
   sourceReportCount: listReports().length,
   atlasRowCount: rows.length,
+  droppedSourceCount: droppedSources.length,
+  droppedSources,
+  accessInvariantViolationCount: accessInvariantViolations.length,
   selectedRowCount: rows.filter(row => row.sourceKind === 'selected').length,
   aggregateRowCount: rows.filter(row => row.sourceKind === 'aggregate').length,
   layerAtlasRowCount: layers.length,

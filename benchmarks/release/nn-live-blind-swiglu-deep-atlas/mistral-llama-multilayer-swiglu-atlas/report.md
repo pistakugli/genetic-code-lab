@@ -1,15 +1,15 @@
 # NN Live Blind SwiGLU Deep Atlas
 
-Status: **PASS**
+Status: **NEEDS BACKFILL**
 
 This atlas reads all current real-model oracle-only Mistral/LLaMA-family SwiGLU decompiler artifacts and builds a layer-by-layer recovery map.
 
 ## Family Summary
 
-- LLaMA-family: 28/28 layers, rows 58, selected 52, multi-unit selected 12, finite-precision rows 4, min R2 0.999574211683, min subspace 0.999284096699, max worst 0.120805323663.
+- LLaMA-family: 28/28 layers, rows 82, selected 65, multi-unit selected 25, finite-precision rows 19, min R2 0.993641620187, min subspace 0.999284096699, max worst 0.200861709899.
   Layers: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
   Buckets: early 0, 1, 2, 3, 4, 5, 6, 7, 8; middle 9, 10, 11, 12, 13, 14, 15, 16, 17; late 18, 19, 20, 21, 22, 23, 24, 25, 26, 27.
-- Mistral-family: 32/32 layers, rows 88, selected 75, multi-unit selected 31, finite-precision rows 13, min R2 0.995143617716, min subspace 0.999353644734, max worst 0.014497109405.
+- Mistral-family: 32/32 layers, rows 116, selected 90, multi-unit selected 46, finite-precision rows 29, min R2 0.177670964589, min subspace 0.002014020544, max worst 0.01969067236.
   Layers: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
   Buckets: early 0, 1, 2, 3, 4, 5, 6, 7, 8, 9; middle 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20; late 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31.
 
@@ -18,7 +18,7 @@ This atlas reads all current real-model oracle-only Mistral/LLaMA-family SwiGLU 
 | family | layer | rows | max units | worst R2 | max worst error | min subspace | finite rows |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | LLaMA-family | 0 | 2 | 1 | 0.999999972449 | 0.00038815688 | 0.999999983998 | 0 |
-| LLaMA-family | 1 | 6 | 8 | 0.999645886026 | 0.07539645059 | 0.999563561209 | 1 |
+| LLaMA-family | 1 | 9 | 16 | 0.995543750432 | 0.12481774588 | 0.999563561209 | 2 |
 | LLaMA-family | 2 | 1 | 1 | 0.999999998897 | 5.853543e-5 | 0.999999999299 | 0 |
 | LLaMA-family | 3 | 1 | 1 | 0.999999999521 | 2.524811e-5 | 0.999999999869 | 0 |
 | LLaMA-family | 4 | 1 | 1 | 0.999999999412 | 4.595115e-5 | 0.999999999753 | 0 |
@@ -26,18 +26,18 @@ This atlas reads all current real-model oracle-only Mistral/LLaMA-family SwiGLU 
 | LLaMA-family | 6 | 2 | 1 | 0.999999996167 | 0.000119893499 | 0.999999997455 | 0 |
 | LLaMA-family | 7 | 1 | 1 | 0.999999984706 | 0.00011776676 | 0.999999991148 | 0 |
 | LLaMA-family | 8 | 2 | 1 | 0.999999999143 | 5.349100e-5 | 0.999999999578 | 0 |
-| LLaMA-family | 9 | 2 | 1 | 0.999999997337 | 7.884152e-5 | 0.999999998569 | 0 |
+| LLaMA-family | 9 | 5 | 16 | 0.999160204772 | 0.052858101306 | 0.999993558628 | 2 |
 | LLaMA-family | 10 | 1 | 1 | 0.999999999473 | 3.326530e-5 | 0.99999999978 | 0 |
 | LLaMA-family | 11 | 3 | 6 | 0.999988052285 | 0.012340230225 | 0.999957400868 | 0 |
 | LLaMA-family | 12 | 1 | 1 | 0.999999999742 | 2.427969e-5 | 0.999999999906 | 0 |
 | LLaMA-family | 13 | 1 | 1 | 0.999999995791 | 7.423657e-5 | 0.999999998474 | 0 |
 | LLaMA-family | 14 | 1 | 1 | 0.999999999603 | 4.091658e-5 | 0.999999999624 | 0 |
-| LLaMA-family | 15 | 1 | 1 | 0.999999999745 | 2.957849e-5 | 0.999999999926 | 0 |
+| LLaMA-family | 15 | 5 | 16 | 0.998432615763 | 0.103025421454 | 0.999945702862 | 3 |
 | LLaMA-family | 16 | 4 | 8 | 0.999574211683 | 0.078378745416 | 0.999284096699 | 1 |
 | LLaMA-family | 17 | 2 | 1 | 0.999999999272 | 3.948473e-5 | 0.999999999756 | 0 |
 | LLaMA-family | 18 | 1 | 1 | 0.999999999666 | 2.906625e-5 | 0.999999999905 | 0 |
 | LLaMA-family | 19 | 2 | 1 | 0.999999998557 | 5.356865e-5 | 0.99999999958 | 0 |
-| LLaMA-family | 20 | 6 | 8 | 0.999597610028 | 0.120805323663 | 0.999441573954 | 1 |
+| LLaMA-family | 20 | 9 | 16 | 0.996028807884 | 0.120805323663 | 0.999441573954 | 3 |
 | LLaMA-family | 21 | 1 | 1 | 0.999999999396 | 4.333149e-5 | 0.999999999708 | 0 |
 | LLaMA-family | 22 | 2 | 1 | 0.99999976731 | 0.00062679162 | 0.999999886275 | 0 |
 | LLaMA-family | 23 | 1 | 1 | 0.999999999187 | 4.055715e-5 | 0.999999999564 | 0 |
@@ -46,7 +46,7 @@ This atlas reads all current real-model oracle-only Mistral/LLaMA-family SwiGLU 
 | LLaMA-family | 26 | 1 | 1 | 0.999999988218 | 0.000127977102 | 0.999999992697 | 0 |
 | LLaMA-family | 27 | 1 | 1 | 0.999998414267 | 0.002242905107 | 0.999999073974 | 0 |
 | Mistral-family | 0 | 2 | 1 | 0.999957034172 | 0.000441386169 | 0.99999999976 | 0 |
-| Mistral-family | 1 | 12 | 8 | 0.995222010288 | 0.010330999089 | 0.999606641022 | 3 |
+| Mistral-family | 1 | 13 | 16 | 0.995222010288 | 0.01298486925 | 0.999606641022 | 3 |
 | Mistral-family | 2 | 1 | 1 | 0.999999999196 | 1.582088e-6 | 0.999999999625 | 0 |
 | Mistral-family | 3 | 1 | 1 | 0.999999999457 | 1.013336e-6 | 0.999999999812 | 0 |
 | Mistral-family | 4 | 1 | 1 | 0.999993920827 | 0.000117488744 | 0.999999999861 | 0 |
@@ -54,18 +54,18 @@ This atlas reads all current real-model oracle-only Mistral/LLaMA-family SwiGLU 
 | Mistral-family | 6 | 1 | 1 | 0.999999999146 | 9.104033e-7 | 0.999999999682 | 0 |
 | Mistral-family | 7 | 2 | 1 | 0.99964797656 | 0.00108243685 | 0.999999999261 | 0 |
 | Mistral-family | 8 | 2 | 1 | 0.99980891294 | 0.00069496072 | 0.999999999726 | 0 |
-| Mistral-family | 9 | 1 | 1 | 0.99999999292 | 4.993773e-6 | 0.999999997448 | 0 |
+| Mistral-family | 9 | 5 | 16 | 0.313643532053 | 0.00131818043 | 0.067097865863 | 4 |
 | Mistral-family | 10 | 3 | 3 | 0.996294143908 | 0.010120884384 | 0.999999987811 | 0 |
-| Mistral-family | 11 | 2 | 4 | 0.995727068596 | 0.008566143276 | 0.999999972542 | 0 |
+| Mistral-family | 11 | 3 | 16 | 0.995727068596 | 0.018289335513 | 0.999993224285 | 0 |
 | Mistral-family | 12 | 3 | 6 | 0.997665430984 | 0.012323574241 | 0.999999121098 | 0 |
 | Mistral-family | 13 | 1 | 1 | 0.999973968526 | 0.000221335107 | 0.99999999909 | 0 |
 | Mistral-family | 14 | 1 | 1 | 0.999993238332 | 0.000263223545 | 0.999999998489 | 0 |
-| Mistral-family | 15 | 1 | 1 | 0.999998692916 | 9.796373e-5 | 0.999999999655 | 0 |
+| Mistral-family | 15 | 6 | 16 | 0.177670964589 | 0.001337396021 | 0.002014020544 | 5 |
 | Mistral-family | 16 | 2 | 1 | 0.999999330798 | 3.574106e-5 | 0.999999789274 | 0 |
 | Mistral-family | 17 | 1 | 1 | 0.999999994318 | 4.866672e-6 | 0.999999999207 | 0 |
 | Mistral-family | 18 | 1 | 1 | 0.999885122029 | 0.000654576718 | 0.999999999878 | 0 |
 | Mistral-family | 19 | 6 | 8 | 0.995867637063 | 0.014497109405 | 0.999440768464 | 3 |
-| Mistral-family | 20 | 13 | 8 | 0.995241421111 | 0.012667784693 | 0.999353644734 | 3 |
+| Mistral-family | 20 | 17 | 16 | 0.995061654657 | 0.01969067236 | 0.999353644734 | 3 |
 | Mistral-family | 21 | 1 | 1 | 0.999803167315 | 0.000513291302 | 0.999999998704 | 0 |
 | Mistral-family | 22 | 2 | 1 | 0.999969985401 | 0.000328830105 | 0.999999998882 | 0 |
 | Mistral-family | 23 | 1 | 1 | 0.999997033285 | 8.559163e-5 | 0.999999999811 | 0 |
@@ -85,3 +85,8 @@ This atlas reads all current real-model oracle-only Mistral/LLaMA-family SwiGLU 
 - The atlas proves multi-layer selected-block recovery coverage for the covered real Mistral/LLaMA-family scalar SwiGLU oracle rows.
 - If coverage gates fail, the remedy is additional oracle-only recovery/backfill runs, not lowering thresholds or hiding the gap.
 
+## Backfill Needed
+
+- LLaMA-family: minR2=0.9936416201869898<0.995
+- Mistral-family: minR2=0.17767096458876264<0.995
+- Mistral-family: minSubspacePrincipalCosine=0.002014020544312016<0.999
