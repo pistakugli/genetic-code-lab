@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-11T20:08:29.897Z",
+  "generatedAt": "2026-08-01T17:32:02.200Z",
   "task": "adaptive-budget noisy deep black-box ReLU ND region sampling",
   "blackBox": {
     "type": "3D/4D input / 4-hidden / 4-hidden / 1-output folded two-layer ReLU MLP adversarial teachers",
@@ -15,6 +15,7 @@
     "dimensionsCovered": true,
     "adversarialProfilesCovered": true,
     "adaptiveLocalAffineExercised": true,
+    "predictionModeAppliedThroughout": true,
     "lowBudgetUsuallySelected": true,
     "highBudgetEscalationExercised": true,
     "rejectedCandidateLedgerPresent": true,
@@ -57,6 +58,7 @@
     "minR2": 0.9865538047691716,
     "minSelectionR2": 0.9826927499278406,
     "minLinearMaeImprovementRatio": 5.074298352405206,
+    "minPredictionModeAppliedRate": 1,
     "totalSelectedRawOracleCalls": 1862760,
     "totalAdaptiveSearchRawOracleCalls": 3404120,
     "previousReleaseReference": {
@@ -87,6 +89,14 @@
         "retainedSampleCount": 4098,
         "droppedSampleCount": 102,
         "retainedSampleRatio": 0.9757142857142858,
+        "predictionMode": "region-vote",
+        "predictionModeFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularOrNonFinite": 0,
+          "total": 0,
+          "predictionCount": 4098,
+          "appliedRate": 1
+        },
         "maxRegionFitRmse": 0.12290398034386533,
         "neighborCount": 13,
         "localAffineNeighborCount": 48
@@ -277,6 +287,14 @@
         "retainedSampleCount": 2284,
         "droppedSampleCount": 116,
         "retainedSampleRatio": 0.9516666666666667,
+        "predictionMode": "region-vote",
+        "predictionModeFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularOrNonFinite": 0,
+          "total": 0,
+          "predictionCount": 2284,
+          "appliedRate": 1
+        },
         "maxRegionFitRmse": 0.04492367019601649,
         "neighborCount": 11,
         "localAffineNeighborCount": 40
@@ -355,6 +373,14 @@
         "retainedSampleCount": 2392,
         "droppedSampleCount": 8,
         "retainedSampleRatio": 0.9966666666666667,
+        "predictionMode": "local-affine-knn",
+        "predictionModeFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularOrNonFinite": 0,
+          "total": 0,
+          "predictionCount": 2392,
+          "appliedRate": 1
+        },
         "maxRegionFitRmse": 0.09931513402669817,
         "neighborCount": 11,
         "localAffineNeighborCount": 40
@@ -461,6 +487,14 @@
         "retainedSampleCount": 3600,
         "droppedSampleCount": 0,
         "retainedSampleRatio": 1,
+        "predictionMode": "local-affine-knn",
+        "predictionModeFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularOrNonFinite": 0,
+          "total": 0,
+          "predictionCount": 3600,
+          "appliedRate": 1
+        },
         "maxRegionFitRmse": 0.057534170209954556,
         "neighborCount": 15,
         "localAffineNeighborCount": 60
@@ -567,6 +601,14 @@
         "retainedSampleCount": 3503,
         "droppedSampleCount": 97,
         "retainedSampleRatio": 0.9730555555555556,
+        "predictionMode": "region-vote",
+        "predictionModeFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularOrNonFinite": 0,
+          "total": 0,
+          "predictionCount": 3503,
+          "appliedRate": 1
+        },
         "maxRegionFitRmse": 0.0910715714217878,
         "neighborCount": 15,
         "localAffineNeighborCount": 60
@@ -645,6 +687,14 @@
         "retainedSampleCount": 3593,
         "droppedSampleCount": 7,
         "retainedSampleRatio": 0.9980555555555556,
+        "predictionMode": "local-affine-knn",
+        "predictionModeFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularOrNonFinite": 0,
+          "total": 0,
+          "predictionCount": 3593,
+          "appliedRate": 1
+        },
         "maxRegionFitRmse": 0.15453257455749972,
         "neighborCount": 15,
         "localAffineNeighborCount": 60
@@ -752,6 +802,14 @@
         "retainedSampleCount": 3553,
         "droppedSampleCount": 47,
         "retainedSampleRatio": 0.9869444444444444,
+        "predictionMode": "region-vote",
+        "predictionModeFallbacks": {
+          "insufficientNeighbors": 0,
+          "singularOrNonFinite": 0,
+          "total": 0,
+          "predictionCount": 3553,
+          "appliedRate": 1
+        },
         "maxRegionFitRmse": 0.1300957704153794,
         "neighborCount": 15,
         "localAffineNeighborCount": 60
@@ -812,5 +870,5 @@
       ]
     }
   ],
-  "runtimeMs": 2438
+  "runtimeMs": 6468
 }

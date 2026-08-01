@@ -27,6 +27,25 @@ export type DeepBlackBoxReluNdRegionSamplerModel = {
   trimFraction: number;
   neighborCount: number;
   predictionMode: 'region-vote' | 'local-affine-knn';
+  /**
+   * How often predictionMode could not actually be used, measured over the model's own
+   * assignments during the solve.
+   *
+   * predictLocalAffineKnn degrades to a region vote in three places without saying so: too
+   * few neighbours for an affine fit, a singular local system, and a non-finite result. The
+   * model kept advertising local-affine-knn regardless, and buildExpression prints that mode
+   * into the expression string, so a model that mostly voted read exactly like one that
+   * fitted. The error metrics were always honest, being computed against whatever was
+   * actually predicted; what was missing was the distinction. appliedRate is the fraction
+   * predicted with the declared mode.
+   */
+  predictionModeFallbacks: {
+    insufficientNeighbors: number;
+    singularOrNonFinite: number;
+    total: number;
+    predictionCount: number;
+    appliedRate: number;
+  };
   localAffineNeighborCount: number;
   ridge: number;
   recoveryKind: 'output-equivalent-nd-region-sampler';
@@ -374,8 +393,36 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
     recoveryKind: 'output-equivalent-nd-region-sampler' as const,
     regions,
     assignments,
-    regionCount: regions.length
+    regionCount: regions.length,
+    // Placeholder so modelBase satisfies the type; replaced immediately below with the
+    // measurement, which needs a complete model to run the real prediction path.
+    predictionModeFallbacks: {
+      insufficientNeighbors: 0,
+      singularOrNonFinite: 0,
+      total: 0,
+      predictionCount: 0,
+      appliedRate: 1
+    }
   };
+
+  // Measured here rather than left to an optional audit call: a degradation nobody queries
+  // is indistinguishable from one that never happened, and buildExpression prints
+  // predictionMode into the expression string that readers take at face value.
+  const fallbackCounts: PredictionModeFallbackCounts = {
+    insufficientNeighbors: 0,
+    singularOrNonFinite: 0,
+    total: 0
+  };
+  const measurable: DeepBlackBoxReluNdRegionSamplerModel = { ...modelBase, expression: '' };
+  for (const assignment of assignments) {
+    predictDeepBlackBoxReluNdRegionSamplerModel(measurable, assignment.input, fallbackCounts);
+  }
+  modelBase.predictionModeFallbacks = {
+    ...fallbackCounts,
+    predictionCount: assignments.length,
+    appliedRate: assignments.length === 0 ? 1 : (assignments.length - fallbackCounts.total) / assignments.length
+  };
+
   return {
     ...modelBase,
     expression: buildExpression(modelBase)
@@ -384,10 +431,11 @@ export function decompileDeepBlackBoxReluNdRegionSampler(
 
 export function predictDeepBlackBoxReluNdRegionSamplerModel(
   model: DeepBlackBoxReluNdRegionSamplerModel,
-  input: number[]
+  input: number[],
+  fallbacks?: PredictionModeFallbackCounts
 ): number {
   if (input.length !== model.dimension) throw new Error('ND region sampler prediction dimension mismatch');
-  if (model.predictionMode === 'local-affine-knn') return predictLocalAffineKnn(model, input);
+  if (model.predictionMode === 'local-affine-knn') return predictLocalAffineKnn(model, input, fallbacks);
   const neighbors: Array<{ distance: number; regionId: number }> = [];
   for (const assignment of model.assignments) {
     insertNeighbor(
@@ -407,7 +455,14 @@ export function predictDeepBlackBoxReluNdRegionSamplerModel(
   return Number.isFinite(value) ? value : 0;
 }
 
-function predictLocalAffineKnn(model: DeepBlackBoxReluNdRegionSamplerModel, input: number[]): number {
+/** Mutable tally of the three ways predictLocalAffineKnn can silently degrade to a vote. */
+type PredictionModeFallbackCounts = { insufficientNeighbors: number; singularOrNonFinite: number; total: number };
+
+function predictLocalAffineKnn(
+  model: DeepBlackBoxReluNdRegionSamplerModel,
+  input: number[],
+  fallbacks?: PredictionModeFallbackCounts
+): number {
   const neighbors: Array<{ distance: number; assignment: DeepBlackBoxReluNdRegionSamplerAssignment }> = [];
   for (const assignment of model.assignments) {
     const candidate = { distance: squaredDistance(input, assignment.input), assignment };
@@ -417,7 +472,10 @@ function predictLocalAffineKnn(model: DeepBlackBoxReluNdRegionSamplerModel, inpu
     neighbors.splice(index, 0, candidate);
     if (neighbors.length > model.localAffineNeighborCount) neighbors.pop();
   }
-  if (neighbors.length < model.dimension + 1) return predictRegionVoteFallback(model, input);
+  if (neighbors.length < model.dimension + 1) {
+    if (fallbacks) { fallbacks.insufficientNeighbors++; fallbacks.total++; }
+    return predictRegionVoteFallback(model, input);
+  }
   const width = model.dimension + 1;
   const xtx = Array.from({ length: width }, () => new Array(width).fill(0));
   const xty = new Array(width).fill(0);
@@ -433,8 +491,11 @@ function predictLocalAffineKnn(model: DeepBlackBoxReluNdRegionSamplerModel, inpu
   try {
     const coefficients = solveSystem(xtx, xty);
     const value = coefficients[0] + dot(coefficients.slice(1), input);
-    return Number.isFinite(value) ? value : predictRegionVoteFallback(model, input);
+    if (Number.isFinite(value)) return value;
+    if (fallbacks) { fallbacks.singularOrNonFinite++; fallbacks.total++; }
+    return predictRegionVoteFallback(model, input);
   } catch {
+    if (fallbacks) { fallbacks.singularOrNonFinite++; fallbacks.total++; }
     return predictRegionVoteFallback(model, input);
   }
 }

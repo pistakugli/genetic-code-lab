@@ -437,6 +437,12 @@ const results = teachers.map(teacher => {
       retainedSampleCount: selected.model.retainedSampleCount,
       droppedSampleCount: selected.model.droppedSampleCount,
       retainedSampleRatio: selected.model.retainedSampleCount / selected.model.sampleCount,
+      // predictLocalAffineKnn degrades to a region vote on too few neighbours, a singular
+      // system, or a non-finite result, while the model and its expression string keep
+      // advertising local-affine-knn. Reporting the rate is what stops a model that mostly
+      // voted from reading exactly like one that fitted.
+      predictionMode: selected.model.predictionMode,
+      predictionModeFallbacks: selected.model.predictionModeFallbacks,
       maxRegionFitRmse: selected.maxRegionFitRmse,
       neighborCount: selected.model.neighborCount,
       localAffineNeighborCount: selected.model.localAffineNeighborCount
@@ -492,6 +498,7 @@ const summary = {
   minR2: Math.min(...results.map(result => result.metrics.r2)),
   minSelectionR2: Math.min(...results.map(result => result.selectionMetrics.r2)),
   minLinearMaeImprovementRatio: Math.min(...results.map(result => result.baselines.linearMaeImprovementRatio)),
+  minPredictionModeAppliedRate: Math.min(...results.map(result => result.recovery.predictionModeFallbacks.appliedRate)),
   totalSelectedRawOracleCalls,
   totalAdaptiveSearchRawOracleCalls,
   previousReleaseReference,
@@ -505,6 +512,10 @@ const gates = {
   dimensionsCovered: summary.dimensions.includes(3) && summary.dimensions.includes(4),
   adversarialProfilesCovered: summary.profiles.length >= 4,
   adaptiveLocalAffineExercised: summary.selectedLocalAffineCount > 0,
+  // A model that voted on most of its own assignments is not the local-affine model it
+  // names, whatever its MAE. Binding here turns that from a number in the report into
+  // something that can fail.
+  predictionModeAppliedThroughout: summary.minPredictionModeAppliedRate >= 1,
   lowBudgetUsuallySelected: summary.selectedLowBudgetCount >= 5,
   highBudgetEscalationExercised: summary.selectedHighBudgetCount > 0,
   rejectedCandidateLedgerPresent: summary.rejectedCandidateCount > 0,
