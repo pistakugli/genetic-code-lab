@@ -72,6 +72,44 @@ function collectMasksBySubset(items: string[], subsetMask: number): string[] {
     return selected;
 }
 
+/**
+ * Refuse to run unless the supplied cases are the complete truth table for their input size.
+ *
+ * Exactness here is what separates synthesis from memorisation, so it is verified rather
+ * than assumed: the count must be 2^n, every input must be binary and of the same width, and
+ * no assignment may repeat.
+ */
+function assertExhaustiveTruthTable(testCases: TestCase<number[], number>[]): void {
+    if (testCases.length === 0) throw new Error('threshold court finalizer requires a non-empty truth table');
+    const inputSize = testCases[0].input.length;
+    if (inputSize <= 0 || inputSize > 30) {
+        throw new Error(`threshold court finalizer input size ${inputSize} is outside the enumerable range`);
+    }
+    const expected = 1 << inputSize;
+    if (testCases.length !== expected) {
+        throw new Error(
+            `threshold court finalizer requires an exhaustive truth table: got ${testCases.length} cases for ` +
+            `${inputSize} inputs, expected ${expected}. On a sampled set this finaliser would memorise the cases it is scored on.`
+        );
+    }
+    const seen = new Set<number>();
+    for (const testCase of testCases) {
+        if (testCase.input.length !== inputSize) {
+            throw new Error('threshold court finalizer requires every case to have the same input width');
+        }
+        let key = 0;
+        for (let bit = 0; bit < inputSize; bit++) {
+            const value = testCase.input[bit];
+            if (value !== 0 && value !== 1) {
+                throw new Error('threshold court finalizer requires binary inputs');
+            }
+            if (value === 1) key |= 1 << bit;
+        }
+        if (seen.has(key)) throw new Error('threshold court finalizer requires each assignment to appear once');
+        seen.add(key);
+    }
+}
+
 export function applyThresholdCourtFinalizer(
     testCases: TestCase<number[], number>[],
     threshold: number,
@@ -81,6 +119,17 @@ export function applyThresholdCourtFinalizer(
     maxBoundaryErrors: number = 6
 ): BinaryProgram {
     if (current.fitness < minBaseFitness) return current;
+    // This finaliser reads the exact inputs the program got wrong, appends literal guard
+    // clauses for those masks, and then re-scores against the same testCases. That is
+    // legitimate only because the threshold lane hands it the complete truth table:
+    // createMajorityProblem enumerates all 1 << n assignments, so there is no held-out data
+    // to overfit to and the specification is total. On a sampled set the identical code
+    // would be memorising the test cases and reporting the memorised score as accuracy.
+    //
+    // That safety was an unstated assumption about the caller. Checking it means a future
+    // change to sampled cases fails loudly here instead of quietly turning this into
+    // overfitting that still reports a high number.
+    assertExhaustiveTruthTable(testCases);
 
     const baseline = auditThresholdBoundary(testCases, threshold, current.opcodes, current.constants);
     if (baseline.boundaryErrors.length === 0 || baseline.boundaryErrors.length > maxBoundaryErrors) return current;
