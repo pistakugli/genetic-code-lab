@@ -71,6 +71,40 @@ function fingerprint(manifest: Record<string, unknown>): { key: string; commit: 
   };
 }
 
+/** Which level of a run this artifact is: the sweep aggregate, or one case inside it. */
+function artifactKind(variantDir: string): 'aggregate' | 'case' | 'other' {
+  const report = readJson(path.join(variantDir, 'report.json'));
+  if (!report) return 'other';
+  if (Array.isArray(report.cases)) return 'aggregate';
+  if (report.solver) return 'case';
+  return 'other';
+}
+
+/**
+ * What the run was pointed at, as the report records it.
+ *
+ * A randomized sweep picks its layer and units from a seed, so two cases of one sweep share
+ * every environment variable and differ only in what they were run against. That difference
+ * is real and is written down - in the report's own summary - so it belongs in the key.
+ * Without it the check reports mistral layer 1 and layer 19 as the same run under two names,
+ * which is a defect in the check rather than in those artifacts.
+ */
+function subjectIdentity(variantDir: string): string {
+  const report = readJson(path.join(variantDir, 'report.json'));
+  if (!report) return '';
+  const summary = report.summary as Record<string, unknown> | undefined;
+  const config = report.config as Record<string, unknown> | undefined;
+  return JSON.stringify({
+    model: summary?.model ?? null,
+    layer: summary?.layer ?? null,
+    units: summary?.units ?? summary?.unit ?? null,
+    atomCount: summary?.atomCount ?? null,
+    outputChannel: summary?.outputChannel ?? null,
+    caseSpec: config?.caseSpec ?? null,
+    randomSeed: config?.randomSeed ?? null
+  });
+}
+
 const groups = new Map<string, Group>();
 
 for (const laneEntry of fs.readdirSync(releaseRoot, { withFileTypes: true })) {
@@ -78,13 +112,18 @@ for (const laneEntry of fs.readdirSync(releaseRoot, { withFileTypes: true })) {
   const lanePath = path.join(releaseRoot, laneEntry.name);
   for (const variantEntry of fs.readdirSync(lanePath, { withFileTypes: true })) {
     if (!variantEntry.isDirectory()) continue;
-    const manifest = readJson(path.join(lanePath, variantEntry.name, 'manifest.json'));
+    const variantDir = path.join(lanePath, variantEntry.name);
+    const manifest = readJson(path.join(variantDir, 'manifest.json'));
     if (!manifest) continue;
     // A variant that says it is indistinguishable is disclosed, not hidden, so it is not a finding.
     if (manifest.variantDistinctness) continue;
     const print = fingerprint(manifest);
     if (!print) continue;
-    const groupKey = `${laneEntry.name}:${print.key}`;
+    // A sweep aggregate and the per-case report it summarises come from one run and share
+    // everything this check compares. They are two levels of the same run, not two methods,
+    // so the artifact kind joins the key rather than letting them collide with each other.
+    const subjectKey = crypto.createHash('sha256').update(subjectIdentity(variantDir)).digest('hex').slice(0, 12);
+    const groupKey = `${laneEntry.name}:${artifactKind(variantDir)}:${subjectKey}:${print.key}`;
     const existing = groups.get(groupKey);
     if (existing) existing.variants.push(variantEntry.name);
     else groups.set(groupKey, { lane: laneEntry.name, fingerprint: print.key, variants: [variantEntry.name], commit: print.commit });

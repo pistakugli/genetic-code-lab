@@ -123,4 +123,39 @@ describe('variant distinctness verifier', () => {
     expect(result.status).toBe(1);
     expect(result.output).toContain('new group');
   });
+  test('two cases of one randomized sweep are told apart by what they were run against', () => {
+    // A randomized sweep picks its layer and units from a seed, so its cases share every
+    // environment variable and differ only in the report's own summary. Reading that as one
+    // run under two names was a defect in this check, not in those artifacts.
+    const env = { GCL_BLIND_SWIGLU_SWEEP_SEED: '7' };
+    for (const [name, layer] of [['case-layer1', 1], ['case-layer19', 19]] as const) {
+      const dir = path.join(root, 'a-lane', name);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'manifest.json'),
+        `${JSON.stringify({ lane: 'a-lane', variant: name, env: { ...env, GCL_BENCHMARK_VARIANT: name }, git: { commit: 'abc' } }, null, 2)}\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'report.json'),
+        `${JSON.stringify({ summary: { layer, units: [layer * 10], atomCount: 1 }, solver: { kind: 'x' } }, null, 2)}\n`
+      );
+    }
+
+    expect(run().status).toBe(0);
+  });
+
+  test('a sweep aggregate does not collide with the case it summarises', () => {
+    const env = { GCL_BLIND_SWIGLU_SWEEP_SEED: '7', GCL_BENCHMARK_VARIANT: 'x' };
+    const write = (name: string, report: unknown): void => {
+      const dir = path.join(root, 'a-lane', name);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'manifest.json'), `${JSON.stringify({ lane: 'a-lane', variant: name, env, git: { commit: 'abc' } }, null, 2)}\n`);
+      fs.writeFileSync(path.join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
+    };
+    write('the-sweep', { summary: { layer: 1 }, cases: [{ pass: true }] });
+    write('the-case', { summary: { layer: 1 }, solver: { kind: 'x' } });
+
+    // Two levels of one run, not two methods.
+    expect(run().status).toBe(0);
+  });
 });

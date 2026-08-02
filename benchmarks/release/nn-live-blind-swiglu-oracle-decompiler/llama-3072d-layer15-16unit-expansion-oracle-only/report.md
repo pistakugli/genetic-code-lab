@@ -2,9 +2,9 @@
 
 - pass: `false`
 - cases: `0/1`
-- min R2: `0.9986197880720584`
-- max MAE: `0.006923393240320399`
-- max worst error: `0.11110972379914336`
+- min R2: `0.998661522358329`
+- max MAE: `0.007012407747925746`
+- max worst error: `0.10332839478753825`
 - min subspace principal cosine: `0.9999854124669576`
 - min post-hoc paired atom joint cosine: `0.23861138806479312`
 - min paired atoms above threshold: `14`
@@ -12,7 +12,7 @@
 - minimum source pair correlation: `-0.04464800348325854`
 - max unit count: `16`
 - max atom count: `16`
-- total raw oracle calls: `146337`
+- total raw oracle calls: `150433`
 
 Access audit:
 

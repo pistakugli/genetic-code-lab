@@ -493,11 +493,11 @@ Finite-precision interpretation and boundaries:
   paired-atom witness. Current artifact:
   `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json`,
   pass `false`, cases `1/2` as regenerated 2026-08-02: min R2
-  `0.9986197880720584`, max MAE `0.007325520441823712`, max worst error
-  `0.11110972379914336`, min subspace principal cosine `0.9999530973154566`,
-  total raw oracle calls `288578`, and oracle-only access invariant. Identity
+  `0.9985677573817285`, max MAE `0.007624356439002252`, max worst error
+  `0.10332839478753825`, min subspace principal cosine `0.9999530973154566`,
+  total raw oracle calls `296770`, and oracle-only access invariant. Identity
   holds for layer 1 (`16/16` atoms above `0.99`, minimum joint cosine
-  `0.990872448218614`) and not for layer 15 (`14/16`, minimum
+  `0.9908724482186139`) and not for layer 15 (`14/16`, minimum
   `0.23861138806479312`), so this line claims function recovery on both blocks
   and structure recovery on one.
   The gate-norm/tail-responsibility weak-block selector is source-blind; the

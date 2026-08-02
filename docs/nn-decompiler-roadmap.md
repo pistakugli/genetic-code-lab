@@ -551,9 +551,9 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        tail-responsibility weak-block selector repairs under-resolved atoms;
        source weights remain post-hoc and are used only for exact one-to-one
        gate/up assignment. Current gate, regenerated 2026-08-02: `1/2` pass.
-       Both blocks clear the fidelity bars (min R2 `0.9986197880720584`, max
-       worst error `0.11110972379914336`); identity holds for layer 1 only
-       (paired atom joint cosine `0.990872448218614`, `16/16` above `0.99`)
+       Both blocks clear the fidelity bars (min R2 `0.9985677573817285`, max
+       worst error `0.10332839478753825`); identity holds for layer 1 only
+       (paired atom joint cosine `0.9908724482186139`, `16/16` above `0.99`)
        against layer 15's `0.23861138806479312` and `14/16`. The earlier
        `2/2` reading came from a 2026-07-13 artifact that a NaN selection
        score in the restart search had since invalidated.
@@ -1351,10 +1351,10 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     Artifact:
     `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json`.
     Result of the 2026-08-02 regeneration: pass `false`, cases `1/2`, total raw
-    oracle calls `288578`, min R2 `0.9986197880720584`, max MAE
-    `0.007325520441823712`, max worst error `0.11110972379914336`, min subspace
+    oracle calls `296770`, min R2 `0.9985677573817285`, max MAE
+    `0.007624356439002252`, max worst error `0.10332839478753825`, min subspace
     principal cosine `0.9999530973154566`. Layer 1 recovers `16/16` atoms above
-    `0.99` at a minimum joint cosine of `0.990872448218614`; layer 15 recovers
+    `0.99` at a minimum joint cosine of `0.9908724482186139`; layer 15 recovers
     `14/16` at `0.23861138806479312`, with recovered atoms `12` and `14` half
     aligned to source units `3627` and `3679`. Recovery and weak-block selection
     are oracle-only; source weights enter only after fitting for the post-hoc
