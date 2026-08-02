@@ -1376,9 +1376,26 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     missing direction is absorbed elsewhere. Neither a rotation inside a correct
     subspace nor a random miss.
 
-    Next gate for this lane: detect two atoms converging on one direction during
-    fitting and re-seed one of them against the residual, then show `16/16` on
-    both blocks under the same query budget.
+    That reading was wrong, and the mechanism built for it disproved it. A
+    collapsed-atom detector and re-seeding pass now run inside the block refit;
+    on the live block they report `0` collapsed pairs, with the closest pair
+    `[14, 15]` at gate cosine `0.2959` and up cosine `0.2765`, far below any
+    collapse threshold. Atoms 12 and 14 are well separated from each other. The
+    `[0.9907, 0.02265]` span reading means their span shares one direction with
+    the source pair's and not the other, while each sits at gate cosine `0.62`
+    to `0.70` against *both* sources: they carry a large component outside the
+    source span entirely.
+
+    What the measurements agree on: gate cosines are middling (`0.62`-`0.70`)
+    while up cosines are the failure (`0.1945`-`0.3039`). The up directions for
+    these two units are not being identified, and neither amplitude, collapse,
+    nor restart selection explains it.
+
+    Next gate for this lane: recover the up directions for units 3627 and 3679.
+    Three explanations remain untested - the block refit fitting gate and up
+    jointly where up is the weaker signal, the readout absorbing an up error
+    into the other fourteen atoms, and a genuine identifiability limit for these
+    two units under `0.68` cancellation.
   - Current cross-family finite-precision 16-unit asymptotic-structure court:
     DONE with
     `npm run benchmark:nn-live-blind-swiglu-asymptotic-structure`.

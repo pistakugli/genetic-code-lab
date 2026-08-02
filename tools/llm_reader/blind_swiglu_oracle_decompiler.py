@@ -2012,6 +2012,13 @@ def fit_swiglu_sum_batched(
         targets,
         best,
     ))
+    # Runs after the residual and split/merge passes on purpose: both of those refit an atom
+    # from where it already is, which cannot leave a collapsed pair's local minimum.
+    best = rescore_candidate(respread_collapsed_atoms_swiglu_candidate(
+        coords,
+        targets,
+        best,
+    ))
     tail_polish_steps = int(os.environ.get(
         "GCL_BLIND_SWIGLU_TAIL_POLISH_STEPS",
         "420" if atom_count >= 12 else "0",
@@ -3594,6 +3601,302 @@ def residual_region_atom_replace_swiglu_candidate(
         "residualRegionReplacementTailRepeat": int(tail_repeat),
         "residualRegionReplacementMaeBefore": float(initial_mae),
         "residualRegionReplacementWorstBefore": float(initial_worst),
+    })
+    return refined
+
+
+def detect_collapsed_swiglu_atoms(
+    coords: np.ndarray,
+    candidate: dict[str, Any],
+    *,
+    gate_cosine_threshold: float,
+    up_cosine_threshold: float,
+    contribution_correlation_threshold: float,
+) -> list[dict[str, Any]]:
+    """Find atoms that have converged onto one shared direction.
+
+    `detect_swiglu_cancellation_pairs` looks for the opposite sign of the same geometry: two
+    aligned atoms whose contributions *cancel*. A collapsed pair is aligned and correlated,
+    so it slipped through that filter entirely. Measured on the randomized LLaMA layer-15
+    block, atoms 12 and 14 sat at gate cosine 0.62 to 0.70 against both of two source units,
+    and the principal cosines between their span and the sources' span were 0.9907 and
+    0.02265: one direction covered twice, the second not represented at all.
+
+    The surface fit hides this. R2 stayed at 0.9986 because whatever the missing direction
+    contributed was absorbed by the other fourteen atoms, so nothing in the loss objects to
+    spending two atoms on one direction.
+    """
+    gates = np.asarray(candidate["gates"], dtype=np.float64)
+    ups = np.asarray(candidate["ups"], dtype=np.float64)
+    scales = np.asarray(candidate["scales"], dtype=np.float64)
+    points = np.asarray(coords, dtype=np.float64)
+    if (
+        gates.ndim != 2
+        or ups.shape != gates.shape
+        or scales.shape != (gates.shape[0],)
+        or points.ndim != 2
+        or points.shape[1] != gates.shape[1]
+        or points.shape[0] < 2
+    ):
+        return []
+    effective_ups = ups * scales[:, None]
+    gate_norms = np.linalg.norm(gates, axis=1)
+    up_norms = np.linalg.norm(effective_ups, axis=1)
+    valid = (gate_norms > 1e-12) & (up_norms > 1e-12)
+    gate_directions = gates / np.maximum(gate_norms[:, None], 1e-12)
+    up_directions = effective_ups / np.maximum(up_norms[:, None], 1e-12)
+    contributions = silu_np(points @ gates.T) * (points @ effective_ups.T)
+    centered = contributions - np.mean(contributions, axis=0, keepdims=True)
+    contribution_norms = np.linalg.norm(centered, axis=0)
+    mean_abs = np.mean(np.abs(contributions), axis=0)
+
+    pairs: list[dict[str, Any]] = []
+    for left, right in combinations(range(gates.shape[0]), 2):
+        if not valid[left] or not valid[right]:
+            continue
+        gate_cosine = abs(float(np.dot(gate_directions[left], gate_directions[right])))
+        up_cosine = abs(float(np.dot(up_directions[left], up_directions[right])))
+        denominator = float(contribution_norms[left] * contribution_norms[right])
+        if denominator <= 1e-15:
+            continue
+        correlation = float(np.dot(centered[:, left], centered[:, right]) / denominator)
+        # The magnitude, not the sign. Rescaling the atoms flips it: on a synthetic collapsed
+        # pair, least-squares recalibration turned scales of 1.0 into -5.49 and 10.51 and the
+        # contribution correlation from +0.22 into -0.999, while the geometry - gate cosine
+        # 1.000, up cosine 1.000 - did not move. A sign test would have found the same pair
+        # before recalibration and lost it after.
+        if (
+            gate_cosine < gate_cosine_threshold
+            or up_cosine < up_cosine_threshold
+            or abs(correlation) < contribution_correlation_threshold
+        ):
+            continue
+        # The weaker of the two is the one to re-seed: it is contributing less, so moving it
+        # risks less of the fit that already works.
+        weaker = left if mean_abs[left] <= mean_abs[right] else right
+        pairs.append({
+            "atoms": [int(left), int(right)],
+            "gateCosine": gate_cosine,
+            "upCosine": up_cosine,
+            "contributionCorrelation": correlation,
+            "absContributionCorrelation": abs(correlation),
+            "weakerAtom": int(weaker),
+            "meanAbsContribution": [float(mean_abs[left]), float(mean_abs[right])],
+        })
+    pairs.sort(key=lambda item: -float(item["gateCosine"]) * float(item["upCosine"]))
+    return pairs
+
+
+def respread_collapsed_atoms_swiglu_candidate(
+    coords: np.ndarray,
+    targets: np.ndarray,
+    candidate: dict[str, Any],
+) -> dict[str, Any]:
+    """Re-seed one atom of a collapsed pair against the residual the pair cannot explain.
+
+    Refitting a collapsed atom from where it already sits is what produced the collapse: the
+    pair is in a local minimum that the surface loss is content with. So each attempt starts
+    the atom somewhere else - directions drawn from the residual's own principal axes, plus
+    random restarts - fits it against the target the other atoms leave behind, and is kept
+    only if the full candidate improves on the same acceptance rule the residual-replace path
+    uses. Nothing is weakened when no start helps: the original candidate is returned.
+    """
+    if os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_COLLAPSED_ATOMS", "").strip() != "1":
+        return candidate
+    import torch
+
+    gates_np = np.asarray(candidate["gates"], dtype=np.float64)
+    ups_np = np.asarray(candidate["ups"], dtype=np.float64)
+    scales_np = np.asarray(candidate["scales"], dtype=np.float64)
+    if gates_np.ndim != 2 or ups_np.shape != gates_np.shape or scales_np.shape[0] != gates_np.shape[0]:
+        return candidate
+    atom_count, rank = gates_np.shape
+    if atom_count < 2 or not torch.cuda.is_available():
+        return candidate
+
+    gate_threshold = float(os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_GATE_COSINE", "0.55") or "0.55")
+    up_threshold = float(os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_UP_COSINE", "0.55") or "0.55")
+    correlation_threshold = float(os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_CORRELATION", "0.30") or "0.30")
+    starts = int(os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_STARTS", "24") or "24")
+    steps = int(os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_STEPS", "900") or "900")
+    lr = float(os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_LR", "0.02") or "0.02")
+    max_pairs = int(os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_MAX_PAIRS", "4") or "4")
+    seed = int(os.environ.get("GCL_BLIND_SWIGLU_RESPREAD_SEED", "73109") or "73109")
+    if starts <= 0 or steps <= 0 or not np.isfinite(lr) or lr <= 0.0 or max_pairs <= 0:
+        raise RuntimeError("invalid GCL_BLIND_SWIGLU_RESPREAD_* configuration")
+
+    best = rescore_swiglu_candidate_on_data(coords, targets, candidate, recalibrate_scales=True)
+    best_mae = float(best["mae"])
+    best_worst = float(best.get("worstError", float("inf")))
+    initial_mae, initial_worst = best_mae, best_worst
+    pairs_before = detect_collapsed_swiglu_atoms(
+        coords,
+        best,
+        gate_cosine_threshold=gate_threshold,
+        up_cosine_threshold=up_threshold,
+        contribution_correlation_threshold=correlation_threshold,
+    )
+    if not pairs_before:
+        # Returning the candidate untouched leaves no way to tell "no collapsed pair here"
+        # from "this pass never ran", and two live runs came back bit-identical with nothing
+        # in the artifact to say which. The closest pair is recorded whether or not it clears
+        # the thresholds.
+        closest = detect_collapsed_swiglu_atoms(
+            coords,
+            best,
+            gate_cosine_threshold=0.0,
+            up_cosine_threshold=0.0,
+            contribution_correlation_threshold=0.0,
+        )
+        observed = dict(candidate)
+        observed.update({
+            "collapsedAtomsRespread": False,
+            "collapsedPairsBefore": 0,
+            "collapsedAtomRespreadThresholds": {
+                "gateCosine": gate_threshold,
+                "upCosine": up_threshold,
+                "absContributionCorrelation": correlation_threshold,
+            },
+            "collapsedClosestPair": closest[0] if closest else None,
+        })
+        return observed
+
+    rng = np.random.default_rng(seed)
+    device = torch.device("cuda")
+    fit_dtype = torch.float32
+    x = torch.tensor(coords, dtype=fit_dtype, device=device)
+    respread_atoms: list[int] = []
+
+    for pair in pairs_before[:max_pairs]:
+        atom_index = int(pair["weakerAtom"])
+        gates = np.asarray(best["gates"], dtype=np.float64)
+        ups_scaled = np.asarray(best["ups"], dtype=np.float64) * np.asarray(best["scales"], dtype=np.float64)[:, None]
+        activations = silu_np(coords @ gates.T) * (coords @ ups_scaled.T)
+
+        # Refit the remaining atoms with this one removed before taking the residual. The
+        # scales the collapsed candidate carries were least-squares fitted around the collapse
+        # - on the synthetic pair, 1.0 became -5.49 and 10.51 - so subtracting the other atoms
+        # at those scales leaves a residual shaped by the very defect being repaired. Measured:
+        # without this the best start lands back on the direction already covered.
+        keep = [index for index in range(atom_count) if index != atom_index]
+        design_without = np.column_stack([activations[:, keep], np.ones(coords.shape[0], dtype=np.float64)])
+        try:
+            coeffs_without, *_ = np.linalg.lstsq(design_without, targets, rcond=None)
+        except np.linalg.LinAlgError:
+            continue
+        if not np.all(np.isfinite(coeffs_without)):
+            continue
+        for position, index in enumerate(keep):
+            ups_scaled[index] = ups_scaled[index] * float(coeffs_without[position])
+        bias_value = float(coeffs_without[-1])
+        activations = silu_np(coords @ gates.T) * (coords @ ups_scaled.T)
+        target_without_others = targets - bias_value - (activations[:, keep].sum(axis=1))
+
+        # Directions the residual itself points at: principal axes of the inputs weighted by
+        # how much of the target this atom is being asked to explain.
+        weights = np.abs(target_without_others)
+        weight_sum = float(np.sum(weights))
+        seeds: list[np.ndarray] = []
+        if weight_sum > 1e-12:
+            weighted = coords * (weights / weight_sum)[:, None]
+            covariance = weighted.T @ coords
+            eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+            for column in range(min(rank, 4)):
+                axis = eigenvectors[:, -1 - column]
+                seeds.append(axis / max(float(np.linalg.norm(axis)), 1e-12))
+        while len(seeds) < starts:
+            draw = rng.normal(0.0, 1.0, size=rank)
+            seeds.append(draw / max(float(np.linalg.norm(draw)), 1e-12))
+
+        y = torch.tensor(target_without_others, dtype=fit_dtype, device=device)
+        gate_init = np.stack(seeds[:starts])
+        # The up direction is drawn independently. Deriving it from the gate seeds - the
+        # obvious way to reuse the residual axes - ties the two halves of every start
+        # together and searches a slice of the space instead of the space: measured on a
+        # synthetic collapsed pair, that reached MSE 0.66 where independent draws reach 1e-6.
+        up_init = rng.normal(0.0, 1.0, size=(starts, rank))
+        up_init /= np.maximum(np.linalg.norm(up_init, axis=1, keepdims=True), 1e-12)
+        gate = torch.nn.Parameter(torch.tensor(gate_init, dtype=fit_dtype, device=device))
+        up = torch.nn.Parameter(torch.tensor(up_init, dtype=fit_dtype, device=device))
+        optimizer = torch.optim.AdamW([gate, up], lr=lr, weight_decay=1e-7)
+        for _step in range(steps):
+            optimizer.zero_grad()
+            prediction = torch.nn.functional.silu(x @ gate.T) * (x @ up.T)
+            loss = torch.mean((prediction - y[:, None]) ** 2)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_([gate, up], 8.0)
+            optimizer.step()
+
+        gate_out = gate.detach().cpu().numpy().astype(np.float64)
+        up_out = up.detach().cpu().numpy().astype(np.float64)
+        # Rank the starts before testing acceptance. Taking the first start that clears the
+        # bar leaves the search unused: on the synthetic pair that reached gate cosine 0.78
+        # where the best of the same 24 starts reaches 1.0.
+        start_order = sorted(
+            range(starts),
+            key=lambda index: float(np.mean((
+                silu_np(coords @ gate_out[index]) * (coords @ up_out[index]) - target_without_others
+            ) ** 2))
+        )
+        accepted = False
+        for start_index in start_order:
+            new_gates = gates.copy()
+            new_ups_scaled = ups_scaled.copy()
+            new_gates[atom_index] = gate_out[start_index]
+            new_ups_scaled[atom_index] = up_out[start_index]
+            activation_np = silu_np(coords @ new_gates.T) * (coords @ new_ups_scaled.T)
+            design = np.column_stack([activation_np, np.ones(coords.shape[0], dtype=np.float64)])
+            try:
+                coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
+            except np.linalg.LinAlgError:
+                continue
+            if not np.all(np.isfinite(coeffs)):
+                continue
+            trial = dict(best)
+            trial.update({
+                "gates": new_gates,
+                "ups": new_ups_scaled * coeffs[:-1, None],
+                "scales": np.ones(atom_count, dtype=np.float64),
+                "bias": float(coeffs[-1]),
+            })
+            metrics = regression_metrics(targets, predict_swiglu(coords, trial))
+            trial_mae = float(metrics["mae"])
+            trial_worst = float(metrics["worstError"])
+            improves_tail = trial_worst < best_worst and trial_mae <= best_mae * 1.035
+            improves_mae = trial_mae < best_mae and trial_worst <= best_worst * 1.015
+            if not (improves_tail or improves_mae):
+                continue
+            trial.update({
+                "mae": trial_mae,
+                "mse": float(metrics["mse"]),
+                "score": trial_mae,
+                "selectionScore": trial_mae,
+                "worstError": trial_worst,
+            })
+            best, best_mae, best_worst = trial, trial_mae, trial_worst
+            accepted = True
+            break
+        if accepted:
+            respread_atoms.append(atom_index)
+
+    if not respread_atoms:
+        return candidate
+    pairs_after = detect_collapsed_swiglu_atoms(
+        coords,
+        best,
+        gate_cosine_threshold=gate_threshold,
+        up_cosine_threshold=up_threshold,
+        contribution_correlation_threshold=correlation_threshold,
+    )
+    refined = dict(best)
+    refined.update({
+        "collapsedAtomsRespread": True,
+        "collapsedAtomRespreadAtoms": respread_atoms,
+        "collapsedPairsBefore": len(pairs_before),
+        "collapsedPairsAfter": len(pairs_after),
+        "collapsedAtomRespreadStarts": int(starts),
+        "collapsedAtomRespreadMaeBefore": float(initial_mae),
+        "collapsedAtomRespreadWorstBefore": float(initial_worst),
     })
     return refined
 
@@ -6927,6 +7230,13 @@ def residual_gradient_block_refit_swiglu_candidate(
         "scales": solved_scales,
         "bias": solved_bias,
     })
+    # This refit is where atoms collapse. It takes the weak block - on the randomized LLaMA
+    # layer-15 case, atoms [2, 5, 7, 8, 9, 12, 14, 15], which contains both members of the
+    # measured collapsed pair - and fits them together against one residual, where nothing
+    # stops two of them settling on the same direction. Running the respread pass only in the
+    # initial fit left this untouched: the earlier fit had no collapsed pair to find, and the
+    # numbers came back bit-identical.
+    trial = respread_collapsed_atoms_swiglu_candidate(coords, targets, trial)
     base = rescore_swiglu_candidate_on_data(coords, targets, candidate, recalibrate_scales=True)
     base_metrics = regression_metrics(targets, predict_swiglu(coords, base))
     trial_metrics = regression_metrics(targets, predict_swiglu(coords, trial))
@@ -12677,6 +12987,15 @@ def run_solver(args: argparse.Namespace) -> int:
                         "residualGradientBlockRefitCancellationRescueAttempts",
                         [],
                     ),
+                    # Written whether or not the pass changed anything. Two live runs came
+                    # back bit-identical after the pass was added, and the artifact could not
+                    # say whether it had found nothing or never run.
+                    "collapsedAtomsRespread": bool(fit.get("collapsedAtomsRespread", False)),
+                    "collapsedAtomRespreadAtoms": [int(value) for value in fit.get("collapsedAtomRespreadAtoms", [])],
+                    "collapsedPairsBefore": None if fit.get("collapsedPairsBefore") is None else int(fit["collapsedPairsBefore"]),
+                    "collapsedPairsAfter": None if fit.get("collapsedPairsAfter") is None else int(fit["collapsedPairsAfter"]),
+                    "collapsedClosestPair": fit.get("collapsedClosestPair"),
+                    "collapsedAtomRespreadThresholds": fit.get("collapsedAtomRespreadThresholds"),
                     "residualRegionAtomReplaced": bool(fit.get("residualRegionAtomReplaced", False)),
                     "residualRegionReplacementCount": int(fit.get("residualRegionReplacementCount", 0)),
                     "residualRegionReplacementCycles": int(fit.get("residualRegionReplacementCycles", 0)),
