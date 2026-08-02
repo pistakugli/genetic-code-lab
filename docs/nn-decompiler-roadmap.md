@@ -2216,6 +2216,57 @@ Fixed failure case:
 - Command: `npm run benchmark:nn-noisy-blackbox-relu3d-adversarial`
 - Required: 6/6 profiles pass with explicit oracle query-budget accounting.
 
+## Direction 1b: Whole-Layer FFN Recovery
+
+Status: measured, not built. The route to all 8192 units of a layer is not more of the
+current method, and this section records why and what replaces it.
+
+Why the scalar path stops. Boundaries are read as kinks in a scalar oracle. A SiLU
+transition along a probe line has width `1/(S*|g.d|)` for probe scale `S`, while the number
+of boundaries crossed grows with the unit count, so kinks merge. Measured on a synthetic
+teacher at fixed scale, the share of boundaries read at cosine above `0.99` falls `94%` at 32
+units, `62%` at 128, `53%` at 512, `17%` at 2048. Raising `S` narrows the transitions
+linearly, so a full layer needs `S` around `5e6`, where `f ~ S^2` overruns float32.
+
+Why per-channel decomposition does not rescue it. Measured from the LLaMA-3.2-3B layer-15
+`down_proj`: the participation ratio of an output channel over the 8192 units has median
+`2587`, and `3601` units are needed for 90% of a channel's energy. No channel is sparse. What
+is true is that `8190` of `8192` units are in the top 256 of some channel, so channels select
+different units even though none of them selects few.
+
+What replaces it. The full FFN output is a vector, `y = D a(x)`, so the Jacobian is
+`J(x) = sum_i d_i (x) da_i/dx`. Crossing unit `i`'s boundary switches its activation
+indicator while `silu(g_i.x)` is zero there, so `J` jumps by `(u_i.x) * d_i (x) g_i`, a rank-1
+matrix. One SVD of that jump returns the unit's gate direction and its output direction at
+once, with no fitting. Boundaries that overlap along the line stop colliding, because their
+jumps occupy different rank-1 subspaces rather than competing for the same scalar.
+
+Measured on a 512-unit synthetic teacher in 512 dimensions,
+`tools/llm_reader/jacobian_jump_probe.py`:
+
+- Differencing the Jacobian either side of a peak gives a rank-1 share of `0.14`.
+  Extrapolating each side linearly from two points first removes the other units' smooth
+  drift and takes it to `0.54`, with median gate cosine `0.99991`.
+- The rank-1 share is itself the quality filter and needs no access to truth. Unfiltered,
+  `68%` of crossings clear cosine `0.99`; at threshold `0.5`, `81%`; at `0.7`, `100%` at a
+  median of `0.99999` for both the gate and the output direction.
+- One line of 8001 samples touches every one of 512 units at least once across 60 lines, and
+  costs `179842` oracle calls for 40 examined crossings.
+
+Open before this is a lane:
+
+1. The live oracle is scalar. A vector-valued FFN oracle is required, and is still black-box
+   with respect to the weights.
+2. `u_i` is not recovered by the jump. With every `g_i` known the layer is linear in the
+   `u_i`, so least squares closes it, but that has not been measured.
+3. Cost at layer scale is estimated, not measured: roughly 2500 lines to cover 8192 units at
+   the observed yield of 10 confident crossings per line.
+4. Float32 behaviour is unmeasured. Every number above is float64 on a synthetic teacher.
+
+Boundary: nothing here has been run against a real model. The claim proven so far is that the
+mechanism identifies units exactly on a synthetic SwiGLU layer at a scale where the scalar
+method has already collapsed to 17%.
+
 ## Direction 2: 3D / General-ND Hyperplane Stitching
 
 Status: started and release-lane gated for clean/noisy 3D teachers, the first
