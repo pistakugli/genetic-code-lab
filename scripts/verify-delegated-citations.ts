@@ -40,6 +40,7 @@ type Citation = {
   target: string;
   state: CitationState;
   detail: string[];
+  labelled?: boolean;
 };
 
 const repoRoot = path.resolve(__dirname, '..');
@@ -136,7 +137,11 @@ function collectCitations(): Citation[] {
         artifact,
         target: relativeTarget,
         state: differences.length === 0 ? 'unpinned-matching' : 'unpinned-diverged',
-        detail: differences
+        detail: differences,
+        // A broken citation that the artifact itself admits to is still broken and still
+        // counted below. The label only decides whether a reader of that artifact is told;
+        // before it existed, only this verifier knew.
+        labelled: typeof record.citationEvidence === 'object' && record.citationEvidence !== null
       });
     }
   }
@@ -226,6 +231,31 @@ console.log(JSON.stringify({
 if (newlyBroken.length) {
   console.error(`\ndelegated citation check failed: ${newlyBroken.length} citation(s) broke and are not in the baseline`);
   for (const key of newlyBroken.slice(0, 20)) console.error(`  ${key}`);
+  process.exit(1);
+}
+
+/**
+ * The baseline bounds how many citations may be broken. It says nothing about whether the
+ * artifacts making them admit it, and for a year that was the whole problem: the count lived
+ * here, while a reader opening one of those reports saw a citation to a path that exists and
+ * read it as evidence. A broken citation must now carry `citationEvidence` in its own case
+ * record, written by `label-unverifiable-citations.ts`.
+ *
+ * This adds a requirement; it does not remove one. The label does not shrink `brokenNow`,
+ * is not consulted by the baseline comparison above, and cannot turn a broken citation into
+ * a passing one. Only a rerun that produces a digest-pinned citation does that.
+ */
+const unlabelledBroken = citations.filter(
+  citation =>
+    (citation.state === 'drifted' || citation.state === 'unpinned-diverged') && citation.labelled !== true
+);
+if (unlabelledBroken.length) {
+  console.error(
+    `\ndelegated citation check failed: ${unlabelledBroken.length} broken citation(s) carry no citationEvidence, ` +
+    'so the artifacts making them do not disclose that their source cannot be verified. ' +
+    'Run `npm run label:unverifiable-citations` to write the record, or rerun the lane to earn a pinned citation.'
+  );
+  for (const citation of unlabelledBroken.slice(0, 20)) console.error(`  ${citation.artifact} -> ${citation.target}`);
   process.exit(1);
 }
 if (repaired.length) {

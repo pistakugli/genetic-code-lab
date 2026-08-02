@@ -66,6 +66,56 @@
         "maxUnitCount": 16,
         "maxAtomCount": 16,
         "accessInvariant": true
+      },
+      "citationEvidence": {
+        "state": "unverifiable-legacy-citation",
+        "reason": "This citation names a shared, mutable sweep report and predates sweepReportSha256, so the bytes it published cannot be re-read. The target has since been overwritten and no longer matches.",
+        "divergedFields": [
+          "pass",
+          "passedCases",
+          "failedCases",
+          "minR2",
+          "maxMae",
+          "maxWorstError",
+          "maxRawOracleCallsPerCase",
+          "totalRawOracleCalls"
+        ],
+        "publishedVsCurrent": {
+          "pass": {
+            "published": false,
+            "current": true
+          },
+          "passedCases": {
+            "published": 0,
+            "current": 1
+          },
+          "failedCases": {
+            "published": 1,
+            "current": 0
+          },
+          "minR2": {
+            "published": 0.9926587098121563,
+            "current": 0.996028807883924
+          },
+          "maxMae": {
+            "published": 0.018060447838133792,
+            "current": 0.013147489844684133
+          },
+          "maxWorstError": {
+            "published": 0.21002088537701083,
+            "current": 0.1197387336033246
+          },
+          "maxRawOracleCallsPerCase": {
+            "published": 138401,
+            "current": 129953
+          },
+          "totalRawOracleCalls": {
+            "published": 138401,
+            "current": 129953
+          }
+        },
+        "targetPassNow": true,
+        "repair": "Rerun the lane to produce a self-contained, digest-pinned citation. Nothing short of a rerun can restore provable evidence for the numbers above."
       }
     }
   ],

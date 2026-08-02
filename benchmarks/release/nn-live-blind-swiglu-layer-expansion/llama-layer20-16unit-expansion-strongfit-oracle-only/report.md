@@ -1,5 +1,7 @@
 # Live Blind SwiGLU Layer Expansion
 
+> Citation warning: this report's delegated citation(s) point at a shared sweep report that has since been overwritten, and predate digest pinning, so the numbers below cannot be verified against their source. See citationEvidence in report.json.
+
 - pass: `false`
 - cases: `0/1`
 - max expanded unit count: `0`

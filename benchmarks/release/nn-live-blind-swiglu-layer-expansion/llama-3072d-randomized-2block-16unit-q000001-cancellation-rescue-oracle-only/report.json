@@ -122,6 +122,66 @@
         "maxUnitCount": 16,
         "maxAtomCount": 16,
         "accessInvariant": true
+      },
+      "citationEvidence": {
+        "state": "unverifiable-legacy-citation",
+        "reason": "This citation names a shared, mutable sweep report and predates sweepReportSha256, so the bytes it published cannot be re-read. The target has since been overwritten and no longer matches. The published summary says pass while the target now reads fail, so this artifact's own verdict rests on a witness that no longer supports it.",
+        "divergedFields": [
+          "pass",
+          "passedCases",
+          "failedCases",
+          "minR2",
+          "maxMae",
+          "maxWorstError",
+          "minSubspacePrincipalCosine",
+          "minPairedAtomJointCosine",
+          "maxRawOracleCallsPerCase",
+          "totalRawOracleCalls"
+        ],
+        "publishedVsCurrent": {
+          "pass": {
+            "published": true,
+            "current": false
+          },
+          "passedCases": {
+            "published": 1,
+            "current": 0
+          },
+          "failedCases": {
+            "published": 0,
+            "current": 1
+          },
+          "minR2": {
+            "published": 0.9992051540834496,
+            "current": 0.9936416201869898
+          },
+          "maxMae": {
+            "published": 0.005833540487146457,
+            "current": 0.015930591937818074
+          },
+          "maxWorstError": {
+            "published": 0.06428347992920569,
+            "current": 0.20086170989863827
+          },
+          "minSubspacePrincipalCosine": {
+            "published": 0.9999457028618801,
+            "current": 0.9994029302166941
+          },
+          "minPairedAtomJointCosine": {
+            "published": 0.9937228873084201,
+            "current": 0.17081204133338923
+          },
+          "maxRawOracleCallsPerCase": {
+            "published": 142241,
+            "current": 150433
+          },
+          "totalRawOracleCalls": {
+            "published": 142241,
+            "current": 150433
+          }
+        },
+        "targetPassNow": false,
+        "repair": "Rerun the lane to produce a self-contained, digest-pinned citation. Nothing short of a rerun can restore provable evidence for the numbers above."
       }
     }
   ],
