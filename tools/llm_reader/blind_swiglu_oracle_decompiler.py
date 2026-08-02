@@ -5478,10 +5478,35 @@ def audit_swiglu_source_cancellation(
             "meanAbsContributionRight": float(np.mean(np.abs(contributions[:, right]))),
         })
     pairs.sort(key=lambda item: float(item["contributionCorrelation"]))
+    # Per-source amplitude, which only the pair list carried before, and then only for the
+    # eight most negatively correlated pairs. A unit that contributes little to the sum is
+    # the one the fit has least reason to resolve, so this is the first thing to look at when
+    # some atoms pair with their source and others do not - and it was not readable from the
+    # artifact for the units that failed to pair.
+    per_source_mean_abs = [float(np.mean(np.abs(contributions[:, index]))) for index in range(gate_values.shape[0])]
+    per_source = [
+        {
+            "sourceIndex": int(index),
+            "sourceUnit": int(source_units[index]),
+            "meanAbsContribution": per_source_mean_abs[index],
+            "shareOfGross": (
+                0.0 if mean_gross <= 1e-15 else per_source_mean_abs[index] / mean_gross
+            ),
+        }
+        for index in range(gate_values.shape[0])
+    ]
     return {
         "meanGrossContribution": mean_gross,
         "meanNetContribution": mean_net,
         "cancellationFraction": cancellation_fraction,
+        "perSourceContribution": per_source,
+        "minSourceMeanAbsContribution": float(min(per_source_mean_abs)),
+        "maxSourceMeanAbsContribution": float(max(per_source_mean_abs)),
+        "sourceAmplitudeRatio": (
+            None
+            if min(per_source_mean_abs) <= 1e-15
+            else float(max(per_source_mean_abs) / min(per_source_mean_abs))
+        ),
         "negativePairCount": int(sum(
             1 for item in pairs
             if float(item["contributionCorrelation"]) < 0.0
