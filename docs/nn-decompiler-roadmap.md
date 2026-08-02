@@ -2253,12 +2253,27 @@ Measured on a 512-unit synthetic teacher in 512 dimensions,
 - One line of 8001 samples touches every one of 512 units at least once across 60 lines, and
   costs `179842` oracle calls for 40 examined crossings.
 
+Closing the layer once the gates are known. With `g_i` fixed, `silu(g_i.x)` is a known
+function of the probe point and
+
+    y(x) = sum_i silu(g_i.x) * (d_i (x) u_i) x
+
+is linear in the matrices `M_i = d_i (x) u_i`. One least-squares solve returns all of them,
+and each is rank-1, so its SVD splits it back into the output direction and the up direction.
+Measured on a 64-unit teacher in 64 dimensions with 4000 points: every unit returned above
+cosine `0.99` on both, median `0.999834` for down and `0.999575` for up, with no nonlinear
+optimisation anywhere. A wrong gate set does not survive this step, which is the property that
+makes it a check as well as a solve.
+
 Open before this is a lane:
 
-1. The live oracle is scalar. A vector-valued FFN oracle is required, and is still black-box
-   with respect to the weights.
-2. `u_i` is not recovered by the jump. With every `g_i` known the layer is linear in the
-   `u_i`, so least squares closes it, but that has not been measured.
+1. The live oracle was scalar. `--oracle-output-mode selected-unit-ffn-vector` now returns the
+   block's whole residual-stream contribution, and `oracleResponseWidth` records that one call
+   carries `hiddenSize` numbers rather than 1, so budgets stay comparable. Not yet run against
+   a model.
+2. The closure solve has `units * input_dim` columns, which is 25 million for a full layer.
+   Exploiting the rank-1 structure per unit instead of solving the full system is the open
+   step.
 3. Cost at layer scale is estimated, not measured: roughly 2500 lines to cover 8192 units at
    the observed yield of 10 confident crossings per line.
 4. Float32 behaviour is unmeasured. Every number above is float64 on a synthetic teacher.

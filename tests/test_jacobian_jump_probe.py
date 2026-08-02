@@ -24,6 +24,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools.llm_reader.jacobian_jump_probe import (  # noqa: E402
+    close_layer_from_known_gates,
     find_peaks,
     make_teacher,
     probe_line,
@@ -97,6 +98,51 @@ class JacobianJumpProbeTest(unittest.TestCase):
 
     def test_a_flat_signal_yields_no_peaks(self) -> None:
         self.assertEqual(list(find_peaks(np.ones(50), height=0.5, distance=3)), [])
+
+
+class LayerClosureTest(unittest.TestCase):
+    """Known gates make the rest linear, which is what turns a gate-finder into a layer reader.
+
+    With `g_i` fixed, `y(x) = sum_i silu(g_i.x) * (d_i (x) u_i) x` is linear in the matrices
+    `M_i = d_i (x) u_i`. One least-squares solve returns all of them and each is rank-1, so an
+    SVD splits it into the output direction and the up direction. Nothing here is optimised.
+    """
+
+    @staticmethod
+    def closure(units: int = 24, dim: int = 24, points: int = 1500, seed: int = 5):
+        teacher = make_teacher(units=units, input_dim=dim, output_dim=dim, seed=seed)
+        rng = np.random.default_rng(seed)
+        return teacher, close_layer_from_known_gates(teacher, teacher.gate, rng.normal(0.0, 0.6, size=(points, dim)))
+
+    def test_both_directions_come_back_for_every_unit(self) -> None:
+        _teacher, report = self.closure()
+
+        self.assertEqual(report["downCosineShareAbove099"], 1.0)
+        self.assertEqual(report["upCosineShareAbove099"], 1.0)
+
+    def test_the_recovered_factor_is_rank_one(self) -> None:
+        _teacher, report = self.closure()
+
+        # M_i is an outer product by construction, so a low rank-1 share would mean the solve
+        # had absorbed something that is not this unit.
+        self.assertGreater(report["rank1ShareMedian"], 0.4)
+
+    def test_wrong_gates_do_not_yield_a_clean_factorisation(self) -> None:
+        teacher = make_teacher(units=24, input_dim=24, output_dim=24, seed=5)
+        rng = np.random.default_rng(9)
+        wrong = rng.normal(0.0, 1.0, size=teacher.gate.shape) / np.sqrt(teacher.gate.shape[1])
+        report = close_layer_from_known_gates(teacher, wrong, rng.normal(0.0, 0.6, size=(1500, 24)))
+
+        # The whole method rests on the gates being right; this pins that the closure cannot
+        # rescue a wrong gate set by fitting harder.
+        self.assertLess(report["downCosineShareAbove099"], 0.5)
+
+    def test_the_design_width_is_reported_because_it_is_the_scaling_limit(self) -> None:
+        _teacher, report = self.closure()
+
+        # units * input_dim columns is what stops this at block scale: 8192 units in 3072
+        # dimensions would be 25 million columns.
+        self.assertEqual(report["designColumns"], report["units"] * 24)
 
 
 if __name__ == "__main__":
