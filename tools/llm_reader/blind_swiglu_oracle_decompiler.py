@@ -8344,6 +8344,39 @@ def passes_metric_thresholds(
     )
 
 
+def independent_reporting_metrics(
+    oracle: Any,
+    args: argparse.Namespace,
+    basis: np.ndarray,
+    dimension: int,
+    candidate: dict[str, Any],
+    *,
+    seed_offset: int,
+    stage: str,
+) -> dict[str, float] | None:
+    """Score an accepted candidate on a draw that took no part in accepting it.
+
+    Four validation-repair stages decided acceptance on a fresh oracle draw and then
+    published that same draw's numbers. Each is a max-of-two selection: the repair is kept
+    only when its draw looks good, so the reported figure is conditioned on having looked
+    good. Evaluation is not on training data, so this is not leakage, but it biases every
+    reported statistic upward, and hardest on worstError, which is a maximum over thousands
+    of samples and therefore the most sensitive to being chosen for.
+
+    Separating the two draws costs one more validation batch and removes the bias outright,
+    rather than recording it and leaving the reader to correct for it. Returns None when the
+    query budget cannot cover the extra batch; the caller must then decline the repair
+    instead of publishing a number selected on itself.
+    """
+    if oracle.query_count + args.validation_count > args.max_oracle_calls:
+        return None
+    rng = np.random.default_rng(args.seed + seed_offset)
+    inputs = rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
+    targets = oracle.eval(inputs, stage=stage)
+    coords = inputs @ basis.T
+    return regression_metrics(targets, predict_swiglu(coords, candidate))
+
+
 def validation_gradient_polish_weights(args: argparse.Namespace) -> tuple[float, float]:
     fit_cubic_weight = float(os.environ.get(
         "GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT",
@@ -9931,8 +9964,34 @@ def run_solver(args: argparse.Namespace) -> int:
                     rawOracleCalls=int(oracle.query_count),
                 )
                 if scale_accepted and scale_revalidation_metrics is not None:
-                    fit = scale_repaired_fit
-                    metrics = scale_revalidation_metrics
+                    scale_reporting_metrics = independent_reporting_metrics(
+                        oracle,
+                        args,
+                        basis,
+                        dimension,
+                        scale_repaired_fit,
+                        seed_offset=70428,
+                        stage="validation-atom-scale-repair-reporting",
+                    )
+                    if scale_reporting_metrics is None:
+                        # No budget for a draw that did not choose this candidate, so the
+                        # repair is declined rather than published on its own selection set.
+                        scale_accepted = False
+                        fit_attempts[-1]["accepted"] = False
+                        fit_attempts[-1]["declinedForUnbiasedReportingBudget"] = True
+                    else:
+                        fit = scale_repaired_fit
+                        metrics = scale_reporting_metrics
+                        fit_attempts[-1].update({
+                            "selectionR2": float(scale_revalidation_metrics["r2"]),
+                            "selectionMae": float(scale_revalidation_metrics["mae"]),
+                            "selectionWorstError": float(scale_revalidation_metrics["worstError"]),
+                            "reportedR2": float(scale_reporting_metrics["r2"]),
+                            "reportedMae": float(scale_reporting_metrics["mae"]),
+                            "reportedWorstError": float(scale_reporting_metrics["worstError"]),
+                            "selectionAndReportingSeparated": True,
+                            "rawOracleCalls": int(oracle.query_count),
+                        })
                     validation_inputs = scale_validation_inputs
                     validation_targets = scale_validation_targets
                     validation_coords = scale_validation_coords
@@ -10142,8 +10201,32 @@ def run_solver(args: argparse.Namespace) -> int:
                     rawOracleCalls=int(oracle.query_count),
                 )
                 if direction_accepted and direction_revalidation_metrics is not None:
-                    fit = direction_repaired_fit
-                    metrics = direction_revalidation_metrics
+                    direction_reporting_metrics = independent_reporting_metrics(
+                        oracle,
+                        args,
+                        basis,
+                        dimension,
+                        direction_repaired_fit,
+                        seed_offset=70528,
+                        stage="validation-directional-repair-reporting",
+                    )
+                    if direction_reporting_metrics is None:
+                        direction_accepted = False
+                        fit_attempts[-1]["accepted"] = False
+                        fit_attempts[-1]["declinedForUnbiasedReportingBudget"] = True
+                    else:
+                        fit = direction_repaired_fit
+                        metrics = direction_reporting_metrics
+                        fit_attempts[-1].update({
+                            "selectionR2": float(direction_revalidation_metrics["r2"]),
+                            "selectionMae": float(direction_revalidation_metrics["mae"]),
+                            "selectionWorstError": float(direction_revalidation_metrics["worstError"]),
+                            "reportedR2": float(direction_reporting_metrics["r2"]),
+                            "reportedMae": float(direction_reporting_metrics["mae"]),
+                            "reportedWorstError": float(direction_reporting_metrics["worstError"]),
+                            "selectionAndReportingSeparated": True,
+                            "rawOracleCalls": int(oracle.query_count),
+                        })
                     validation_inputs = direction_validation_inputs
                     validation_targets = direction_validation_targets
                     validation_coords = direction_validation_coords
@@ -11394,8 +11477,35 @@ def run_solver(args: argparse.Namespace) -> int:
                     rawOracleCalls=int(oracle.query_count),
                 )
                 if full_tail_accepted and full_tail_revalidation_metrics is not None:
-                    fit = full_tail_polished_fit
-                    metrics = full_tail_revalidation_metrics
+                    # This is the stage the CEGIS stopping rule feeds, so it is the one where
+                    # selecting on the reported draw bites hardest: up to cegis_limit draws,
+                    # and the first that clears the thresholds becomes the published figure.
+                    full_tail_reporting_metrics = independent_reporting_metrics(
+                        oracle,
+                        args,
+                        basis,
+                        dimension,
+                        full_tail_polished_fit,
+                        seed_offset=70628,
+                        stage="validation-full-tail-polish-reporting",
+                    )
+                    if full_tail_reporting_metrics is None:
+                        full_tail_accepted = False
+                        fit_attempts[-1]["accepted"] = False
+                        fit_attempts[-1]["declinedForUnbiasedReportingBudget"] = True
+                    else:
+                        fit = full_tail_polished_fit
+                        metrics = full_tail_reporting_metrics
+                        fit_attempts[-1].update({
+                            "selectionR2": float(full_tail_revalidation_metrics["r2"]),
+                            "selectionMae": float(full_tail_revalidation_metrics["mae"]),
+                            "selectionWorstError": float(full_tail_revalidation_metrics["worstError"]),
+                            "reportedR2": float(full_tail_reporting_metrics["r2"]),
+                            "reportedMae": float(full_tail_reporting_metrics["mae"]),
+                            "reportedWorstError": float(full_tail_reporting_metrics["worstError"]),
+                            "selectionAndReportingSeparated": True,
+                            "rawOracleCalls": int(oracle.query_count),
+                        })
                     validation_inputs = full_tail_validation_inputs
                     validation_targets = full_tail_validation_targets
                     validation_coords = full_tail_validation_coords
@@ -11461,8 +11571,32 @@ def run_solver(args: argparse.Namespace) -> int:
                     rawOracleCalls=int(oracle.query_count),
                 )
                 if affine_accepted and affine_revalidation_metrics is not None:
-                    fit = affine_fit
-                    metrics = affine_revalidation_metrics
+                    affine_reporting_metrics = independent_reporting_metrics(
+                        oracle,
+                        args,
+                        basis,
+                        dimension,
+                        affine_fit,
+                        seed_offset=70728,
+                        stage="validation-affine-readout-reporting",
+                    )
+                    if affine_reporting_metrics is None:
+                        affine_accepted = False
+                        fit_attempts[-1]["accepted"] = False
+                        fit_attempts[-1]["declinedForUnbiasedReportingBudget"] = True
+                    else:
+                        fit = affine_fit
+                        metrics = affine_reporting_metrics
+                        fit_attempts[-1].update({
+                            "selectionR2": float(affine_revalidation_metrics["r2"]),
+                            "selectionMae": float(affine_revalidation_metrics["mae"]),
+                            "selectionWorstError": float(affine_revalidation_metrics["worstError"]),
+                            "reportedR2": float(affine_reporting_metrics["r2"]),
+                            "reportedMae": float(affine_reporting_metrics["mae"]),
+                            "reportedWorstError": float(affine_reporting_metrics["worstError"]),
+                            "selectionAndReportingSeparated": True,
+                            "rawOracleCalls": int(oracle.query_count),
+                        })
                     validation_inputs = affine_validation_inputs
                     validation_targets = affine_validation_targets
                     validation_coords = affine_validation_coords

@@ -112,6 +112,7 @@ function main(): void {
     runStep('Santa Fe trail verifier', 'npm', ['run', 'verify:santa-fe-trail'], { timeoutMs: 2 * 60 * 1000 });
     runStep('delegated citation integrity', 'npm', ['run', 'verify:delegated-citations'], { timeoutMs: 3 * 60 * 1000 });
     runStep('artifact verdict consistency', 'npm', ['run', 'verify:artifact-verdicts'], { timeoutMs: 3 * 60 * 1000 });
+    runStep('artifact provenance', 'npm', ['run', 'verify:artifact-provenance'], { timeoutMs: 3 * 60 * 1000 });
     runStep('semantic archive composition benchmark', 'npm', ['run', 'benchmark:semantic-archive'], { timeoutMs: 2 * 60 * 1000 });
     runStep('closed-loop archive emergence benchmark', 'npm', ['run', 'benchmark:archive-emergence'], { timeoutMs: 3 * 60 * 1000 });
     runStep('multi-island NN archive benchmark', 'npm', ['run', 'benchmark:island-nn-archive:wide'], { timeoutMs: 10 * 60 * 1000 });
