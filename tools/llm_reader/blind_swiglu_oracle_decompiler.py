@@ -1675,7 +1675,13 @@ def fit_swiglu_sum_batched(
         chunk_specs.append(("random", random_start, min(chunk_size, restart_count - random_start)))
 
     def candidate_rank_score(candidate: dict[str, Any]) -> float:
-        return float(candidate.get("selectionScore", candidate.get("score", candidate["mae"])))
+        # A non-finite score must never compare as "better". Ranking used a bare `<`, and
+        # every comparison against NaN is False, so a NaN score left the first candidate
+        # in place and silently discarded the whole restart search. Mapping it to +inf
+        # keeps a single diverged restart from winning; a run where every candidate is
+        # non-finite is caught by the explicit check after the search.
+        value = float(candidate.get("selectionScore", candidate.get("score", candidate["mae"])))
+        return value if math.isfinite(value) else math.inf
 
     def cubic_relative_rmse(gates: np.ndarray, ups: np.ndarray, scales: np.ndarray) -> float | None:
         score_directions = (
@@ -1690,6 +1696,12 @@ def fit_swiglu_sum_batched(
         )
         if score_directions is None or score_targets is None or score_directions.shape[0] != score_targets.shape[0]:
             return None
+        # With cubic witnesses disabled the probe returns empty arrays rather than None,
+        # which passes the guard above and then averages over nothing. "No witness" is
+        # the honest answer here, not a NaN that poisons every selection score it is
+        # added to.
+        if score_directions.shape[0] == 0:
+            return None
         predicted = predict_swiglu_cubic_directional_derivatives(
             score_directions,
             gates,
@@ -1702,9 +1714,11 @@ def fit_swiglu_sum_batched(
 
     def residual_selection_score(prediction: np.ndarray, actual: np.ndarray) -> float:
         residual = np.abs(prediction - actual)
-        mae = float(np.mean(residual))
+        # Scoring on an empty set is a configuration defect, not a score. The previous
+        # guard read the mean first, so it returned the NaN it was meant to prevent.
         if residual.shape[0] == 0:
-            return mae
+            raise RuntimeError("SwiGLU restart selection scored on an empty residual set")
+        mae = float(np.mean(residual))
         score_value = mae
         if selection_tail_weight > 0.0:
             score_value += selection_tail_weight * float(np.quantile(residual, selection_tail_quantile))
@@ -1924,6 +1938,14 @@ def fit_swiglu_sum_batched(
         torch.cuda.empty_cache()
     if best is None:
         raise RuntimeError("batched SwiGLU fit did not produce a finite candidate")
+    if not math.isfinite(candidate_rank_score(best)):
+        # Every restart scoring non-finite means the search ranked nothing: the winner
+        # would be whichever candidate happened to be evaluated first. That is a broken
+        # selection rule, and it stays loud rather than publishing an arbitrary fit.
+        raise RuntimeError(
+            "batched SwiGLU restart selection produced no finite selection score "
+            f"across {total_restart_count} restarts"
+        )
     forced_polish_candidates: list[dict[str, Any]] = []
     dictionary_rank_score: float | None = None
     if atom_count >= 8 and gate_candidate_pool:
@@ -5388,6 +5410,31 @@ def detect_swiglu_cancellation_pairs(
     return pairs
 
 
+def paired_atom_identity_passes(
+    source_alignment: dict[str, Any],
+    threshold: float,
+    atom_count: int,
+) -> bool:
+    """Does every recovered atom match its assigned source unit at `threshold`?
+
+    The sweep enforces this bar on top of the solver's metric thresholds. While the solver
+    was not told about it, a case could publish `pass: true` in its own report next to a
+    `status: fail` manifest written from the same run, because the two verdicts were reached
+    from different criteria. A threshold of 0 leaves the bar off, as lanes that do not claim
+    unit identity are entitled to.
+    """
+    if threshold <= 0.0:
+        return True
+    minimum = source_alignment.get("pairedAtomMinJointCosine")
+    count = source_alignment.get(
+        "pairedAtomCountAbove099" if threshold >= 0.99 else "pairedAtomCountAbove095"
+    )
+    # A bar that was asked for and cannot be measured fails; it does not quietly vanish.
+    if minimum is None or count is None:
+        return False
+    return float(minimum) >= threshold and int(count) >= int(atom_count)
+
+
 def audit_swiglu_source_cancellation(
     coords: np.ndarray,
     gates: np.ndarray,
@@ -6803,6 +6850,9 @@ def residual_gradient_block_refit_swiglu_candidate(
             else cubic_targets
         )
         if score_directions is None or score_targets is None:
+            return None
+        # Same emptiness case as the fit-path scorer: no witness means None, not NaN.
+        if score_directions.shape[0] == 0 or score_targets.shape[0] == 0:
             return None
         predicted = predict_swiglu_cubic_directional_derivatives(
             score_directions,
@@ -12208,11 +12258,21 @@ def run_solver(args: argparse.Namespace) -> int:
                         "pairedUpCosines": [float(value) for value in paired_up_cosines],
                     })
 
+            # The sweep enforces the paired-atom identity bar on top of these thresholds.
+            # While the solver was not told about it, a case could publish `pass: true` in
+            # its own report and `status: fail` in the manifest written from the same run.
+            # Applying it here makes the report's verdict the whole verdict.
+            paired_atom_gate = paired_atom_identity_passes(
+                source_alignment,
+                args.min_paired_atom_cosine,
+                args.atom_count,
+            )
             pass_gate = (
                 metrics["r2"] >= args.min_r2
                 and metrics["mae"] <= args.max_mae
                 and metrics["worstError"] <= args.max_worst_error
                 and source_alignment["subspaceMinPrincipalCosine"] >= args.min_subspace_cosine
+                and paired_atom_gate
                 and oracle.query_count <= args.max_oracle_calls
                 and args.atom_count == unit_count
                 and oracle.meta.get("solverAccess") == "oracle-only"
@@ -12235,6 +12295,12 @@ def run_solver(args: argparse.Namespace) -> int:
                     "metrics": metrics,
                     "sourceAlignment": source_alignment,
                     "selectedGradientEnergyRatio": float(energy_ratio),
+                    "pairedAtomThreshold": (
+                        float(args.min_paired_atom_cosine)
+                        if args.min_paired_atom_cosine > 0.0
+                        else None
+                    ),
+                    "pairedAtomGate": bool(paired_atom_gate),
                 },
                 "accessAudit": {
                     "solverAccess": "oracle-only",
@@ -12618,6 +12684,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-mae", type=float, default=0.015)
     parser.add_argument("--max-worst-error", type=float, default=1e30)
     parser.add_argument("--min-subspace-cosine", type=float, default=0.93)
+    parser.add_argument(
+        "--min-paired-atom-cosine",
+        type=float,
+        default=0.0,
+        help=(
+            "post-hoc identity bar: every recovered atom must match its assigned source unit "
+            "at this joint gate/up cosine. 0 disables it. The witness is read only after the "
+            "recovery is frozen, so this changes the verdict, never the solver's input"
+        ),
+    )
     parser.add_argument("--max-cubic-witness-relative-rmse", type=float, default=float("inf"))
     parser.add_argument("--max-oracle-calls", type=int, default=20000)
     parser.add_argument("--basis-diagnostic-only", action="store_true")

@@ -408,6 +408,9 @@ for (const testCase of sweepCases) {
     '--max-mae', String(testCase.maxMae),
     '--max-worst-error', String(testCase.maxWorstError),
     '--min-subspace-cosine', String(testCase.minSubspaceCosine),
+    // The same bar assertCaseReport applies below, so the solver's own report carries the
+    // verdict this gate will reach instead of a narrower one.
+    '--min-paired-atom-cosine', String(minPairedAtomCosine),
     '--max-oracle-calls', envValue('GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS', '20000'),
     ...optionalEnvArg('--fit-snapshot-input', 'GCL_BLIND_SWIGLU_FIT_SNAPSHOT_INPUT'),
     ...optionalEnvArg('--fit-snapshot-output', 'GCL_BLIND_SWIGLU_FIT_SNAPSHOT_OUTPUT'),
@@ -438,7 +441,13 @@ for (const testCase of sweepCases) {
       summary: report.summary,
       notes: [
         'Per-case report for the blind 4096D SwiGLU oracle-only sweep.',
-        'The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment.'
+        'The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment.',
+        // A criterion the gate applies but the solver was never told about produces an
+        // artifact whose manifest reads `status: fail` beside its own `summary.pass: true`.
+        // The paired-atom identity threshold is now passed down so the report's verdict
+        // includes it; recording the failures here keeps the reason readable for any
+        // criterion that is still sweep-only.
+        ...(failures.length ? [`gate failures: ${failures.join('; ')}`] : [])
       ]
     });
   } else {

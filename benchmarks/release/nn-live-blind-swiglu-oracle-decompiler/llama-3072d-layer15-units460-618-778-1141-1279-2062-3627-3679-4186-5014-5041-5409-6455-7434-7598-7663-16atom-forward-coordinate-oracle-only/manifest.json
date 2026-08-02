@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-13T20:00:42.652Z",
+  "generatedAt": "2026-08-02T07:03:13.150Z",
   "lane": "nn-live-blind-swiglu-oracle-decompiler",
   "variant": "llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only",
-  "status": "pass",
+  "status": "fail",
   "command": {
     "argv": [
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
@@ -26,13 +26,19 @@
     "GCL_BLIND_SWIGLU_COUNTEREXAMPLE_JITTER_SCALE": "0.025",
     "GCL_BLIND_SWIGLU_COUNTEREXAMPLE_REPEAT": "4",
     "GCL_BLIND_SWIGLU_CUBIC_DIRECTION_COUNT": "0",
+    "GCL_BLIND_SWIGLU_CUBIC_HOLDOUT_COUNT": "0",
     "GCL_BLIND_SWIGLU_CUBIC_STEP": "0.35",
+    "GCL_BLIND_SWIGLU_CUBIC_STEPS": "",
     "GCL_BLIND_SWIGLU_DISABLE_ADAPTIVE_RESCUE": "1",
     "GCL_BLIND_SWIGLU_EXPECTED_DIMENSION": "3072",
     "GCL_BLIND_SWIGLU_FAMILY_LABEL": "LLaMA-family",
     "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP": "0.04",
+    "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEPS": "",
+    "GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT": "0",
     "GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT": "256",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_MODE": "forward",
     "GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP": "0.04",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_STEPS": "",
     "GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT": "1.0",
     "GCL_BLIND_SWIGLU_FIT_MODE": "batched",
     "GCL_BLIND_SWIGLU_FIT_RESTART_CHUNK_SIZE": "128",
@@ -47,6 +53,8 @@
     "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "300000",
     "GCL_BLIND_SWIGLU_MODEL": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
     "GCL_BLIND_SWIGLU_MODEL_LABEL": "llama-3072d",
+    "GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP": "0",
+    "GCL_BLIND_SWIGLU_OUTPUT_CHANNEL": "-1",
     "GCL_BLIND_SWIGLU_POLISH_TOP_K": "1",
     "GCL_BLIND_SWIGLU_PROBE_POINTS": "33",
     "GCL_BLIND_SWIGLU_PROGRESS": "1",
@@ -67,14 +75,17 @@
     "GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_TAIL_FRACTION": "0.25",
     "GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_TAIL_WEIGHT": "2.0",
     "GCL_BLIND_SWIGLU_SEED": "260914",
+    "GCL_BLIND_SWIGLU_SELECTION_CUBIC_WEIGHT": "0",
     "GCL_BLIND_SWIGLU_SELECTION_TAIL_QUANTILE": "0.995",
     "GCL_BLIND_SWIGLU_SELECTION_TAIL_WEIGHT": "0",
     "GCL_BLIND_SWIGLU_SELECTION_WORST_WEIGHT": "0",
     "GCL_BLIND_SWIGLU_SWEEP_CASES": "15:460+618+778+1141+1279+2062+3627+3679+4186+5014+5041+5409+6455+7434+7598+7663:0.995:0.015:0.999:0.12",
     "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.015",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_SOURCE_PAIR_CORRELATION": "1",
     "GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR": "0.12",
     "GCL_BLIND_SWIGLU_SWEEP_MIN_PAIRED_ATOM_COSINE": "0.99",
     "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SOURCE_CANCELLATION_FRACTION": "0",
     "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.999",
     "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "llama-3072d-layer15-16unit-expansion-oracle-only",
     "GCL_BLIND_SWIGLU_TAIL_POLISH_FRACTION": "0.30",
@@ -115,8 +126,8 @@
     "GCL_PYTHON": ".gcl-python-gpu/bin/python"
   },
   "git": {
-    "commit": "90f32de16b58f01deca2dfe5b2bca9eccade0811",
-    "statusShort": "M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer20-16unit-expansion-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-16unit-expansion-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer20-units0-17-123-456-789-912-1024-1757-2048-2235-3580-4096-4100-5266-6144-8191-16atom-forward-coordinate-oracle-only/report.md\n M docs/claim-policy.md\n M docs/evidence-map.md\n M docs/gcl-north-star.md\n M docs/nn-decompiler-roadmap.md\n M docs/release-lane-status.md\n M package.json\n M scripts/benchmark-nn-live-blind-swiglu-layer-expansion.ts\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler.ts\n M src/cli/index.ts\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? benchmarks/release/nn-live-blackbox-llm-behavior-reader/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-adaptive-residual-block-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-layer-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer1-random16-gate-tail-consensus-snapshot-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer1-random16-residual-block-5atom-snapshot-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer1-random16-residual-block-adaptive-snapshot-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer1-random16-residual-block-cegis-snapshotted-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer15-random16-adaptive-residual-block-cegis-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer15-random16-adaptive-residual-block-cegis-seed261015-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer15-random16-gate-tail-consensus-seed261015-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer15-random16-gate-tail-consensus-seed261116-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer15-random16-gate-weak-block-seed261116-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer15-random16-mixed-selection-cegis-seed261015-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-adaptive-tail-rescue-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-bagged-quadratic-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-base-snapshot-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-coordinate-backfit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-cubic-chebyshev-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-cubic-extra-gates-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-cubic-fit-selection-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-cubic-gate-witness-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-cubic-gradient-field-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-cubic-radial-shell-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-final-lbfgs-court-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-final-lbfgs-minimax-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-final-lbfgs-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-final-smoothmax-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-full-tail-polish-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-gaussian-sobol-mix-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-gradient1024-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-guarded-direction-tail-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-guarded-full-tail-polish-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-mixed-validation-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-multiholdout-direction-tail-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-residual-block-refit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-residual-replace-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-scale-mixture-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-scored-extra-gates-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-selection-tail-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-selection-worst-court-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-affine-chebyshev-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-conservative-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-conservative-save-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-extra-random-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-plus-fixedgate-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-selection-calibrated-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-selection-holdout-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-top3-selection-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-top4-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-atom-direction-v2-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-combined-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-extra-random-lbfgs-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-fixed-gate-global-refit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-fixed-gate-up-refit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-full-tail-lbfgs-court-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-full-tail-selection-holdout-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-full-tail-strong-holdout-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-fulltrain-lbfgs-mse-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-gate-dictionary-refit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-gate-norm-calibration-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-global-gradient-directional-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-gradient-polish-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-pair-swap-refine-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-param-refit-holdout-v1-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-param-refit-smoke-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-param-refit-warm-smoke-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-replay-check-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-residual-block-refit-seed260913-v6-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-residual-block-refit-seed260913-v7-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-residual-block-refit-v5-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-residual-gradient-cegis-v4-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-residual-gradient-replace-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-residual-gradient-subset-v3-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-residual-gradient-tangent-v2-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-scale-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-source-projection-diagnostic-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-source-projection-rawtruth-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-tail-aware-scale-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-tail-aware-scale-repair-v2-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-tail-aware-scale-repair-v3-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-train-dominant-lbfgs-court-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-v1-scale-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-snapshot-validation-chebyshev-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-sobol-active-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-split-merge-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-strong-selection-court-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-diagnostic-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-local-rescue-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-probe-court-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-probe-refit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-rescue-probe-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-scalar-rescue-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-warm-holdout-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-tail-warm-refine-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer9-16unit-validation-residual-repair-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-randomized-1block-16unit-residual-block-refit-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units43-796-1214-1411-1682-2450-3485-3887-4315-4469-4980-5329-5536-7625-8063-8158-16atom-forward-coordinate-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer9-16unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer9-units958-1532-1647-1765-2755-3182-3856-4191-4371-4373-5442-7098-7145-7305-7679-7685-16atom-forward-coordinate-oracle-only/\n?? scripts/benchmark-nn-live-blackbox-llm-behavior-reader.ts\n?? tests/test_residual_block_selection.py\n?? tools/llm-reader-blackbox-behavior.py"
+    "commit": "2ac44f6315b3a149a7ea2044fec1102e11500f27",
+    "statusShort": "M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/cited-sweep-report-llama-3072d-layer1-16unit-expansion-oracle-only.json\n M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/cited-sweep-report-llama-3072d-layer15-16unit-expansion-oracle-only.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/manifest.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.md\n D benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.md\n M scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? tests/test_restart_selection_score.py"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.json",
@@ -124,7 +135,7 @@
     "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/manifest.json"
   },
   "summary": {
-    "pass": true,
+    "pass": false,
     "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
     "modelType": "llama",
     "dimension": 3072,
@@ -149,196 +160,315 @@
       7663
     ],
     "unitCount": 16,
+    "oracleMode": "selected-unit-sum",
+    "outputChannel": null,
     "activeRank": 32,
     "atomCount": 16,
-    "rawOracleCalls": 142241,
+    "rawOracleCalls": 146337,
     "metrics": {
-      "mae": 0.005235521283167137,
-      "mse": 0.000050418368354462706,
-      "r2": 0.9993531509315209,
-      "worstError": 0.04507800353440916
+      "mae": 0.006923393240320399,
+      "mse": 0.00010345406451162655,
+      "r2": 0.9986197880720584,
+      "worstError": 0.11110972379914336
     },
     "sourceAlignment": {
-      "gateMaxAbsCosine": 0.9994101948594986,
-      "upMaxAbsCosine": 0.999509973500026,
-      "subspaceMinPrincipalCosine": 0.9999857637238745,
+      "gateMaxAbsCosine": 0.9998014093126453,
+      "upMaxAbsCosine": 0.9994017230624915,
+      "subspaceMinPrincipalCosine": 0.9999854124669576,
       "subspaceCosines": [
-        0.9999999945449212,
-        0.9999999828049949,
-        0.9999999576554147,
-        0.9999999548692589,
-        0.9999999480252797,
-        0.9999999356177223,
-        0.9999999260855937,
-        0.999999918344349,
-        0.9999998912597974,
-        0.9999998866439669,
-        0.999999871277428,
-        0.999999859813308,
-        0.999999852470254,
-        0.9999998361560871,
-        0.9999998201905619,
-        0.9999998080719299,
-        0.9999997819366033,
-        0.9999997690944442,
-        0.9999997449343005,
-        0.9999997367050202,
-        0.9999997133088647,
-        0.9999997067808984,
-        0.9999996217123778,
-        0.9999996113607517,
-        0.9999995492878592,
-        0.9999995230770764,
-        0.999999313230518,
-        0.9999990788869348,
-        0.999998834556144,
-        0.9999978907087049,
-        0.9999971462126939,
-        0.9999857637238745
+        0.9999999951784229,
+        0.9999999831017053,
+        0.9999999577050959,
+        0.9999999550392201,
+        0.9999999481560617,
+        0.9999999363322116,
+        0.9999999254382813,
+        0.9999999197597561,
+        0.999999891273812,
+        0.9999998867030021,
+        0.9999998706290282,
+        0.9999998602225334,
+        0.9999998507411133,
+        0.9999998356375599,
+        0.9999998202331909,
+        0.9999998073858976,
+        0.99999978355539,
+        0.9999997713181076,
+        0.9999997457414319,
+        0.9999997315650148,
+        0.9999997107078202,
+        0.9999997056480554,
+        0.9999996228323527,
+        0.9999996086393693,
+        0.9999995475694121,
+        0.9999995220613509,
+        0.9999992856703258,
+        0.999999075699435,
+        0.9999988226782,
+        0.9999981390859255,
+        0.9999973264324,
+        0.9999854124669576
       ],
-      "projectedSourceMae": 0.0003812592250021046,
-      "projectedSourceR2": 0.9999966561210674,
-      "projectedSourceWorstError": 0.002954970129342205,
+      "projectedSourceMae": 0.00038021890361639523,
+      "projectedSourceR2": 0.9999965065799946,
+      "projectedSourceWorstError": 0.002627405875863187,
       "pairedAtomAssignmentMethod": "hungarian-max-joint-signed-cosine",
-      "pairedAtomMinJointCosine": 0.9942495918505425,
-      "pairedAtomMeanJointCosine": 0.9976430884367334,
-      "pairedAtomCountAbove095": 16,
-      "pairedAtomCountAbove099": 16,
+      "pairedAtomMinJointCosine": 0.23861138806479312,
+      "pairedAtomMeanJointCosine": 0.9072148109603881,
+      "pairedAtomCountAbove095": 14,
+      "pairedAtomCountAbove099": 14,
       "pairedAtoms": [
         {
           "recoveredAtom": 0,
           "sourceIndex": 4,
           "sourceUnit": 1279,
-          "gateCosine": 0.9981481272582831,
-          "upCosine": 0.9982068464413899,
-          "jointMinCosine": 0.9981481272582831
+          "gateCosine": 0.9995629243228203,
+          "upCosine": 0.9987276012860151,
+          "jointMinCosine": 0.9987276012860151
         },
         {
           "recoveredAtom": 1,
           "sourceIndex": 14,
           "sourceUnit": 7598,
-          "gateCosine": 0.999220751044543,
-          "upCosine": 0.9989261489967163,
-          "jointMinCosine": 0.9989261489967163
+          "gateCosine": 0.9997732064324076,
+          "upCosine": 0.9992099843584707,
+          "jointMinCosine": 0.9992099843584707
         },
         {
           "recoveredAtom": 2,
-          "sourceIndex": 10,
-          "sourceUnit": 5041,
-          "gateCosine": 0.996010794746133,
-          "upCosine": 0.9990944902891935,
-          "jointMinCosine": 0.996010794746133
+          "sourceIndex": 1,
+          "sourceUnit": 618,
+          "gateCosine": 0.997036512185481,
+          "upCosine": 0.9988899071170033,
+          "jointMinCosine": 0.997036512185481
         },
         {
           "recoveredAtom": 3,
           "sourceIndex": 12,
           "sourceUnit": 6455,
-          "gateCosine": 0.9984754242005136,
-          "upCosine": 0.9982716220313658,
-          "jointMinCosine": 0.9982716220313658
+          "gateCosine": 0.9996601612818571,
+          "upCosine": 0.9988580445220603,
+          "jointMinCosine": 0.9988580445220603
         },
         {
           "recoveredAtom": 4,
           "sourceIndex": 0,
           "sourceUnit": 460,
-          "gateCosine": 0.9994104577836203,
-          "upCosine": 0.9992164108268579,
-          "jointMinCosine": 0.9992164108268579
+          "gateCosine": 0.9998016667662587,
+          "upCosine": 0.9990679437754648,
+          "jointMinCosine": 0.9990679437754648
         },
         {
           "recoveredAtom": 5,
-          "sourceIndex": 9,
-          "sourceUnit": 5014,
-          "gateCosine": 0.9958635190324552,
-          "upCosine": 0.9984590492291041,
-          "jointMinCosine": 0.9958635190324552
+          "sourceIndex": 15,
+          "sourceUnit": 7663,
+          "gateCosine": 0.9983778464683679,
+          "upCosine": 0.9987797234791598,
+          "jointMinCosine": 0.9983778464683679
         },
         {
           "recoveredAtom": 6,
           "sourceIndex": 8,
           "sourceUnit": 4186,
-          "gateCosine": 0.9987632606798389,
-          "upCosine": 0.9978976289974022,
-          "jointMinCosine": 0.9978976289974022
+          "gateCosine": 0.9996449958129918,
+          "upCosine": 0.9985467142097135,
+          "jointMinCosine": 0.9985467142097135
         },
         {
           "recoveredAtom": 7,
-          "sourceIndex": 1,
-          "sourceUnit": 618,
-          "gateCosine": 0.996515396495852,
-          "upCosine": 0.9990207948309775,
-          "jointMinCosine": 0.996515396495852
+          "sourceIndex": 10,
+          "sourceUnit": 5041,
+          "gateCosine": 0.9960611757149849,
+          "upCosine": 0.9979231055388398,
+          "jointMinCosine": 0.9960611757149849
         },
         {
           "recoveredAtom": 8,
-          "sourceIndex": 7,
-          "sourceUnit": 3679,
-          "gateCosine": 0.9942495918505425,
-          "upCosine": 0.99859783456069,
-          "jointMinCosine": 0.9942495918505425
+          "sourceIndex": 13,
+          "sourceUnit": 7434,
+          "gateCosine": 0.9977108507384387,
+          "upCosine": 0.9982051426329617,
+          "jointMinCosine": 0.9977108507384387
         },
         {
           "recoveredAtom": 9,
-          "sourceIndex": 15,
-          "sourceUnit": 7663,
-          "gateCosine": 0.9981642670087578,
-          "upCosine": 0.9989566502535037,
-          "jointMinCosine": 0.9981642670087578
+          "sourceIndex": 2,
+          "sourceUnit": 778,
+          "gateCosine": 0.995877095182035,
+          "upCosine": 0.9981578099743333,
+          "jointMinCosine": 0.995877095182035
         },
         {
           "recoveredAtom": 10,
           "sourceIndex": 3,
           "sourceUnit": 1141,
-          "gateCosine": 0.9988628884868436,
-          "upCosine": 0.9995109212347109,
-          "jointMinCosine": 0.9988628884868436
+          "gateCosine": 0.9997386370759144,
+          "upCosine": 0.9994026444083681,
+          "jointMinCosine": 0.9994026444083681
         },
         {
           "recoveredAtom": 11,
           "sourceIndex": 5,
           "sourceUnit": 2062,
-          "gateCosine": 0.9987276593775499,
-          "upCosine": 0.9985981231931154,
-          "jointMinCosine": 0.9985981231931154
+          "gateCosine": 0.9997202578733959,
+          "upCosine": 0.9991002425814719,
+          "jointMinCosine": 0.9991002425814719
         },
         {
           "recoveredAtom": 12,
-          "sourceIndex": 2,
-          "sourceUnit": 778,
-          "gateCosine": 0.9963533413705467,
-          "upCosine": 0.9987281383411035,
-          "jointMinCosine": 0.9963533413705467
+          "sourceIndex": 6,
+          "sourceUnit": 3627,
+          "gateCosine": 0.698287391891043,
+          "upCosine": 0.3039326379953987,
+          "jointMinCosine": 0.3039326379953987
         },
         {
           "recoveredAtom": 13,
           "sourceIndex": 11,
           "sourceUnit": 5409,
-          "gateCosine": 0.9989826264136643,
-          "upCosine": 0.9991795200011364,
-          "jointMinCosine": 0.9989826264136643
+          "gateCosine": 0.9997804193978885,
+          "upCosine": 0.9990636126194737,
+          "jointMinCosine": 0.9990636126194737
         },
         {
           "recoveredAtom": 14,
-          "sourceIndex": 6,
-          "sourceUnit": 3627,
-          "gateCosine": 0.9980230324532717,
-          "upCosine": 0.9986572637053961,
-          "jointMinCosine": 0.9980230324532717
+          "sourceIndex": 7,
+          "sourceUnit": 3679,
+          "gateCosine": 0.6213992121209462,
+          "upCosine": 0.23861138806479312,
+          "jointMinCosine": 0.23861138806479312
         },
         {
           "recoveredAtom": 15,
-          "sourceIndex": 13,
-          "sourceUnit": 7434,
-          "gateCosine": 0.9982058958259279,
-          "upCosine": 0.9987560872754557,
-          "jointMinCosine": 0.9982058958259279
+          "sourceIndex": 9,
+          "sourceUnit": 5014,
+          "gateCosine": 0.9958526812556736,
+          "upCosine": 0.9979714945425076,
+          "jointMinCosine": 0.9958526812556736
         }
-      ]
+      ],
+      "sourceCancellation": {
+        "meanGrossContribution": 0.6625540597895204,
+        "meanNetContribution": 0.2113158256222813,
+        "cancellationFraction": 0.6810587415472,
+        "negativePairCount": 65,
+        "pairCountAtOrBelowMinus050": 0,
+        "minimumPairCorrelation": -0.04464800348325854,
+        "mostNegativePairs": [
+          {
+            "sourceIndices": [
+              8,
+              12
+            ],
+            "sourceUnits": [
+              4186,
+              6455
+            ],
+            "contributionCorrelation": -0.04464800348325854,
+            "meanAbsContributionLeft": 0.04041789343340273,
+            "meanAbsContributionRight": 0.040780587710543964
+          },
+          {
+            "sourceIndices": [
+              0,
+              2
+            ],
+            "sourceUnits": [
+              460,
+              778
+            ],
+            "contributionCorrelation": -0.043762042142022534,
+            "meanAbsContributionLeft": 0.052831641428523965,
+            "meanAbsContributionRight": 0.03400698529623766
+          },
+          {
+            "sourceIndices": [
+              2,
+              11
+            ],
+            "sourceUnits": [
+              778,
+              5409
+            ],
+            "contributionCorrelation": -0.03994780445253912,
+            "meanAbsContributionLeft": 0.03400698529623766,
+            "meanAbsContributionRight": 0.04794052638039073
+          },
+          {
+            "sourceIndices": [
+              3,
+              9
+            ],
+            "sourceUnits": [
+              1141,
+              5014
+            ],
+            "contributionCorrelation": -0.03921298168413234,
+            "meanAbsContributionLeft": 0.058344094362467305,
+            "meanAbsContributionRight": 0.03674861694655669
+          },
+          {
+            "sourceIndices": [
+              7,
+              12
+            ],
+            "sourceUnits": [
+              3679,
+              6455
+            ],
+            "contributionCorrelation": -0.03253343519571761,
+            "meanAbsContributionLeft": 0.031983043046873605,
+            "meanAbsContributionRight": 0.040780587710543964
+          },
+          {
+            "sourceIndices": [
+              8,
+              9
+            ],
+            "sourceUnits": [
+              4186,
+              5014
+            ],
+            "contributionCorrelation": -0.027256177353869145,
+            "meanAbsContributionLeft": 0.04041789343340273,
+            "meanAbsContributionRight": 0.03674861694655669
+          },
+          {
+            "sourceIndices": [
+              7,
+              13
+            ],
+            "sourceUnits": [
+              3679,
+              7434
+            ],
+            "contributionCorrelation": -0.025952380582103043,
+            "meanAbsContributionLeft": 0.031983043046873605,
+            "meanAbsContributionRight": 0.03406032529456351
+          },
+          {
+            "sourceIndices": [
+              13,
+              14
+            ],
+            "sourceUnits": [
+              7434,
+              7598
+            ],
+            "contributionCorrelation": -0.025340171423258825,
+            "meanAbsContributionLeft": 0.03406032529456351,
+            "meanAbsContributionRight": 0.048119032268060094
+          }
+        ]
+      }
     },
-    "selectedGradientEnergyRatio": 0.9999999999999983
+    "selectedGradientEnergyRatio": 0.9999999999999983,
+    "pairedAtomThreshold": 0.99,
+    "pairedAtomGate": false
   },
   "notes": [
     "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
-    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment.",
+    "gate failures: summary.pass=false; pairedAtomMinJointCosine=0.23861138806479312<0.99; pairedAtomCount=14<16"
   ]
 }

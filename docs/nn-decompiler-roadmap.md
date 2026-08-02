@@ -550,10 +550,13 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        16-unit scalar SwiGLU blocks from oracle values only. A gate-norm plus
        tail-responsibility weak-block selector repairs under-resolved atoms;
        source weights remain post-hoc and are used only for exact one-to-one
-       gate/up assignment. Current gate: `2/2` pass, min R2
-       `0.9993531509315209`, max worst error `0.04507800353440916`, min paired
-       atom joint cosine `0.9942495918505425`, and all `16/16` atoms above
-       `0.99` in both cases.
+       gate/up assignment. Current gate, regenerated 2026-08-02: `1/2` pass.
+       Both blocks clear the fidelity bars (min R2 `0.9986197880720584`, max
+       worst error `0.11110972379914336`); identity holds for layer 1 only
+       (paired atom joint cosine `0.990872448218614`, `16/16` above `0.99`)
+       against layer 15's `0.23861138806479312` and `14/16`. The earlier
+       `2/2` reading came from a 2026-07-13 artifact that a NaN selection
+       score in the restart search had since invalidated.
     19. DONE for fresh structure-first real-Mistral 16-atom recovery without a
        random nonlinear initial fit:
        Add `benchmark:nn-live-blind-swiglu-asymptotic-cold-start`. The gate
@@ -1342,18 +1345,23 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `postHocWitnessOnly = true`. The runner now uses LLaMA high-atom defaults
     for this profile instead of the earlier Mistral-shaped scale/profile
     defaults; thresholds were not lowered.
-  - Current randomized LLaMA-family 16-unit function-and-structure gate: DONE
-    with
+  - Current randomized LLaMA-family 16-unit function-and-structure gate: NOT
+    PASSING with
     `npm run benchmark:nn-live-blind-swiglu-layer-expansion:llama-16unit-residual-block-randomized`.
     Artifact:
     `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json`.
-    Result: pass `true`, cases `2/2`, total raw oracle calls `284482`, min R2
-    `0.9993531509315209`, max MAE `0.005235521283167137`, max worst error
-    `0.04507800353440916`, min subspace principal cosine
-    `0.9999482868797673`, min exact one-to-one paired gate/up joint cosine
-    `0.9942495918505425`, and all `16/16` recovered atoms above `0.99` in
-    both cases. Recovery and weak-block selection are oracle-only; source
-    weights enter only after fitting for the post-hoc assignment witness.
+    Result of the 2026-08-02 regeneration: pass `false`, cases `1/2`, total raw
+    oracle calls `288578`, min R2 `0.9986197880720584`, max MAE
+    `0.007325520441823712`, max worst error `0.11110972379914336`, min subspace
+    principal cosine `0.9999530973154566`. Layer 1 recovers `16/16` atoms above
+    `0.99` at a minimum joint cosine of `0.990872448218614`; layer 15 recovers
+    `14/16` at `0.23861138806479312`, with recovered atoms `12` and `14` half
+    aligned to source units `3627` and `3679`. Recovery and weak-block selection
+    are oracle-only; source weights enter only after fitting for the post-hoc
+    assignment witness. This entry previously read `2/2` from a 2026-07-13
+    artifact while a NaN selection score, introduced 2026-07-27, was making the
+    530-restart search keep restart 0. Next gate: recover the two half-aligned
+    layer-15 atoms under the same query budget.
   - Current cross-family finite-precision 16-unit asymptotic-structure court:
     DONE with
     `npm run benchmark:nn-live-blind-swiglu-asymptotic-structure`.
