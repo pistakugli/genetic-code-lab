@@ -1,16 +1,16 @@
 # Blind 4096D SwiGLU Oracle Decompiler
 
-- pass: `false`
+- pass: `true`
 - model: `unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit`
-- layer/unit: `15/[460, 618, 778, 1141, 1279, 2062, 3627, 3679, 4186, 5014, 5041, 5409, 6455, 7434, 7598, 7663]`
+- layer/unit: `1/[27, 57, 413, 500, 1607, 1970, 2215, 2529, 2847, 3530, 3786, 4033, 4236, 4906, 7283, 7720]`
 - oracle mode: `selected-unit-sum`
 - output channel: `None`
 - raw oracle calls: `146337`
-- validation R2: `0.9986197880720584`
-- validation MAE: `0.006923393240320399`
-- subspace min principal cosine: `0.9999854124669576`
-- post-hoc paired atom min joint cosine: `0.23861138806479312`
-- post-hoc paired atoms >= 0.99: `14/16`
+- validation R2: `0.9985677573817285`
+- validation MAE: `0.007624356439002252`
+- subspace min principal cosine: `0.9999530973154566`
+- post-hoc paired atom min joint cosine: `0.990872448218614`
+- post-hoc paired atoms >= 0.99: `16/16`
 
 Access audit:
 

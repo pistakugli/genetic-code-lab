@@ -542,7 +542,21 @@ const report = {
       : null,
     defaultVariant,
     gradientMode: envValue('GCL_LAYER_EXPANSION_GRADIENT_MODE', 'forward-coordinate'),
-    outputChannel: Number(envValue('GCL_LAYER_EXPANSION_OUTPUT_CHANNEL', '-1'))
+    outputChannel: Number(envValue('GCL_LAYER_EXPANSION_OUTPUT_CHANNEL', '-1')),
+    // 231 published reports reduce to 29 distinct config blocks, because this block records
+    // the case and the seed and nothing about the method. Directories named adam-refine,
+    // gate-dictionary-refit or cubic-chebyshev therefore carried a config that could not
+    // tell them apart, and a reader of report.json alone had no way to know what was run.
+    // The manifest does keep the environment, but a report should be readable on its own.
+    methodKnobs: Object.fromEntries(
+      Object.entries(process.env)
+        .filter(([key, value]) =>
+          value !== undefined &&
+          (key.startsWith('GCL_BLIND_SWIGLU_') || key.startsWith('GCL_LAYER_EXPANSION_')) &&
+          key !== 'GCL_LAYER_EXPANSION_CASES'
+        )
+        .sort(([a], [b]) => a.localeCompare(b))
+    )
   },
   accessAudit: {
     solverAccess: 'oracle-only',

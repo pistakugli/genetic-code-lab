@@ -1,4 +1,5 @@
 import { spawnSync } from 'child_process';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -94,11 +95,31 @@ function collectBenchmarkEnv(): Record<string, string> {
   return Object.fromEntries(entries) as Record<string, string>;
 }
 
-function collectGitInfo(repoRoot: string): { commit: string | null; statusShort: string | null } {
+function collectGitInfo(repoRoot: string): {
+  commit: string | null;
+  statusShort: string | null;
+  uncommittedDiffSha256: string | null;
+} {
   return {
     commit: runGit(repoRoot, ['rev-parse', 'HEAD']),
-    statusShort: normalizeGitStatusShort(runGit(repoRoot, ['status', '--short', '--', '.']))
+    statusShort: normalizeGitStatusShort(runGit(repoRoot, ['status', '--short', '--', '.'])),
+    // The commit alone does not identify the code that ran. Measured on this tree: 153
+    // variants across 51 groups share a commit and an environment with a differently named
+    // peer, and every one of those runs happened over a dirty working tree. `statusShort`
+    // recorded which files were modified and nothing about how, so a run named adam-refine
+    // and one named orthogonal-cover, minutes apart over different edits to the same files,
+    // left byte-identical provenance. Hashing the diff makes those runs distinguishable
+    // afterwards, which is what lets `verify-variant-distinctness.ts` tell a real difference
+    // from a naming claim nothing backs.
+    uncommittedDiffSha256: hashUncommittedDiff(repoRoot)
   };
+}
+
+function hashUncommittedDiff(repoRoot: string): string | null {
+  const tracked = runGit(repoRoot, ['diff', 'HEAD']);
+  if (tracked === null) return null;
+  if (!tracked) return null; // A clean tree needs no digest: the commit already identifies it.
+  return crypto.createHash('sha256').update(tracked).digest('hex');
 }
 
 function normalizeGitStatusShort(status: string | null): string | null {
