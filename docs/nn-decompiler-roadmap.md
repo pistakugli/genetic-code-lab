@@ -550,13 +550,13 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
        16-unit scalar SwiGLU blocks from oracle values only. A gate-norm plus
        tail-responsibility weak-block selector repairs under-resolved atoms;
        source weights remain post-hoc and are used only for exact one-to-one
-       gate/up assignment. Current gate, regenerated 2026-08-02: `1/2` pass.
-       Both blocks clear the fidelity bars (min R2 `0.9985677573817285`, max
-       worst error `0.10332839478753825`); identity holds for layer 1 only
-       (paired atom joint cosine `0.9908724482186139`, `16/16` above `0.99`)
-       against layer 15's `0.23861138806479312` and `14/16`. The earlier
-       `2/2` reading came from a 2026-07-13 artifact that a NaN selection
-       score in the restart search had since invalidated.
+       gate/up assignment. Current gate, regenerated 2026-08-02: `2/2` pass,
+       min R2 `0.9999855916796467`, max worst error `0.006249561164756855`,
+       min paired atom joint cosine `0.9999610978737026`, and all `16/16`
+       atoms above `0.99` in both blocks. Gate directions are measured from
+       where the function's second derivative breaks rather than fitted, after
+       an earlier reading of `1/2` traced to a nonlinear fit recovering two
+       sources `0.0095` apart as two copies of their bisector.
     19. DONE for fresh structure-first real-Mistral 16-atom recovery without a
        random nonlinear initial fit:
        Add `benchmark:nn-live-blind-swiglu-asymptotic-cold-start`. The gate
@@ -1345,57 +1345,38 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     `postHocWitnessOnly = true`. The runner now uses LLaMA high-atom defaults
     for this profile instead of the earlier Mistral-shaped scale/profile
     defaults; thresholds were not lowered.
-  - Current randomized LLaMA-family 16-unit function-and-structure gate: NOT
-    PASSING with
+  - Current randomized LLaMA-family 16-unit function-and-structure gate: DONE
+    with
     `npm run benchmark:nn-live-blind-swiglu-layer-expansion:llama-16unit-residual-block-randomized`.
     Artifact:
     `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json`.
-    Result of the 2026-08-02 regeneration: pass `false`, cases `1/2`, total raw
-    oracle calls `296770`, min R2 `0.9985677573817285`, max MAE
-    `0.007624356439002252`, max worst error `0.10332839478753825`, min subspace
-    principal cosine `0.9999530973154566`. Layer 1 recovers `16/16` atoms above
-    `0.99` at a minimum joint cosine of `0.9908724482186139`; layer 15 recovers
-    `14/16` at `0.23861138806479312`, with recovered atoms `12` and `14` half
-    aligned to source units `3627` and `3679`. Recovery and weak-block selection
-    are oracle-only; source weights enter only after fitting for the post-hoc
-    assignment witness. This entry previously read `2/2` from a 2026-07-13
-    artifact while a NaN selection score, introduced 2026-07-27, was making the
-    530-restart search keep restart 0. Next gate: recover the two half-aligned
-    layer-15 atoms under the same query budget.
+    Result of the 2026-08-02 regeneration: pass `true`, cases `2/2`, total raw
+    oracle calls `461398`, min R2 `0.9999855916796467`, max MAE
+    `0.0007727211891917342`, max worst error `0.006249561164756855`, min
+    subspace principal cosine `0.9999530973154566`, min exact one-to-one paired
+    gate/up joint cosine `0.9999610978737026`, and all `16/16` atoms above
+    `0.99` in both blocks. No threshold was moved.
 
-    Cause measured 2026-08-02, two hypotheses tested and one survived. Weak-atom
-    amplitude is ruled out: per-source contribution puts units 3627 and 3679 at
-    `0.03391` and `0.03198` against unit 778's `0.03401`, which pairs at
-    `0.9959`, and the whole block spans an amplitude ratio of only `1.82`. What
-    the unpaired-atom diagnostic shows instead is degeneracy. Recovered atoms 12
-    and 14 each sit at a gate cosine near `0.62`-`0.70` against *both* units,
-    and the principal cosines between their span and the span of the two sources
-    are `0.9907` and `0.02265`. Two atoms collapsed onto one shared direction:
-    one direction of that source pair is recovered well and the second is not
-    represented at all, while the surface fit stays at R2 `0.9986` because the
-    missing direction is absorbed elsewhere. Neither a rotation inside a correct
-    subspace nor a random miss.
+    What closed it. The failing block was not a weak-atom problem, a collapsed
+    pair, or a restart-selection problem: all three were tested and measured
+    dead. Units 3627 and 3679 are `0.0095` apart in gate direction, and the
+    nonlinear fit had recovered them as two copies of their bisector - the
+    projections of atoms 12 and 14 onto the sources' span had cosine `0.999838`,
+    both at 41 degrees - while the surface fit held at R2 `0.9986`. No amount of
+    further optimisation finds that, because the output loss has nothing to say
+    about which factorisation produced it.
 
-    That reading was wrong, and the mechanism built for it disproved it. A
-    collapsed-atom detector and re-seeding pass now run inside the block refit;
-    on the live block they report `0` collapsed pairs, with the closest pair
-    `[14, 15]` at gate cosine `0.2959` and up cosine `0.2765`, far below any
-    collapse threshold. Atoms 12 and 14 are well separated from each other. The
-    `[0.9907, 0.02265]` span reading means their span shares one direction with
-    the source pair's and not the other, while each sits at gate cosine `0.62`
-    to `0.70` against *both* sources: they carry a large component outside the
-    source span entirely.
+    A gate direction is not something to optimise for; it is where the
+    function's second derivative breaks, and that is measurable with oracle
+    calls. Running the existing asymptotic gate stitch as a check after the
+    block refit, rather than instead of one, replaces the guessed directions
+    with the boundaries actually found. Layer 15 went from `14/16` atoms and a
+    minimum joint cosine of `0.2386` to `16/16` at `0.99996`. Layer 1, which
+    already passed, went from worst error `0.0638` to `0.0049` and R2
+    `0.998568` to `0.999987`, so the gain is a property of the method rather
+    than a repair aimed at one block. Cost is `461398` oracle calls against
+    `296770`, inside the `300000` per-case budget.
 
-    What the measurements agree on: gate cosines are middling (`0.62`-`0.70`)
-    while up cosines are the failure (`0.1945`-`0.3039`). The up directions for
-    these two units are not being identified, and neither amplitude, collapse,
-    nor restart selection explains it.
-
-    Next gate for this lane: recover the up directions for units 3627 and 3679.
-    Three explanations remain untested - the block refit fitting gate and up
-    jointly where up is the weaker signal, the readout absorbing an up error
-    into the other fourteen atoms, and a genuine identifiability limit for these
-    two units under `0.68` cancellation.
   - Current cross-family finite-precision 16-unit asymptotic-structure court:
     DONE with
     `npm run benchmark:nn-live-blind-swiglu-asymptotic-structure`.

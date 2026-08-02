@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-02T17:55:05.462Z",
+  "generatedAt": "2026-08-02T18:52:11.724Z",
   "lane": "nn-live-blind-swiglu-oracle-decompiler",
   "variant": "llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only",
-  "status": "fail",
+  "status": "pass",
   "command": {
     "argv": [
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
@@ -56,6 +56,9 @@
     "GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP": "0",
     "GCL_BLIND_SWIGLU_OUTPUT_CHANNEL": "-1",
     "GCL_BLIND_SWIGLU_POLISH_TOP_K": "1",
+    "GCL_BLIND_SWIGLU_POST_TAIL_ASYMPTOTIC_STITCH": "1",
+    "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_LINE_COUNT": "24",
+    "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_SAMPLES_PER_LINE": "1537",
     "GCL_BLIND_SWIGLU_PROBE_POINTS": "33",
     "GCL_BLIND_SWIGLU_PROGRESS": "1",
     "GCL_BLIND_SWIGLU_RESCUE_GRADIENT_TARGET": "0",
@@ -132,9 +135,9 @@
     "GCL_PYTHON": ".gcl-python-gpu/bin/python"
   },
   "git": {
-    "commit": "b3b830305cbe421d7510edba481de47a1b9d8bfb",
-    "statusShort": "M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/cited-sweep-report-llama-3072d-layer15-16unit-expansion-oracle-only.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/manifest.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.md\n D benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.json\n M package.json\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? tests/test_collapsed_atom_respread.py",
-    "uncommittedDiffSha256": "2fd2e0b48d89cd556c4548c85e052b89be898c7e6b9ec269727f6d3b2701af6b"
+    "commit": "cd12913005d5b99053e48ddae85f2ba29b54c41a",
+    "statusShort": "M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/cited-sweep-report-llama-3072d-layer1-16unit-expansion-oracle-only.json\n M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/cited-sweep-report-llama-3072d-layer15-16unit-expansion-oracle-only.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/manifest.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.md\n D benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.md\n M package.json\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py",
+    "uncommittedDiffSha256": "a052a0578ed745fddb0f8b552471df844563fe3652a9d9153bd69dd5be12b49f"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.json",
@@ -142,7 +145,7 @@
     "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/manifest.json"
   },
   "summary": {
-    "pass": false,
+    "pass": true,
     "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
     "modelType": "llama",
     "dimension": 3072,
@@ -171,16 +174,16 @@
     "outputChannel": null,
     "activeRank": 32,
     "atomCount": 16,
-    "rawOracleCalls": 150433,
+    "rawOracleCalls": 230765,
     "metrics": {
-      "mae": 0.007012407747925746,
-      "mse": 0.00010116858982108981,
-      "r2": 0.998661522358329,
-      "worstError": 0.10332839478753825
+      "mae": 0.0007727211891917342,
+      "mse": 0.0000010890502810382664,
+      "r2": 0.9999855916796467,
+      "worstError": 0.006249561164756855
     },
     "sourceAlignment": {
-      "gateMaxAbsCosine": 0.9998014093126453,
-      "upMaxAbsCosine": 0.9994017230624915,
+      "gateMaxAbsCosine": 0.9999968846275682,
+      "upMaxAbsCosine": 0.9999909715517221,
       "subspaceMinPrincipalCosine": 0.9999854124669576,
       "subspaceCosines": [
         0.9999999951784229,
@@ -220,138 +223,138 @@
       "projectedSourceR2": 0.9999965065799946,
       "projectedSourceWorstError": 0.002627405875863187,
       "pairedAtomAssignmentMethod": "hungarian-max-joint-signed-cosine",
-      "pairedAtomMinJointCosine": 0.23861138806479312,
-      "pairedAtomMeanJointCosine": 0.9072148109603881,
-      "pairedAtomCountAbove095": 14,
-      "pairedAtomCountAbove099": 14,
+      "pairedAtomMinJointCosine": 0.9999610978737026,
+      "pairedAtomMeanJointCosine": 0.9999833908641108,
+      "pairedAtomCountAbove095": 16,
+      "pairedAtomCountAbove099": 16,
       "pairedAtoms": [
         {
           "recoveredAtom": 0,
           "sourceIndex": 4,
           "sourceUnit": 1279,
-          "gateCosine": 0.9995629243228203,
-          "upCosine": 0.9987276012860151,
-          "jointMinCosine": 0.9987276012860151
+          "gateCosine": 0.9999962490040819,
+          "upCosine": 0.9999900976638251,
+          "jointMinCosine": 0.9999900976638251
         },
         {
           "recoveredAtom": 1,
           "sourceIndex": 14,
           "sourceUnit": 7598,
-          "gateCosine": 0.9997732064324076,
-          "upCosine": 0.9992099843584707,
-          "jointMinCosine": 0.9992099843584707
+          "gateCosine": 0.9999974256098528,
+          "upCosine": 0.9999924527041146,
+          "jointMinCosine": 0.9999924527041146
         },
         {
           "recoveredAtom": 2,
           "sourceIndex": 1,
           "sourceUnit": 618,
-          "gateCosine": 0.997036512185481,
-          "upCosine": 0.9988899071170033,
-          "jointMinCosine": 0.997036512185481
+          "gateCosine": 0.9999948958357162,
+          "upCosine": 0.999984484100159,
+          "jointMinCosine": 0.999984484100159
         },
         {
           "recoveredAtom": 3,
           "sourceIndex": 12,
           "sourceUnit": 6455,
-          "gateCosine": 0.9996601612818571,
-          "upCosine": 0.9988580445220603,
-          "jointMinCosine": 0.9988580445220603
+          "gateCosine": 0.9999906028682017,
+          "upCosine": 0.9999864932870942,
+          "jointMinCosine": 0.9999864932870942
         },
         {
           "recoveredAtom": 4,
           "sourceIndex": 0,
           "sourceUnit": 460,
-          "gateCosine": 0.9998016667662587,
-          "upCosine": 0.9990679437754648,
-          "jointMinCosine": 0.9990679437754648
+          "gateCosine": 0.9999952093728115,
+          "upCosine": 0.999990266293,
+          "jointMinCosine": 0.999990266293
         },
         {
           "recoveredAtom": 5,
           "sourceIndex": 15,
           "sourceUnit": 7663,
-          "gateCosine": 0.9983778464683679,
-          "upCosine": 0.9987797234791598,
-          "jointMinCosine": 0.9983778464683679
+          "gateCosine": 0.9999976725269463,
+          "upCosine": 0.9999882888959009,
+          "jointMinCosine": 0.9999882888959009
         },
         {
           "recoveredAtom": 6,
           "sourceIndex": 8,
           "sourceUnit": 4186,
-          "gateCosine": 0.9996449958129918,
-          "upCosine": 0.9985467142097135,
-          "jointMinCosine": 0.9985467142097135
+          "gateCosine": 0.9999948927115511,
+          "upCosine": 0.999988980699627,
+          "jointMinCosine": 0.999988980699627
         },
         {
           "recoveredAtom": 7,
           "sourceIndex": 10,
           "sourceUnit": 5041,
-          "gateCosine": 0.9960611757149849,
-          "upCosine": 0.9979231055388398,
-          "jointMinCosine": 0.9960611757149849
+          "gateCosine": 0.9999969192677213,
+          "upCosine": 0.9999702115207599,
+          "jointMinCosine": 0.9999702115207599
         },
         {
           "recoveredAtom": 8,
           "sourceIndex": 13,
           "sourceUnit": 7434,
-          "gateCosine": 0.9977108507384387,
-          "upCosine": 0.9982051426329617,
-          "jointMinCosine": 0.9977108507384387
+          "gateCosine": 0.99998837123754,
+          "upCosine": 0.9999820688436263,
+          "jointMinCosine": 0.9999820688436263
         },
         {
           "recoveredAtom": 9,
           "sourceIndex": 2,
           "sourceUnit": 778,
-          "gateCosine": 0.995877095182035,
-          "upCosine": 0.9981578099743333,
-          "jointMinCosine": 0.995877095182035
+          "gateCosine": 0.9999892538515973,
+          "upCosine": 0.9999610978737026,
+          "jointMinCosine": 0.9999610978737026
         },
         {
           "recoveredAtom": 10,
           "sourceIndex": 3,
           "sourceUnit": 1141,
-          "gateCosine": 0.9997386370759144,
-          "upCosine": 0.9994026444083681,
-          "jointMinCosine": 0.9994026444083681
+          "gateCosine": 0.9999896952915798,
+          "upCosine": 0.9999719926095288,
+          "jointMinCosine": 0.9999719926095288
         },
         {
           "recoveredAtom": 11,
           "sourceIndex": 5,
           "sourceUnit": 2062,
-          "gateCosine": 0.9997202578733959,
-          "upCosine": 0.9991002425814719,
-          "jointMinCosine": 0.9991002425814719
+          "gateCosine": 0.999996242624968,
+          "upCosine": 0.9999889977003853,
+          "jointMinCosine": 0.9999889977003853
         },
         {
           "recoveredAtom": 12,
           "sourceIndex": 6,
           "sourceUnit": 3627,
-          "gateCosine": 0.698287391891043,
-          "upCosine": 0.3039326379953987,
-          "jointMinCosine": 0.3039326379953987
+          "gateCosine": 0.9999954271985854,
+          "upCosine": 0.9999852528917698,
+          "jointMinCosine": 0.9999852528917698
         },
         {
           "recoveredAtom": 13,
           "sourceIndex": 11,
           "sourceUnit": 5409,
-          "gateCosine": 0.9997804193978885,
-          "upCosine": 0.9990636126194737,
-          "jointMinCosine": 0.9990636126194737
+          "gateCosine": 0.9999978185145838,
+          "upCosine": 0.9999883506486763,
+          "jointMinCosine": 0.9999883506486763
         },
         {
           "recoveredAtom": 14,
           "sourceIndex": 7,
           "sourceUnit": 3679,
-          "gateCosine": 0.6213992121209462,
-          "upCosine": 0.23861138806479312,
-          "jointMinCosine": 0.23861138806479312
+          "gateCosine": 0.9999851384066645,
+          "upCosine": 0.9999893687061578,
+          "jointMinCosine": 0.9999851384066645
         },
         {
           "recoveredAtom": 15,
           "sourceIndex": 9,
           "sourceUnit": 5014,
-          "gateCosine": 0.9958526812556736,
-          "upCosine": 0.9979714945425076,
-          "jointMinCosine": 0.9958526812556736
+          "gateCosine": 0.999992759332416,
+          "upCosine": 0.9999800796869388,
+          "jointMinCosine": 0.9999800796869388
         }
       ],
       "sourceCancellation": {
@@ -571,100 +574,17 @@
       },
       "unpairedAtomDiagnostic": {
         "threshold": 0.99,
-        "unpairedAtomCount": 2,
-        "atoms": [
-          {
-            "recoveredAtom": 12,
-            "assignedSourceUnit": 3627,
-            "assignedJointMinCosine": 0.3039326379953987,
-            "bestAlternatives": [
-              {
-                "sourceIndex": 6,
-                "sourceUnit": 3627,
-                "jointMinCosine": 0.3039326379953987,
-                "gateCosine": 0.698287391891043,
-                "upCosine": 0.3039326379953987,
-                "isAssigned": true
-              },
-              {
-                "sourceIndex": 7,
-                "sourceUnit": 3679,
-                "jointMinCosine": 0.2928944905352525,
-                "gateCosine": 0.6157508201783952,
-                "upCosine": 0.2928944905352525,
-                "isAssigned": false
-              },
-              {
-                "sourceIndex": 13,
-                "sourceUnit": 7434,
-                "jointMinCosine": 0.012126230959582762,
-                "gateCosine": 0.012126230959582762,
-                "upCosine": 0.053546527750564496,
-                "isAssigned": false
-              }
-            ],
-            "sourceBestMatchedByAtom": 12,
-            "sourceBestMatchIsThisAtom": true
-          },
-          {
-            "recoveredAtom": 14,
-            "assignedSourceUnit": 3679,
-            "assignedJointMinCosine": 0.23861138806479312,
-            "bestAlternatives": [
-              {
-                "sourceIndex": 7,
-                "sourceUnit": 3679,
-                "jointMinCosine": 0.23861138806479312,
-                "gateCosine": 0.6213992121209462,
-                "upCosine": 0.23861138806479312,
-                "isAssigned": true
-              },
-              {
-                "sourceIndex": 6,
-                "sourceUnit": 3627,
-                "jointMinCosine": 0.1945286575971128,
-                "gateCosine": 0.6798298777143504,
-                "upCosine": 0.1945286575971128,
-                "isAssigned": false
-              },
-              {
-                "sourceIndex": 0,
-                "sourceUnit": 460,
-                "jointMinCosine": 0.01696281112590367,
-                "gateCosine": 0.021359009539152624,
-                "upCosine": 0.01696281112590367,
-                "isAssigned": false
-              }
-            ],
-            "sourceBestMatchedByAtom": 12,
-            "sourceBestMatchIsThisAtom": false
-          }
-        ],
-        "confusedSubspace": {
-          "atoms": [
-            12,
-            14
-          ],
-          "sourceUnits": [
-            3627,
-            3679
-          ],
-          "principalCosines": [
-            0.9907048398281963,
-            0.0226506543848388
-          ],
-          "minPrincipalCosine": 0.0226506543848388,
-          "spanRecoveredButUnresolved": false
-        }
+        "unpairedAtomCount": 0,
+        "atoms": [],
+        "confusedSubspace": null
       }
     },
     "selectedGradientEnergyRatio": 0.9999999999999983,
     "pairedAtomThreshold": 0.99,
-    "pairedAtomGate": false
+    "pairedAtomGate": true
   },
   "notes": [
     "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
-    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment.",
-    "gate failures: summary.pass=false; pairedAtomMinJointCosine=0.23861138806479312<0.99; pairedAtomCount=14<16"
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
   ]
 }

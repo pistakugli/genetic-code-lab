@@ -492,14 +492,15 @@ Finite-precision interpretation and boundaries:
   `f(x)` values; source weights are requested only after recovery for the
   paired-atom witness. Current artifact:
   `benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json`,
-  pass `false`, cases `1/2` as regenerated 2026-08-02: min R2
-  `0.9985677573817285`, max MAE `0.007624356439002252`, max worst error
-  `0.10332839478753825`, min subspace principal cosine `0.9999530973154566`,
-  total raw oracle calls `296770`, and oracle-only access invariant. Identity
-  holds for layer 1 (`16/16` atoms above `0.99`, minimum joint cosine
-  `0.9908724482186139`) and not for layer 15 (`14/16`, minimum
-  `0.23861138806479312`), so this line claims function recovery on both blocks
-  and structure recovery on one.
+  pass `true`, cases `2/2` as regenerated 2026-08-02: min R2
+  `0.9999855916796467`, max MAE `0.0007727211891917342`, max worst error
+  `0.006249561164756855`, min subspace principal cosine `0.9999530973154566`,
+  min one-to-one paired gate/up joint cosine `0.9999610978737026`, all `16/16`
+  atoms above `0.99` in both blocks, total raw oracle calls `461398`, and
+  oracle-only access invariant. Gate directions are measured from where the
+  function's second derivative breaks rather than fitted for, which is what
+  took layer 15 from `14/16` at `0.2386` to `16/16` at `0.99996` without moving
+  a threshold.
   The gate-norm/tail-responsibility weak-block selector is source-blind; the
   Hungarian source assignment is post-hoc evidence and does not enter fitting.
 - process-separated opaque-oracle cold-start recovery for one real local

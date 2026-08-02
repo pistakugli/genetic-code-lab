@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-02T17:55:05.498Z",
+  "generatedAt": "2026-08-02T18:52:11.763Z",
   "lane": "nn-live-blind-swiglu-oracle-decompiler",
   "variant": "llama-3072d-layer15-16unit-expansion-oracle-only",
-  "status": "fail",
+  "status": "pass",
   "command": {
     "argv": [
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
@@ -56,6 +56,9 @@
     "GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP": "0",
     "GCL_BLIND_SWIGLU_OUTPUT_CHANNEL": "-1",
     "GCL_BLIND_SWIGLU_POLISH_TOP_K": "1",
+    "GCL_BLIND_SWIGLU_POST_TAIL_ASYMPTOTIC_STITCH": "1",
+    "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_LINE_COUNT": "24",
+    "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_SAMPLES_PER_LINE": "1537",
     "GCL_BLIND_SWIGLU_PROBE_POINTS": "33",
     "GCL_BLIND_SWIGLU_PROGRESS": "1",
     "GCL_BLIND_SWIGLU_RESCUE_GRADIENT_TARGET": "0",
@@ -132,9 +135,9 @@
     "GCL_PYTHON": ".gcl-python-gpu/bin/python"
   },
   "git": {
-    "commit": "b3b830305cbe421d7510edba481de47a1b9d8bfb",
-    "statusShort": "M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/cited-sweep-report-llama-3072d-layer15-16unit-expansion-oracle-only.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/manifest.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/report.json\n D benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.json\n M package.json\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n?? tests/test_collapsed_atom_respread.py",
-    "uncommittedDiffSha256": "c144644d13cdc3702b842b5875b783f8990d3e73ef74413bfa2e8b0bdf510593"
+    "commit": "cd12913005d5b99053e48ddae85f2ba29b54c41a",
+    "statusShort": "M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/cited-sweep-report-llama-3072d-layer1-16unit-expansion-oracle-only.json\n M benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/cited-sweep-report-llama-3072d-layer15-16unit-expansion-oracle-only.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/manifest.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.json\n D benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-3072d-randomized-2block-16unit-structure-gated-residual-block-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-16unit-expansion-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-500-1607-1970-2215-2529-2847-3530-3786-4033-4236-4906-7283-7720-16atom-forward-coordinate-oracle-only/report.md\n D benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.md\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/manifest.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.json\n M benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-units460-618-778-1141-1279-2062-3627-3679-4186-5014-5041-5409-6455-7434-7598-7663-16atom-forward-coordinate-oracle-only/report.md\n M package.json\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py",
+    "uncommittedDiffSha256": "a49289eb8829299b46caa67296916c90aa49b908afaed1e2f0729c074f95169e"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/report.json",
@@ -142,21 +145,21 @@
     "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer15-16unit-expansion-oracle-only/manifest.json"
   },
   "summary": {
-    "pass": false,
+    "pass": true,
     "caseCount": 1,
-    "passedCases": 0,
-    "failedCases": 1,
-    "minR2": 0.998661522358329,
-    "maxMae": 0.007012407747925746,
-    "maxWorstError": 0.10332839478753825,
+    "passedCases": 1,
+    "failedCases": 0,
+    "minR2": 0.9999855916796467,
+    "maxMae": 0.0007727211891917342,
+    "maxWorstError": 0.006249561164756855,
     "minSubspacePrincipalCosine": 0.9999854124669576,
-    "minPairedAtomJointCosine": 0.23861138806479312,
-    "minPairedAtomCountAboveThreshold": 14,
+    "minPairedAtomJointCosine": 0.9999610978737026,
+    "minPairedAtomCountAboveThreshold": 16,
     "minSourceCancellationFraction": 0.6810587415472,
     "minimumSourcePairCorrelation": -0.04464800348325854,
     "pairedAtomThreshold": 0.99,
-    "maxRawOracleCallsPerCase": 150433,
-    "totalRawOracleCalls": 150433,
+    "maxRawOracleCallsPerCase": 230765,
+    "totalRawOracleCalls": 230765,
     "maxUnitCount": 16,
     "maxAtomCount": 16,
     "accessInvariant": true

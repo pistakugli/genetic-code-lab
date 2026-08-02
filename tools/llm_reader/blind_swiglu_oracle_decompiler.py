@@ -11892,6 +11892,94 @@ def run_solver(args: argparse.Namespace) -> int:
                     revalidationWorstError=None if full_tail_revalidation_metrics is None else float(full_tail_revalidation_metrics["worstError"]),
                     rawOracleCalls=int(oracle.query_count),
                 )
+                # A fit can be excellent on output and wrong about structure, and no amount of
+                # further optimisation finds that out, because the surface loss has nothing to
+                # say about it. Measured on the randomized LLaMA layer-15 block: two source
+                # units 0.0095 apart in gate direction were recovered as two copies of their
+                # bisector - the projections of atoms 12 and 14 onto the sources' span have
+                # cosine 0.999838, both at 41 degrees - while R2 held at 0.9986.
+                #
+                # A gate direction is not an opinion: it is where the function's second
+                # derivative breaks. Probing for that break is an oracle-only measurement of
+                # the thing the fit is guessing at, so the recovered gates are checked against
+                # the boundaries they claim, and replaced by the boundaries actually found.
+                # This runs after any full-tail method rather than instead of one, because the
+                # block refit does improve the fourteen atoms it does resolve.
+                if (
+                    os.environ.get("GCL_BLIND_SWIGLU_POST_TAIL_ASYMPTOTIC_STITCH", "").strip() == "1"
+                    and validation_full_tail_polish_enabled
+                    and full_tail_accepted
+                    and full_tail_method not in {"asymptotic-gate-stitch", "asymptotic-cold-rebuild"}
+                ):
+                    post_stitch_line_count = int(os.environ.get(
+                        "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_LINE_COUNT", "16") or "16")
+                    post_stitch_samples = int(os.environ.get(
+                        "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_SAMPLES_PER_LINE", "1025") or "1025")
+                    post_stitch_range = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_LINE_RANGE", "4.0") or "4.0")
+                    post_stitch_offset = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_OFFSET_SCALE", "0.75") or "0.75")
+                    post_stitch_scale = float(os.environ.get(
+                        "GCL_BLIND_SWIGLU_POST_TAIL_STITCH_SCALE", "512.0") or "512.0")
+                    post_stitch_bound = asymptotic_stitch_query_upper_bound(
+                        post_stitch_line_count,
+                        post_stitch_samples,
+                        args.atom_count,
+                        args.active_rank,
+                        int(os.environ.get("GCL_BLIND_SWIGLU_ASYMPTOTIC_STITCH_HESSIAN_REPRESENTATIVES", "5") or "5"),
+                    )
+                    post_stitch_ran = False
+                    post_stitch_accepted = False
+                    post_stitch_selection_before = None
+                    post_stitch_selection_after = None
+                    if post_stitch_bound <= args.max_oracle_calls - oracle.query_count:
+                        post_stitch_ran = True
+                        stitched_fit = asymptotic_gate_stitch_swiglu_candidate(
+                            oracle,
+                            basis,
+                            full_tail_polish_coords,
+                            full_tail_polish_targets,
+                            full_tail_polished_fit,
+                            args.seed + 74231,
+                            selection_coords=full_tail_selection_coords,
+                            selection_targets=full_tail_selection_targets,
+                            gradient_coords=fit_gradient_coords,
+                            gradient_targets=fit_gradient_targets,
+                            cubic_directions=cubic_gate_directions,
+                            cubic_targets=cubic_scores,
+                            line_count=post_stitch_line_count,
+                            samples_per_line=post_stitch_samples,
+                            line_range=post_stitch_range,
+                            offset_scale=post_stitch_offset,
+                            asymptotic_scale=post_stitch_scale,
+                            cold_start=False,
+                        )
+                        # Decided on the selection pool, never on the draw that will be
+                        # published, and kept only if it does not cost output quality.
+                        if full_tail_selection_coords is not None and full_tail_selection_targets is not None:
+                            before = regression_metrics(
+                                full_tail_selection_targets,
+                                predict_swiglu(full_tail_selection_coords, full_tail_polished_fit),
+                            )
+                            after = regression_metrics(
+                                full_tail_selection_targets,
+                                predict_swiglu(full_tail_selection_coords, stitched_fit),
+                            )
+                            post_stitch_selection_before = float(before["mae"]) + 0.35 * float(before["worstError"])
+                            post_stitch_selection_after = float(after["mae"]) + 0.35 * float(after["worstError"])
+                            post_stitch_accepted = post_stitch_selection_after <= post_stitch_selection_before
+                        if post_stitch_accepted:
+                            full_tail_polished_fit = stitched_fit
+                            full_tail_probe_prediction = predict_swiglu(validation_coords, full_tail_polished_fit)
+                            full_tail_probe_metrics = regression_metrics(validation_targets, full_tail_probe_prediction)
+                    fit_attempts[-1].update({
+                        "postTailAsymptoticStitchRan": bool(post_stitch_ran),
+                        "postTailAsymptoticStitchAccepted": bool(post_stitch_accepted),
+                        "postTailAsymptoticStitchQueryBound": int(post_stitch_bound),
+                        "postTailAsymptoticStitchSelectionScoreBefore": post_stitch_selection_before,
+                        "postTailAsymptoticStitchSelectionScoreAfter": post_stitch_selection_after,
+                        "rawOracleCalls": int(oracle.query_count),
+                    })
                 if full_tail_accepted and full_tail_revalidation_metrics is not None:
                     # This is the stage the CEGIS stopping rule feeds, so it is the one where
                     # selecting on the reported draw bites hardest: up to cegis_limit draws,
