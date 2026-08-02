@@ -1362,6 +1362,23 @@ Phase 6: Active-Subspace Neural Decompiler for smooth LLM activation and FFN rec
     artifact while a NaN selection score, introduced 2026-07-27, was making the
     530-restart search keep restart 0. Next gate: recover the two half-aligned
     layer-15 atoms under the same query budget.
+
+    Cause measured 2026-08-02, two hypotheses tested and one survived. Weak-atom
+    amplitude is ruled out: per-source contribution puts units 3627 and 3679 at
+    `0.03391` and `0.03198` against unit 778's `0.03401`, which pairs at
+    `0.9959`, and the whole block spans an amplitude ratio of only `1.82`. What
+    the unpaired-atom diagnostic shows instead is degeneracy. Recovered atoms 12
+    and 14 each sit at a gate cosine near `0.62`-`0.70` against *both* units,
+    and the principal cosines between their span and the span of the two sources
+    are `0.9907` and `0.02265`. Two atoms collapsed onto one shared direction:
+    one direction of that source pair is recovered well and the second is not
+    represented at all, while the surface fit stays at R2 `0.9986` because the
+    missing direction is absorbed elsewhere. Neither a rotation inside a correct
+    subspace nor a random miss.
+
+    Next gate for this lane: detect two atoms converging on one direction during
+    fitting and re-seed one of them against the residual, then show `16/16` on
+    both blocks under the same query budget.
   - Current cross-family finite-precision 16-unit asymptotic-structure court:
     DONE with
     `npm run benchmark:nn-live-blind-swiglu-asymptotic-structure`.

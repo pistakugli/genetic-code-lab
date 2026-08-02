@@ -5410,6 +5410,87 @@ def detect_swiglu_cancellation_pairs(
     return pairs
 
 
+def diagnose_unpaired_atoms(
+    joint_cosines: np.ndarray,
+    gate_cosines: np.ndarray,
+    up_cosines: np.ndarray,
+    assignment: np.ndarray,
+    source_units: list[int],
+    recovered_gate_coords: np.ndarray,
+    truth_gate_coords: np.ndarray,
+    *,
+    threshold: float = 0.99,
+) -> dict[str, Any]:
+    """Say what an atom that failed to pair with its source is actually aligned to.
+
+    The Hungarian assignment reports one number per atom, which says an atom did not match
+    its unit and nothing about why. Two failures look identical in that number and need
+    opposite repairs: an atom spread thinly across several units has not resolved anything,
+    while a pair of atoms that each match the other's unit has recovered the right subspace
+    and only mixed the assignment inside it.
+
+    For every atom below `threshold` this records its best alternative sources, whether the
+    atom it is confused with is confused back, and the principal cosines between the span of
+    the confused atoms' gates and the span of their assigned sources. A high subspace cosine
+    with low individual cosines is the rotation case; both low is a genuine miss.
+
+    Post-hoc: every input here is derived from truth the oracle releases only after the
+    recovery is frozen.
+    """
+    atom_count = int(joint_cosines.shape[0])
+    below = [index for index in range(atom_count) if float(joint_cosines[index, assignment[index]]) < threshold]
+    rows: list[dict[str, Any]] = []
+    for atom in below:
+        order = np.argsort(joint_cosines[atom])[::-1]
+        alternatives = [
+            {
+                "sourceIndex": int(source_index),
+                "sourceUnit": int(source_units[source_index]),
+                "jointMinCosine": float(joint_cosines[atom, source_index]),
+                "gateCosine": float(gate_cosines[atom, source_index]),
+                "upCosine": float(up_cosines[atom, source_index]),
+                "isAssigned": bool(int(assignment[atom]) == int(source_index)),
+            }
+            for source_index in order[:3]
+        ]
+        # Which atom holds the source this one was assigned, if any other atom matches it better?
+        assigned_source = int(assignment[atom])
+        best_atom_for_source = int(np.argmax(joint_cosines[:, assigned_source]))
+        rows.append({
+            "recoveredAtom": int(atom),
+            "assignedSourceUnit": int(source_units[assigned_source]),
+            "assignedJointMinCosine": float(joint_cosines[atom, assigned_source]),
+            "bestAlternatives": alternatives,
+            "sourceBestMatchedByAtom": best_atom_for_source,
+            "sourceBestMatchIsThisAtom": bool(best_atom_for_source == atom),
+        })
+
+    subspace: dict[str, Any] | None = None
+    if len(below) >= 2:
+        recovered_span = np.vstack([recovered_gate_coords[atom] for atom in below])
+        truth_span = np.vstack([truth_gate_coords[int(assignment[atom])] for atom in below])
+        cosines = principal_cosines(recovered_span, truth_span)
+        subspace = {
+            "atoms": [int(atom) for atom in below],
+            "sourceUnits": [int(source_units[int(assignment[atom])]) for atom in below],
+            "principalCosines": [float(value) for value in cosines],
+            "minPrincipalCosine": float(np.min(cosines)),
+            # A span recovered but not resolved: the atoms cover the right directions and only
+            # the split between them is wrong, which is a different repair from a genuine miss.
+            "spanRecoveredButUnresolved": bool(
+                float(np.min(cosines)) >= 0.9
+                and max(float(joint_cosines[atom, int(assignment[atom])]) for atom in below) < threshold
+            ),
+        }
+
+    return {
+        "threshold": float(threshold),
+        "unpairedAtomCount": len(below),
+        "atoms": rows,
+        "confusedSubspace": subspace,
+    }
+
+
 def paired_atom_identity_passes(
     source_alignment: dict[str, Any],
     threshold: float,
@@ -12373,6 +12454,15 @@ def run_solver(args: argparse.Namespace) -> int:
                 "pairedAtomCountAbove099": int(np.sum(paired_joint_values >= 0.99)),
                 "pairedAtoms": paired_rows,
                 "sourceCancellation": source_cancellation,
+                "unpairedAtomDiagnostic": diagnose_unpaired_atoms(
+                    paired_joint_cosines,
+                    paired_gate_cosines,
+                    paired_up_cosines,
+                    atom_assignment,
+                    [int(value) for value in source_units],
+                    recovered_gate_coords,
+                    normalized_truth_gate_coords,
+                ),
             }
             if asymptotic_stitch_posthoc_directions is not None:
                 normalized_asymptotic_directions = np.vstack([
