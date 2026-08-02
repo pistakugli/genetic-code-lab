@@ -441,7 +441,10 @@ for (const testCase of cases) {
     if (sweepSummary.maxUnitCount < testCase.unitCount) failures.push(`maxUnitCount=${sweepSummary.maxUnitCount}<${testCase.unitCount}`);
   }
   if (result.error) failures.push(String(result.error));
-  if (result.status !== 0 && failures.length === 0) failures.push(`sweep exit ${result.status ?? 'unknown'}`);
+  // Same rule as the sweep: how the child ended is recorded even when something else already
+  // failed, because the two are usually the same event seen from different sides.
+  if (result.signal) failures.push(`sweep killed by ${result.signal}`);
+  else if (result.status !== 0) failures.push(`sweep exit ${result.status ?? 'unknown'}`);
   caseResults.push({
     case: testCase,
     sweepVariant,

@@ -421,13 +421,23 @@ for (const testCase of sweepCases) {
     '--output-md', output.markdownOutputPath
   ];
 
+  // stdout stays inherited so progress streams live; stderr is piped so the last words of a
+  // process that dies are still available after it is gone. With both inherited, a solver
+  // killed mid-run left nothing to read: the console had scrolled and the artifact recorded
+  // only that a file was missing.
   const result = spawnSync(resolveGclPython(), args, {
     cwd: repoRoot,
-    stdio: 'inherit',
+    stdio: ['inherit', 'inherit', 'pipe'],
+    encoding: 'utf8',
     env: process.env,
     timeout: Number(envValue('GCL_BLIND_SWIGLU_TIMEOUT_MS', '1800000')),
     maxBuffer: 128 * 1024 * 1024
   });
+  if (result.stderr) process.stderr.write(result.stderr);
+  const stderrTail = (result.stderr || '')
+    .split('\n')
+    .filter(line => line.trim() && !/UserWarning|warnings\.warn|raw_cnt|^\s+/.test(line))
+    .slice(-6);
   if (result.error) throw result.error;
 
   let report: CaseReport | undefined;
@@ -453,7 +463,14 @@ for (const testCase of sweepCases) {
   } else {
     failures = ['missing report.json'];
   }
-  if (result.status !== 0 && failures.length === 0) failures.push(`process exit ${result.status ?? 'unknown'}`);
+  // How the solver process ended, recorded whether or not anything else already failed.
+  // Guarding this on `failures.length === 0` lost the cause exactly when it mattered: a
+  // process killed by the OOM killer writes no report, so 'missing report.json' was pushed
+  // first and the signal that explains it never was. Three 32-unit runs died that way and
+  // the artifact said only that a file was absent.
+  if (result.signal) failures.push(`process killed by ${result.signal}`);
+  else if (result.status !== 0) failures.push(`process exit ${result.status ?? 'unknown'}`);
+  if (failures.length && stderrTail.length) failures.push(`stderr tail: ${stderrTail.join(' | ')}`);
   caseResults.push({
     case: testCase,
     variant,

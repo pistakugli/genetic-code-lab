@@ -146,6 +146,12 @@ def build_oracle_ready_payload(
         "oracleQuantizationStep": float(args.oracle_quantization_step),
         "oracleOwnsWeights": True,
         "solverAccess": "oracle-only",
+        # How wide one call's answer is. A vector oracle returns `hiddenSize` numbers per
+        # point where a scalar one returns 1, so a query count means something different in
+        # the two modes and a budget comparison between them is not like for like. Recording
+        # the width here keeps that visible in every artifact rather than in a lane's name.
+        "oracleResponseWidth": int(hidden_size) if oracle_mode == "selected-unit-ffn-vector" else 1,
+        "oracleOutputMode": oracle_mode,
         "protocolCapabilities": {
             "eval": True,
             "truth": not bool(args.oracle_eval_only),
@@ -230,7 +236,21 @@ def oracle_server(args: argparse.Namespace) -> int:
             raise RuntimeError(f"unit {unit} outside SwiGLU intermediate range 0..{gate_weight.shape[0] - 1}")
     gate = gate_weight[units].contiguous()
     up = up_weight[units].contiguous()
-    if down_weight is None:
+    # A vector-valued oracle. The scalar modes collapse the block to one number, which is
+    # what makes a unit's activation boundary visible only as a kink competing with every
+    # other unit's kink for the same scalar. Returning the block's contribution to the whole
+    # residual stream instead makes the Jacobian a matrix, and a boundary crossing a rank-1
+    # jump in it, which is separable by linear algebra rather than by resolving overlaps in
+    # time. Still black-box: the solver sees outputs, never a weight.
+    source_matrix: torch.Tensor | None = None
+    if args.oracle_output_mode == "selected-unit-ffn-vector":
+        if down_weight is None:
+            down_weight = dequantized_weight(mlp.down_proj).detach().float().cpu()
+        source_matrix = down_weight[:, units].contiguous()
+        source_scales = torch.ones(len(units), dtype=torch.float32)
+        oracle_mode = "selected-unit-ffn-vector"
+        output_channel = None
+    elif down_weight is None:
         source_scales = torch.ones(len(units), dtype=torch.float32)
         oracle_mode = "selected-unit-sum"
         output_channel = None
@@ -280,7 +300,12 @@ def oracle_server(args: argparse.Namespace) -> int:
                     gate_projection = batch @ gate.T
                     up_projection = batch @ up.T
                     atom_values = torch.nn.functional.silu(gate_projection) * up_projection
-                    outputs.append((atom_values @ source_scales).cpu().numpy())
+                    if source_matrix is None:
+                        outputs.append((atom_values @ source_scales).cpu().numpy())
+                    else:
+                        # (batch, units) @ (units, hidden) -> the block's contribution to the
+                        # residual stream, one row per probe point.
+                        outputs.append((atom_values @ source_matrix.T).cpu().numpy())
             result = np.concatenate(outputs).astype(np.float64)
             if args.oracle_quantization_step > 0.0:
                 result = np.round(result / args.oracle_quantization_step) * args.oracle_quantization_step
@@ -367,6 +392,8 @@ class OracleClient:
                 command.extend(["--units", args.units])
             if args.output_channel >= 0:
                 command.extend(["--output-channel", str(args.output_channel)])
+            if args.oracle_output_mode != "scalar":
+                command.extend(["--oracle-output-mode", args.oracle_output_mode])
             if args.oracle_quantization_step > 0.0:
                 command.extend(["--oracle-quantization-step", str(args.oracle_quantization_step)])
             if args.local_files_only:
@@ -13228,6 +13255,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--unit", type=int, default=0)
     parser.add_argument("--units", default=None)
     parser.add_argument("--output-channel", type=int, default=-1)
+    parser.add_argument(
+        "--oracle-output-mode",
+        choices=["scalar", "selected-unit-ffn-vector"],
+        default="scalar",
+        help=(
+            "what one oracle call returns. `scalar` is the summed block or a single "
+            "down_proj channel. `selected-unit-ffn-vector` returns the block's whole "
+            "contribution to the residual stream, which makes the Jacobian a matrix and a "
+            "unit's boundary a rank-1 jump in it"
+        ),
+    )
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--batch-size", type=int, default=2048)

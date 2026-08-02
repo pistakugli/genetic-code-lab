@@ -1,0 +1,95 @@
+{
+  "summary": {
+    "pass": false,
+    "caseCount": 1,
+    "passedCases": 0,
+    "failedCases": 1,
+    "minR2": null,
+    "maxMae": null,
+    "maxWorstError": null,
+    "minSubspacePrincipalCosine": null,
+    "minPairedAtomJointCosine": null,
+    "minPairedAtomCountAboveThreshold": null,
+    "minSourceCancellationFraction": null,
+    "minimumSourcePairCorrelation": null,
+    "pairedAtomThreshold": 0.99,
+    "maxRawOracleCallsPerCase": null,
+    "totalRawOracleCalls": 0,
+    "maxUnitCount": null,
+    "maxAtomCount": null,
+    "accessInvariant": true
+  },
+  "cases": [
+    {
+      "case": {
+        "id": "layer1-units27-57-413-460-500-618-778-1141-1607-1970-2062-2215-2529-2847-3530-3627-3679-3786-4033-4186-4236-4624-4906-5014-5041-5409-6455-7283-7434-7598-7663-7720",
+        "layer": 1,
+        "unit": 27,
+        "units": [
+          27,
+          57,
+          413,
+          460,
+          500,
+          618,
+          778,
+          1141,
+          1607,
+          1970,
+          2062,
+          2215,
+          2529,
+          2847,
+          3530,
+          3627,
+          3679,
+          3786,
+          4033,
+          4186,
+          4236,
+          4624,
+          4906,
+          5014,
+          5041,
+          5409,
+          6455,
+          7283,
+          7434,
+          7598,
+          7663,
+          7720
+        ],
+        "activeRank": 64,
+        "atomCount": 32,
+        "minR2": 0.995,
+        "maxMae": 0.015,
+        "maxWorstError": 0.12,
+        "minSubspaceCosine": 0.999
+      },
+      "variant": "llama-3072d-layer1-units27-57-413-460-500-618-778-1141-1607-1970-2062-2215-2529-2847-3530-3627-3679-3786-4033-4186-4236-4624-4906-5014-5041-5409-6455-7283-7434-7598-7663-7720-32atom-forward-coordinate-oracle-only",
+      "reportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units27-57-413-460-500-618-778-1141-1607-1970-2062-2215-2529-2847-3530-3627-3679-3786-4033-4186-4236-4624-4906-5014-5041-5409-6455-7283-7434-7598-7663-7720-32atom-forward-coordinate-oracle-only/report.json",
+      "pass": false,
+      "failures": [
+        "missing report.json",
+        "process exit 1",
+        "stderr tail: Traceback (most recent call last): | Traceback (most recent call last): | RuntimeError: NVML_SUCCESS == DriverAPI::get()->nvmlInit_v2_() INTERNAL ASSERT FAILED at \"/pytorch/c10/cuda/CUDACachingAllocator.cpp\":1124, please report a bug to PyTorch. "
+      ]
+    }
+  ],
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "perCaseReportsEnforceInvariant": true
+  },
+  "selection": {
+    "kind": "explicit",
+    "source": "GCL_BLIND_SWIGLU_SWEEP_CASES"
+  },
+  "claimBoundary": [
+    "This sweep proves selected real local LLaMA-family 3072D SwiGLU unit or small-unit-block outputs can be recovered as blind oracle-only explicit SwiGLU atoms under the recorded case budgets.",
+    "It does not prove full LLaMA-family FFN extraction, all-channel 3072D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access."
+  ]
+}
