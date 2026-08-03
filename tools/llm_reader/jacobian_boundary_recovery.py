@@ -481,6 +481,7 @@ def recover_block(
     return {
         "basis": basis,
         "upDirections": np.stack(ups) if ups else np.zeros((0, input_dim)),
+        "gateNorms": gate_norms if gates and up_sample_count > 0 else np.zeros(0),
         "basisSpectrum": spectrum,
         "gates": np.stack(gates) if gates else np.zeros((0, active_rank)),
         "outputDirections": np.stack(outputs) if outputs else np.zeros((0, 1)),
@@ -799,6 +800,8 @@ def main() -> int:
                     gates_in_basis=result["gates"],
                     basis=result["basis"],
                     output_directions=result["outputDirections"],
+                    up_directions=result["upDirections"],
+                    gate_norms=result.get("gateNorms", np.zeros(0)),
                     units=np.asarray(unit_list),
                 )
 
