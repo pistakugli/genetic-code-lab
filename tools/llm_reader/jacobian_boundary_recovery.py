@@ -67,6 +67,9 @@ class RecoveryTelemetry:
     unitsRecovered: int = 0
     amplitudeCalls: int = 0
     duplicatesDropped: int = 0
+    rejectedByResidual: int = 0
+    upSolveCalls: int = 0
+    upsRecovered: int = 0
     notes: list[str] = field(default_factory=list)
 
 
@@ -276,6 +279,10 @@ def recover_block(
     amplitude_span: float,
     amplitude_min_alignment: float,
     duplicate_gate_cosine: float,
+    gate_residual_tolerance: float,
+    amplitude_crossings: int,
+    up_sample_count: int,
+    up_sample_scale: float,
     seed: int,
 ) -> tuple[dict[str, Any], RecoveryTelemetry]:
     rng = np.random.default_rng(seed)
@@ -334,28 +341,60 @@ def recover_block(
             # the same unit, which is why a 32-unit block recovered 17 of 32 while every one
             # it did recover came back above cosine 0.999: the misses were clusters too small
             # to determine a hyperplane, not gates read wrongly.
-            best = max(cluster, key=lambda item: item.peak_sharpness)
+            ranked = sorted(cluster, key=lambda item: -item.peak_sharpness)[:amplitude_crossings]
+            best = ranked[0]
             centroid_direction = np.mean([
                 crossing.output_direction * (1.0 if crossing.output_direction @ best.output_direction >= 0 else -1.0)
                 for crossing in cluster
             ], axis=0)
             centroid_direction = centroid_direction / np.linalg.norm(centroid_direction)
-            peak_point = scale * (best.basis_point @ basis)
-            if best.line_direction is None:
+            # Averaged over several crossings of the same unit, not read off one. A gate at
+            # cosine 0.9985 is not good enough downstream: `g.x` is a small number on this
+            # model, so a 3-degree error in `g` makes the error in `silu(g.x)` larger than
+            # the signal, and the up direction solved from it came back at 15 of 32. Each
+            # crossing is an independent read of the same direction, so averaging them cuts
+            # that error without introducing a fit.
+            estimates: list[np.ndarray] = []
+            alignments: list[float] = []
+            for crossing in ranked:
+                point = scale * (crossing.basis_point @ basis)
+                if crossing.line_direction is None:
+                    continue
+                span_full = crossing.line_direction @ basis
+                span = amplitude_span * scale * span_full / max(float(np.linalg.norm(span_full)), 1e-30)
+                estimate, single_alignment, spent = gate_from_peak_amplitudes(
+                    evaluate,
+                    peak_point=point,
+                    step_along_line=span,
+                    output_direction=centroid_direction,
+                    probe_basis=amplitude_probe,
+                    step=step,
+                )
+                telemetry.oracleCalls += spent
+                telemetry.amplitudeCalls += spent
+                if single_alignment < amplitude_min_alignment:
+                    continue
+                if estimates and float(estimate @ estimates[0]) < 0.0:
+                    estimate = -estimate
+                estimates.append(estimate)
+                alignments.append(single_alignment)
+            if not estimates:
                 continue
-            along_full = best.line_direction @ basis
-            along = amplitude_span * scale * along_full / max(float(np.linalg.norm(along_full)), 1e-30)
-            gate_full, alignment, spent = gate_from_peak_amplitudes(
-                evaluate,
-                peak_point=peak_point,
-                step_along_line=along,
-                output_direction=centroid_direction,
-                probe_basis=amplitude_probe,
-                step=step,
-            )
-            telemetry.oracleCalls += spent
-            telemetry.amplitudeCalls += spent
+            averaged = np.mean(np.stack(estimates), axis=0)
+            gate_full = averaged / max(float(np.linalg.norm(averaged)), 1e-30)
+            alignment = float(np.mean(alignments))
             if alignment < amplitude_min_alignment:
+                continue
+            # A gate is right only if the crossings it came from lie on its own hyperplane.
+            # Every point in the cluster satisfies g.x = 0 for the true gate, so the residual
+            # over the cluster is a check that costs nothing and needs no truth. Solutions
+            # that match no unit fail it, which is what removes them from the returned set
+            # instead of leaving a caller to filter them.
+            cluster_points = np.stack([crossing.basis_point for crossing in cluster])
+            norms = np.linalg.norm(cluster_points, axis=1)
+            residual = float(np.median(np.abs(cluster_points @ gate_full) / np.maximum(norms, 1e-30)))
+            if residual > gate_residual_tolerance:
+                telemetry.rejectedByResidual += 1
                 continue
             gate, determination = gate_full, alignment
         else:
@@ -379,8 +418,69 @@ def recover_block(
         determinations.append(determination)
     telemetry.unitsRecovered = len(gates)
 
+    # The up directions. With every gate known, silu(g_i.x) is a known function of the probe
+    # point and y(x) = sum_i silu(g_i.x) * (d_i (x) u_i) x is linear in the matrices
+    # M_i = d_i (x) u_i. One least-squares solve returns them all and each is rank-1, so its
+    # SVD splits it into the output direction and the up direction. The gates were the only
+    # hard part; this closes the block rather than leaving a caller with two thirds of it.
+    ups: list[np.ndarray] = []
+    if gates and up_sample_count > 0:
+        gate_matrix = np.stack(gates) @ basis
+        sample_rng = np.random.default_rng(seed + 9137)
+        samples_in = sample_rng.normal(0.0, up_sample_scale, size=(up_sample_count, input_dim))
+        responses = evaluate(samples_in)
+        telemetry.oracleCalls += up_sample_count
+        telemetry.upSolveCalls = up_sample_count
+        # The recovered gate is a direction, so its norm is 1 while the real one is around
+        # 0.02 on this model. `silu` is not scale free: evaluating it 50 times too far out
+        # puts every unit in saturation, which is why the up solve returned 14 of 32 and did
+        # not move when samples, scale or gate quality changed. The norm is one number per
+        # unit and it is chosen by which value explains the unit's own projection best - a
+        # one-dimensional search on data already paid for, not a fit of the block.
+        raw_response = samples_in @ gate_matrix.T
+        output_directions = np.stack(outputs)
+        gate_norms = np.ones(len(gates), dtype=np.float64)
+        candidate_norms = np.geomspace(2e-4, 2.0, 160)
+        for index in range(len(gates)):
+            projected = responses @ output_directions[index]
+            best_norm, best_residual = 1.0, float("inf")
+            for candidate in candidate_norms:
+                scaled = raw_response[:, index] * candidate
+                activation = scaled / (1.0 + np.exp(-np.clip(scaled, -60.0, 60.0)))
+                weighted = activation[:, None] * (samples_in @ basis.T)
+                solution, residual, *_ = np.linalg.lstsq(weighted, projected, rcond=None)
+                error = float(residual[0]) if len(residual) else float(
+                    np.sum((weighted @ solution - projected) ** 2)
+                )
+                if error < best_residual:
+                    best_norm, best_residual = float(candidate), error
+            gate_norms[index] = best_norm
+        gate_response = raw_response * gate_norms[None, :]
+        smooth = gate_response / (1.0 + np.exp(-np.clip(gate_response, -60.0, 60.0)))
+        # Solved in basis coordinates, not in the input space. `u_i` lies in the active
+        # subspace by construction, so it has `active_rank` free parameters rather than
+        # `input_dim`: for 32 units in 3072 dimensions that is 2048 unknowns instead of
+        # 98304, and 6000 samples go from hopelessly underdetermined - which returned zero
+        # usable up directions on the live model - to comfortably overdetermined.
+        coordinates = samples_in @ basis.T
+        # Per unit, through its own output direction, rather than one joint solve over all of
+        # them. Projecting the response onto `d_i` leaves that unit's contribution with
+        # coefficient 1 and everyone else's scaled by `d_j . d_i`, which for directions in
+        # 3072 dimensions is around 0.018. A joint solve instead lets a small error in one
+        # gate be absorbed by another unit's column: with gates at per-unit cosine 0.9985 it
+        # returned 15 of 32 up directions above 0.99 and adding samples did not move it,
+        # because the limit was cross-talk and not conditioning.
+        for index in range(len(gates)):
+            projected = responses @ output_directions[index]
+            weighted = smooth[:, index][:, None] * coordinates
+            solved, *_ = np.linalg.lstsq(weighted, projected, rcond=None)
+            norm = float(np.linalg.norm(solved))
+            ups.append((solved / norm if norm > 0 else solved) @ basis)
+        telemetry.upsRecovered = len(ups)
+
     return {
         "basis": basis,
+        "upDirections": np.stack(ups) if ups else np.zeros((0, input_dim)),
         "basisSpectrum": spectrum,
         "gates": np.stack(gates) if gates else np.zeros((0, active_rank)),
         "outputDirections": np.stack(outputs) if outputs else np.zeros((0, 1)),
@@ -400,6 +500,9 @@ def summarise(result: dict[str, Any], telemetry: RecoveryTelemetry) -> str:
         "unitsRecovered": telemetry.unitsRecovered,
         "amplitudeCalls": telemetry.amplitudeCalls,
         "duplicatesDropped": telemetry.duplicatesDropped,
+        "rejectedByResidual": telemetry.rejectedByResidual,
+        "upSolveCalls": telemetry.upSolveCalls,
+        "upsRecovered": telemetry.upsRecovered,
         "clusterSizes": result["clusterSizes"][:16],
         "notes": telemetry.notes,
     }, indent=2)
@@ -537,6 +640,10 @@ def main() -> int:
     parser.add_argument("--amplitude-span", type=float, default=0.01)
     parser.add_argument("--amplitude-min-alignment", type=float, default=0.5)
     parser.add_argument("--duplicate-gate-cosine", type=float, default=0.98)
+    parser.add_argument("--gate-residual-tolerance", type=float, default=1e-3)
+    parser.add_argument("--amplitude-crossings", type=int, default=4)
+    parser.add_argument("--up-sample-count", type=int, default=6000)
+    parser.add_argument("--up-sample-scale", type=float, default=0.6)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--output-json", default="")
     parser.add_argument(
@@ -591,6 +698,10 @@ def main() -> int:
                 amplitude_span=args.amplitude_span,
                 amplitude_min_alignment=args.amplitude_min_alignment,
                 duplicate_gate_cosine=args.duplicate_gate_cosine,
+                gate_residual_tolerance=args.gate_residual_tolerance,
+                amplitude_crossings=args.amplitude_crossings,
+                up_sample_count=args.up_sample_count,
+                up_sample_scale=args.up_sample_scale,
                 seed=args.seed,
             )
             report: dict[str, Any] = {
@@ -624,6 +735,18 @@ def main() -> int:
                 # back clean when some may be covered only by a weak match.
                 per_unit_best = similarity.max(axis=0)
                 truth_down = oracle.truth_down()
+                up_per_unit = None
+                joint_per_unit = None
+                if result["upDirections"].shape[0]:
+                    reference_up = truth_up / np.linalg.norm(truth_up, axis=1, keepdims=True)
+                    recovered_up = result["upDirections"]
+                    recovered_up = recovered_up / np.linalg.norm(recovered_up, axis=1, keepdims=True)
+                    up_similarity = np.abs(recovered_up @ reference_up.T)
+                    up_per_unit = up_similarity.max(axis=0)
+                    # The joint bar the fitted lanes report: a unit counts only when its gate
+                    # and its up direction are both right, matched to the same source.
+                    joint = np.minimum(similarity, up_similarity)
+                    joint_per_unit = joint.max(axis=0)
                 output_per_unit = None
                 output_per_solution = None
                 if truth_down is not None and result["outputDirections"].shape[0]:
@@ -639,6 +762,10 @@ def main() -> int:
                     "unitsWithGateAbove099": int(np.sum(per_unit_best > 0.99)),
                     "perUnitGateCosineMin": float(np.min(per_unit_best)),
                     "perUnitGateCosineMedian": float(np.median(per_unit_best)),
+                    "unitsWithUpAbove099": None if up_per_unit is None else int(np.sum(up_per_unit > 0.99)),
+                    "perUnitUpCosineMin": None if up_per_unit is None else float(np.min(up_per_unit)),
+                    "unitsWithJointAbove099": None if joint_per_unit is None else int(np.sum(joint_per_unit > 0.99)),
+                    "perUnitJointCosineMin": None if joint_per_unit is None else float(np.min(joint_per_unit)),
                     "unitsWithOutputAbove099": None if output_per_unit is None else int(np.sum(output_per_unit > 0.99)),
                     "perUnitOutputCosineMin": None if output_per_unit is None else float(np.min(output_per_unit)),
                     "outputCosineMedian": None if output_per_solution is None else float(np.median(output_per_solution)),

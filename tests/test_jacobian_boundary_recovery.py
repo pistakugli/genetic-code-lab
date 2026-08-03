@@ -164,6 +164,10 @@ class EndToEndTest(unittest.TestCase):
             amplitude_span=0.01,
             amplitude_min_alignment=0.5,
             duplicate_gate_cosine=0.98,
+            gate_residual_tolerance=1.0,
+            amplitude_crossings=4,
+            up_sample_count=0,
+            up_sample_scale=0.6,
             seed=5,
         )
 
@@ -199,6 +203,10 @@ class EndToEndTest(unittest.TestCase):
             amplitude_span=0.01,
             amplitude_min_alignment=0.5,
             duplicate_gate_cosine=0.98,
+            gate_residual_tolerance=1.0,
+            amplitude_crossings=4,
+            up_sample_count=0,
+            up_sample_scale=0.6,
             seed=2,
         )
 
@@ -277,6 +285,94 @@ class AmplitudeGateTest(unittest.TestCase):
         # sweep's energy does not lie along it. Without this the method would return a
         # confident-looking vector for a mismatched cluster.
         self.assertLess(alignment, 0.5)
+
+
+class UpRecoveryTest(unittest.TestCase):
+    """The up direction, and the gate norm that has to be found before it can be solved.
+
+    A recovered gate is a direction: its norm is 1, while the real one is around 0.02 on
+    LLaMA layer 15. `silu` is not scale free, so evaluating it 50 times too far out puts every
+    unit in saturation. That single mistake held the up recovery at 14 of 32 and did not move
+    when samples, sample scale, cross-talk or gate accuracy were addressed in turn. With the
+    norm chosen per unit it is 32 of 32 at a joint gate/up cosine of 0.9926.
+    """
+
+    @staticmethod
+    def teacher_with_small_gates(units: int = 6, dim: int = 32, gate_norm: float = 0.02, seed: int = 3):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(0.0, 1.0, size=(units, dim))
+        gate = gate_norm * gate / np.linalg.norm(gate, axis=1, keepdims=True)
+        up = rng.normal(0.0, 1.0, size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(0.0, 1.0, size=(dim, units))
+
+        def evaluate(points: np.ndarray) -> np.ndarray:
+            z = points @ gate.T
+            return ((z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (points @ up.T)) @ down.T
+
+        return evaluate, gate, up, down
+
+    def test_a_unit_norm_gate_puts_silu_in_the_wrong_regime(self) -> None:
+        _evaluate, gate, _up, _down = self.teacher_with_small_gates()
+        rng = np.random.default_rng(9)
+        points = rng.normal(0.0, 2.0, size=(500, gate.shape[1]))
+
+        true_argument = np.abs(points @ gate[0])
+        unit_norm_argument = np.abs(points @ (gate[0] / np.linalg.norm(gate[0])))
+
+        # Two orders of magnitude apart, which is the difference between the linear part of
+        # silu and its saturated tail. Nothing downstream can recover from being handed the
+        # wrong one.
+        self.assertGreater(float(np.median(unit_norm_argument) / np.median(true_argument)), 10.0)
+
+    def test_up_directions_come_back_when_the_norm_is_searched(self) -> None:
+        evaluate, gate, up, _down = self.teacher_with_small_gates()
+
+        result, telemetry = recover_block(
+            evaluate,
+            input_dim=gate.shape[1],
+            active_rank=2 * gate.shape[0],
+            line_count=50,
+            samples=401,
+            scale=2e4,
+            step=1e-4,
+            peak_fraction=0.05,
+            separation=6,
+            min_sharpness=3.0,
+            cluster_min_cosine=0.95,
+            basis_points_count=8,
+            basis_scale=1.0,
+            gate_mode="amplitude",
+            amplitude_span=0.01,
+            amplitude_min_alignment=0.5,
+            duplicate_gate_cosine=0.98,
+            gate_residual_tolerance=1.0,
+            amplitude_crossings=4,
+            up_sample_count=4000,
+            up_sample_scale=2.0,
+            seed=5,
+        )
+
+        self.assertEqual(telemetry.upsRecovered, telemetry.unitsRecovered)
+        recovered = result["upDirections"]
+        self.assertGreater(recovered.shape[0], 0)
+        recovered = recovered / np.linalg.norm(recovered, axis=1, keepdims=True)
+        reference = up / np.linalg.norm(up, axis=1, keepdims=True)
+        per_unit = np.abs(recovered @ reference.T).max(axis=0)
+        self.assertGreater(float(np.median(per_unit)), 0.9)
+
+    def test_a_solution_off_its_own_hyperplane_is_rejected(self) -> None:
+        rng = np.random.default_rng(2)
+        rank = 6
+        normal = rng.normal(size=rank)
+        normal /= np.linalg.norm(normal)
+        off_plane = rng.normal(size=(20, rank))
+
+        residual = float(np.median(np.abs(off_plane @ normal) / np.linalg.norm(off_plane, axis=1)))
+
+        # This is the quantity the residual filter thresholds. Points that genuinely lie on
+        # the hyperplane give near zero; a spurious solution's points do not, which is what
+        # removes it from the returned set instead of leaving a caller to filter it.
+        self.assertGreater(residual, 1e-3)
 
 
 if __name__ == "__main__":

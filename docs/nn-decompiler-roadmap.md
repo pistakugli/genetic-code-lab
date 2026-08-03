@@ -2269,20 +2269,30 @@ Run against the real model. `tools/llm_reader/jacobian_boundary_recovery.py` dri
 route end to end through `OracleClient`. On LLaMA-3.2-3B layer 15, measured per source unit
 and not per solution:
 
-| block | mode | units with gate > 0.99 | units with output > 0.99 | solutions | spurious | calls |
-| --- | --- | --- | --- | --- | --- | --- |
-| 16 unit | null space | `16/16` | `16/16` | 16 | 0 | `189432` |
-| 32 unit | null space | `32/32` | `32/32` | 32 | 0 | `689792` |
-| 32 unit | amplitude | `32/32` | `32/32` | 37 | **5** | `130776` |
+| block | mode | gate > 0.99 | up > 0.99 | joint > 0.99 | output > 0.99 | spurious | calls |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 16 unit | null space | `16/16` | - | - | `16/16` | 0 | `189432` |
+| 32 unit | null space | `32/32` | - | - | `32/32` | 0 | `689792` |
+| 32 unit | amplitude | `32/32` | `32/32` | `32/32` at `0.9926` | `32/32` | 3 | `178352` |
 
-The amplitude mode is five times cheaper and returns five solutions that match no unit above
-`0.99`, which a caller has to drop. The null-space mode returns exactly the units and nothing
-else. Neither is free: the amplitude cost is paid in a dirty output set, not in accuracy.
+The joint gate/up cosine is the bar the fitted lanes report, so that row is a like-for-like
+comparison with the fitted path's `230633` calls - and it also returns the output direction,
+which the fitted path does not produce.
 
-What it recovers is the gate direction and the output direction. **It does not recover the up
-direction.** The fitted path's `230633` calls buy a joint gate/up cosine under a Hungarian
-assignment, so the call counts above are not a like-for-like comparison with it and must not
-be read as one. There is no nonlinear optimisation in it: a basis from stacked Jacobians,
+Three things had to be built for the joint number to exist at all, and each was found by a
+measurement that contradicted the obvious reading:
+
+- Spurious solutions are rejected, not reported. A gate is only right if the crossings it was
+  built from lie on its own hyperplane, so the residual over the cluster is a check that costs
+  no calls and needs no truth.
+- A gate read from one crossing reaches cosine `0.99866`; averaged over several crossings of
+  the same unit it reaches `0.99962`. Each crossing is an independent read of one direction.
+- **The gate norm has to be recovered before the up direction can be solved.** A recovered
+  gate is a direction with norm 1 while the real one is around `0.02`, and `silu` is not scale
+  free, so evaluating it fifty times too far out puts every unit in saturation. That held the
+  up recovery at `14/32` through changes to sample count, sample scale, cross-talk and gate
+  accuracy, none of which was the cause. Searching one number per unit against that unit's own
+  projection takes it to `32/32`. There is no nonlinear optimisation in it: a basis from stacked Jacobians,
 an identity from output directions, a gate from a null space. Artifact:
 `benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/report.json`.
 
