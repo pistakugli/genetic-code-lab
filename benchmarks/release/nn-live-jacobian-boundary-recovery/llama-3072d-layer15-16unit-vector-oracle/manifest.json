@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-03T05:20:58.944040+00:00",
+  "lane": "nn-live-jacobian-boundary-recovery",
+  "variant": "llama-3072d-layer15-16unit-vector-oracle",
+  "status": "generated",
+  "command": {
+    "argv": [
+      "tools/llm_reader/jacobian_boundary_recovery.py",
+      "--layer",
+      "15",
+      "--line-count",
+      "140",
+      "--samples",
+      "501",
+      "--basis-points",
+      "8",
+      "--basis-scale",
+      "1",
+      "--scale",
+      "2e4",
+      "--step",
+      "1"
+    ]
+  },
+  "git": {
+    "commit": "425a56619eb259170dc19ddc298c8a9036516547",
+    "uncommittedDiffSha256": null
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/report.json"
+  },
+  "summary": {
+    "pass": null,
+    "gateCosineMedian": 0.9999801504114227,
+    "gateCosineMin": 0.9992658456679597,
+    "distinctUnitsMatched": 16,
+    "oracleCalls": 189432
+  },
+  "notes": [
+    "First live-model run of the boundary-recovery route. Not a gate: no thresholds are asserted here, the numbers stand on their own.",
+    "Oracle response width 3072, so a call carries 3072 numbers rather than 1; budgets are not comparable to scalar lanes without that in view."
+  ]
+}

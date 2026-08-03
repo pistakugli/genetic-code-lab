@@ -2265,7 +2265,32 @@ cosine `0.99` on both, median `0.999834` for down and `0.999575` for up, with no
 optimisation anywhere. A wrong gate set does not survive this step, which is the property that
 makes it a check as well as a solve.
 
-Open before this is a lane:
+Run against the real model. `tools/llm_reader/jacobian_boundary_recovery.py` drives this
+route end to end through `OracleClient`, and on LLaMA-3.2-3B layer 15 - the same 16-unit block
+the fitted path recovers - it returns every gate at cosine `0.9992658456679597` or better,
+median `0.9999801504114227`, `16/16` distinct units, for `189432` oracle calls against the
+fitted path's `230633`. It also returns each unit's output direction, which the fitted path
+never produces. There is no nonlinear optimisation in it: a basis from stacked Jacobians,
+an identity from output directions, a gate from a null space. Artifact:
+`benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/report.json`.
+
+Three settings decide whether it works, and each was measured wrong first:
+
+- One Jacobian does not span the active subspace. At a single point each unit contributes one
+  direction, its own mixture of `g_i` and `u_i`, so a `k`-unit block gives rank `k` and taking
+  `2k` singular vectors returns `k` real directions and `k` of noise. Measured: basis energy
+  `0.4649`, and every gate solved out of it at cosine `0.46`. Eight stacked Jacobians give
+  `1.000000`.
+- The basis probe and the boundary scan need opposite scales. At scale `2e4` the block's
+  outputs are of order `4e8` in float32 and a step of `1e-4` sits below the noise: basis energy
+  on the live model fell from `0.596` to `0.445` as points were added, every added Jacobian
+  being mostly noise. At basis scale `1` it is `0.999999849225`.
+- The scan's finite-difference step must scale with the point. At `1e-4` on scale `2e4` every
+  crossing carried its own noise direction and clustering produced 233 clusters from 233
+  crossings. At step `1` the same scan gives 110 clusters from 787 crossings, and the largest
+  hold 58 points.
+
+Open before this is a lane:Open before this is a lane:
 
 1. The live oracle was scalar. `--oracle-output-mode selected-unit-ffn-vector` now returns the
    block's whole residual-stream contribution, and `oracleResponseWidth` records that one call
