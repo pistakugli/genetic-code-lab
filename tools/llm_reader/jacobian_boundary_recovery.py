@@ -51,6 +51,9 @@ class BoundaryCrossing:
     output_direction: np.ndarray
     basis_point: np.ndarray
     peak_sharpness: float
+    # The line this crossing was found on. The amplitude sweep needs to step along it, and
+    # stepping along the point's own direction instead is not the same thing at all.
+    line_direction: np.ndarray | None = None
 
 
 @dataclass
@@ -62,6 +65,8 @@ class RecoveryTelemetry:
     crossingsFound: int = 0
     clusters: int = 0
     unitsRecovered: int = 0
+    amplitudeCalls: int = 0
+    duplicatesDropped: int = 0
     notes: list[str] = field(default_factory=list)
 
 
@@ -174,6 +179,7 @@ def scan_line_for_crossings(
             output_direction=vector / norm,
             basis_point=basis_points[index].copy(),
             peak_sharpness=sharpness,
+            line_direction=direction.copy(),
         ))
     return crossings, calls
 
@@ -266,6 +272,10 @@ def recover_block(
     cluster_min_cosine: float,
     basis_points_count: int,
     basis_scale: float,
+    gate_mode: str,
+    amplitude_span: float,
+    amplitude_min_alignment: float,
+    duplicate_gate_cosine: float,
     seed: int,
 ) -> tuple[dict[str, Any], RecoveryTelemetry]:
     rng = np.random.default_rng(seed)
@@ -317,11 +327,49 @@ def recover_block(
     gates: list[np.ndarray] = []
     outputs: list[np.ndarray] = []
     determinations: list[float] = []
+    amplitude_probe = np.eye(active_rank) @ basis if gate_mode == "amplitude" else None
     for cluster in sorted(clusters, key=len, reverse=True):
-        solved = gate_from_cluster(cluster, active_rank)
-        if solved is None:
+        if gate_mode == "amplitude":
+            # One crossing is enough. The null-space route needs `active_rank` crossings of
+            # the same unit, which is why a 32-unit block recovered 17 of 32 while every one
+            # it did recover came back above cosine 0.999: the misses were clusters too small
+            # to determine a hyperplane, not gates read wrongly.
+            best = max(cluster, key=lambda item: item.peak_sharpness)
+            centroid_direction = np.mean([
+                crossing.output_direction * (1.0 if crossing.output_direction @ best.output_direction >= 0 else -1.0)
+                for crossing in cluster
+            ], axis=0)
+            centroid_direction = centroid_direction / np.linalg.norm(centroid_direction)
+            peak_point = scale * (best.basis_point @ basis)
+            if best.line_direction is None:
+                continue
+            along_full = best.line_direction @ basis
+            along = amplitude_span * scale * along_full / max(float(np.linalg.norm(along_full)), 1e-30)
+            gate_full, alignment, spent = gate_from_peak_amplitudes(
+                evaluate,
+                peak_point=peak_point,
+                step_along_line=along,
+                output_direction=centroid_direction,
+                probe_basis=amplitude_probe,
+                step=step,
+            )
+            telemetry.oracleCalls += spent
+            telemetry.amplitudeCalls += spent
+            if alignment < amplitude_min_alignment:
+                continue
+            gate, determination = gate_full, alignment
+        else:
+            solved = gate_from_cluster(cluster, active_rank)
+            if solved is None:
+                continue
+            gate, determination = solved
+        # Two clusters of one unit both solve to the same gate, and the second adds nothing
+        # but drags the reported minimum down: measured, 42 solutions for 32 units took the
+        # minimum cosine from 0.999 to 0.789 while the median stayed at 0.99997. Dropping a
+        # duplicate is not dropping a unit - the direction is already held.
+        if any(abs(float(gate @ existing)) >= duplicate_gate_cosine for existing in gates):
+            telemetry.duplicatesDropped += 1
             continue
-        gate, determination = solved
         gates.append(gate)
         centroid = np.mean([
             crossing.output_direction * (1.0 if crossing.output_direction @ cluster[0].output_direction >= 0 else -1.0)
@@ -350,9 +398,76 @@ def summarise(result: dict[str, Any], telemetry: RecoveryTelemetry) -> str:
         "crossingsFound": telemetry.crossingsFound,
         "clusters": telemetry.clusters,
         "unitsRecovered": telemetry.unitsRecovered,
+        "amplitudeCalls": telemetry.amplitudeCalls,
+        "duplicatesDropped": telemetry.duplicatesDropped,
         "clusterSizes": result["clusterSizes"][:16],
         "notes": telemetry.notes,
     }, indent=2)
+
+
+def gate_from_peak_amplitudes(
+    evaluate: Callable[[np.ndarray], np.ndarray],
+    *,
+    peak_point: np.ndarray,
+    step_along_line: np.ndarray,
+    output_direction: np.ndarray,
+    probe_basis: np.ndarray,
+    step: float,
+) -> tuple[np.ndarray, float, int]:
+    """Read a gate direction off the amplitudes at one crossing, not from many crossings.
+
+    The null-space route needs `rank` points on a unit's hyperplane, so a full 8192-unit layer
+    in 3072 dimensions would need 3072 crossings of every single unit. This needs one.
+
+    At a crossing the Jacobian jumps by `(u_i.x) * d_i (x) g_i`. Probing it along `v` gives
+    `c * (g_i.v) * d_i`, so projecting onto the already-known output direction leaves the
+    scalar `c * (g_i.v)`. Sweeping `v` over a basis returns `c * g_i` component by component,
+    and normalising drops the unknown `c`. Every other factor - the transition's second
+    derivative, `u_i.x`, the line's own direction - is identical across the sweep because it
+    is the same crossing, which is exactly why the ratios are clean.
+
+    Cost is `8` calls per basis vector: two points a side of the crossing, extrapolated so the
+    other units' smooth drift cancels, the same correction that took the rank-1 share from
+    0.14 to 0.54 elsewhere in this route.
+
+    Returns the direction, the share of the sweep's energy that lay along `output_direction`
+    as a confidence signal, and the calls spent.
+    """
+    probes = np.atleast_2d(probe_basis)
+    left_near = peak_point - 0.5 * step_along_line
+    left_far = peak_point - step_along_line
+    right_near = peak_point + 0.5 * step_along_line
+    right_far = peak_point + step_along_line
+
+    components = np.zeros(probes.shape[0], dtype=np.float64)
+    parallel = np.zeros(probes.shape[0], dtype=np.float64)
+    total = np.zeros(probes.shape[0], dtype=np.float64)
+    calls = 0
+    for index, probe in enumerate(probes):
+        offsets = np.stack([
+            left_near + step * probe, left_near - step * probe,
+            left_far + step * probe, left_far - step * probe,
+            right_near + step * probe, right_near - step * probe,
+            right_far + step * probe, right_far - step * probe,
+        ])
+        values = evaluate(offsets)
+        calls += offsets.shape[0]
+        derivative_left_near = (values[0] - values[1]) / (2.0 * step)
+        derivative_left_far = (values[2] - values[3]) / (2.0 * step)
+        derivative_right_near = (values[4] - values[5]) / (2.0 * step)
+        derivative_right_far = (values[6] - values[7]) / (2.0 * step)
+        jump = (2.0 * derivative_right_near - derivative_right_far) - (
+            2.0 * derivative_left_near - derivative_left_far
+        )
+        components[index] = float(jump @ output_direction)
+        parallel[index] = abs(components[index])
+        total[index] = float(np.linalg.norm(jump))
+
+    norm = float(np.linalg.norm(components))
+    if norm <= 0.0:
+        return np.zeros(probes.shape[0]), 0.0, calls
+    alignment = float(np.sum(parallel) / max(np.sum(total), 1e-30))
+    return components / norm, alignment, calls
 
 
 def _oracle_namespace(
@@ -418,6 +533,10 @@ def main() -> int:
     parser.add_argument("--cluster-min-cosine", type=float, default=0.99)
     parser.add_argument("--basis-points", type=int, default=8)
     parser.add_argument("--basis-scale", type=float, default=0.0, help="0 reuses --scale")
+    parser.add_argument("--gate-mode", choices=["null-space", "amplitude"], default="amplitude")
+    parser.add_argument("--amplitude-span", type=float, default=0.01)
+    parser.add_argument("--amplitude-min-alignment", type=float, default=0.5)
+    parser.add_argument("--duplicate-gate-cosine", type=float, default=0.98)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--output-json", default="")
     args = parser.parse_args()
@@ -463,6 +582,10 @@ def main() -> int:
                 cluster_min_cosine=args.cluster_min_cosine,
                 basis_points_count=args.basis_points,
                 basis_scale=args.basis_scale if args.basis_scale > 0 else args.scale,
+                gate_mode=args.gate_mode,
+                amplitude_span=args.amplitude_span,
+                amplitude_min_alignment=args.amplitude_min_alignment,
+                duplicate_gate_cosine=args.duplicate_gate_cosine,
                 seed=args.seed,
             )
             report: dict[str, Any] = {

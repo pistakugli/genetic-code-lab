@@ -24,6 +24,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from tools.llm_reader.jacobian_boundary_recovery import (  # noqa: E402
     BoundaryCrossing,
+    gate_from_peak_amplitudes,
     cluster_by_output_direction,
     gate_from_cluster,
     recover_basis_from_jacobian,
@@ -159,6 +160,10 @@ class EndToEndTest(unittest.TestCase):
             cluster_min_cosine=0.99,
             basis_points_count=8,
             basis_scale=1.0,
+            gate_mode="null-space",
+            amplitude_span=0.01,
+            amplitude_min_alignment=0.5,
+            duplicate_gate_cosine=0.98,
             seed=5,
         )
 
@@ -190,12 +195,88 @@ class EndToEndTest(unittest.TestCase):
             cluster_min_cosine=0.99,
             basis_points_count=4,
             basis_scale=1.0,
+            gate_mode="null-space",
+            amplitude_span=0.01,
+            amplitude_min_alignment=0.5,
+            duplicate_gate_cosine=0.98,
             seed=2,
         )
 
         self.assertEqual(telemetry.basisCalls, 4 * 2 * 32)
         self.assertEqual(telemetry.scanCalls, 5 * 2 * 101)
         self.assertEqual(telemetry.oracleCalls, telemetry.basisCalls + telemetry.scanCalls)
+
+
+class AmplitudeGateTest(unittest.TestCase):
+    """One crossing is enough, which is what removes the dependence on boundary density.
+
+    The null-space route needs `rank` crossings of the same unit, so a 32-unit block on the
+    live model recovered 17 of 32 until the scan was made dense enough to cost 689792 calls.
+    Reading the gate off the amplitudes at a single crossing gave all 32 for 130776.
+    """
+
+    @staticmethod
+    def setup(units: int = 10, dim: int = 40, seed: int = 5):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(0.0, 1.0, size=(units, dim)) / np.sqrt(dim)
+        up = rng.normal(0.0, 1.0, size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(0.0, 1.0, size=(dim, units))
+
+        def evaluate(points: np.ndarray) -> np.ndarray:
+            z = points @ gate.T
+            return ((z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (points @ up.T)) @ down.T
+
+        return evaluate, gate, down
+
+    def on_boundary(self, gate: np.ndarray, target: int, dim: int, seed: int = 5) -> np.ndarray:
+        rng = np.random.default_rng(seed + 1)
+        point = rng.normal(size=dim)
+        point -= (gate[target] @ point) / (gate[target] @ gate[target]) * gate[target]
+        return point / np.linalg.norm(point) * 2e4
+
+    def test_a_single_crossing_returns_the_gate(self) -> None:
+        evaluate, gate, down = self.setup()
+        dim = gate.shape[1]
+        point = self.on_boundary(gate, 0, dim)
+        rng = np.random.default_rng(7)
+        along = rng.normal(size=dim)
+        along = 0.01 * np.linalg.norm(point) * along / np.linalg.norm(along)
+
+        recovered, alignment, calls = gate_from_peak_amplitudes(
+            evaluate,
+            peak_point=point,
+            step_along_line=along,
+            output_direction=down[:, 0] / np.linalg.norm(down[:, 0]),
+            probe_basis=np.eye(dim),
+            step=1.0,
+        )
+
+        similarity = abs(float(recovered / np.linalg.norm(recovered) @ (gate[0] / np.linalg.norm(gate[0]))))
+        self.assertGreater(similarity, 0.99)
+        self.assertGreater(alignment, 0.5)
+        self.assertEqual(calls, 8 * dim)
+
+    def test_the_wrong_output_direction_is_reported_as_low_alignment(self) -> None:
+        evaluate, gate, down = self.setup()
+        dim = gate.shape[1]
+        point = self.on_boundary(gate, 0, dim)
+        rng = np.random.default_rng(7)
+        along = rng.normal(size=dim)
+        along = 0.01 * np.linalg.norm(point) * along / np.linalg.norm(along)
+
+        _recovered, alignment, _calls = gate_from_peak_amplitudes(
+            evaluate,
+            peak_point=point,
+            step_along_line=along,
+            output_direction=down[:, 3] / np.linalg.norm(down[:, 3]),
+            probe_basis=np.eye(dim),
+            step=1.0,
+        )
+
+        # The projection is onto a direction this crossing has nothing to do with, so the
+        # sweep's energy does not lie along it. Without this the method would return a
+        # confident-looking vector for a mismatched cluster.
+        self.assertLess(alignment, 0.5)
 
 
 if __name__ == "__main__":
