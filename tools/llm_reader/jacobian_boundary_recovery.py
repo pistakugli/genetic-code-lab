@@ -539,6 +539,11 @@ def main() -> int:
     parser.add_argument("--duplicate-gate-cosine", type=float, default=0.98)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--output-json", default="")
+    parser.add_argument(
+        "--output-directions-npz",
+        default="",
+        help="write recovered gate and output directions, so a claim about them can be checked",
+    )
     args = parser.parse_args()
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -612,11 +617,40 @@ def main() -> int:
                 reference = truth_gate / np.linalg.norm(truth_gate, axis=1, keepdims=True)
                 similarity = np.abs(recovered @ reference.T)
                 best = similarity.max(axis=1)
+                # Per source unit, not per solution. `distinctUnitsMatched` counts how many
+                # units are some solution's nearest neighbour, which is not the same as how
+                # many units were actually recovered: a bad solution still has a nearest
+                # neighbour, and reporting the two together reads as though every unit came
+                # back clean when some may be covered only by a weak match.
+                per_unit_best = similarity.max(axis=0)
+                truth_down = oracle.truth_down()
+                output_per_unit = None
+                output_per_solution = None
+                if truth_down is not None and result["outputDirections"].shape[0]:
+                    reference_down = truth_down / np.linalg.norm(truth_down, axis=0, keepdims=True)
+                    output_similarity = np.abs(result["outputDirections"] @ reference_down)
+                    output_per_unit = output_similarity.max(axis=0)
+                    output_per_solution = output_similarity.max(axis=1)
                 report["posthoc"] = {
+                    # Per source unit. This is the question - was the unit recovered - and it
+                    # is not what `distinctUnitsMatched` answers: a solution that matches
+                    # nothing well still has a nearest unit, so that count can read 32 of 32
+                    # while units are covered only by weak matches.
+                    "unitsWithGateAbove099": int(np.sum(per_unit_best > 0.99)),
+                    "perUnitGateCosineMin": float(np.min(per_unit_best)),
+                    "perUnitGateCosineMedian": float(np.median(per_unit_best)),
+                    "unitsWithOutputAbove099": None if output_per_unit is None else int(np.sum(output_per_unit > 0.99)),
+                    "perUnitOutputCosineMin": None if output_per_unit is None else float(np.min(output_per_unit)),
+                    "outputCosineMedian": None if output_per_solution is None else float(np.median(output_per_solution)),
+                    # Solutions that match no unit well. They are in the returned set and a
+                    # caller has to drop them, so they are counted here rather than left out
+                    # of a summary that would otherwise read as a clean recovery.
+                    "solutionCount": int(recovered.shape[0]),
+                    "spuriousSolutions": int(np.sum(best <= 0.99)),
                     "gateCosineMedian": float(np.median(best)),
                     "gateCosineMin": float(np.min(best)),
                     "gateCosineShareAbove099": float(np.mean(best > 0.99)),
-                    "distinctUnitsMatched": int(len(set(similarity.argmax(axis=1).tolist()))),
+                    "distinctUnitsMatchedNotProofOfRecovery": int(len(set(similarity.argmax(axis=1).tolist()))),
                     "unitCount": len(unit_list),
                     "basisGateEnergy": float(np.mean([
                         np.linalg.norm(basis @ row) / np.linalg.norm(row) for row in truth_gate
@@ -627,6 +661,19 @@ def main() -> int:
                 }
             else:
                 report["posthoc"] = {"gateCosineMedian": None, "unitCount": len(unit_list)}
+
+            if args.output_directions_npz:
+                # Without this the output directions exist only inside the run. Claiming the
+                # route "returns d_i" while the artifact holds no d_i to check is a claim
+                # about something nobody can inspect.
+                Path(args.output_directions_npz).parent.mkdir(parents=True, exist_ok=True)
+                np.savez_compressed(
+                    args.output_directions_npz,
+                    gates_in_basis=result["gates"],
+                    basis=result["basis"],
+                    output_directions=result["outputDirections"],
+                    units=np.asarray(unit_list),
+                )
 
             rendered = json.dumps(report, indent=2)
             print(rendered)

@@ -2266,11 +2266,23 @@ optimisation anywhere. A wrong gate set does not survive this step, which is the
 makes it a check as well as a solve.
 
 Run against the real model. `tools/llm_reader/jacobian_boundary_recovery.py` drives this
-route end to end through `OracleClient`, and on LLaMA-3.2-3B layer 15 - the same 16-unit block
-the fitted path recovers - it returns every gate at cosine `0.9992658456679597` or better,
-median `0.9999801504114227`, `16/16` distinct units, for `189432` oracle calls against the
-fitted path's `230633`. It also returns each unit's output direction, which the fitted path
-never produces. There is no nonlinear optimisation in it: a basis from stacked Jacobians,
+route end to end through `OracleClient`. On LLaMA-3.2-3B layer 15, measured per source unit
+and not per solution:
+
+| block | mode | units with gate > 0.99 | units with output > 0.99 | solutions | spurious | calls |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16 unit | null space | `16/16` | `16/16` | 16 | 0 | `189432` |
+| 32 unit | null space | `32/32` | `32/32` | 32 | 0 | `689792` |
+| 32 unit | amplitude | `32/32` | `32/32` | 37 | **5** | `130776` |
+
+The amplitude mode is five times cheaper and returns five solutions that match no unit above
+`0.99`, which a caller has to drop. The null-space mode returns exactly the units and nothing
+else. Neither is free: the amplitude cost is paid in a dirty output set, not in accuracy.
+
+What it recovers is the gate direction and the output direction. **It does not recover the up
+direction.** The fitted path's `230633` calls buy a joint gate/up cosine under a Hungarian
+assignment, so the call counts above are not a like-for-like comparison with it and must not
+be read as one. There is no nonlinear optimisation in it: a basis from stacked Jacobians,
 an identity from output directions, a gate from a null space. Artifact:
 `benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/report.json`.
 

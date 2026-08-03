@@ -330,7 +330,18 @@ def oracle_server(args: argparse.Namespace) -> int:
                 up_path,
                 (up * source_scales[:, None]).numpy().astype(np.float32),
             )
-            print(json.dumps({"type": "ok", "truth": True}), flush=True)
+            # The output direction is part of what a vector oracle's caller recovers, so it
+            # needs a witness like the other two. Without it a claim about `d_i` can only be
+            # checked by reading weights outside the protocol, which is how one went
+            # unverified while being reported as a result.
+            down_path = request.get("downPath")
+            if down_path is not None and source_matrix is not None:
+                np.save(Path(down_path), source_matrix.numpy().astype(np.float32))
+            print(json.dumps({
+                "type": "ok",
+                "truth": True,
+                "downIncluded": bool(down_path is not None and source_matrix is not None),
+            }), flush=True)
         elif command == "stop":
             print(json.dumps({"type": "bye"}), flush=True)
             return 0
@@ -498,6 +509,27 @@ class OracleClient:
         self._truth_unlocked = True
         self.truth_unlock_stage = stage
         self.truth_unlock_query_count = int(self.query_count)
+
+    def truth_down(self) -> np.ndarray | None:
+        """Post-hoc output directions, or None when this oracle has none to give.
+
+        Same lock as `truth`: available only after the recovery is frozen.
+        """
+        if not self._truth_unlocked:
+            raise RuntimeError("oracle truth is locked until recovery is frozen after validation")
+        down_path = self.work_dir / "truth-down.npy"
+        gate_path = self.work_dir / "truth-gate-ignored.npy"
+        up_path = self.work_dir / "truth-up-ignored.npy"
+        response = self.request({
+            "cmd": "truth_npy",
+            "gatePath": str(gate_path),
+            "upPath": str(up_path),
+            "downPath": str(down_path),
+        })
+        self.truth_request_count += 1
+        if not response.get("downIncluded"):
+            return None
+        return np.load(down_path).astype(np.float64)
 
     def truth(self) -> tuple[np.ndarray, np.ndarray]:
         if not self._truth_unlocked:

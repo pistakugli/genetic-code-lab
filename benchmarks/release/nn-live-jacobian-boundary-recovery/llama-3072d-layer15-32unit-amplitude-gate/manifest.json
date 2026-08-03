@@ -1,25 +1,28 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-03T05:44:21.451023+00:00",
+  "generatedAt": "2026-08-03T07:19:56.808214+00:00",
   "lane": "nn-live-jacobian-boundary-recovery",
   "variant": "llama-3072d-layer15-32unit-amplitude-gate",
   "status": "generated",
   "git": {
-    "commit": "26f96a5f645200d91844412f3bbd767443f48464",
-    "uncommittedDiffSha256": "6677e1c79d78d49e87ea055999e4d41d6d2353ddee72bd2b6fa635d4d22d3621"
+    "commit": "fb446e8e7c7e24de78f9a7979a1e7b70fb919793",
+    "uncommittedDiffSha256": "4f45e2a447972eb8249936ff1b9b58ad46a4cc9c92548b2ba9fab3ffb00673d1"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-amplitude-gate/report.json"
   },
   "summary": {
     "pass": null,
-    "gateCosineMedian": 0.9999792798030381,
-    "distinctUnitsMatched": 32,
+    "unitsWithGateAbove099": 32,
+    "unitsWithOutputAbove099": 32,
     "unitCount": 32,
+    "solutionCount": 37,
+    "spuriousSolutions": 5,
     "oracleCalls": 130776
   },
   "notes": [
     "Gate read from amplitudes at one crossing per unit.",
+    "Recovers gate and output direction. It does NOT recover the up direction, so its cost is not comparable with lanes that report a joint gate/up cosine.",
     "Oracle response width 3072; a call carries 3072 numbers, not 1.",
     "No thresholds asserted: status is generated, not pass."
   ]
