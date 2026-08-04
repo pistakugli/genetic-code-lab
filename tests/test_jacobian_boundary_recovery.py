@@ -488,3 +488,72 @@ class GateNormCalibrationTest(unittest.TestCase):
         # Two sided, so `points_per_ray // 2` magnitudes become that many points each way,
         # and the default three rays per unit are what buys the tail behaviour above.
         self.assertEqual(sum(calls), gate.shape[0] * 192 * 3)
+
+
+class GateSignTest(unittest.TestCase):
+    """Which side of the boundary the unit fires on is part of the unit, and it is not free.
+
+    The gate arrives as a null-space vector, so its sign is undetermined, and every direction
+    measure in this file takes an absolute cosine and cannot see that. A flipped gate models a
+    unit that is silent exactly when the real one fires. On layer 15 that was 25 of 64 units:
+    they cleared every cosine bar, then ranked inputs backwards at -0.74 against the real unit,
+    with the predicted optimum landing where the real activation is 2e-5 of its peak.
+    """
+
+    @staticmethod
+    def teacher(units: int = 5, dim: int = 32, seed: int = 4):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(size=(units, dim))
+        gate /= np.linalg.norm(gate, axis=1, keepdims=True)
+        up = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(size=(dim, units))
+
+        def evaluate(points: np.ndarray) -> np.ndarray:
+            z = points @ gate.T
+            return ((z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (points @ up.T)) @ down.T
+
+        return evaluate, gate, up, down
+
+    def recover(self):
+        evaluate, gate, up, down = self.teacher()
+        result, _telemetry = recover_block(
+            evaluate,
+            input_dim=gate.shape[1],
+            active_rank=2 * gate.shape[0],
+            line_count=50, samples=401, scale=2e4, step=1e-4,
+            peak_fraction=0.05, separation=6, min_sharpness=3.0,
+            cluster_min_cosine=0.95, basis_points_count=8, basis_scale=1.0,
+            gate_mode="amplitude", amplitude_span=0.01, amplitude_min_alignment=0.5,
+            duplicate_gate_cosine=0.98, gate_residual_tolerance=1.0,
+            amplitude_crossings=4, min_cluster_size=1,
+            up_sample_count=4000, up_sample_scale=2.0, seed=5,
+        )
+        recovered = result["gates"] @ result["basis"]
+        recovered = recovered / np.linalg.norm(recovered, axis=1, keepdims=True)
+        return recovered, gate / np.linalg.norm(gate, axis=1, keepdims=True)
+
+    def test_the_recovered_gate_points_the_way_the_unit_fires(self) -> None:
+        recovered, reference = self.recover()
+        signed = recovered @ reference.T
+        assigned = np.abs(signed).argmax(axis=1)
+
+        for solution in range(recovered.shape[0]):
+            # Signed, not absolute. An absolute cosine here would pass on a gate pointing the
+            # wrong way, which is the whole failure this test exists for.
+            self.assertGreater(float(signed[solution, assigned[solution]]), 0.9)
+
+    def test_a_flipped_gate_would_model_a_unit_that_is_silent_when_the_real_one_fires(self) -> None:
+        _evaluate, gate, _up, _down = self.teacher()
+        rng = np.random.default_rng(7)
+        points = rng.normal(0.0, 2.0, size=(2000, gate.shape[1]))
+
+        def activation(direction: np.ndarray) -> np.ndarray:
+            z = points @ direction
+            return z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))
+
+        forward = activation(gate[0])
+        flipped = activation(-gate[0])
+
+        # They are not near-duplicates that a tolerance could excuse: where one is large the
+        # other is essentially zero.
+        self.assertLess(float(np.mean(flipped[forward > np.quantile(forward, 0.9)])), 0.05)

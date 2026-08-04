@@ -467,6 +467,13 @@ def calibrate_gate_norms_on_rays(
         flat, *_ = np.linalg.lstsq(background, projected, rcond=None)
         background_error = float(np.sum((background @ flat - projected) ** 2))
         best_norm, best_error = 1.0, float("inf")
+        # Magnitude only. The ray cannot see which way the unit fires, and that is algebra
+        # rather than noise: `silu(z) - silu(-z) = z`, so along a ray the two orientations
+        # differ by a term linear in `s` - exactly what the background is there to absorb.
+        # Scanning both signs here returned the right one for 2 of 6 synthetic units, which is
+        # a coin toss reported as a measurement. The sign is settled in the up solve instead,
+        # where the difference is a quadratic form in the full input space and nothing in the
+        # design can take it.
         for candidate in grid:
             scaled = candidate * window
             activation = scaled / (1.0 + np.exp(-np.clip(scaled, -60.0, 60.0)))
@@ -491,10 +498,10 @@ def calibrate_gate_norms_on_rays(
         # without needing to know they are there, and the knee itself decides the window, so
         # nothing here assumes what is being measured.
         for _ in range(3):
-            window = np.abs(positions) <= 3.0 / norm
+            window = np.abs(positions) <= 3.0 / abs(norm)
             if int(window.sum()) < 24:
                 break
-            local = np.geomspace(norm / 20.0, norm * 20.0, 120)
+            local = np.geomspace(abs(norm) / 20.0, abs(norm) * 20.0, 120)
             norm, error, reference = fit_knee(positions[window], projected[window], local)
         return norm, error, reference
 
@@ -523,7 +530,8 @@ def calibrate_gate_norms_on_rays(
             "kneeShare": float(np.min(shares)),
             # How far apart two independent rays put the same knee, as a ratio. This is the
             # measure that catches a confident wrong answer, which `kneeShare` does not.
-            "raySpread": float(max(measured) / min(measured) - 1.0),
+            "raySpread": float(max(np.abs(measured)) / min(np.abs(measured)) - 1.0),
+            # Whether the rays agreed on which side of the knee the unit fires.
         })
     return norms, diagnostics
 
@@ -759,6 +767,36 @@ def recover_block(
             seed=seed + 4451,
         )
         telemetry.oracleCalls += len(gates) * (norm_ray_points // 2) * 2 * norm_ray_repeats
+        # Which way the unit fires. The gate arrives as a null-space vector, so its sign is
+        # free, and every direction measure in this file takes an absolute cosine and cannot
+        # see it. That is not cosmetic: `silu` is flat on one side of the knee and linear on
+        # the other, so a flipped gate describes a unit that fires exactly when the real one
+        # is silent. It passed every cosine bar on 25 of 64 units of layer 15 and then ranked
+        # inputs backwards - rank correlation -0.74 against the real unit, with the predicted
+        # optimum landing where the real activation is 2e-5 of its peak.
+        #
+        # It is decided here rather than on the calibration ray because the ray cannot decide
+        # it. `silu(z) - silu(-z) = z`, so along a ray the two orientations differ by a term
+        # linear in `s`, which is precisely what the background absorbs. Over the full input
+        # space that same difference is `(g_i.x)(u_i.x)`, a quadratic form no column of this
+        # design can take, so the residual separates them.
+        sign_rows = min(up_sample_count, 6000)
+        signs = np.ones(len(gates), dtype=np.float64)
+        for index in range(len(gates)):
+            projected_sign = (responses @ output_directions[index])[:sign_rows]
+            best_error, best_sign = float("inf"), 1.0
+            for candidate in (1.0, -1.0):
+                z = raw_response[:sign_rows, index] * (gate_norms[index] * candidate)
+                activation = z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))
+                design = np.hstack((activation[:, None] * coordinates[:sign_rows], coordinates[:sign_rows]))
+                solution, *_ = np.linalg.lstsq(design, projected_sign, rcond=None)
+                error = float(np.sum((design @ solution - projected_sign) ** 2))
+                if error < best_error:
+                    best_error, best_sign = error, candidate
+            signs[index] = best_sign
+        gates = [row * sign for row, sign in zip(gates, signs)]
+        gate_matrix = gate_matrix * signs[:, None]
+        raw_response = raw_response * signs[None, :]
         gate_response = raw_response * gate_norms[None, :]
         smooth = gate_response / (1.0 + np.exp(-np.clip(gate_response, -60.0, 60.0)))
         # Solved in basis coordinates, not in the input space. `u_i` lies in the active
