@@ -261,6 +261,124 @@ def gate_from_cluster(cluster: list[BoundaryCrossing], active_rank: int) -> tupl
     return right[-1], determination
 
 
+def identifiability_verdict(
+    *,
+    basis_spectrum: np.ndarray,
+    active_rank: int,
+    gates: np.ndarray,
+    output_directions: np.ndarray,
+    clusters_found: int,
+    duplicate_gate_cosine: float,
+    collinear_threshold: float,
+    weak_share_threshold: float,
+    rank_energy_threshold: float,
+    unit_budget: int,
+) -> dict[str, Any]:
+    """Decide whether this recovery may be reported as structure at all.
+
+    `docs/neural-decompiler-formalization.md` makes this mandatory, and names the outcome
+    that must be a hard failure: "fails by inventing unsupported structure". A route that
+    always returns something cannot distinguish a recovered block from an unrecoverable one,
+    and every number it prints is then unfalsifiable.
+
+    Each check below maps to a required negative-case family from that document, and each
+    resolves to one of three honest outcomes - recovered, canonicalised to a smaller
+    structure, or non-identifiable - never to a structure the evidence does not support.
+    """
+    findings: list[dict[str, Any]] = []
+
+    # Mis-specified activation family, and the full-slice insufficient-rank case. If the
+    # requested rank does not capture the Jacobians' energy, the block is not a `rank`-sized
+    # SwiGLU sum in the first place, and everything downstream is fitted to noise.
+    spectrum = np.asarray(basis_spectrum, dtype=np.float64)
+    if spectrum.size:
+        captured = float(np.sum(spectrum[:active_rank] ** 2) / max(np.sum(spectrum ** 2), 1e-30))
+        if captured < rank_energy_threshold:
+            findings.append({
+                "family": "insufficient-rank-or-wrong-activation-family",
+                "detail": f"rank {active_rank} captures {captured:.6f} of Jacobian energy",
+                "verdict": "non-identifiable",
+            })
+
+    # Exact duplicate split: one true unit returned as several. Canonicalisation to the
+    # smaller structure is correct; reporting both as units is not.
+    duplicate_pairs = 0
+    collinear_pairs = 0
+    if gates.shape[0] > 1:
+        normalised = gates / np.maximum(np.linalg.norm(gates, axis=1, keepdims=True), 1e-30)
+        similarity = np.abs(normalised @ normalised.T)
+        np.fill_diagonal(similarity, 0.0)
+        duplicate_pairs = int(np.sum(similarity >= duplicate_gate_cosine) // 2)
+        collinear_pairs = int(np.sum(similarity >= collinear_threshold) // 2) - duplicate_pairs
+    if duplicate_pairs:
+        findings.append({
+            "family": "exact-duplicate-split",
+            "detail": f"{duplicate_pairs} gate pair(s) at or above cosine {duplicate_gate_cosine}",
+            "verdict": "canonicalised",
+        })
+    # Near-collinear directions: several bases explain the same oracle about equally well, so
+    # which one is returned is not determined by the evidence.
+    if collinear_pairs:
+        findings.append({
+            "family": "near-collinear-directions",
+            "detail": f"{collinear_pairs} gate pair(s) between cosine {collinear_threshold} and {duplicate_gate_cosine}",
+            "verdict": "ambiguous",
+        })
+
+    # Equal/opposite cancellation, seen from the output side: two units whose output
+    # directions are anti-parallel cancel in the sum, and their split is not observable.
+    cancelling_pairs = 0
+    if output_directions.shape[0] > 1:
+        out = output_directions / np.maximum(np.linalg.norm(output_directions, axis=1, keepdims=True), 1e-30)
+        overlap = out @ out.T
+        np.fill_diagonal(overlap, 0.0)
+        cancelling_pairs = int(np.sum(overlap <= -collinear_threshold) // 2)
+    if cancelling_pairs:
+        findings.append({
+            "family": "equal-opposite-cancellation",
+            "detail": f"{cancelling_pairs} output pair(s) anti-parallel beyond {collinear_threshold}",
+            "verdict": "ambiguous",
+        })
+
+    # Overcomplete budget: more clusters survived than the block can hold. Returning the
+    # extras as units is the invented-structure failure this whole check exists to stop.
+    if unit_budget > 0 and gates.shape[0] > unit_budget:
+        findings.append({
+            "family": "overcomplete-budget",
+            "detail": f"{gates.shape[0]} solutions returned for a budget of {unit_budget}",
+            "verdict": "non-identifiable",
+        })
+
+    # Weak channel below the noise floor: a solution whose share of the recovered energy is
+    # negligible is not evidence of a unit, it is evidence of a probe that found nothing.
+    weak = 0
+    if gates.shape[0]:
+        strength = np.linalg.norm(gates, axis=1)
+        total = float(np.sum(strength))
+        if total > 0:
+            weak = int(np.sum((strength / total) < weak_share_threshold))
+    if weak:
+        findings.append({
+            "family": "weak-channel-below-floor",
+            "detail": f"{weak} solution(s) below {weak_share_threshold} of recovered gate energy",
+            "verdict": "canonicalised",
+        })
+
+    blocking = [row for row in findings if row["verdict"] == "non-identifiable"]
+    return {
+        "structureClaimAllowed": not blocking,
+        "verdict": "non-identifiable" if blocking else ("qualified" if findings else "recovered"),
+        "findings": findings,
+        "clustersFound": int(clusters_found),
+        "thresholds": {
+            "duplicateGateCosine": float(duplicate_gate_cosine),
+            "collinear": float(collinear_threshold),
+            "weakShare": float(weak_share_threshold),
+            "rankEnergy": float(rank_energy_threshold),
+        },
+    }
+
+
 def recover_block(
     evaluate: Callable[[np.ndarray], np.ndarray],
     *,
@@ -289,6 +407,10 @@ def recover_block(
     up_request_chunk: int = 4096,
     norm_search_rows: int = 4000,
     up_refinement_sweeps: int = 0,
+    collinear_threshold: float = 0.9,
+    weak_share_threshold: float = 0.002,
+    rank_energy_threshold: float = 0.98,
+    unit_budget: int = 0,
     seed: int,
 ) -> tuple[dict[str, Any], RecoveryTelemetry]:
     rng = np.random.default_rng(seed)
@@ -544,7 +666,24 @@ def recover_block(
             ups.append((solution / norm if norm > 0 else solution) @ basis)
         telemetry.upsRecovered = len(ups)
 
+    solved_gates = np.stack(gates) if gates else np.zeros((0, active_rank))
+    solved_outputs = np.stack(outputs) if outputs else np.zeros((0, 1))
+    verdict = identifiability_verdict(
+        basis_spectrum=spectrum,
+        active_rank=active_rank,
+        gates=solved_gates,
+        output_directions=solved_outputs,
+        clusters_found=len(clusters),
+        duplicate_gate_cosine=duplicate_gate_cosine,
+        collinear_threshold=collinear_threshold,
+        weak_share_threshold=weak_share_threshold,
+        rank_energy_threshold=rank_energy_threshold,
+        unit_budget=unit_budget,
+    )
+    telemetry.notes.append(f"identifiability verdict: {verdict['verdict']}")
+
     return {
+        "identifiability": verdict,
         "basis": basis,
         "upDirections": np.stack(ups) if ups else np.zeros((0, input_dim)),
         "gateNorms": gate_norms if gates and up_sample_count > 0 else np.zeros(0),
@@ -721,6 +860,10 @@ def main() -> int:
     parser.add_argument("--up-sample-scale", type=float, default=0.6)
     parser.add_argument("--up-request-chunk", type=int, default=4096)
     parser.add_argument("--norm-search-rows", type=int, default=4000)
+    parser.add_argument("--collinear-threshold", type=float, default=0.9)
+    parser.add_argument("--weak-share-threshold", type=float, default=0.002)
+    parser.add_argument("--rank-energy-threshold", type=float, default=0.98)
+    parser.add_argument("--unit-budget", type=int, default=0, help="0 uses the requested unit count")
     parser.add_argument("--up-refinement-sweeps", type=int, default=0,
                         help="subtract already-solved units before each solve; measured worse, kept runnable")
     parser.add_argument("--seed", type=int, default=7)
@@ -786,9 +929,18 @@ def main() -> int:
                 up_request_chunk=args.up_request_chunk,
                 norm_search_rows=args.norm_search_rows,
                 up_refinement_sweeps=args.up_refinement_sweeps,
+                collinear_threshold=args.collinear_threshold,
+                weak_share_threshold=args.weak_share_threshold,
+                rank_energy_threshold=args.rank_energy_threshold,
+                unit_budget=args.unit_budget if args.unit_budget > 0 else len(unit_list),
                 seed=args.seed,
             )
             report: dict[str, Any] = {
+                # First, because a report whose structure claim is not allowed must not be
+                # read metric-first. The formalization's fourth outcome - inventing
+                # unsupported structure - is exactly what a reader does when the numbers
+                # come before the verdict.
+                "identifiability": result["identifiability"],
                 "model": args.model,
                 "layer": args.layer,
                 "units": unit_list,
