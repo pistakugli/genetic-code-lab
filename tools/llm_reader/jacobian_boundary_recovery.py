@@ -379,6 +379,42 @@ def identifiability_verdict(
     }
 
 
+def solve_least_squares(design: np.ndarray, target: np.ndarray) -> np.ndarray:
+    """Least squares on whichever device can actually do it.
+
+    The oracle runs on the GPU and the solve did not, which put the whole route on the wrong
+    side of the machine. At 256 units the up design is 120000 by 1024 per unit and there are
+    256 of them: measured at fourteen cores of numpy, that is hours of `lstsq` while the GPU
+    sits idle behind an oracle that answers in seconds.
+
+    Single precision is enough here and the reason is worth stating rather than assuming. The
+    designs are strongly overdetermined and well conditioned - a hundred rows per unknown -
+    so the solve returns about six digits, while the bar downstream is a direction cosine of
+    0.99. Anything that needed the other seven digits would not be a recovery.
+
+    Falls back to numpy when there is no GPU, when the problem is small enough that moving it
+    would cost more than it saves - measured, the crossover sits near ten million entries:
+    30000 by 512 runs 7.5 times faster on the card and 120000 by 1024 fourteen times, while
+    30000 by 256 is a wash - and when the CUDA driver refuses full-rank `gels` - a
+    rank-deficient design is a real case here, since near-collinear units are one of the
+    negative cases this file is required to handle.
+    """
+    if design.size >= 10_000_000:
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                left = torch.as_tensor(design, dtype=torch.float32, device="cuda")
+                right = torch.as_tensor(target, dtype=torch.float32, device="cuda")
+                solution = torch.linalg.lstsq(left, right.unsqueeze(1)).solution
+                if torch.isfinite(solution).all():
+                    return solution.squeeze(1).double().cpu().numpy()
+        except Exception:
+            pass
+    solution, *_ = np.linalg.lstsq(design, target, rcond=None)
+    return solution
+
+
 def calibrate_gate_norms_on_rays(
     evaluate,
     gate_directions: np.ndarray,
@@ -751,6 +787,21 @@ def recover_block(
         raw_response = samples_in @ gate_matrix.T
         coordinates = samples_in @ basis.T
         output_directions = np.stack(outputs)
+        # Unmix the output directions before solving, rather than tolerating the overlap.
+        # `R = A D` with `A` the activations and `D` the recovered output directions, so
+        # projecting on `d_i` returns `sum_j (d_j.d_i) a_j` - the unit plus every neighbour
+        # scaled by an inner product that is about `1/sqrt(dim)`. Those errors add in
+        # quadrature, so the leak grows as `sqrt(k/dim)`: 0.2 at 128 units in 3072 dimensions,
+        # 1.0 at 3072, which is larger than the signal being solved for. Sweeping and
+        # subtracting fitted estimates was the previous answer and it injected each
+        # neighbour's error while removing its contribution.
+        #
+        # `D` is already known, so the mixing is a matrix that can be inverted instead:
+        # `A = R D^+`. One `k x k` solve removes the whole term at once, exactly, with no
+        # iteration and no estimate of anything standing in for a measurement. The pseudo
+        # inverse is what handles output directions that are close to collinear, which is the
+        # case `identifiability_verdict` reports as ambiguous.
+        unmixed = responses @ np.linalg.pinv(output_directions)
         # One ray per unit along its own gate direction, where the norm is what decides when
         # the curve turns on and nothing else can imitate it. See
         # `calibrate_gate_norms_on_rays` for why the isotropic cloud cannot settle this.
@@ -783,13 +834,13 @@ def recover_block(
         sign_rows = min(up_sample_count, 6000)
         signs = np.ones(len(gates), dtype=np.float64)
         for index in range(len(gates)):
-            projected_sign = (responses @ output_directions[index])[:sign_rows]
+            projected_sign = unmixed[:sign_rows, index]
             best_error, best_sign = float("inf"), 1.0
             for candidate in (1.0, -1.0):
                 z = raw_response[:sign_rows, index] * (gate_norms[index] * candidate)
                 activation = z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))
                 design = np.hstack((activation[:, None] * coordinates[:sign_rows], coordinates[:sign_rows]))
-                solution, *_ = np.linalg.lstsq(design, projected_sign, rcond=None)
+                solution = solve_least_squares(design, projected_sign)
                 error = float(np.sum((design @ solution - projected_sign) ** 2))
                 if error < best_error:
                     best_error, best_sign = error, candidate
@@ -835,7 +886,8 @@ def recover_block(
             for index in range(len(gates)):
                 if subtract:
                     explained -= np.outer(activations[index], output_directions[index])
-                projected = (responses - explained) @ output_directions[index]
+                projected = (unmixed[:, index] if not subtract
+                             else (responses - explained) @ output_directions[index])
                 # `silu` does not average to zero, and that is what leaks the neighbours into
                 # `u_i`. Every other unit enters the projection as
                 # `(d_j.d_i) silu(z_j)(u_j.x)`, whose leading term is
@@ -847,8 +899,7 @@ def recover_block(
                 # leak, so the up solve scored 64 of 64 on a model that was wrong about every
                 # unit's scale. With the norms measured, the same solve returned 39.
                 weighted = np.hstack((smooth[:, index][:, None] * coordinates, coordinates))
-                solution, *_ = np.linalg.lstsq(weighted, projected, rcond=None)
-                solution = solution[:active_rank]
+                solution = solve_least_squares(weighted, projected)[:active_rank]
                 solved_coefficients[index] = solution
                 if subtract:
                     activations[index] = smooth[:, index] * (coordinates @ solution)

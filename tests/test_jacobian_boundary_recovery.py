@@ -557,3 +557,76 @@ class GateSignTest(unittest.TestCase):
         # They are not near-duplicates that a tolerance could excuse: where one is large the
         # other is essentially zero.
         self.assertLess(float(np.mean(flipped[forward > np.quantile(forward, 0.9)])), 0.05)
+
+
+class OutputChannelUnmixingTest(unittest.TestCase):
+    """Reading a unit through its own output direction reads every other unit with it.
+
+    `R = A D`, so projecting the response on `d_i` returns `sum_j (d_j.d_i) a_j`. Random
+    directions in `dim` dimensions overlap by about `1/sqrt(dim)` and those errors add in
+    quadrature, so the leak grows as `sqrt(k/dim)` - tolerable at 128 units in 3072
+    dimensions, larger than the signal well before 8192. `D` is recovered, so the mixing is a
+    matrix that can be inverted rather than a noise floor to live under.
+    """
+
+    @staticmethod
+    def block(units: int, dim: int, points: int = 6000, seed: int = 1):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        up = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(size=(units, dim))
+        down /= np.linalg.norm(down, axis=1, keepdims=True)
+        inputs = rng.normal(0.0, 2.0, size=(points, dim))
+        z = inputs @ gate.T
+        activation = (z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (inputs @ up.T)
+        return inputs, activation @ down, gate, up, down
+
+    @staticmethod
+    def solve(inputs, targets, gate, up):
+        """Recover every up direction from targets that are one column per unit."""
+        cosines = []
+        for index in range(gate.shape[0]):
+            z = inputs @ gate[index]
+            smooth = z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))
+            design = np.hstack((smooth[:, None] * inputs, inputs))
+            solution, *_ = np.linalg.lstsq(design, targets[:, index], rcond=None)
+            recovered = solution[: inputs.shape[1]]
+            cosines.append(
+                abs(float(recovered @ up[index]))
+                / (np.linalg.norm(recovered) * np.linalg.norm(up[index]))
+            )
+        return np.array(cosines)
+
+    def test_inverting_the_mixing_beats_projecting_through_it(self) -> None:
+        inputs, responses, gate, up, down = self.block(units=200, dim=256)
+
+        projected = self.solve(inputs, responses @ down.T, gate, up)
+        unmixed = self.solve(inputs, responses @ np.linalg.pinv(down), gate, up)
+
+        # At 200 units in 256 dimensions the leak is about 0.88 of the signal, which is the
+        # regime a full 8192-unit layer sits in, not an invented worst case.
+        self.assertLess(float(np.median(projected)), 0.99)
+        self.assertGreater(float(np.median(unmixed)), 0.999)
+        self.assertGreater(float(np.mean(unmixed > 0.99)), float(np.mean(projected > 0.99)))
+
+    def test_the_gain_grows_with_the_crowding(self) -> None:
+        gains = []
+        for units in (32, 200):
+            inputs, responses, gate, up, down = self.block(units=units, dim=256)
+            projected = self.solve(inputs, responses @ down.T, gate, up)
+            unmixed = self.solve(inputs, responses @ np.linalg.pinv(down), gate, up)
+            gains.append(float(np.median(unmixed) - np.median(projected)))
+
+        # Sparse blocks barely need it; crowded ones cannot do without it. That ordering is
+        # the reason this is the step that scales rather than a general tidy-up.
+        self.assertGreater(gains[1], gains[0])
+
+    def test_it_costs_one_solve_rather_than_a_sweep_per_unit(self) -> None:
+        _inputs, responses, _gate, _up, down = self.block(units=64, dim=256)
+
+        # A `dim x k` pseudo inverse applied once, against the previous answer of repeatedly
+        # subtracting fitted estimates - which injected each neighbour's error while removing
+        # its contribution, and took 64 units from 64 up directions to 60.
+        unmixed = responses @ np.linalg.pinv(down)
+
+        self.assertEqual(unmixed.shape, (responses.shape[0], down.shape[0]))
