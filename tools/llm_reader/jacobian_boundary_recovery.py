@@ -288,6 +288,7 @@ def recover_block(
     up_sample_scale: float,
     up_request_chunk: int = 4096,
     norm_search_rows: int = 4000,
+    up_refinement_sweeps: int = 2,
     seed: int,
 ) -> tuple[dict[str, Any], RecoveryTelemetry]:
     rng = np.random.default_rng(seed)
@@ -506,12 +507,29 @@ def recover_block(
         # gate be absorbed by another unit's column: with gates at per-unit cosine 0.9985 it
         # returned 15 of 32 up directions above 0.99 and adding samples did not move it,
         # because the limit was cross-talk and not conditioning.
+        # Cross-talk is what limits this, not conditioning. Projecting onto `d_i` leaves every
+        # other unit scaled by `d_j . d_i`, around 0.018 for directions in 3072 dimensions,
+        # and those errors add: at 32 units the residual noise is about 0.10 of the signal and
+        # every up direction came back above 0.99, at 128 units it is 0.20 and 22 of them did
+        # not. Sweeping repeatedly and subtracting the units already solved removes that term
+        # instead of tolerating it - each pass sees a cleaner residual than the last.
+        solved_coefficients = [np.zeros(active_rank) for _ in gates]
+        for _sweep in range(up_refinement_sweeps):
+            for index in range(len(gates)):
+                explained = np.zeros_like(responses)
+                for other in range(len(gates)):
+                    if other == index:
+                        continue
+                    contribution = smooth[:, other] * (coordinates @ solved_coefficients[other])
+                    explained += np.outer(contribution, output_directions[other])
+                projected = (responses - explained) @ output_directions[index]
+                weighted = smooth[:, index][:, None] * coordinates
+                solution, *_ = np.linalg.lstsq(weighted, projected, rcond=None)
+                solved_coefficients[index] = solution
         for index in range(len(gates)):
-            projected = responses @ output_directions[index]
-            weighted = smooth[:, index][:, None] * coordinates
-            solved, *_ = np.linalg.lstsq(weighted, projected, rcond=None)
-            norm = float(np.linalg.norm(solved))
-            ups.append((solved / norm if norm > 0 else solved) @ basis)
+            solution = solved_coefficients[index]
+            norm = float(np.linalg.norm(solution))
+            ups.append((solution / norm if norm > 0 else solution) @ basis)
         telemetry.upsRecovered = len(ups)
 
     return {
@@ -687,6 +705,7 @@ def main() -> int:
     parser.add_argument("--up-sample-scale", type=float, default=0.6)
     parser.add_argument("--up-request-chunk", type=int, default=4096)
     parser.add_argument("--norm-search-rows", type=int, default=4000)
+    parser.add_argument("--up-refinement-sweeps", type=int, default=2)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--output-json", default="")
     parser.add_argument(
@@ -749,6 +768,7 @@ def main() -> int:
                 up_sample_scale=args.up_sample_scale,
                 up_request_chunk=args.up_request_chunk,
                 norm_search_rows=args.norm_search_rows,
+                up_refinement_sweeps=args.up_refinement_sweeps,
                 seed=args.seed,
             )
             report: dict[str, Any] = {

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T06:00:32.682021+00:00",
+  "generatedAt": "2026-08-04T09:50:47.506964+00:00",
   "lane": "nn-live-jacobian-boundary-recovery",
   "variant": "llama-3072d-layer15-128unit-amplitude-gate",
   "status": "generated",
   "git": {
-    "commit": "7e901c8374f9abf25c383800f1cf77e0132f7e53",
-    "uncommittedDiffSha256": null
+    "commit": "b15a28d39350066f5beea24516572747e87d20a3",
+    "uncommittedDiffSha256": "60570e21bdaaf36146520a107bc00311e3c643252a07157603b537341e8860b3"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json"
@@ -14,17 +14,17 @@
   "summary": {
     "pass": null,
     "unitsWithGateAbove099": 128,
-    "unitsWithUpAbove099": 107,
-    "unitsWithJointAbove099": 105,
+    "unitsWithUpAbove099": 106,
+    "unitsWithJointAbove099": 106,
     "unitsWithOutputAbove099": 128,
     "unitCount": 128,
-    "solutionCount": 246,
-    "spuriousSolutions": 118,
-    "oracleCalls": 1232560
+    "solutionCount": 128,
+    "spuriousSolutions": 0,
+    "oracleCalls": 1245056
   },
   "notes": [
-    "Scaling point at 128 units. Gate and output hold at 128/128; up is 107/128 with the residual filter off and two crossings per unit.",
-    "Run with 2 crossings and --gate-residual-tolerance 1.0, which is why spurious solutions are high.",
+    "Gate, output direction and spurious count are clean at 128 units; up is 106/128, limited by cross-talk in the per-unit projection.",
+    "Oracle response width 3072; a call carries 3072 numbers, not 1.",
     "No thresholds asserted: status is generated, not pass."
   ]
 }

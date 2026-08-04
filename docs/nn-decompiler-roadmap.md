@@ -2275,7 +2275,7 @@ and not per solution:
 | 32 unit | null space | `32/32` | - | - | `32/32` | 0 | `689792` |
 | 32 unit | amplitude | `32/32` | `32/32` | `32/32` at `0.9926` | `32/32` | 3 | `178352` |
 | 64 unit | amplitude | `64/64` at `0.9998` | `64/64` | `64/64` | `64/64` | 0 | `428496` |
-| 128 unit | amplitude | `128/128` | `107/128` | `105/128` | `128/128` | 118 | `1232560` |
+| 128 unit | amplitude | `128/128` | `106/128` | `106/128` | `128/128` | 0 | `1245056` |
 
 Gate and output direction hold at 100% across an eight-fold increase in block size, which is
 the property that decides whether this reaches a layer. The 128-unit row was run with two
