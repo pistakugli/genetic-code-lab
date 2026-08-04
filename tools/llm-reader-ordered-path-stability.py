@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import random
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
@@ -46,6 +47,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--layer-shifts", default="-1,1")
     parser.add_argument("--min-layer-control-count", type=int, default=1)
     parser.add_argument("--min-layer-margin", type=float, default=0.0001)
+    parser.add_argument(
+        "--rescue-broken-paraphrases",
+        action="store_true",
+        help="when a paraphrase breaks the path, search for the path that replaced it",
+    )
+    parser.add_argument("--max-rescue-attempts", type=int, default=2)
+    parser.add_argument("--rescue-layer-shifts", default="-3,-2,-1,1,2,3")
     parser.add_argument("--min-layer-specificity-rate", type=float, default=0.66)
     parser.add_argument("--max-replay-error", type=float, default=1e-5)
     parser.add_argument("--device", choices=["cpu", "cuda", "auto"], default="cuda")
@@ -190,6 +198,7 @@ def main() -> None:
     if device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but unavailable.")
     layer_shifts = parse_layer_shifts(args.layer_shifts)
+    rescue_shifts = parse_layer_shifts(args.rescue_layer_shifts) if args.rescue_broken_paraphrases else []
     tokenizer, model = adapter.load_model_and_tokenizer(
         args.model,
         local_files_only=args.local_files_only,
@@ -201,7 +210,7 @@ def main() -> None:
         nodes = case["orderedResidualPath"]["nodes"]
         all_layers.update(int(item["layer"]) for item in nodes["mlp"])
         all_layers.update(int(item["layer"]) for item in nodes["attention"])
-        for shift in layer_shifts:
+        for shift in list(layer_shifts) + list(rescue_shifts):
             all_layers.update(
                 layer
                 for item in nodes["mlp"] + nodes["attention"]
@@ -265,6 +274,55 @@ def main() -> None:
             })
         paraphrase_pass_rate = sum(bool(item["pass"]) for item in paraphrase_items) / max(1, len(paraphrase_items))
 
+        # When a paraphrase breaks the path, find where the effect went.
+        #
+        # Recording `pass: false` and moving on treats one prompt's circuit as the circuit and
+        # a broken replay as the model being unreadable. Neither holds: the behaviour survives
+        # the paraphrase, so some path carries it, and which layers took over is the finding.
+        # A stability lane without this can say a path is fragile; it cannot say what the
+        # model does instead, which is the question worth asking.
+        #
+        # The search here is deliberately narrow - the same path shifted across layers, scored
+        # on the paraphrase that broke it. That is not a full circuit rediscovery, and the
+        # artifact says so; it answers "did the effect move, and where to" without pretending
+        # to answer "what is the new circuit in full".
+        rescues = []
+        if args.rescue_broken_paraphrases:
+            broken = [item for item in paraphrase_items if not item["pass"]]
+            for item in broken[: int(args.max_rescue_attempts)]:
+                encoded = encode_prompt(tokenizer, item["prompt"], next(model.parameters()).device)
+                new_read_index = int(encoded["input_ids"].shape[1]) - 1
+                base_mlp = remap_positions(nodes["mlp"], original_read_index, new_read_index)
+                base_attention = remap_positions(nodes["attention"], original_read_index, new_read_index)
+                attempts = []
+                for shift in rescue_shifts:
+                    shifted_mlp = shift_layers(base_mlp, shift, layer_count)
+                    shifted_attention = shift_layers(base_attention, shift, layer_count)
+                    if shifted_mlp is None or shifted_attention is None:
+                        continue
+                    replay = run_drop(
+                        model=model, tokenizer=tokenizer, mlps=mlps, attentions=attentions,
+                        prompt=item["prompt"], target_token_id=target_token_id,
+                        mlp_interventions=shifted_mlp, attention_interventions=shifted_attention,
+                    )
+                    attempts.append({"layerShift": shift, "targetLogitDrop": float(replay["targetLogitDrop"])})
+                best = max(attempts, key=lambda row: row["targetLogitDrop"]) if attempts else None
+                recovered = bool(
+                    best is not None
+                    and best["targetLogitDrop"] >= float(args.min_original_drop)
+                    and best["targetLogitDrop"] > float(item["targetLogitDrop"])
+                )
+                rescues.append({
+                    "prompt": item["prompt"],
+                    "brokenDrop": float(item["targetLogitDrop"]),
+                    "found": recovered,
+                    "bestLayerShift": None if best is None else int(best["layerShift"]),
+                    "bestDrop": None if best is None else float(best["targetLogitDrop"]),
+                    "attempts": attempts,
+                    "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery",
+                })
+        rescued = sum(1 for row in rescues if row.get("found")) if rescues else 0
+
         layer_items = []
         for shift in layer_shifts:
             shifted_mlp = shift_layers(selected_mlp, shift, layer_count)
@@ -298,6 +356,11 @@ def main() -> None:
             "subject": source["subject"],
             "answer": source["answer"],
             "target": {"tokenId": int(target_token_id), "token": target_token},
+            "paraphraseRescue": {
+                "attempted": len(rescues),
+                "found": rescued,
+                "items": rescues,
+            },
             "status": "passed" if case_pass else "failed",
             "sourceCircuit": nodes,
             "originalReplay": {

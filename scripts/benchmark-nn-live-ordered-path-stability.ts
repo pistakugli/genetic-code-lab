@@ -69,6 +69,13 @@ function runCase(testCase: StabilityCase): { status: number | null; reportPath: 
     '--min-layer-control-count', testCase.minLayerControlCount,
     '--min-layer-margin', testCase.minLayerMargin,
     '--min-layer-specificity-rate', testCase.minLayerSpecificityRate,
+    // A path that breaks under paraphrase is a finding about that path, not about the model:
+    // the behaviour survives, so something carries it. Searching for where the effect moved
+    // is the difference between reporting fragility and reading the circuit.
+    ...(envValue('GCL_LIVE_STABILITY_RESCUE', '1') === '1' ? ['--rescue-broken-paraphrases'] : []),
+    // Leading-minus values must use the equals form or argparse reads them as flags,
+    // the same reason --layer-shifts does.
+    `--rescue-layer-shifts=${envValue('GCL_LIVE_STABILITY_RESCUE_SHIFTS', '-3,-2,-1,1,2,3')}`,
     '--device', 'cuda',
     '--local-files-only',
     '--output-json', reportPath,
