@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04T06:00:32.682021+00:00",
+  "lane": "nn-live-jacobian-boundary-recovery",
+  "variant": "llama-3072d-layer15-128unit-amplitude-gate",
+  "status": "generated",
+  "git": {
+    "commit": "7e901c8374f9abf25c383800f1cf77e0132f7e53",
+    "uncommittedDiffSha256": null
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json"
+  },
+  "summary": {
+    "pass": null,
+    "unitsWithGateAbove099": 128,
+    "unitsWithUpAbove099": 107,
+    "unitsWithJointAbove099": 105,
+    "unitsWithOutputAbove099": 128,
+    "unitCount": 128,
+    "solutionCount": 246,
+    "spuriousSolutions": 118,
+    "oracleCalls": 1232560
+  },
+  "notes": [
+    "Scaling point at 128 units. Gate and output hold at 128/128; up is 107/128 with the residual filter off and two crossings per unit.",
+    "Run with 2 crossings and --gate-residual-tolerance 1.0, which is why spurious solutions are high.",
+    "No thresholds asserted: status is generated, not pass."
+  ]
+}

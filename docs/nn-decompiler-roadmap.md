@@ -2274,6 +2274,17 @@ and not per solution:
 | 16 unit | null space | `16/16` | - | - | `16/16` | 0 | `189432` |
 | 32 unit | null space | `32/32` | - | - | `32/32` | 0 | `689792` |
 | 32 unit | amplitude | `32/32` | `32/32` | `32/32` at `0.9926` | `32/32` | 3 | `178352` |
+| 128 unit | amplitude | `128/128` | `107/128` | `105/128` | `128/128` | 118 | `1232560` |
+
+Gate and output direction hold at 100% across an eight-fold increase in block size, which is
+the property that decides whether this reaches a layer. The 128-unit row was run with two
+crossings per unit and the residual filter disabled, which is why its up recovery and its
+spurious count are worse than the 32-unit row rather than better.
+
+Cost, measured rather than estimated: `1232560` calls for 128 units at rank 256 is `9629` per
+unit. A full layer caps the rank at the input dimension, 3072, so the amplitude sweep costs
+`24576` calls per crossing; at two crossings that is roughly `400M` calls for 8192 units,
+about 4.6 days at the measured throughput.
 
 The joint gate/up cosine is the bar the fitted lanes report, so that row is a like-for-like
 comparison with the fitted path's `230633` calls - and it also returns the output direction,
