@@ -67,6 +67,7 @@ class RecoveryTelemetry:
     unitsRecovered: int = 0
     amplitudeCalls: int = 0
     duplicatesDropped: int = 0
+    clustersSkippedAsSmall: int = 0
     rejectedByResidual: int = 0
     upSolveCalls: int = 0
     upsRecovered: int = 0
@@ -281,6 +282,7 @@ def recover_block(
     duplicate_gate_cosine: float,
     gate_residual_tolerance: float,
     amplitude_crossings: int,
+    min_cluster_size: int,
     up_sample_count: int,
     up_sample_scale: float,
     seed: int,
@@ -335,7 +337,14 @@ def recover_block(
     outputs: list[np.ndarray] = []
     determinations: list[float] = []
     amplitude_probe = np.eye(active_rank) @ basis if gate_mode == "amplitude" else None
-    for cluster in sorted(clusters, key=len, reverse=True):
+    # Amplitude sweeps cost `rank * 8` calls each, so spending them on clusters that are not
+    # units is where the budget goes: a 128-unit block produced 289 clusters, and sweeping all
+    # of them at four crossings would cost 2.4M calls to recover 128 directions. A cluster too
+    # small to be a real boundary is skipped before any call is made, and the number skipped
+    # is reported so the cut is visible rather than implicit.
+    ordered_clusters = [group for group in sorted(clusters, key=len, reverse=True) if len(group) >= min_cluster_size]
+    telemetry.clustersSkippedAsSmall = len(clusters) - len(ordered_clusters)
+    for cluster in ordered_clusters:
         if gate_mode == "amplitude":
             # One crossing is enough. The null-space route needs `active_rank` crossings of
             # the same unit, which is why a 32-unit block recovered 17 of 32 while every one
@@ -501,6 +510,7 @@ def summarise(result: dict[str, Any], telemetry: RecoveryTelemetry) -> str:
         "unitsRecovered": telemetry.unitsRecovered,
         "amplitudeCalls": telemetry.amplitudeCalls,
         "duplicatesDropped": telemetry.duplicatesDropped,
+        "clustersSkippedAsSmall": telemetry.clustersSkippedAsSmall,
         "rejectedByResidual": telemetry.rejectedByResidual,
         "upSolveCalls": telemetry.upSolveCalls,
         "upsRecovered": telemetry.upsRecovered,
@@ -543,29 +553,26 @@ def gate_from_peak_amplitudes(
     right_near = peak_point + 0.5 * step_along_line
     right_far = peak_point + step_along_line
 
-    components = np.zeros(probes.shape[0], dtype=np.float64)
-    parallel = np.zeros(probes.shape[0], dtype=np.float64)
-    total = np.zeros(probes.shape[0], dtype=np.float64)
-    calls = 0
-    for index, probe in enumerate(probes):
-        offsets = np.stack([
-            left_near + step * probe, left_near - step * probe,
-            left_far + step * probe, left_far - step * probe,
-            right_near + step * probe, right_near - step * probe,
-            right_far + step * probe, right_far - step * probe,
-        ])
-        values = evaluate(offsets)
-        calls += offsets.shape[0]
-        derivative_left_near = (values[0] - values[1]) / (2.0 * step)
-        derivative_left_far = (values[2] - values[3]) / (2.0 * step)
-        derivative_right_near = (values[4] - values[5]) / (2.0 * step)
-        derivative_right_far = (values[6] - values[7]) / (2.0 * step)
-        jump = (2.0 * derivative_right_near - derivative_right_far) - (
-            2.0 * derivative_left_near - derivative_left_far
-        )
-        components[index] = float(jump @ output_direction)
-        parallel[index] = abs(components[index])
-        total[index] = float(np.linalg.norm(jump))
+    # One batch for the whole sweep, not one per probe direction. The arithmetic is the same
+    # either way; the difference is round trips. Probing a rank-256 basis one direction at a
+    # time is 2048 separate oracle requests per crossing, each with its own file write and
+    # subprocess exchange, which is what made a 128-unit run take over half an hour of
+    # overhead rather than of computation.
+    anchors = np.stack([left_near, left_far, right_near, right_far])
+    offsets = np.concatenate([
+        anchors[None, :, :] + step * probes[:, None, :],
+        anchors[None, :, :] - step * probes[:, None, :],
+    ], axis=1).reshape(-1, probes.shape[1])
+    values = evaluate(offsets)
+    calls = offsets.shape[0]
+    reshaped = values.reshape(probes.shape[0], 8, -1)
+    derivatives = (reshaped[:, :4, :] - reshaped[:, 4:, :]) / (2.0 * step)
+    jumps = (2.0 * derivatives[:, 2, :] - derivatives[:, 3, :]) - (
+        2.0 * derivatives[:, 0, :] - derivatives[:, 1, :]
+    )
+    components = jumps @ output_direction
+    parallel = np.abs(components)
+    total = np.linalg.norm(jumps, axis=1)
 
     norm = float(np.linalg.norm(components))
     if norm <= 0.0:
@@ -643,6 +650,7 @@ def main() -> int:
     parser.add_argument("--duplicate-gate-cosine", type=float, default=0.98)
     parser.add_argument("--gate-residual-tolerance", type=float, default=1e-3)
     parser.add_argument("--amplitude-crossings", type=int, default=4)
+    parser.add_argument("--min-cluster-size", type=int, default=3)
     parser.add_argument("--up-sample-count", type=int, default=6000)
     parser.add_argument("--up-sample-scale", type=float, default=0.6)
     parser.add_argument("--seed", type=int, default=7)
@@ -701,6 +709,7 @@ def main() -> int:
                 duplicate_gate_cosine=args.duplicate_gate_cosine,
                 gate_residual_tolerance=args.gate_residual_tolerance,
                 amplitude_crossings=args.amplitude_crossings,
+                min_cluster_size=args.min_cluster_size,
                 up_sample_count=args.up_sample_count,
                 up_sample_scale=args.up_sample_scale,
                 seed=args.seed,
