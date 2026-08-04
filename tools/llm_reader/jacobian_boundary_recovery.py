@@ -273,6 +273,9 @@ def identifiability_verdict(
     weak_share_threshold: float,
     rank_energy_threshold: float,
     unit_budget: int,
+    norm_diagnostics: list[dict[str, float]] | None = None,
+    knee_share_threshold: float = 0.5,
+    ray_spread_threshold: float = 0.25,
 ) -> dict[str, Any]:
     """Decide whether this recovery may be reported as structure at all.
 
@@ -364,6 +367,27 @@ def identifiability_verdict(
             "verdict": "canonicalised",
         })
 
+    # A gate norm that was not identified is a unit reported at the wrong scale, and `silu`
+    # is not scale free, so that is a claim about behaviour the evidence does not carry. The
+    # ray already measures both ways this can happen - a knee that never appeared in the
+    # probed range, and independent rays that disagree about where it is - and computing that
+    # without acting on it is the same as not measuring it.
+    if norm_diagnostics:
+        unidentified = [
+            index for index, row in enumerate(norm_diagnostics)
+            if row.get("kneeShare", 1.0) < knee_share_threshold
+            or row.get("raySpread", 0.0) > ray_spread_threshold
+        ]
+        if unidentified:
+            findings.append({
+                "family": "gate-norm-not-identified",
+                "detail": (
+                    f"{len(unidentified)} solution(s) with knee share below "
+                    f"{knee_share_threshold} or ray spread above {ray_spread_threshold}"
+                ),
+                "verdict": "ambiguous",
+            })
+
     blocking = [row for row in findings if row["verdict"] == "non-identifiable"]
     return {
         "structureClaimAllowed": not blocking,
@@ -375,6 +399,8 @@ def identifiability_verdict(
             "collinear": float(collinear_threshold),
             "weakShare": float(weak_share_threshold),
             "rankEnergy": float(rank_energy_threshold),
+            "kneeShare": float(knee_share_threshold),
+            "raySpread": float(ray_spread_threshold),
         },
     }
 
@@ -923,6 +949,7 @@ def recover_block(
         weak_share_threshold=weak_share_threshold,
         rank_energy_threshold=rank_energy_threshold,
         unit_budget=unit_budget,
+        norm_diagnostics=norm_diagnostics if gates and up_sample_count > 0 else None,
     )
     telemetry.notes.append(f"identifiability verdict: {verdict['verdict']}")
 
