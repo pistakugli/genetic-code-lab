@@ -379,6 +379,155 @@ def identifiability_verdict(
     }
 
 
+def calibrate_gate_norms_on_rays(
+    evaluate,
+    gate_directions: np.ndarray,
+    output_directions: np.ndarray,
+    *,
+    points_per_ray: int,
+    min_magnitude: float,
+    max_magnitude: float,
+    offset_scale: float,
+    request_chunk: int,
+    repeats: int = 3,
+    seed: int,
+) -> tuple[np.ndarray, list[dict[str, float]]]:
+    """Measure each gate's norm on a ray along its own direction.
+
+    The boundary scan returns `g_i` as a direction; the norm is a separate number and it is
+    the one that decides what the unit does on real inputs. `silu` is not scale free, so a
+    norm that is wrong by a factor puts the unit in the wrong regime: on real hidden states
+    of this model, `‖x‖ ~ 15` lands in the curved part of `silu`, which is exactly where the
+    norm is felt.
+
+    Estimating it from the isotropic probe cloud does not work, and the reason is structural
+    rather than a matter of sample count. There the candidate norm enters as `silu(c z)`, and
+    as `c -> 0` that tends to `c z / 2`, so the design collapses to `z * x` and the free up
+    direction absorbs `c` outright. Every small candidate scores the same residual, and on a
+    unit whose own projection sits near the cross-talk floor the noise picks the bottom of the
+    grid. Measured on 64 units of layer 15: 25 norms landed outside +-10% of truth and several
+    at the grid floor of 2e-4, which predicts silence - `silu(2e-4 z) ~ 0` says the unit
+    contributes nothing at all.
+
+    Probing along `ĝ_i` removes the degeneracy instead of fighting it. On `x(s) = s ĝ_i + p`
+    with `p` orthogonal to `ĝ_i`, the pre-activation is exactly `‖g_i‖ s`, so the response
+    projected on `d_i` is `silu(‖g_i‖ s)(a s + b)` and the norm is no longer entangled with
+    the up direction: it sets *where the curve turns on* along the ray, which no choice of
+    `a`, `b` can imitate. Every other unit sees `‖g_j‖ (ĝ_j . ĝ_i) s`, and for directions in
+    3072 dimensions that inner product is around 0.018, so their transitions sit two decades
+    away in `s` and do not overlap the one being measured.
+
+    Cost is one ray per unit, which is `units * points_per_ray` oracle calls - 12k for a
+    64-unit block against the 230k the block already spends, so this is not where the budget
+    goes. Access is unchanged: the ray is built from the recovered direction and read through
+    the same oracle.
+
+    Returns the norms and, per unit, the share of ray variance the fitted curve explains. A
+    low share means the ray did not identify that unit and the caller should not treat its
+    norm as measured.
+    """
+    rng = np.random.default_rng(seed)
+    units, input_dim = gate_directions.shape
+    magnitudes = np.geomspace(min_magnitude, max_magnitude, max(points_per_ray // 2, 2))
+    positions = np.concatenate((-magnitudes[::-1], magnitudes))
+
+    # Several rays per unit, differing only in the offset, reduced by the median. The knee is
+    # a property of the unit, so independent offsets have to agree on it - and a single ray
+    # can be certain and wrong: on a six-unit teacher in 64 dimensions one norm came back 51%
+    # high while its fit explained 99.8% of the ray, so residual quality alone certifies
+    # nothing. Three rays take the worst synthetic case from 51% out to 30% and the share of
+    # units outside 10% from 8.3% to 6.2%, and more than three buys almost nothing. Cost is
+    # two extra passes per unit against the 440k calls a 64-unit block already spends.
+    rays = np.empty((units * repeats * positions.size, input_dim), dtype=np.float64)
+    for index in range(units):
+        direction = gate_directions[index] / np.linalg.norm(gate_directions[index])
+        for repeat in range(repeats):
+            offset = rng.normal(0.0, 1.0, size=input_dim)
+            offset -= (offset @ direction) * direction
+            offset *= offset_scale * np.sqrt(input_dim) / np.linalg.norm(offset)
+            start = (index * repeats + repeat) * positions.size
+            rays[start:start + positions.size] = positions[:, None] * direction[None, :] + offset[None, :]
+
+    chunks = [evaluate(rays[start:start + request_chunk]) for start in range(0, rays.shape[0], request_chunk)]
+    responses = np.concatenate(chunks, axis=0)
+
+    # Wide enough to cover a transition anywhere in the probed range of `s`, since the whole
+    # point is that the norm is unknown before the ray is read.
+    candidates = np.geomspace(1.0 / max_magnitude, 4.0 / min_magnitude, 240)
+    # Far from its own boundary `silu(n s)(a s + b)` is just `n a s^2 + n b s`, and every
+    # other unit contributes a curve of the same shape through `ĝ_j . ĝ_i`. Fitting the ray
+    # without saying so hands the whole comparison to the largest `|s|`, where every candidate
+    # looks quadratic and the residual is decided by cross-talk: the first measurement on 64
+    # units of layer 15 came back a factor of 90 low, locked onto the scale at which the
+    # *neighbours* turn on rather than this unit. Carrying the polynomial explicitly leaves
+    # only the knee, which is the one feature no background term and no other unit can
+    # reproduce - `silu` is flat on one side of it and linear on the other.
+    def fit_knee(window: np.ndarray, projected: np.ndarray, grid: np.ndarray) -> tuple[float, float, float]:
+        background = np.stack((window ** 2, window, np.ones_like(window)), axis=1)
+        flat, *_ = np.linalg.lstsq(background, projected, rcond=None)
+        background_error = float(np.sum((background @ flat - projected) ** 2))
+        best_norm, best_error = 1.0, float("inf")
+        for candidate in grid:
+            scaled = candidate * window
+            activation = scaled / (1.0 + np.exp(-np.clip(scaled, -60.0, 60.0)))
+            design = np.hstack((
+                np.stack((activation * window, activation), axis=1),
+                background,
+            ))
+            solution, *_ = np.linalg.lstsq(design, projected, rcond=None)
+            error = float(np.sum((design @ solution - projected) ** 2))
+            if error < best_error:
+                best_norm, best_error = float(candidate), error
+        return best_norm, best_error, background_error
+
+    def measure_ray(projected: np.ndarray) -> tuple[float, float, float]:
+        norm, error, reference = fit_knee(positions, projected, candidates)
+        # Then again on the stretch of ray around the knee it just found. The neighbours' own
+        # transitions sit at `1 / (n_j |ĝ_j.ĝ_i|)`, so how far away they are is set by the
+        # input dimension: at 3072 the inner product is about 0.018 and they are two decades
+        # out, but at 24 dimensions it is 0.2 and they are a factor of five away, close enough
+        # to bend the fit - measured on a six-unit teacher in 24 dimensions, the worst norm
+        # came back 50% high. Narrowing to a few multiples of the knee scale drops them
+        # without needing to know they are there, and the knee itself decides the window, so
+        # nothing here assumes what is being measured.
+        for _ in range(3):
+            window = np.abs(positions) <= 3.0 / norm
+            if int(window.sum()) < 24:
+                break
+            local = np.geomspace(norm / 20.0, norm * 20.0, 120)
+            norm, error, reference = fit_knee(positions[window], projected[window], local)
+        return norm, error, reference
+
+    norms = np.ones(units, dtype=np.float64)
+    diagnostics: list[dict[str, float]] = []
+    for index in range(units):
+        measured, shares = [], []
+        for repeat in range(repeats):
+            start = (index * repeats + repeat) * positions.size
+            norm, error, reference = measure_ray(
+                responses[start:start + positions.size] @ output_directions[index]
+            )
+            measured.append(norm)
+            shares.append(float(1.0 - error / reference) if reference > 0 else 0.0)
+        # Median, not mean. One ray can land on a neighbour's knee instead of this unit's,
+        # and averaging in log space lets that single answer drag the result: with four rays
+        # and a geometric mean the worst synthetic norm went from 33% out to a factor of ten,
+        # because a mean has no defence against one bad member. The median has one, which is
+        # the whole reason for repeating the measurement.
+        norms[index] = float(np.median(measured))
+        diagnostics.append({
+            "norm": float(norms[index]),
+            # Share of the ray the knee explains that a smooth background cannot. A unit whose
+            # own transition never showed up in the probed range scores near zero here, and
+            # its norm is a guess rather than a measurement.
+            "kneeShare": float(np.min(shares)),
+            # How far apart two independent rays put the same knee, as a ratio. This is the
+            # measure that catches a confident wrong answer, which `kneeShare` does not.
+            "raySpread": float(max(measured) / min(measured) - 1.0),
+        })
+    return norms, diagnostics
+
+
 def recover_block(
     evaluate: Callable[[np.ndarray], np.ndarray],
     *,
@@ -405,7 +554,11 @@ def recover_block(
     up_sample_count: int,
     up_sample_scale: float,
     up_request_chunk: int = 4096,
-    norm_search_rows: int = 4000,
+    norm_ray_points: int = 192,
+    norm_ray_min: float = 1e-2,
+    norm_ray_max: float = 30.0,
+    norm_ray_offset: float = 0.25,
+    norm_ray_repeats: int = 3,
     up_refinement_sweeps: int = 0,
     collinear_threshold: float = 0.9,
     weak_share_threshold: float = 0.002,
@@ -584,37 +737,28 @@ def recover_block(
         telemetry.oracleCalls += up_sample_count
         telemetry.upSolveCalls = up_sample_count
         # The recovered gate is a direction, so its norm is 1 while the real one is around
-        # 0.02 on this model. `silu` is not scale free: evaluating it 50 times too far out
-        # puts every unit in saturation, which is why the up solve returned 14 of 32 and did
-        # not move when samples, scale or gate quality changed. The norm is one number per
-        # unit and it is chosen by which value explains the unit's own projection best - a
-        # one-dimensional search on data already paid for, not a fit of the block.
+        # 1.07 on this layer. `silu` is not scale free, so a wrong norm evaluates the unit in
+        # the wrong regime - which is why the up solve returned 14 of 32 before the norm was
+        # recovered at all, and did not move when samples, scale or gate quality changed.
         raw_response = samples_in @ gate_matrix.T
         coordinates = samples_in @ basis.T
         output_directions = np.stack(outputs)
-        gate_norms = np.ones(len(gates), dtype=np.float64)
-        # The norm search runs on a subsample. It is a one-dimensional scan over 160
-        # candidates for every unit, and on the full sample set that is 160 least-squares
-        # solves of a 30000 x rank system per unit - hours of CPU that the oracle then waits
-        # on. The norm is a scalar and a few thousand rows determine it as well as thirty
-        # thousand do; the solve that produces the direction still uses everything.
-        candidate_norms = np.geomspace(2e-4, 2.0, 160)
-        search_rows = min(up_sample_count, norm_search_rows)
-        search_coordinates = coordinates[:search_rows]
-        for index in range(len(gates)):
-            projected_search = (responses @ output_directions[index])[:search_rows]
-            best_norm, best_residual = 1.0, float("inf")
-            for candidate in candidate_norms:
-                scaled = raw_response[:search_rows, index] * candidate
-                activation = scaled / (1.0 + np.exp(-np.clip(scaled, -60.0, 60.0)))
-                weighted = activation[:, None] * search_coordinates
-                solution, residual, *_ = np.linalg.lstsq(weighted, projected_search, rcond=None)
-                error = float(residual[0]) if len(residual) else float(
-                    np.sum((weighted @ solution - projected_search) ** 2)
-                )
-                if error < best_residual:
-                    best_norm, best_residual = float(candidate), error
-            gate_norms[index] = best_norm
+        # One ray per unit along its own gate direction, where the norm is what decides when
+        # the curve turns on and nothing else can imitate it. See
+        # `calibrate_gate_norms_on_rays` for why the isotropic cloud cannot settle this.
+        gate_norms, norm_diagnostics = calibrate_gate_norms_on_rays(
+            evaluate,
+            gate_matrix / np.linalg.norm(gate_matrix, axis=1, keepdims=True),
+            output_directions,
+            points_per_ray=norm_ray_points,
+            min_magnitude=norm_ray_min,
+            max_magnitude=norm_ray_max,
+            offset_scale=norm_ray_offset,
+            request_chunk=up_request_chunk,
+            repeats=norm_ray_repeats,
+            seed=seed + 4451,
+        )
+        telemetry.oracleCalls += len(gates) * (norm_ray_points // 2) * 2 * norm_ray_repeats
         gate_response = raw_response * gate_norms[None, :]
         smooth = gate_response / (1.0 + np.exp(-np.clip(gate_response, -60.0, 60.0)))
         # Solved in basis coordinates, not in the input space. `u_i` lies in the active
@@ -654,8 +798,19 @@ def recover_block(
                 if subtract:
                     explained -= np.outer(activations[index], output_directions[index])
                 projected = (responses - explained) @ output_directions[index]
-                weighted = smooth[:, index][:, None] * coordinates
+                # `silu` does not average to zero, and that is what leaks the neighbours into
+                # `u_i`. Every other unit enters the projection as
+                # `(d_j.d_i) silu(z_j)(u_j.x)`, whose leading term is
+                # `(d_j.d_i) E[silu] (u_j.x)` - a plain linear function of `x` - and the
+                # regressor `silu(z_i) x` carries the same non-zero mean, so the solve pays
+                # for that overlap out of `u_i`. Carrying an ungated linear block absorbs it
+                # instead. This stayed hidden while the gate norms were wrong: a norm near
+                # zero makes `silu(c z) ~ c z / 2`, which is mean-zero and has no overlap to
+                # leak, so the up solve scored 64 of 64 on a model that was wrong about every
+                # unit's scale. With the norms measured, the same solve returned 39.
+                weighted = np.hstack((smooth[:, index][:, None] * coordinates, coordinates))
                 solution, *_ = np.linalg.lstsq(weighted, projected, rcond=None)
+                solution = solution[:active_rank]
                 solved_coefficients[index] = solution
                 if subtract:
                     activations[index] = smooth[:, index] * (coordinates @ solution)
@@ -687,6 +842,7 @@ def recover_block(
         "basis": basis,
         "upDirections": np.stack(ups) if ups else np.zeros((0, input_dim)),
         "gateNorms": gate_norms if gates and up_sample_count > 0 else np.zeros(0),
+        "gateNormDiagnostics": norm_diagnostics if gates and up_sample_count > 0 else [],
         "basisSpectrum": spectrum,
         "gates": np.stack(gates) if gates else np.zeros((0, active_rank)),
         "outputDirections": np.stack(outputs) if outputs else np.zeros((0, 1)),
@@ -859,7 +1015,7 @@ def main() -> int:
     parser.add_argument("--up-sample-count", type=int, default=30000)
     parser.add_argument("--up-sample-scale", type=float, default=0.6)
     parser.add_argument("--up-request-chunk", type=int, default=4096)
-    parser.add_argument("--norm-search-rows", type=int, default=4000)
+    parser.add_argument("--norm-ray-points", type=int, default=192)
     parser.add_argument("--collinear-threshold", type=float, default=0.9)
     parser.add_argument("--weak-share-threshold", type=float, default=0.002)
     parser.add_argument("--rank-energy-threshold", type=float, default=0.98)
@@ -927,7 +1083,7 @@ def main() -> int:
                 up_sample_count=args.up_sample_count,
                 up_sample_scale=args.up_sample_scale,
                 up_request_chunk=args.up_request_chunk,
-                norm_search_rows=args.norm_search_rows,
+                norm_ray_points=args.norm_ray_points,
                 up_refinement_sweeps=args.up_refinement_sweeps,
                 collinear_threshold=args.collinear_threshold,
                 weak_share_threshold=args.weak_share_threshold,
@@ -983,6 +1139,26 @@ def main() -> int:
                     # and its up direction are both right, matched to the same source.
                     joint = np.minimum(similarity, up_similarity)
                     joint_per_unit = joint.max(axis=0)
+                # Directions alone are not the unit. `silu` is not scale free, so a solution
+                # whose gate points the right way with the wrong norm evaluates the unit in
+                # the wrong regime, and a norm near zero describes a unit that never fires.
+                # The joint direction bar reported 64 of 64 on a run where 25 gate norms were
+                # wrong by up to four orders of magnitude - the same shape of mistake as
+                # `distinctUnitsMatched`, a measure a bad solution also satisfies. This one
+                # requires the gate direction, the up direction and the norm together, matched
+                # to one source unit.
+                fully_recovered = None
+                norms = result.get("gateNorms", np.zeros(0))
+                if up_per_unit is not None and norms.shape[0] == recovered.shape[0]:
+                    truth_norms = np.linalg.norm(truth_gate, axis=1)
+                    assigned = similarity.argmax(axis=1)
+                    fully_recovered = len({
+                        int(assigned[solution])
+                        for solution in range(recovered.shape[0])
+                        if similarity[solution, assigned[solution]] > 0.99
+                        and up_similarity[solution, assigned[solution]] > 0.99
+                        and abs(norms[solution] / truth_norms[assigned[solution]] - 1.0) <= 0.1
+                    })
                 output_per_unit = None
                 output_per_solution = None
                 if truth_down is not None and result["outputDirections"].shape[0]:
@@ -1000,6 +1176,7 @@ def main() -> int:
                     "perUnitGateCosineMedian": float(np.median(per_unit_best)),
                     "unitsWithUpAbove099": None if up_per_unit is None else int(np.sum(up_per_unit > 0.99)),
                     "perUnitUpCosineMin": None if up_per_unit is None else float(np.min(up_per_unit)),
+                    "unitsFullyRecovered": fully_recovered,
                     "unitsWithJointAbove099": None if joint_per_unit is None else int(np.sum(joint_per_unit > 0.99)),
                     "perUnitJointCosineMin": None if joint_per_unit is None else float(np.min(joint_per_unit)),
                     "unitsWithOutputAbove099": None if output_per_unit is None else int(np.sum(output_per_unit > 0.99)),

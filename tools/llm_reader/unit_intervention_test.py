@@ -81,16 +81,14 @@ def main() -> int:
     handle = mlp.register_forward_hook(
         lambda module, inputs, output: captured.__setitem__("x", inputs[0].detach().float().cpu().numpy())
     )
-    baseline_rows, input_rows = [], []
+    input_rows = []
     with torch.no_grad():
         for text in args.text:
             encoded = tokenizer(text, return_tensors="pt").to("cuda")
             model(**encoded)
             input_rows.append(captured["x"][0])
-            baseline_rows.append(mlp(torch.tensor(captured["x"], device="cuda")).detach().float().cpu().numpy()[0])
     handle.remove()
     points = np.concatenate(input_rows, axis=0)
-    baseline = np.concatenate(baseline_rows, axis=0)
 
     order = np.argsort(-quality)[: args.max_units]
     rows = []
@@ -99,19 +97,28 @@ def main() -> int:
             continue
         unit = units[assignment[solution]]
 
-        # Silence the real unit and measure what actually changes.
-        def silence(module, inputs, output, index=unit):
-            gate_out = module.act_fn(module.gate_proj(inputs[0]))
-            up_out = module.up_proj(inputs[0])
-            product = gate_out * up_out
-            product[..., index] = 0.0
-            return module.down_proj(product)
+        # What silencing the unit changes, taken in one pass rather than as the difference of
+        # two. `down_proj` is linear and carries no bias, so
+        # `down_proj(p) - down_proj(p with i zeroed) = down_proj(e_i p_i)` exactly, and that
+        # single product is the whole effect of the unit.
+        #
+        # Differencing two forward passes measured the same quantity through near-total
+        # cancellation: one unit moves the layer output by about 0.16 while the outputs
+        # themselves are far larger, so what survived was the 4-bit kernel's disagreement with
+        # itself. Checked against the model's own weights, that route had a ceiling of 0.95 to
+        # 0.99 rather than 1.0 - it could not tell a good recovery from a mediocre one,
+        # because its noise was the same size as the difference it was asked to resolve.
+        def isolate(module, inputs, output, index=unit):
+            product = module.act_fn(module.gate_proj(inputs[0])) * module.up_proj(inputs[0])
+            only = torch.zeros_like(product)
+            only[..., index] = product[..., index]
+            return module.down_proj(only)
 
-        hook = mlp.register_forward_hook(silence)
+        hook = mlp.register_forward_hook(isolate)
         with torch.no_grad():
-            silenced = mlp(torch.tensor(points[None, :, :], device="cuda")).detach().float().cpu().numpy()[0]
+            contribution = mlp(torch.tensor(points[None, :, :], device="cuda")).detach().float().cpu().numpy()[0]
         hook.remove()
-        actual = silenced - baseline
+        actual = -contribution
 
         prediction = predicted_delta(gates[solution], ups[solution], outputs[solution], points)
         # One scale per unit, because the up direction has no norm. Fitted on the same data,

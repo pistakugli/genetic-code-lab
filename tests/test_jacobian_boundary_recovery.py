@@ -23,6 +23,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from tools.llm_reader.jacobian_boundary_recovery import (  # noqa: E402
+    calibrate_gate_norms_on_rays,  # noqa: E402
     BoundaryCrossing,
     gate_from_peak_amplitudes,
     cluster_by_output_direction,
@@ -380,3 +381,110 @@ class UpRecoveryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GateNormCalibrationTest(unittest.TestCase):
+    """The norm is the part of a gate that decides the unit's regime, so it has to be measured.
+
+    `silu` is not scale free. A gate direction with the wrong norm evaluates the unit in the
+    wrong part of the curve, and a norm near zero describes a unit that never fires at all -
+    which is what the isotropic-cloud search returned for 25 of 64 units on layer 15 before
+    the ray replaced it.
+    """
+
+    @staticmethod
+    def teacher(units: int = 6, dim: int = 256, seed: int = 3):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        gate *= np.geomspace(0.3, 3.0, units)[:, None] / np.linalg.norm(gate, axis=1, keepdims=True)
+        up = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(size=(dim, units))
+        down /= np.linalg.norm(down, axis=0, keepdims=True)
+
+        def evaluate(points: np.ndarray) -> np.ndarray:
+            z = points @ gate.T
+            return ((z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (points @ up.T)) @ down.T
+
+        return evaluate, gate, down
+
+    def calibrate(self, dim: int = 256, **overrides):
+        evaluate, gate, down = self.teacher(dim=dim)
+        settings = dict(
+            points_per_ray=192,
+            min_magnitude=1e-2,
+            max_magnitude=30.0,
+            offset_scale=0.25,
+            request_chunk=4096,
+            seed=5,
+        )
+        settings.update(overrides)
+        directions = gate / np.linalg.norm(gate, axis=1, keepdims=True)
+        norms, diagnostics = calibrate_gate_norms_on_rays(evaluate, directions, down.T, **settings)
+        return norms, diagnostics, np.linalg.norm(gate, axis=1)
+
+    def test_the_measured_norm_matches_the_real_one(self) -> None:
+        norms, _diagnostics, truth = self.calibrate()
+
+        self.assertLess(float(np.max(np.abs(norms / truth - 1.0))), 0.1)
+
+    def test_crowding_is_survived_rather_than_assumed_away(self) -> None:
+        """Neighbours sit at `1 / (n_j |ĝ_j.ĝ_i|)`, so how crowded the ray is falls with the
+        input dimension - and the measurement has to stay usable while they are close.
+
+        Measured across 24, 64, 256 and 1024 dimensions, one ray put 8.3% of units outside
+        10% of their true norm and the worst 51% out; three rays reduced by the median take
+        that to 6.2% and 30%. The typical unit is unaffected either way, which is why the
+        median error is the wrong thing to watch here and the tail is the right one.
+        """
+        crowded, _diagnostics, crowded_truth = self.calibrate(dim=24)
+
+        # Every unit still lands within a factor that keeps `silu` in the right regime, even
+        # where the neighbours are only a factor of five away in `s`.
+        self.assertLess(float(np.max(np.abs(crowded / crowded_truth - 1.0))), 0.5)
+        self.assertLess(float(np.median(np.abs(crowded / crowded_truth - 1.0))), 0.1)
+
+    def test_one_wild_ray_does_not_carry_the_answer(self) -> None:
+        norms, diagnostics, truth = self.calibrate()
+
+        # The spread between rays is reported so a caller can see the disagreement that the
+        # median hid, rather than reading a single reduced number as though it were clean.
+        self.assertTrue(all("raySpread" in row for row in diagnostics))
+        self.assertLess(float(np.max(np.abs(norms / truth - 1.0))), 0.1)
+
+    def test_norms_two_decades_apart_are_all_recovered(self) -> None:
+        # Recovering a single scale is easy for the wrong reason if every unit shares it.
+        norms, _diagnostics, truth = self.calibrate()
+
+        self.assertGreater(truth.max() / truth.min(), 5.0)
+        self.assertTrue(np.all(np.abs(norms / truth - 1.0) < 0.1))
+
+    def test_the_knee_share_reports_when_the_ray_missed_the_transition(self) -> None:
+        # Probed far above every boundary, the ray sees only the saturated quadratic, which
+        # the background explains on its own. The norm returned there is a guess and the
+        # diagnostic has to say so rather than let a caller read it as measured.
+        _norms, diagnostics, _truth = self.calibrate(min_magnitude=2e3, max_magnitude=8e3)
+        missed = [row["kneeShare"] for row in diagnostics]
+
+        _norms, in_range, _truth = self.calibrate()
+        found = [row["kneeShare"] for row in in_range]
+
+        self.assertLess(float(np.median(missed)), float(np.median(found)))
+
+    def test_the_ray_costs_one_pass_per_unit_and_repeat(self) -> None:
+        calls = []
+        evaluate, gate, down = self.teacher()
+
+        def counted(points: np.ndarray) -> np.ndarray:
+            calls.append(points.shape[0])
+            return evaluate(points)
+
+        directions = gate / np.linalg.norm(gate, axis=1, keepdims=True)
+        calibrate_gate_norms_on_rays(
+            counted, directions, down.T,
+            points_per_ray=192, min_magnitude=1e-2, max_magnitude=30.0,
+            offset_scale=0.25, request_chunk=4096, seed=5,
+        )
+
+        # Two sided, so `points_per_ray // 2` magnitudes become that many points each way,
+        # and the default three rays per unit are what buys the tail behaviour above.
+        self.assertEqual(sum(calls), gate.shape[0] * 192 * 3)
