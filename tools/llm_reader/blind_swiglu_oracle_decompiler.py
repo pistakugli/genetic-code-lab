@@ -499,7 +499,17 @@ class OracleClient:
                 f"expected={expected_total} observed={observed_total}"
             )
         self.query_count = expected_total
-        return np.load(output_path).astype(np.float64)
+        values = np.load(output_path).astype(np.float64)
+        # Both files have served their purpose the moment the array is in memory. Leaving
+        # them behind cost 83 GB across two interrupted runs once the responses became
+        # 3072 wide, and filled the disk mid-run - which surfaces as a write error inside the
+        # oracle rather than as anything resembling its cause.
+        for path in (input_path, output_path):
+            try:
+                path.unlink()
+            except OSError:
+                pass
+        return values
 
     def unlock_posthoc_truth(self, stage: str) -> None:
         if not stage.strip():
