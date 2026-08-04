@@ -288,7 +288,7 @@ def recover_block(
     up_sample_scale: float,
     up_request_chunk: int = 4096,
     norm_search_rows: int = 4000,
-    up_refinement_sweeps: int = 2,
+    up_refinement_sweeps: int = 0,
     seed: int,
 ) -> tuple[dict[str, Any], RecoveryTelemetry]:
     rng = np.random.default_rng(seed)
@@ -513,19 +513,31 @@ def recover_block(
         # every up direction came back above 0.99, at 128 units it is 0.20 and 22 of them did
         # not. Sweeping repeatedly and subtracting the units already solved removes that term
         # instead of tolerating it - each pass sees a cleaner residual than the last.
+        # Subtracting the units already solved was tried and makes things worse: 64 units went
+        # from 64/64 up directions to 60/64 with two sweeps. The cross-talk term is real, but
+        # so is the error in every not-yet-correct neighbour, and subtracting an estimate
+        # injects the second while removing the first. Default is zero sweeps, which is the
+        # plain per-unit solve; the option stays because at some unit count the trade may
+        # reverse, and because a measured dead end is worth keeping runnable.
+        #
+        # The running model is kept and adjusted rather than rebuilt: recomputing every other
+        # unit's contribution inside the loop is quadratic in the unit count and made a
+        # 128-unit sweep slower than the entire oracle phase.
         solved_coefficients = [np.zeros(active_rank) for _ in gates]
-        for _sweep in range(up_refinement_sweeps):
+        activations = [np.zeros(up_sample_count) for _ in gates]
+        explained = np.zeros_like(responses)
+        for _sweep in range(max(1, up_refinement_sweeps)):
+            subtract = up_refinement_sweeps > 0
             for index in range(len(gates)):
-                explained = np.zeros_like(responses)
-                for other in range(len(gates)):
-                    if other == index:
-                        continue
-                    contribution = smooth[:, other] * (coordinates @ solved_coefficients[other])
-                    explained += np.outer(contribution, output_directions[other])
+                if subtract:
+                    explained -= np.outer(activations[index], output_directions[index])
                 projected = (responses - explained) @ output_directions[index]
                 weighted = smooth[:, index][:, None] * coordinates
                 solution, *_ = np.linalg.lstsq(weighted, projected, rcond=None)
                 solved_coefficients[index] = solution
+                if subtract:
+                    activations[index] = smooth[:, index] * (coordinates @ solution)
+                    explained += np.outer(activations[index], output_directions[index])
         for index in range(len(gates)):
             solution = solved_coefficients[index]
             norm = float(np.linalg.norm(solution))
@@ -701,11 +713,16 @@ def main() -> int:
     parser.add_argument("--amplitude-crossings", type=int, default=4)
     parser.add_argument("--min-cluster-size", type=int, default=3)
     parser.add_argument("--progress", action="store_true")
-    parser.add_argument("--up-sample-count", type=int, default=6000)
+    # Measured on 64 units: 30000 samples give 64/64 up directions, 20000 give 58/64. The
+    # per-unit solve is well conditioned either way - 256 unknowns against either count - so
+    # what improves is the signal against the cross-talk from the other units, which falls as
+    # the square root of the sample count. Budget accordingly rather than by conditioning.
+    parser.add_argument("--up-sample-count", type=int, default=30000)
     parser.add_argument("--up-sample-scale", type=float, default=0.6)
     parser.add_argument("--up-request-chunk", type=int, default=4096)
     parser.add_argument("--norm-search-rows", type=int, default=4000)
-    parser.add_argument("--up-refinement-sweeps", type=int, default=2)
+    parser.add_argument("--up-refinement-sweeps", type=int, default=0,
+                        help="subtract already-solved units before each solve; measured worse, kept runnable")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--output-json", default="")
     parser.add_argument(
