@@ -98,18 +98,29 @@ def recover_basis_from_jacobian(
     point to point and the two directions of each unit separate. The cost is one
     finite-difference pass per point, and the returned spectrum says whether the rank assumed
     was actually reached.
+
+    Accumulated as a Gram matrix rather than a stack. The right singular vectors of the
+    stacked Jacobians are the eigenvectors of `sum_p J_p^T J_p`, and that sum is
+    `input_dim x input_dim` however many points are used, while the stack grows with them:
+    at 512 units the basis wanted 68 points, which is 68 dense `3072 x 3072` blocks - 5 GB
+    before `vstack` copies it to 10, on a machine with 30. The kernel killed that run. The
+    Gram is 75 MB and the eigendecomposition is smaller than the SVD it replaces.
     """
     axes = np.eye(input_dim)
-    rows: list[np.ndarray] = []
+    gram = np.zeros((input_dim, input_dim), dtype=np.float64)
     calls = 0
     for probe_point in np.atleast_2d(point):
         plus = evaluate(probe_point[None, :] + step * axes)
         minus = evaluate(probe_point[None, :] - step * axes)
-        rows.append(((plus - minus) / (2.0 * step)).T)
+        jacobian = ((plus - minus) / (2.0 * step)).T
+        gram += jacobian.T @ jacobian
         calls += 2 * input_dim
-    stacked = np.vstack(rows)
-    _, singular, right = np.linalg.svd(stacked, full_matrices=False)
-    return right[:active_rank], singular, calls
+    # Symmetric by construction, so `eigh` rather than `eig`, and its ascending order is
+    # reversed to match the descending convention of `svd`.
+    eigenvalues, eigenvectors = np.linalg.eigh(gram)
+    order = np.argsort(eigenvalues)[::-1]
+    singular = np.sqrt(np.clip(eigenvalues[order], 0.0, None))
+    return eigenvectors[:, order].T[:active_rank], singular, calls
 
 
 def scan_line_for_crossings(
@@ -814,6 +825,9 @@ def recover_block(
         # recovered at all, and did not move when samples, scale or gate quality changed.
         raw_response = samples_in @ gate_matrix.T
         coordinates = samples_in @ basis.T
+        # The probe points are not needed past these two products, and at 512 units they are
+        # two gigabytes held for the rest of the solve.
+        del samples_in
         output_directions = np.stack(outputs)
         # Unmix the output directions before solving, rather than tolerating the overlap.
         # `R = A D` with `A` the activations and `D` the recovered output directions, so
@@ -908,7 +922,9 @@ def recover_block(
         # 128-unit sweep slower than the entire oracle phase.
         solved_coefficients = [np.zeros(active_rank) for _ in gates]
         activations = [np.zeros(up_sample_count) for _ in gates]
-        explained = np.zeros_like(responses)
+        # Only the refinement sweeps need a running model, and it is the same size as the
+        # whole response block - two gigabytes at 512 units that the default path never reads.
+        explained = np.zeros_like(responses) if up_refinement_sweeps > 0 else None
         for _sweep in range(max(1, up_refinement_sweeps)):
             subtract = up_refinement_sweeps > 0
             for index in range(len(gates)):
