@@ -1,4 +1,23 @@
 {
+  "identifiability": {
+    "structureClaimAllowed": true,
+    "verdict": "recovered",
+    "findings": [],
+    "clustersFound": 115,
+    "thresholds": {
+      "duplicateGateCosine": 0.98,
+      "collinear": 0.9,
+      "weakShare": 0.002,
+      "rankEnergy": 0.98,
+      "kneeShare": 0.5,
+      "raySpread": 0.25
+    }
+  },
+  "reconstruction": {
+    "points": 4000,
+    "rSquared": 0.9994137125169862,
+    "relativeResidual": 0.024135229112028977
+  },
   "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
   "layer": 15,
   "units": [
@@ -69,39 +88,40 @@
   ],
   "oracleResponseWidth": 3072,
   "telemetry": {
-    "oracleCalls": 428496,
+    "oracleCalls": 469360,
     "basisCalls": 73728,
     "scanCalls": 128160,
     "linesScanned": 80,
-    "crossingsFound": 1556,
-    "clusters": 109,
+    "crossingsFound": 1549,
+    "clusters": 115,
     "unitsRecovered": 64,
     "amplitudeCalls": 196608,
     "duplicatesDropped": 0,
-    "clustersSkippedAsSmall": 45,
+    "clustersSkippedAsSmall": 51,
     "rejectedByResidual": 0,
     "upSolveCalls": 30000,
     "upsRecovered": 64,
     "clusterSizes": [
-      36,
-      32,
+      34,
+      33,
       32,
       31,
       31,
+      30,
       29,
       29,
-      29,
-      28,
-      28,
-      28,
       28,
       28,
       27,
       27,
+      27,
+      27,
+      26,
       26
     ],
     "notes": [
-      "basis energy in rank 128: 0.999872729381"
+      "basis energy in rank 128: 0.999872729381",
+      "identifiability verdict: recovered"
     ]
   },
   "accessAudit": {
@@ -112,23 +132,24 @@
   },
   "posthoc": {
     "unitsWithGateAbove099": 64,
-    "perUnitGateCosineMin": 0.9998019597141474,
-    "perUnitGateCosineMedian": 0.9999921311869311,
+    "perUnitGateCosineMin": 0.9998503425057905,
+    "perUnitGateCosineMedian": 0.9999906096852635,
     "unitsWithUpAbove099": 64,
-    "perUnitUpCosineMin": 0.9919534150009435,
+    "perUnitUpCosineMin": 0.9998316862626271,
+    "unitsFullyRecovered": 64,
     "unitsWithJointAbove099": 64,
-    "perUnitJointCosineMin": 0.9919534150009435,
+    "perUnitJointCosineMin": 0.9998316862626271,
     "unitsWithOutputAbove099": 64,
-    "perUnitOutputCosineMin": 0.9991516226434873,
-    "outputCosineMedian": 0.9997384435678783,
+    "perUnitOutputCosineMin": 0.9994343612080415,
+    "outputCosineMedian": 0.9997536138602383,
     "solutionCount": 64,
     "spuriousSolutions": 0,
-    "gateCosineMedian": 0.9999921311869311,
-    "gateCosineMin": 0.9998019597141474,
+    "gateCosineMedian": 0.9999906096852635,
+    "gateCosineMin": 0.9998503425057905,
     "gateCosineShareAbove099": 1.0,
     "distinctUnitsMatchedNotProofOfRecovery": 64,
     "unitCount": 64,
-    "basisGateEnergy": 0.9999852520255347,
-    "basisUpEnergy": 0.9999858142005673
+    "basisGateEnergy": 0.9999852520255348,
+    "basisUpEnergy": 0.9999858142005674
   }
 }

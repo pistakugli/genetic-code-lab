@@ -187,7 +187,10 @@
     "label:unverifiable-citations:check": "ts-node scripts/label-unverifiable-citations.ts --check",
     "verify:artifact-provenance": "ts-node scripts/verify-artifact-provenance.ts",
     "repair:artifact-provenance": "ts-node scripts/repair-artifact-provenance.ts --write",
-    "verify:variant-distinctness": "ts-node scripts/verify-variant-distinctness.ts"
+    "verify:variant-distinctness": "ts-node scripts/verify-variant-distinctness.ts",
+    "benchmark:nn-live-jacobian-boundary-recovery": "GCL_JACOBIAN_VARIANT=64unit GCL_PYTHON=.gcl-python-gpu/bin/python ts-node scripts/benchmark-nn-live-jacobian-boundary-recovery.ts",
+    "benchmark:nn-live-jacobian-boundary-recovery:128": "GCL_JACOBIAN_VARIANT=128unit GCL_PYTHON=.gcl-python-gpu/bin/python ts-node scripts/benchmark-nn-live-jacobian-boundary-recovery.ts",
+    "benchmark:nn-live-jacobian-boundary-recovery:256": "GCL_JACOBIAN_VARIANT=256unit GCL_PYTHON=.gcl-python-gpu/bin/python ts-node scripts/benchmark-nn-live-jacobian-boundary-recovery.ts"
   },
   "keywords": [
     "genetic-programming",
