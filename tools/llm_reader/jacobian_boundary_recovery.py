@@ -71,6 +71,14 @@ class RecoveryTelemetry:
     rejectedByResidual: int = 0
     upSolveCalls: int = 0
     upsRecovered: int = 0
+    # How close the line scan is to its own resolution limit. A `silu` knee has a width along
+    # the line of `1/(S ||g|| |g.d|)`, and boundaries are spaced about `2/k` apart, so the
+    # scan stops separating them once `k` approaches `2 S ||g|| / sqrt(dim)`. Peaks are then
+    # thinned to one per `separation` samples, which caps what a line can report at
+    # `samples / separation` regardless. Reported rather than gated: the threshold is not yet
+    # measured, and a number with an invented cutoff is worse than a number.
+    crossingsPerLine: float = 0.0
+    resolvableSlotsPerLine: int = 0
     notes: list[str] = field(default_factory=list)
 
 
@@ -511,18 +519,26 @@ def calibrate_gate_norms_on_rays(
     # nothing. Three rays take the worst synthetic case from 51% out to 30% and the share of
     # units outside 10% from 8.3% to 6.2%, and more than three buys almost nothing. Cost is
     # two extra passes per unit against the 440k calls a 64-unit block already spends.
-    rays = np.empty((units * repeats * positions.size, input_dim), dtype=np.float64)
-    for index in range(units):
+    #
+    # Built a batch of units at a time rather than all at once. Every ray is `points_per_ray`
+    # rows of `input_dim`, so holding the whole set is `units * repeats * points_per_ray *
+    # input_dim`: at 512 units that is 7 GB for the probe points, as much again for the
+    # responses, and a third copy when they are concatenated. The kernel killed a 512-unit run
+    # at 22 GB and this was where it went. Nothing about the measurement is joint - each unit's
+    # knee is read off its own ray - so the batch only needs to be large enough to keep the
+    # oracle requests near `request_chunk`.
+    per_unit = repeats * positions.size
+    batch_units = max(1, request_chunk // per_unit)
+    rays = np.empty((batch_units * per_unit, input_dim), dtype=np.float64)
+
+    def build(index: int, slot: int) -> None:
         direction = gate_directions[index] / np.linalg.norm(gate_directions[index])
         for repeat in range(repeats):
             offset = rng.normal(0.0, 1.0, size=input_dim)
             offset -= (offset @ direction) * direction
             offset *= offset_scale * np.sqrt(input_dim) / np.linalg.norm(offset)
-            start = (index * repeats + repeat) * positions.size
+            start = (slot * repeats + repeat) * positions.size
             rays[start:start + positions.size] = positions[:, None] * direction[None, :] + offset[None, :]
-
-    chunks = [evaluate(rays[start:start + request_chunk]) for start in range(0, rays.shape[0], request_chunk)]
-    responses = np.concatenate(chunks, axis=0)
 
     # Wide enough to cover a transition anywhere in the probed range of `s`, since the whole
     # point is that the norm is unknown before the ray is read.
@@ -580,32 +596,41 @@ def calibrate_gate_norms_on_rays(
 
     norms = np.ones(units, dtype=np.float64)
     diagnostics: list[dict[str, float]] = []
-    for index in range(units):
-        measured, shares = [], []
-        for repeat in range(repeats):
-            start = (index * repeats + repeat) * positions.size
-            norm, error, reference = measure_ray(
-                responses[start:start + positions.size] @ output_directions[index]
-            )
-            measured.append(norm)
-            shares.append(float(1.0 - error / reference) if reference > 0 else 0.0)
-        # Median, not mean. One ray can land on a neighbour's knee instead of this unit's,
-        # and averaging in log space lets that single answer drag the result: with four rays
-        # and a geometric mean the worst synthetic norm went from 33% out to a factor of ten,
-        # because a mean has no defence against one bad member. The median has one, which is
-        # the whole reason for repeating the measurement.
-        norms[index] = float(np.median(measured))
-        diagnostics.append({
-            "norm": float(norms[index]),
-            # Share of the ray the knee explains that a smooth background cannot. A unit whose
-            # own transition never showed up in the probed range scores near zero here, and
-            # its norm is a guess rather than a measurement.
-            "kneeShare": float(np.min(shares)),
-            # How far apart two independent rays put the same knee, as a ratio. This is the
-            # measure that catches a confident wrong answer, which `kneeShare` does not.
-            "raySpread": float(max(np.abs(measured)) / min(np.abs(measured)) - 1.0),
-            # Whether the rays agreed on which side of the knee the unit fires.
-        })
+    for first in range(0, units, batch_units):
+        batch = list(range(first, min(first + batch_units, units)))
+        for slot, index in enumerate(batch):
+            build(index, slot)
+        rows = len(batch) * per_unit
+        responses = np.concatenate(
+            [evaluate(rays[start:min(start + request_chunk, rows)])
+             for start in range(0, rows, request_chunk)],
+            axis=0,
+        )
+        for slot, index in enumerate(batch):
+            measured, shares = [], []
+            for repeat in range(repeats):
+                start = (slot * repeats + repeat) * positions.size
+                norm, error, reference = measure_ray(
+                    responses[start:start + positions.size] @ output_directions[index]
+                )
+                measured.append(norm)
+                shares.append(float(1.0 - error / reference) if reference > 0 else 0.0)
+            # Median, not mean. One ray can land on a neighbour's knee instead of this unit's,
+            # and averaging in log space lets that single answer drag the result: with four
+            # rays and a geometric mean the worst synthetic norm went from 33% out to a factor
+            # of ten, because a mean has no defence against one bad member. The median has
+            # one, which is the whole reason for repeating the measurement.
+            norms[index] = float(np.median(measured))
+            diagnostics.append({
+                "norm": float(norms[index]),
+                # Share of the ray the knee explains that a smooth background cannot. A unit
+                # whose own transition never showed up in the probed range scores near zero
+                # here, and its norm is a guess rather than a measurement.
+                "kneeShare": float(np.min(shares)),
+                # How far apart independent rays put the same knee, as a ratio. This is the
+                # measure that catches a confident wrong answer, which `kneeShare` does not.
+                "raySpread": float(max(np.abs(measured)) / min(np.abs(measured)) - 1.0),
+            })
     return norms, diagnostics
 
 
@@ -798,6 +823,10 @@ def recover_block(
         outputs.append(centroid / np.linalg.norm(centroid))
         determinations.append(determination)
     telemetry.unitsRecovered = len(gates)
+    telemetry.crossingsPerLine = (
+        float(telemetry.crossingsFound / telemetry.linesScanned) if telemetry.linesScanned else 0.0
+    )
+    telemetry.resolvableSlotsPerLine = int(samples // max(separation, 1))
 
     # The up directions. With every gate known, silu(g_i.x) is a known function of the probe
     # point and y(x) = sum_i silu(g_i.x) * (d_i (x) u_i) x is linear in the matrices
