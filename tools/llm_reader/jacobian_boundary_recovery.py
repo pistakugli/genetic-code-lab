@@ -283,8 +283,11 @@ def recover_block(
     gate_residual_tolerance: float,
     amplitude_crossings: int,
     min_cluster_size: int,
+    progress: bool = False,
     up_sample_count: int,
     up_sample_scale: float,
+    up_request_chunk: int = 4096,
+    norm_search_rows: int = 4000,
     seed: int,
 ) -> tuple[dict[str, Any], RecoveryTelemetry]:
     rng = np.random.default_rng(seed)
@@ -344,7 +347,18 @@ def recover_block(
     # is reported so the cut is visible rather than implicit.
     ordered_clusters = [group for group in sorted(clusters, key=len, reverse=True) if len(group) >= min_cluster_size]
     telemetry.clustersSkippedAsSmall = len(clusters) - len(ordered_clusters)
-    for cluster in ordered_clusters:
+    for position, cluster in enumerate(ordered_clusters):
+        if progress and position % 10 == 0:
+            # Long runs with no output are indistinguishable from hung ones, and a 128-unit
+            # block spends most of its time in this loop.
+            print(
+                json.dumps({
+                    "type": "progress", "phase": "gate-solve",
+                    "cluster": position, "of": len(ordered_clusters),
+                    "solved": len(gates), "oracleCalls": telemetry.oracleCalls,
+                }),
+                flush=True,
+            )
         if gate_mode == "amplitude":
             # One crossing is enough. The null-space route needs `active_rank` crossings of
             # the same unit, which is why a 32-unit block recovered 17 of 32 while every one
@@ -437,7 +451,13 @@ def recover_block(
         gate_matrix = np.stack(gates) @ basis
         sample_rng = np.random.default_rng(seed + 9137)
         samples_in = sample_rng.normal(0.0, up_sample_scale, size=(up_sample_count, input_dim))
-        responses = evaluate(samples_in)
+        # Chunked. One call for 30000 points at 3072 wide is a 368 MB array through a file
+        # handoff, which is where a 64-unit run stopped making progress after the gates were
+        # already solved. The chunk size bounds the transfer without changing the solve.
+        response_chunks = []
+        for start in range(0, up_sample_count, up_request_chunk):
+            response_chunks.append(evaluate(samples_in[start:start + up_request_chunk]))
+        responses = np.concatenate(response_chunks, axis=0)
         telemetry.oracleCalls += up_sample_count
         telemetry.upSolveCalls = up_sample_count
         # The recovered gate is a direction, so its norm is 1 while the real one is around
@@ -447,19 +467,27 @@ def recover_block(
         # unit and it is chosen by which value explains the unit's own projection best - a
         # one-dimensional search on data already paid for, not a fit of the block.
         raw_response = samples_in @ gate_matrix.T
+        coordinates = samples_in @ basis.T
         output_directions = np.stack(outputs)
         gate_norms = np.ones(len(gates), dtype=np.float64)
+        # The norm search runs on a subsample. It is a one-dimensional scan over 160
+        # candidates for every unit, and on the full sample set that is 160 least-squares
+        # solves of a 30000 x rank system per unit - hours of CPU that the oracle then waits
+        # on. The norm is a scalar and a few thousand rows determine it as well as thirty
+        # thousand do; the solve that produces the direction still uses everything.
         candidate_norms = np.geomspace(2e-4, 2.0, 160)
+        search_rows = min(up_sample_count, norm_search_rows)
+        search_coordinates = coordinates[:search_rows]
         for index in range(len(gates)):
-            projected = responses @ output_directions[index]
+            projected_search = (responses @ output_directions[index])[:search_rows]
             best_norm, best_residual = 1.0, float("inf")
             for candidate in candidate_norms:
-                scaled = raw_response[:, index] * candidate
+                scaled = raw_response[:search_rows, index] * candidate
                 activation = scaled / (1.0 + np.exp(-np.clip(scaled, -60.0, 60.0)))
-                weighted = activation[:, None] * (samples_in @ basis.T)
-                solution, residual, *_ = np.linalg.lstsq(weighted, projected, rcond=None)
+                weighted = activation[:, None] * search_coordinates
+                solution, residual, *_ = np.linalg.lstsq(weighted, projected_search, rcond=None)
                 error = float(residual[0]) if len(residual) else float(
-                    np.sum((weighted @ solution - projected) ** 2)
+                    np.sum((weighted @ solution - projected_search) ** 2)
                 )
                 if error < best_residual:
                     best_norm, best_residual = float(candidate), error
@@ -471,7 +499,6 @@ def recover_block(
         # `input_dim`: for 32 units in 3072 dimensions that is 2048 unknowns instead of
         # 98304, and 6000 samples go from hopelessly underdetermined - which returned zero
         # usable up directions on the live model - to comfortably overdetermined.
-        coordinates = samples_in @ basis.T
         # Per unit, through its own output direction, rather than one joint solve over all of
         # them. Projecting the response onto `d_i` leaves that unit's contribution with
         # coefficient 1 and everyone else's scaled by `d_j . d_i`, which for directions in
@@ -527,6 +554,7 @@ def gate_from_peak_amplitudes(
     output_direction: np.ndarray,
     probe_basis: np.ndarray,
     step: float,
+    request_chunk: int = 4096,
 ) -> tuple[np.ndarray, float, int]:
     """Read a gate direction off the amplitudes at one crossing, not from many crossings.
 
@@ -563,7 +591,10 @@ def gate_from_peak_amplitudes(
         anchors[None, :, :] + step * probes[:, None, :],
         anchors[None, :, :] - step * probes[:, None, :],
     ], axis=1).reshape(-1, probes.shape[1])
-    values = evaluate(offsets)
+    # Chunked for the same reason the up solve is: batching removes round trips, but an
+    # unbounded batch turns into a multi-hundred-megabyte file handoff per crossing.
+    chunks = [evaluate(offsets[start:start + request_chunk]) for start in range(0, offsets.shape[0], request_chunk)]
+    values = np.concatenate(chunks, axis=0)
     calls = offsets.shape[0]
     reshaped = values.reshape(probes.shape[0], 8, -1)
     derivatives = (reshaped[:, :4, :] - reshaped[:, 4:, :]) / (2.0 * step)
@@ -651,8 +682,11 @@ def main() -> int:
     parser.add_argument("--gate-residual-tolerance", type=float, default=1e-3)
     parser.add_argument("--amplitude-crossings", type=int, default=4)
     parser.add_argument("--min-cluster-size", type=int, default=3)
+    parser.add_argument("--progress", action="store_true")
     parser.add_argument("--up-sample-count", type=int, default=6000)
     parser.add_argument("--up-sample-scale", type=float, default=0.6)
+    parser.add_argument("--up-request-chunk", type=int, default=4096)
+    parser.add_argument("--norm-search-rows", type=int, default=4000)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--output-json", default="")
     parser.add_argument(
@@ -710,8 +744,11 @@ def main() -> int:
                 gate_residual_tolerance=args.gate_residual_tolerance,
                 amplitude_crossings=args.amplitude_crossings,
                 min_cluster_size=args.min_cluster_size,
+                progress=args.progress,
                 up_sample_count=args.up_sample_count,
                 up_sample_scale=args.up_sample_scale,
+                up_request_chunk=args.up_request_chunk,
+                norm_search_rows=args.norm_search_rows,
                 seed=args.seed,
             )
             report: dict[str, Any] = {
