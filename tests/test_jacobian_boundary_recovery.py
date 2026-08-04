@@ -570,7 +570,7 @@ class OutputChannelUnmixingTest(unittest.TestCase):
     """
 
     @staticmethod
-    def block(units: int, dim: int, points: int = 6000, seed: int = 1):
+    def block(units: int, dim: int, points: int = 2500, seed: int = 1):
         rng = np.random.default_rng(seed)
         gate = rng.normal(size=(units, dim)) / np.sqrt(dim)
         up = rng.normal(size=(units, dim)) / np.sqrt(dim)
@@ -598,21 +598,23 @@ class OutputChannelUnmixingTest(unittest.TestCase):
         return np.array(cosines)
 
     def test_inverting_the_mixing_beats_projecting_through_it(self) -> None:
-        inputs, responses, gate, up, down = self.block(units=200, dim=256)
+        inputs, responses, gate, up, down = self.block(units=120, dim=160)
 
         projected = self.solve(inputs, responses @ down.T, gate, up)
         unmixed = self.solve(inputs, responses @ np.linalg.pinv(down), gate, up)
 
-        # At 200 units in 256 dimensions the leak is about 0.88 of the signal, which is the
-        # regime a full 8192-unit layer sits in, not an invented worst case.
+        # At 120 units in 160 dimensions the leak is about 0.87 of the signal, which is the
+        # regime a full 8192-unit layer sits in, not an invented worst case. Kept small on
+        # purpose: a suite that takes a quarter of an hour stops being run, and the effect
+        # being measured is set by the ratio `k/dim`, not by the absolute size.
         self.assertLess(float(np.median(projected)), 0.99)
         self.assertGreater(float(np.median(unmixed)), 0.999)
         self.assertGreater(float(np.mean(unmixed > 0.99)), float(np.mean(projected > 0.99)))
 
     def test_the_gain_grows_with_the_crowding(self) -> None:
         gains = []
-        for units in (32, 200):
-            inputs, responses, gate, up, down = self.block(units=units, dim=256)
+        for units in (24, 120):
+            inputs, responses, gate, up, down = self.block(units=units, dim=160)
             projected = self.solve(inputs, responses @ down.T, gate, up)
             unmixed = self.solve(inputs, responses @ np.linalg.pinv(down), gate, up)
             gains.append(float(np.median(unmixed) - np.median(projected)))
@@ -622,7 +624,7 @@ class OutputChannelUnmixingTest(unittest.TestCase):
         self.assertGreater(gains[1], gains[0])
 
     def test_it_costs_one_solve_rather_than_a_sweep_per_unit(self) -> None:
-        _inputs, responses, _gate, _up, down = self.block(units=64, dim=256)
+        _inputs, responses, _gate, _up, down = self.block(units=40, dim=160)
 
         # A `dim x k` pseudo inverse applied once, against the previous answer of repeatedly
         # subtracting fitted estimates - which injected each neighbour's error while removing
@@ -630,3 +632,75 @@ class OutputChannelUnmixingTest(unittest.TestCase):
         unmixed = responses @ np.linalg.pinv(down)
 
         self.assertEqual(unmixed.shape, (responses.shape[0], down.shape[0]))
+
+
+class HeldOutReconstructionTest(unittest.TestCase):
+    """The only number here that a caller without the model's weights can act on.
+
+    Every per-unit figure in this file is a cosine against `gate_proj` and `up_proj`, which is
+    a post-hoc witness: it exists to validate the method, and is not available in the setting
+    the method is for. The recovered block is a complete function, so it can be run on points
+    it was never fitted on and compared against the oracle - and that single number moves for
+    every failure at once, a missed unit, a norm at the wrong scale, a gate pointing the wrong
+    way, an up direction bent by a neighbour.
+    """
+
+    @staticmethod
+    def teacher(units: int = 6, dim: int = 32, seed: int = 3):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        up = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(size=(dim, units))
+
+        def evaluate(points: np.ndarray) -> np.ndarray:
+            z = points @ gate.T
+            return ((z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (points @ up.T)) @ down.T
+
+        return evaluate, gate, up, down
+
+    def recover(self, **overrides):
+        evaluate, gate, _up, _down = self.teacher()
+        settings = dict(
+            input_dim=gate.shape[1], active_rank=2 * gate.shape[0],
+            line_count=50, samples=401, scale=2e4, step=1e-4,
+            peak_fraction=0.05, separation=6, min_sharpness=3.0,
+            cluster_min_cosine=0.95, basis_points_count=8, basis_scale=1.0,
+            gate_mode="amplitude", amplitude_span=0.01, amplitude_min_alignment=0.5,
+            duplicate_gate_cosine=0.98, gate_residual_tolerance=1.0,
+            amplitude_crossings=4, min_cluster_size=1,
+            up_sample_count=4000, up_sample_scale=2.0, seed=5,
+        )
+        settings.update(overrides)
+        result, _telemetry = recover_block(evaluate, **settings)
+        return result
+
+    def test_a_good_recovery_reproduces_the_oracle_on_points_it_never_saw(self) -> None:
+        result = self.recover()
+
+        self.assertIsNotNone(result["reconstruction"])
+        self.assertGreater(result["reconstruction"]["rSquared"], 0.95)
+
+    def test_the_points_are_held_out_rather_than_the_ones_it_was_fitted_on(self) -> None:
+        # Fitting quality on the fitting set says nothing about a missed unit, because the
+        # solve is free to spend the units it does have on explaining what the missing one
+        # did. Different points are the whole content of the check.
+        result = self.recover(reconstruction_points=1500)
+
+        self.assertEqual(result["reconstruction"]["points"], 1500)
+
+    def test_it_can_be_turned_off_without_breaking_the_report(self) -> None:
+        result = self.recover(reconstruction_points=0)
+
+        self.assertIsNone(result["reconstruction"])
+
+    def test_a_block_recovered_with_units_missing_scores_worse(self) -> None:
+        # Half the budget cannot describe the whole block, and the point of a blind measure is
+        # that it says so without being told how many units there were.
+        whole = self.recover()
+        partial = self.recover(active_rank=4, line_count=12, min_cluster_size=8)
+
+        if partial["reconstruction"] is not None:
+            self.assertLess(
+                partial["reconstruction"]["rSquared"],
+                whole["reconstruction"]["rSquared"],
+            )

@@ -629,6 +629,7 @@ def recover_block(
     norm_ray_max: float = 30.0,
     norm_ray_offset: float = 0.25,
     norm_ray_repeats: int = 3,
+    reconstruction_points: int = 4000,
     up_refinement_sweeps: int = 0,
     collinear_threshold: float = 0.9,
     weak_share_threshold: float = 0.002,
@@ -793,6 +794,7 @@ def recover_block(
     # SVD splits it into the output direction and the up direction. The gates were the only
     # hard part; this closes the block rather than leaving a caller with two thirds of it.
     ups: list[np.ndarray] = []
+    reconstruction: dict[str, float] | None = None
     if gates and up_sample_count > 0:
         gate_matrix = np.stack(gates) @ basis
         sample_rng = np.random.default_rng(seed + 9137)
@@ -936,6 +938,43 @@ def recover_block(
             ups.append((solution / norm if norm > 0 else solution) @ basis)
         telemetry.upsRecovered = len(ups)
 
+        # What the recovery is worth without the answer key. Everything else this file reports
+        # per unit is a cosine against the model's own weights, which is a post-hoc witness a
+        # caller in the black-box setting does not have. The recovered block is a complete
+        # function, so it can be run on points it was never fitted on and compared against the
+        # oracle - and that single number moves for every failure at once: a unit that was
+        # missed, a norm at the wrong scale, a gate pointing the wrong way, an up direction
+        # bent by a neighbour. It is the only measure here that a user without weights gets.
+        held_out = np.random.default_rng(seed + 8821).normal(
+            0.0, up_sample_scale, size=(max(reconstruction_points, 0), input_dim)
+        )
+        if held_out.shape[0]:
+            truth_chunks = [
+                evaluate(held_out[start:start + up_request_chunk])
+                for start in range(0, held_out.shape[0], up_request_chunk)
+            ]
+            observed = np.concatenate(truth_chunks, axis=0)
+            telemetry.oracleCalls += held_out.shape[0]
+            held_gate = (held_out @ gate_matrix.T) * gate_norms[None, :]
+            held_smooth = held_gate / (1.0 + np.exp(-np.clip(held_gate, -60.0, 60.0)))
+            held_coordinates = held_out @ basis.T
+            predicted = np.zeros_like(observed)
+            for index in range(len(gates)):
+                predicted += np.outer(
+                    held_smooth[:, index] * (held_coordinates @ solved_coefficients[index]),
+                    output_directions[index],
+                )
+            residual = float(np.sum((observed - predicted) ** 2))
+            total = float(np.sum((observed - observed.mean(axis=0)) ** 2))
+            reconstruction = {
+                "points": int(held_out.shape[0]),
+                "rSquared": float(1.0 - residual / total) if total > 0 else 0.0,
+                "relativeResidual": float(
+                    np.linalg.norm(observed - predicted) / max(np.linalg.norm(observed), 1e-30)
+                ),
+            }
+        telemetry.upsRecovered = len(ups)
+
     solved_gates = np.stack(gates) if gates else np.zeros((0, active_rank))
     solved_outputs = np.stack(outputs) if outputs else np.zeros((0, 1))
     verdict = identifiability_verdict(
@@ -955,6 +994,7 @@ def recover_block(
 
     return {
         "identifiability": verdict,
+        "reconstruction": reconstruction,
         "basis": basis,
         "upDirections": np.stack(ups) if ups else np.zeros((0, input_dim)),
         "gateNorms": gate_norms if gates and up_sample_count > 0 else np.zeros(0),
@@ -1132,6 +1172,7 @@ def main() -> int:
     parser.add_argument("--up-sample-scale", type=float, default=0.6)
     parser.add_argument("--up-request-chunk", type=int, default=4096)
     parser.add_argument("--norm-ray-points", type=int, default=192)
+    parser.add_argument("--reconstruction-points", type=int, default=4000)
     parser.add_argument("--collinear-threshold", type=float, default=0.9)
     parser.add_argument("--weak-share-threshold", type=float, default=0.002)
     parser.add_argument("--rank-energy-threshold", type=float, default=0.98)
@@ -1200,6 +1241,7 @@ def main() -> int:
                 up_sample_scale=args.up_sample_scale,
                 up_request_chunk=args.up_request_chunk,
                 norm_ray_points=args.norm_ray_points,
+                reconstruction_points=args.reconstruction_points,
                 up_refinement_sweeps=args.up_refinement_sweeps,
                 collinear_threshold=args.collinear_threshold,
                 weak_share_threshold=args.weak_share_threshold,
@@ -1213,6 +1255,10 @@ def main() -> int:
                 # unsupported structure - is exactly what a reader does when the numbers
                 # come before the verdict.
                 "identifiability": result["identifiability"],
+                # Second, because it is the only number here a caller without the weights can
+                # act on. Everything under `posthoc` is measured against the model's own
+                # parameters and exists to validate the method, not to be available in use.
+                "reconstruction": result["reconstruction"],
                 "model": args.model,
                 "layer": args.layer,
                 "units": unit_list,
