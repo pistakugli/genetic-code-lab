@@ -15,8 +15,8 @@
   },
   "reconstruction": {
     "points": 4000,
-    "rSquared": 0.9994137125169862,
-    "relativeResidual": 0.024135229112028977
+    "rSquared": 0.9994036175794178,
+    "relativeResidual": 0.024342127419112406
   },
   "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
   "layer": 15,
@@ -88,14 +88,60 @@
   ],
   "oracleResponseWidth": 3072,
   "telemetry": {
-    "oracleCalls": 469360,
+    "oracleCalls": 338288,
     "basisCalls": 73728,
     "scanCalls": 128160,
     "linesScanned": 80,
     "crossingsFound": 1549,
     "clusters": 115,
     "unitsRecovered": 64,
-    "amplitudeCalls": 196608,
+    "amplitudeCalls": 65536,
+    "phaseSeconds": {
+      "basis": {
+        "wall": 7.76,
+        "solverCpu": 11.678,
+        "coresHeld": 1.5
+      },
+      "lineScan": {
+        "wall": 6.037,
+        "solverCpu": 39.788,
+        "coresHeld": 6.6
+      },
+      "lineScanBreakdown": {
+        "buildPoints": 1.596,
+        "oracleWait": 3.537,
+        "postProcess": 0.373
+      },
+      "clustering": {
+        "wall": 0.102,
+        "solverCpu": 0.102,
+        "coresHeld": 1.0
+      },
+      "normCalibration": {
+        "wall": 2.771,
+        "solverCpu": 8.306,
+        "coresHeld": 3.0
+      },
+      "signDecision": {
+        "wall": 0.416,
+        "solverCpu": 0.815,
+        "coresHeld": 2.0
+      },
+      "upSolve": {
+        "wall": 1.403,
+        "solverCpu": 4.011,
+        "coresHeld": 2.9
+      },
+      "reconstruction": {
+        "wall": 0.52,
+        "solverCpu": 1.08,
+        "coresHeld": 2.1
+      }
+    },
+    "amplitudeSweeps": 64,
+    "amplitudeSweepsAllowed": 192,
+    "crossingsPerLine": 19.3625,
+    "resolvableSlotsPerLine": 133,
     "duplicatesDropped": 0,
     "clustersSkippedAsSmall": 51,
     "rejectedByResidual": 0,
@@ -128,24 +174,28 @@
     "solverAccess": "oracle-only",
     "weightsUsedBySolver": false,
     "hooksUsedBySolver": false,
-    "postHocWitnessOnly": true
+    "postHocWitnessOnly": true,
+    "truthUnlockStage": "jacobian-boundary-recovery-frozen",
+    "truthUnlockQueryCount": 338288,
+    "solverOracleCalls": 338288,
+    "queryCountAtReport": 338288
   },
   "posthoc": {
     "unitsWithGateAbove099": 64,
-    "perUnitGateCosineMin": 0.9998503425057905,
-    "perUnitGateCosineMedian": 0.9999906096852635,
+    "perUnitGateCosineMin": 0.9998490330443416,
+    "perUnitGateCosineMedian": 0.9999910496076388,
     "unitsWithUpAbove099": 64,
-    "perUnitUpCosineMin": 0.9998316862626271,
+    "perUnitUpCosineMin": 0.9998318391433316,
     "unitsFullyRecovered": 64,
     "unitsWithJointAbove099": 64,
-    "perUnitJointCosineMin": 0.9998316862626271,
+    "perUnitJointCosineMin": 0.9998318391433316,
     "unitsWithOutputAbove099": 64,
-    "perUnitOutputCosineMin": 0.9994343612080415,
-    "outputCosineMedian": 0.9997536138602383,
+    "perUnitOutputCosineMin": 0.9994343328091191,
+    "outputCosineMedian": 0.999753607020819,
     "solutionCount": 64,
     "spuriousSolutions": 0,
-    "gateCosineMedian": 0.9999906096852635,
-    "gateCosineMin": 0.9998503425057905,
+    "gateCosineMedian": 0.9999910496076388,
+    "gateCosineMin": 0.9998490330443416,
     "gateCosineShareAbove099": 1.0,
     "distinctUnitsMatchedNotProofOfRecovery": 64,
     "unitCount": 64,

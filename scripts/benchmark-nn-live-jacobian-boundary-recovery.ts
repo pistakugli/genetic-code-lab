@@ -10,6 +10,7 @@
 // catch a regression, which is the only thing a lane is for.
 
 import { spawnSync } from 'child_process';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { resolveBenchmarkOutput, writeBenchmarkManifest } from './benchmark-paths';
@@ -142,7 +143,40 @@ if (access.solverAccess !== 'oracle-only') failures.push('solver access mode is 
 if (access.weightsUsedBySolver !== false || access.hooksUsedBySolver !== false) failures.push('solver access invariant failed');
 if (access.postHocWitnessOnly !== true) failures.push('post-hoc witness invariant failed');
 
+// The four fields above are literals the tool writes about itself, so checking them proves
+// only that it spelled them correctly. Audit finding F17. What follows is evidence: the
+// oracle refuses `truth()` until it is unlocked and records the query count at that moment,
+// so if the unlock count and the solver's own call count agree, no query was made outside the
+// accounted path and none preceded the freeze.
+if (typeof access.truthUnlockStage !== 'string' || !access.truthUnlockStage) {
+  failures.push('no post-hoc truth unlock stage recorded');
+}
+const unlockAt = finiteNumber(access.truthUnlockQueryCount, 'accessAudit.truthUnlockQueryCount', failures);
+const solverCalls = finiteNumber(access.solverOracleCalls, 'accessAudit.solverOracleCalls', failures);
+if (unlockAt !== solverCalls) {
+  failures.push(`truth unlocked at query ${String(unlockAt)} but the solver counted ${String(solverCalls)}`);
+}
+
 const oracleCalls = finiteNumber(telemetry.oracleCalls, 'telemetry.oracleCalls', failures);
+if (oracleCalls !== solverCalls) failures.push('telemetry and access audit disagree on the call count');
+
+// Which code produced this artifact. Without it a manifest keeps reading `pass` long after
+// the tool it describes has moved on - which is what happened here within hours of the lane
+// being written, and is audit finding F02. The pattern is
+// `benchmark-nn-live-blind-swiglu-isolated-cold-start.ts`, which hashes its tools and refuses
+// artifacts produced by different ones.
+const solverSha256 = crypto
+  .createHash('sha256')
+  .update(fs.readFileSync(path.join(repoRoot, 'tools/llm_reader/jacobian_boundary_recovery.py')))
+  .digest('hex');
+const manifestPath = path.join(output.outputDir, 'manifest.json');
+if (!regenerate && fs.existsSync(manifestPath)) {
+  const previous = record(JSON.parse(fs.readFileSync(manifestPath, 'utf8')), 'manifest');
+  const summary = record(previous.summary, 'manifest.summary');
+  if (summary.solverSha256 !== solverSha256) {
+    failures.push('artifact was produced by a different version of the recovery tool');
+  }
+}
 if (oracleCalls > settings.budget) failures.push(`oracleCalls=${String(oracleCalls)}>${settings.budget}`);
 
 writeBenchmarkManifest(repoRoot, output, {
@@ -157,6 +191,8 @@ writeBenchmarkManifest(repoRoot, output, {
     heldOutRSquared: rSquared,
     oracleCalls,
     verdict: identifiability.verdict,
+    solverSha256,
+    truthUnlockQueryCount: access.truthUnlockQueryCount,
     failures,
   },
   notes: [
