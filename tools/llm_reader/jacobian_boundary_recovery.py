@@ -912,6 +912,7 @@ def recover_block(
     gate_residual_tolerance: float,
     amplitude_crossings: int,
     min_cluster_size: int,
+    gate_stability_cosine: float = 0.99999,
     progress: bool = False,
     up_sample_count: int,
     up_sample_scale: float,
@@ -1032,6 +1033,10 @@ def recover_block(
             cluster_points = np.stack([crossing.basis_point for crossing in cluster]).astype(np.float64)
             cluster_norms = np.linalg.norm(cluster_points, axis=1)
 
+            # Which crossings feed the estimate, so the rest can judge it.
+            ranked_ids = {id(crossing) for crossing in ranked}
+            held_out_mask = np.array([id(c) not in ranked_ids for c in cluster], dtype=bool)
+
             estimates: list[np.ndarray] = []
             alignments: list[float] = []
             gate_full = np.zeros(active_rank)
@@ -1065,15 +1070,36 @@ def recover_block(
                 residual = float(
                     np.median(np.abs(cluster_points @ gate_full) / np.maximum(cluster_norms, 1e-30))
                 )
-                # Stop as soon as the direction satisfies its own hyperplane. How many
-                # crossings a unit needs is set by how crowded its neighbourhood is, and that
-                # varies unit to unit: one read is enough for every unit of a 64-unit block
-                # but leaves one gate at cosine 0.065 in a 128-unit block, while two is enough
-                # there. A fixed count either overpays for the easy units or fails the hard
-                # ones, and this is the term that decides the budget for a full layer -
-                # `8 * rank` calls per sweep, per unit.
-                if residual <= gate_residual_tolerance and alignment >= amplitude_min_alignment:
-                    break
+                # Stop when the direction already explains the crossings it was *not* built
+                # from. How many crossings a unit needs is set by how crowded its neighbourhood
+                # is, and that varies unit to unit: one read is enough for every unit of a
+                # 64-unit block but leaves four units of a 128-unit block with no solution at
+                # all, while the ranked list lets those retry. A fixed count either overpays
+                # for the easy units or fails the hard ones, and this is the term that decides
+                # the budget for a full layer - `8 * rank` calls per sweep, per unit.
+                #
+                # Audit finding F19 was that this test and the rejection filter below were the
+                # same expression against the same threshold, so a unit that stopped early
+                # could not be rejected. Measurement then contradicted the severity: the
+                # residual was already evaluated over the whole cluster while the estimate came
+                # from one to three of its crossings, so it was a held-out check in substance -
+                # and the 128-unit run with one fixed crossing returned no bad gate at all
+                # (every solution above cosine 0.99886), it simply missed four units. The
+                # defect was the appearance of circularity, not its consequence.
+                #
+                # It is made explicit rather than argued: stopping is decided on the crossings
+                # that did not enter the estimate, rejection on all of them. Two quantities,
+                # so neither can vouch for the other. Stability of the direction between
+                # successive readings was tried instead and is sound but wasteful - it cannot
+                # stop before two readings, so every easy unit pays for a second, 261 sweeps
+                # against 132 for identical quality.
+                if held_out_mask.any():
+                    held_out = float(np.median(
+                        np.abs(cluster_points[held_out_mask] @ gate_full)
+                        / np.maximum(cluster_norms[held_out_mask], 1e-30)
+                    ))
+                    if held_out <= gate_residual_tolerance and alignment >= amplitude_min_alignment:
+                        break
             if not estimates:
                 continue
             if alignment < amplitude_min_alignment:
@@ -1569,6 +1595,7 @@ def main() -> int:
     parser.add_argument("--up-sample-count", type=int, default=30000)
     parser.add_argument("--up-sample-scale", type=float, default=0.6)
     parser.add_argument("--up-request-chunk", type=int, default=4096)
+    parser.add_argument("--gate-stability-cosine", type=float, default=0.99999)
     parser.add_argument("--norm-ray-points", type=int, default=192)
     parser.add_argument("--reconstruction-points", type=int, default=4000)
     parser.add_argument("--collinear-threshold", type=float, default=0.9)
@@ -1638,6 +1665,7 @@ def main() -> int:
                 up_sample_count=args.up_sample_count,
                 up_sample_scale=args.up_sample_scale,
                 up_request_chunk=args.up_request_chunk,
+                gate_stability_cosine=args.gate_stability_cosine,
                 norm_ray_points=args.norm_ray_points,
                 reconstruction_points=args.reconstruction_points,
                 up_refinement_sweeps=args.up_refinement_sweeps,
