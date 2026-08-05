@@ -2278,16 +2278,34 @@ the same shape of mistake as `distinctUnitsMatched`.
 block is a complete function, so it is run on points the solve never saw and compared against
 the oracle.
 
-| block | fully recovered | spurious | held-out R2 | calls |
-| --- | --- | --- | --- | --- |
-| 64 unit | `64/64` | 0 | `0.99941` | `469360` |
-| 128 unit | `128/128` | 0 | `0.99945` | `1303360` |
-| 512 unit | `512/512` | 0 | `0.99931` | `14404896` |
+`realTextDeltaCosine` is the second half of the blind check and the reason it is not one
+number. `heldOutR2` is measured on the probe cloud, where `||x|| ~ 111`; the model runs on
+hidden states that put `g.x` at a standard deviation of 0.265. So each recovered unit is also
+silenced against real sentences and compared with a hooked forward pass.
 
-Nothing degrades across an eightfold increase in block size. The held-out number is what makes
-that claim falsifiable rather than self-reported: the same 64-unit block scanned with 14 lines
-instead of 80 recovers 37 of 64 and scores `0.61923`, without being told the unit count and
-without touching a weight.
+| block | fully recovered | spurious | held-out R2 | real-text delta cosine | calls |
+| --- | --- | --- | --- | --- | --- |
+| 64 unit | `64/64` | 0 | `0.9994036` | `0.9996909` | `338288` |
+| 128 unit | `128/128` | 0 | `0.9994209` | `0.9997182` | `787264` |
+
+`fullyRecovered` requires the gate direction, the up direction and the gate norm together,
+matched to one source unit, and the gate cosine is **signed** - a unit whose gate points the
+wrong way fires exactly when the real one is silent, and an absolute cosine counted it as
+recovered.
+
+Scope, because the numbers mean nothing without it. The blocks are uniform random draws over
+the layer's 8192 units, and measured against the whole layer they sit at the 47th to 51st
+percentile of both `||g||` and `||d||`, where a uniform sample would average the 50th - so
+these are ordinary blocks rather than an easy tail. The 64- and 128-unit blocks are
+independent draws sharing no unit; 256 extends 128 and 512 extends 256, so the upper rungs
+measure what **density** does to the same units rather than sampling fresh ones.
+`benchmarks/fixtures/jacobian-boundary-units/README.md` carries the detail.
+
+The held-out number is what makes the claim falsifiable rather than self-reported: the same
+64-unit block scanned with 14 lines instead of 80 recovers 37 of 64 and scores `0.61923`,
+without being told the unit count and without touching a weight. Four units missing out of 128
+takes it from `0.999421` to `0.962627`, so it notices a partial block and not only a broken
+one.
 
 Where it stops is set by the probe scale, not by the method. A `silu` knee is
 `1/(S ||g|| |g.d|)` wide along the line while boundaries sit about `2/k` apart, so a line stops
