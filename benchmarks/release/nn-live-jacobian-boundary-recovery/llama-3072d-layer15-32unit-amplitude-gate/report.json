@@ -1,56 +1,129 @@
 {
+  "identifiability": {
+    "structureClaimAllowed": true,
+    "verdict": "recovered",
+    "findings": [],
+    "clustersFound": 36,
+    "gateNormDiagnosticCounts": {
+      "kneeShareBelowThreshold": 0,
+      "raySpreadAboveThreshold": 0
+    },
+    "thresholds": {
+      "duplicateGateCosine": 0.98,
+      "collinear": 0.9,
+      "weakShare": 0.002,
+      "rankEnergy": 0.98,
+      "kneeShare": 0.5,
+      "raySpread": 0.25
+    }
+  },
+  "reconstruction": {
+    "points": 4000,
+    "rSquared": 0.9990757258244011,
+    "relativeResidual": 0.030244524740750393
+  },
   "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
   "layer": 15,
   "units": [
-    33,
-    62,
-    989,
-    1136,
-    1603,
-    1614,
-    1636,
-    2022,
-    2107,
-    2125,
-    2841,
-    3065,
-    3105,
-    3550,
-    3667,
-    3783,
-    3909,
-    4330,
-    4346,
-    4519,
-    4560,
-    5515,
-    5573,
-    5865,
-    5987,
-    6435,
-    6789,
-    7138,
-    7231,
-    7580,
-    7999,
-    8167
+    447,
+    520,
+    589,
+    670,
+    675,
+    707,
+    746,
+    774,
+    933,
+    1107,
+    1364,
+    1629,
+    1796,
+    2037,
+    2347,
+    2390,
+    3088,
+    3343,
+    3552,
+    3560,
+    3790,
+    4081,
+    4384,
+    5377,
+    5630,
+    5765,
+    6165,
+    6459,
+    6796,
+    7244,
+    7446,
+    7605
   ],
   "oracleResponseWidth": 3072,
   "telemetry": {
-    "oracleCalls": 178352,
+    "oracleCalls": 167560,
     "basisCalls": 49152,
-    "scanCalls": 40080,
+    "scanCalls": 64080,
     "linesScanned": 40,
-    "crossingsFound": 416,
-    "clusters": 39,
-    "unitsRecovered": 35,
-    "amplitudeCalls": 69120,
-    "duplicatesDropped": 4,
+    "crossingsFound": 430,
+    "clusters": 36,
+    "unitsRecovered": 32,
+    "amplitudeCalls": 16896,
+    "phaseSeconds": {
+      "basis": {
+        "wall": 6.107,
+        "solverCpu": 10.548,
+        "coresHeld": 1.7
+      },
+      "lineScan": {
+        "wall": 3.003,
+        "solverCpu": 19.708,
+        "coresHeld": 6.6
+      },
+      "clustering": {
+        "wall": 0.015,
+        "solverCpu": 0.015,
+        "coresHeld": 1.0
+      },
+      "normCalibration": {
+        "wall": 1.452,
+        "solverCpu": 4.396,
+        "coresHeld": 3.0
+      },
+      "signDecision": {
+        "wall": 0.112,
+        "solverCpu": 0.489,
+        "coresHeld": 4.4
+      },
+      "upSolve": {
+        "wall": 0.16,
+        "solverCpu": 1.037,
+        "coresHeld": 6.5
+      },
+      "reconstruction": {
+        "wall": 0.515,
+        "solverCpu": 1.026,
+        "coresHeld": 2.0
+      }
+    },
+    "lineScanBreakdown": {
+      "buildPoints": 0.736,
+      "oracleWait": 1.785,
+      "postProcess": 0.199
+    },
+    "amplitudeSweeps": 33,
+    "amplitudeSweepsAllowed": 96,
+    "crossingsPerLine": 10.75,
+    "resolvableSlotsPerLine": 133,
+    "duplicatesDropped": 0,
+    "clustersSkippedAsSmall": 4,
     "rejectedByResidual": 0,
-    "upSolveCalls": 20000,
-    "upsRecovered": 35,
+    "upSolveCalls": 15000,
+    "upsRecovered": 32,
     "clusterSizes": [
-      21,
+      20,
+      18,
+      18,
+      18,
       18,
       17,
       17,
@@ -61,41 +134,44 @@
       15,
       14,
       14,
-      14,
       13,
-      13,
-      13,
-      12
+      13
     ],
     "notes": [
-      "basis energy in rank 64: 0.999902793975"
+      "basis energy in rank 64: 0.999897337899",
+      "identifiability verdict: recovered"
     ]
   },
   "accessAudit": {
     "solverAccess": "oracle-only",
     "weightsUsedBySolver": false,
     "hooksUsedBySolver": false,
-    "postHocWitnessOnly": true
+    "postHocWitnessOnly": true,
+    "truthUnlockStage": "jacobian-boundary-recovery-frozen",
+    "truthUnlockQueryCount": 167560,
+    "solverOracleCalls": 167560,
+    "queryCountAtReport": 167560
   },
   "posthoc": {
     "unitsWithGateAbove099": 32,
-    "perUnitGateCosineMin": 0.9996420988898144,
-    "perUnitGateCosineMedian": 0.9999878917022955,
+    "perUnitGateCosineMin": 0.9996728460430254,
+    "perUnitGateCosineMedian": 0.9999812281501832,
     "unitsWithUpAbove099": 32,
-    "perUnitUpCosineMin": 0.992586815870052,
+    "perUnitUpCosineMin": 0.9993132074589652,
+    "unitsFullyRecovered": 32,
     "unitsWithJointAbove099": 32,
-    "perUnitJointCosineMin": 0.992586815870052,
+    "perUnitJointCosineMin": 0.9993132074589652,
     "unitsWithOutputAbove099": 32,
-    "perUnitOutputCosineMin": 0.9980835635696327,
-    "outputCosineMedian": 0.9993991194196559,
-    "solutionCount": 35,
-    "spuriousSolutions": 3,
-    "gateCosineMedian": 0.999984936360228,
-    "gateCosineMin": 0.9053496395227493,
-    "gateCosineShareAbove099": 0.9142857142857143,
+    "perUnitOutputCosineMin": 0.998288745204519,
+    "outputCosineMedian": 0.9996873743175223,
+    "solutionCount": 32,
+    "spuriousSolutions": 0,
+    "gateCosineMedian": 0.9999812281501832,
+    "gateCosineMin": 0.9996728460430254,
+    "gateCosineShareAbove099": 1.0,
     "distinctUnitsMatchedNotProofOfRecovery": 32,
     "unitCount": 32,
-    "basisGateEnergy": 0.999960350393183,
-    "basisUpEnergy": 0.9999766705062978
+    "basisGateEnergy": 0.9999713347101127,
+    "basisUpEnergy": 0.9999461152959372
   }
 }

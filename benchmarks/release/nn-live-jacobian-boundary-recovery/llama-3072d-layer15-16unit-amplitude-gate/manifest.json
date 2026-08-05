@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-05T17:06:04.575Z",
+  "lane": "nn-live-jacobian-boundary-recovery",
+  "variant": "llama-3072d-layer15-16unit-amplitude-gate",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-jacobian-boundary-recovery.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.1"
+  },
+  "env": {
+    "GCL_JACOBIAN_REGENERATE": "0",
+    "GCL_JACOBIAN_VARIANT": "16unit"
+  },
+  "git": {
+    "commit": "47ebedf9570c5b5cf73bb3751fd7ac1acf8a9981",
+    "statusShort": "D benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/manifest.json\n D benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-amplitude-gate/report.json\n D benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-null-space-gate/manifest.json\n D benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-null-space-gate/report.json\n M scripts/benchmark-nn-live-jacobian-boundary-recovery.ts\n?? benchmarks/fixtures/jacobian-boundary-units/16.txt\n?? benchmarks/fixtures/jacobian-boundary-units/32.txt\n?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-amplitude-gate/\n?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-amplitude-gate/intervention.json\n?? scripts/verify-solver-integrity.ts",
+    "uncommittedDiffSha256": "c2f91fa252f31b3aa57990a9be3d0883a0c66820d09fcc54907928dbbc8f7271"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-amplitude-gate/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-amplitude-gate/report.md",
+    "manifest": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-amplitude-gate/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "regenerated": false,
+    "unitCount": 16,
+    "unitsFullyRecovered": 16,
+    "spuriousSolutions": 0,
+    "heldOutRSquared": 0.9986804704240363,
+    "realTextDeltaCosine": 0.9995284777720884,
+    "oracleCalls": 100624,
+    "verdict": "recovered",
+    "solverSha256": "86a5b1115936f042f1c0a28f581b15aff2236c7beec462e1f4037640b7e0ef94",
+    "truthUnlockQueryCount": 100624,
+    "failures": []
+  },
+  "notes": [
+    "unitsFullyRecovered requires the gate direction, the up direction and the gate norm together, matched to one source unit.",
+    "heldOutRSquared is measured without the weights, on points the solve never saw.",
+    "Oracle response width is 3072: one call carries 3072 numbers, not 1."
+  ]
+}

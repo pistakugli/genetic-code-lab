@@ -2285,8 +2285,21 @@ silenced against real sentences and compared with a hooked forward pass.
 
 | block | fully recovered | spurious | held-out R2 | real-text delta cosine | calls |
 | --- | --- | --- | --- | --- | --- |
+| 16 unit | `16/16` | 0 | `0.9986804` | `0.9995280` | `100624` |
+| 32 unit | `32/32` | 0 | `0.9990760` | `0.9995760` | `167560` |
 | 64 unit | `64/64` | 0 | `0.9994036` | `0.9996909` | `338288` |
 | 128 unit | `128/128` | 0 | `0.9994209` | `0.9997182` | `787264` |
+
+The held-out bar is per block and taken from measurement, not from a round number. A 16-unit
+block reconstructs to `0.99868` and stays there from 8000 probe samples to 80000, so that is
+its floor rather than a sampling artefact: with fewer units, each unit's parameter error is a
+larger share of the total signal. The real-text figure does not show the same effect, which is
+consistent with that reading.
+
+The null-space gate is measured and not shipped. On the same 32 units it reaches 31 of 32 at
+600 lines and `1047784` calls, against 32 of 32 at `167560` for the amplitude route - six times
+the cost for a worse result. Recording that is useful; asserting it as a passing gate, or
+lowering a bar to let it through, would not be.
 
 `fullyRecovered` requires the gate direction, the up direction and the gate norm together,
 matched to one source unit, and the gate cosine is **signed** - a unit whose gate points the

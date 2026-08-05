@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-05T16:52:47.898Z",
+  "generatedAt": "2026-08-05T17:06:05.940Z",
   "lane": "nn-live-jacobian-boundary-recovery",
   "variant": "llama-3072d-layer15-64unit-amplitude-gate",
   "status": "pass",
@@ -13,11 +13,14 @@
     "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
     "node": "v22.23.1"
   },
-  "env": {},
+  "env": {
+    "GCL_JACOBIAN_REGENERATE": "0",
+    "GCL_JACOBIAN_VARIANT": "64unit"
+  },
   "git": {
-    "commit": "00d8b6f27decbd37536af900ae67873db90d5924",
-    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json\n M scripts/benchmark-nn-live-jacobian-boundary-recovery.ts\n M tests/test_audit_findings.py\n M tests/test_identifiability_verdict.py\n M tools/llm_reader/jacobian_boundary_recovery.py\n?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/intervention.json",
-    "uncommittedDiffSha256": "4fda89ec59161c61df9ed1ea1a4e9902fb6483596fb38deb34633feb019d00bd"
+    "commit": "47ebedf9570c5b5cf73bb3751fd7ac1acf8a9981",
+    "statusShort": "D benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/manifest.json\n D benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-amplitude-gate/report.json\n D benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-null-space-gate/manifest.json\n D benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-null-space-gate/report.json\n M scripts/benchmark-nn-live-jacobian-boundary-recovery.ts\n?? benchmarks/fixtures/jacobian-boundary-units/16.txt\n?? benchmarks/fixtures/jacobian-boundary-units/32.txt\n?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-amplitude-gate/\n?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-32unit-amplitude-gate/intervention.json\n?? scripts/verify-solver-integrity.ts",
+    "uncommittedDiffSha256": "75bf44be0dd47c3c65776ec1f4d60ad74ce6b9388046963a612b2cc039600783"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json",
@@ -26,7 +29,7 @@
   },
   "summary": {
     "pass": true,
-    "regenerated": true,
+    "regenerated": false,
     "unitCount": 64,
     "unitsFullyRecovered": 64,
     "spuriousSolutions": 0,

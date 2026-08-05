@@ -29,9 +29,19 @@ const lane = 'nn-live-jacobian-boundary-recovery';
 const variants = {
   // Budgets are the measured cost plus a tenth, so a regression in the amplitude sweep's
   // stopping rule shows up as a gate failure rather than as a slower green run.
-  '64unit': { units: 64, lines: 80, basisPoints: 12, upSamples: 30_000, budget: 380_000 },
-  '128unit': { units: 128, lines: 160, basisPoints: 20, upSamples: 60_000, budget: 880_000 },
-  '256unit': { units: 256, lines: 320, basisPoints: 36, upSamples: 120_000, budget: 3_200_000 },
+  // The smallest rungs. They existed as hand-made artifacts with no generator and no saved
+  // unit list, so nothing could reproduce them; they are proper variants now.
+  //
+  // A null-space variant was among them and is not here. Measured on the same 32 units it
+  // reaches 31 of 32 at 600 lines and 1047784 calls, against 32 of 32 at 167560 for the
+  // amplitude route - six times the cost for a worse result. That is worth knowing and is in
+  // the roadmap; it is not worth asserting as a passing gate, and lowering a bar to let it
+  // through would have been fitting the threshold to the measurement.
+  '16unit': { units: 16, lines: 24, basisPoints: 6, upSamples: 8_000, budget: 150_000, gateMode: 'amplitude', minR2: 0.9985 },
+  '32unit': { units: 32, lines: 40, basisPoints: 8, upSamples: 15_000, budget: 220_000, gateMode: 'amplitude', minR2: 0.999 },
+  '64unit': { units: 64, lines: 80, basisPoints: 12, upSamples: 30_000, budget: 380_000, gateMode: 'amplitude', minR2: 0.999 },
+  '128unit': { units: 128, lines: 160, basisPoints: 20, upSamples: 60_000, budget: 880_000, gateMode: 'amplitude', minR2: 0.999 },
+  '256unit': { units: 256, lines: 320, basisPoints: 36, upSamples: 120_000, budget: 3_200_000, gateMode: 'amplitude', minR2: 0.999 },
 } as const;
 
 const requested = process.env.GCL_JACOBIAN_VARIANT ?? '64unit';
@@ -39,7 +49,7 @@ if (!(requested in variants)) {
   throw new Error(`unknown variant ${requested}; expected one of ${Object.keys(variants).join(', ')}`);
 }
 const settings = variants[requested as keyof typeof variants];
-const variant = `llama-3072d-layer15-${requested}-amplitude-gate`;
+const variant = `llama-3072d-layer15-${requested}-${settings.gateMode}-gate`;
 const output = resolveBenchmarkOutput(repoRoot, lane, variant);
 const regenerate = process.env.GCL_JACOBIAN_REGENERATE !== '0';
 
@@ -89,7 +99,7 @@ if (regenerate) {
     '--scale', '2e4',
     '--step', '1',
     '--cluster-min-cosine', '0.93',
-    '--gate-mode', 'amplitude',
+    '--gate-mode', settings.gateMode,
     '--gate-residual-tolerance', '5e-3',
     '--amplitude-crossings', '3',
     '--min-cluster-size', '4',
@@ -164,7 +174,13 @@ if (finiteNumber(posthoc.solutionCount, 'solutionCount', failures) !== settings.
 // shows up here even though every recovered unit looks clean.
 const reconstruction = record(report.reconstruction, 'reconstruction');
 const rSquared = finiteNumber(reconstruction.rSquared, 'reconstruction.rSquared', failures);
-if (rSquared < 0.999) failures.push(`held-out R2=${String(rSquared)}<0.999`);
+// Per variant, and set from measurement rather than from a round number. A 16-unit block
+// reconstructs to 0.99868 and stays there from 8000 probe samples to 80000, so that is the
+// block's floor and not a sampling artefact: with fewer units, each unit's parameter error is
+// a larger share of the total signal. Applying the 64-unit bar to it would have been
+// extrapolation, and lowering one global bar to fit would have hidden the effect. This is a
+// ratchet, the same shape the rest of the repository uses for baselines.
+if (rSquared < settings.minR2) failures.push(`held-out R2=${String(rSquared)}<${settings.minR2}`);
 if (finiteNumber(reconstruction.relativeResidual, 'reconstruction.relativeResidual', failures) > 0.05) {
   failures.push('held-out relative residual above 0.05');
 }
