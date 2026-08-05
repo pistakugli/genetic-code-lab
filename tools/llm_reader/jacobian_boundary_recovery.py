@@ -1345,6 +1345,61 @@ def recover_block(
     }, telemetry
 
 
+def count_fully_recovered(
+    *,
+    recovered_gates: np.ndarray,
+    truth_gates: np.ndarray,
+    recovered_ups: np.ndarray,
+    truth_ups: np.ndarray,
+    gate_norms: np.ndarray,
+    recovered_outputs: np.ndarray | None = None,
+    truth_outputs: np.ndarray | None = None,
+) -> int:
+    """Units whose gate direction, up direction and gate norm all came back, matched to one source.
+
+    Lifted out of the reporting flow so it can be tested at all. It was written inline, which
+    meant the measure that certifies every recovery in this route had no test of its own, and
+    the defect below survived a day of work because nothing could reach it.
+
+    The gate cosine is **signed**. `silu` is flat on one side of the knee and linear on the
+    other, so a unit whose gate points the wrong way fires exactly when the real one is silent.
+    The recovery was taught to get that right earlier the same day - 39 of 64 to 64 of 64 - and
+    this measure, which signs off on the result, was still taking an absolute value and could
+    not tell the two apart.
+
+    The up cosine is **not** signed, and that is physics rather than laxity: a unit contributes
+    `d_i silu(g_i.x)(u_i.x)`, so flipping `u_i` and `d_i` together leaves it unchanged. The
+    sign of `u_i` alone is a gauge choice and nothing can observe it. What is observable is
+    that the two flip together, so when the output directions are available the check is that
+    `sign(u.u_true) == sign(d.d_true)`.
+    """
+    def unit(rows: np.ndarray) -> np.ndarray:
+        return rows / np.maximum(np.linalg.norm(rows, axis=1, keepdims=True), 1e-30)
+
+    gate_cosine = unit(recovered_gates) @ unit(truth_gates).T
+    up_cosine = unit(recovered_ups) @ unit(truth_ups).T
+    assigned = np.abs(gate_cosine).argmax(axis=1)
+    truth_norms = np.linalg.norm(truth_gates, axis=1)
+
+    pair_ok = None
+    if recovered_outputs is not None and truth_outputs is not None:
+        pair_ok = np.sign(up_cosine) == np.sign(unit(recovered_outputs) @ unit(truth_outputs).T)
+
+    counted: set[int] = set()
+    for solution in range(recovered_gates.shape[0]):
+        source = int(assigned[solution])
+        if gate_cosine[solution, source] <= 0.99:
+            continue
+        if abs(up_cosine[solution, source]) <= 0.99:
+            continue
+        if abs(gate_norms[solution] / truth_norms[source] - 1.0) > 0.1:
+            continue
+        if pair_ok is not None and not bool(pair_ok[solution, source]):
+            continue
+        counted.add(source)
+    return len(counted)
+
+
 def summarise(result: dict[str, Any], telemetry: RecoveryTelemetry) -> str:
     return json.dumps({
         "oracleCalls": telemetry.oracleCalls,
@@ -1655,15 +1710,15 @@ def main() -> int:
                 fully_recovered = None
                 norms = result.get("gateNorms", np.zeros(0))
                 if up_per_unit is not None and norms.shape[0] == recovered.shape[0]:
-                    truth_norms = np.linalg.norm(truth_gate, axis=1)
-                    assigned = similarity.argmax(axis=1)
-                    fully_recovered = len({
-                        int(assigned[solution])
-                        for solution in range(recovered.shape[0])
-                        if similarity[solution, assigned[solution]] > 0.99
-                        and up_similarity[solution, assigned[solution]] > 0.99
-                        and abs(norms[solution] / truth_norms[assigned[solution]] - 1.0) <= 0.1
-                    })
+                    fully_recovered = count_fully_recovered(
+                        recovered_gates=recovered,
+                        truth_gates=truth_gate,
+                        recovered_ups=result["upDirections"],
+                        truth_ups=truth_up,
+                        gate_norms=norms,
+                        recovered_outputs=result["outputDirections"] if truth_down is not None else None,
+                        truth_outputs=truth_down.T if truth_down is not None else None,
+                    )
                 output_per_unit = None
                 output_per_solution = None
                 if truth_down is not None and result["outputDirections"].shape[0]:
