@@ -163,6 +163,11 @@ function main(): void {
     runStep('NN live Llama SwiGLU ordered residual path circuit finder benchmark', 'npm', ['run', 'benchmark:nn-live-llama-swiglu-ordered-residual-path-circuit-finder:gpu'], { timeoutMs: 30 * 60 * 1000 });
     runStep('NN live Mistral SwiGLU ordered residual path circuit finder benchmark', 'npm', ['run', 'benchmark:nn-live-mistral-swiglu-ordered-residual-path-circuit-finder:gpu'], { timeoutMs: 45 * 60 * 1000 });
     runStep('NN live ordered path stability benchmark', 'npm', ['run', 'benchmark:nn-live-ordered-path-stability:gpu'], { timeoutMs: 45 * 60 * 1000 });
+    // The strongest result the project has and nothing was guarding it. 64 units of layer 15
+    // recovered from oracle calls alone - gate direction, up direction and gate norm together
+    // - checked against a held-out reconstruction that needs no weights. Runs in ninety
+    // seconds, so there is no reason for it to sit outside the gate.
+    runStep('NN live Jacobian boundary recovery benchmark', 'npm', ['run', 'benchmark:nn-live-jacobian-boundary-recovery'], { timeoutMs: 15 * 60 * 1000 });
     runStep('NN 2D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu2d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN randomized 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-randomized'], { timeoutMs: 3 * 60 * 1000 });
