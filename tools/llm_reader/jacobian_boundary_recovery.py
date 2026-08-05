@@ -52,8 +52,11 @@ class BoundaryCrossing:
     basis_point: np.ndarray
     peak_sharpness: float
     # The line this crossing was found on. The amplitude sweep needs to step along it, and
-    # stepping along the point's own direction instead is not the same thing at all.
-    line_direction: np.ndarray | None = None
+    # stepping along the point's own direction instead is not the same thing at all. Held by
+    # index into the caller's list rather than copied per crossing: every crossing on a line
+    # shares it, and at 1024 units a scan finds 60000 crossings, so a private copy is 1 GB of
+    # the same few hundred vectors written over and over.
+    line_directions: list[np.ndarray] | None = None
 
 
 @dataclass
@@ -145,6 +148,7 @@ def scan_line_for_crossings(
     separation: int,
     min_sharpness: float,
     line_index: int,
+    line_directions: list[np.ndarray] | None = None,
 ) -> tuple[list[BoundaryCrossing], int]:
     """Walk one line and read an output direction off every boundary it crosses.
 
@@ -153,6 +157,12 @@ def scan_line_for_crossings(
     directional derivative turns, and the derivative at a peak is parallel to that unit's
     output direction.
     """
+    if line_directions is None:
+        line_directions = []
+    while len(line_directions) <= line_index:
+        line_directions.append(np.zeros_like(direction))
+    line_directions[line_index] = direction
+
     coordinates = np.linspace(-1.0, 1.0, samples)
     basis_points = origin[None, :] + coordinates[:, None] * direction[None, :]
     line = scale * (basis_points @ basis)
@@ -199,10 +209,10 @@ def scan_line_for_crossings(
         crossings.append(BoundaryCrossing(
             line=line_index,
             coordinate=float(coordinates[index]),
-            output_direction=vector / norm,
-            basis_point=basis_points[index].copy(),
+            output_direction=(vector / norm).astype(np.float32),
+            basis_point=basis_points[index].astype(np.float32),
             peak_sharpness=sharpness,
-            line_direction=direction.copy(),
+            line_directions=line_directions,
         ))
     return crossings, calls
 
@@ -272,7 +282,7 @@ def gate_from_cluster(cluster: list[BoundaryCrossing], active_rank: int) -> tupl
     """
     if len(cluster) < active_rank:
         return None
-    points = np.stack([crossing.basis_point for crossing in cluster])
+    points = np.stack([crossing.basis_point for crossing in cluster]).astype(np.float64)
     _, singular, right = np.linalg.svd(points, full_matrices=False)
     if singular.size < 2 or singular[-1] <= 0.0:
         return None
@@ -695,6 +705,7 @@ def recover_block(
     telemetry.notes.append(f"basis energy in rank {active_rank}: {energy:.12f}")
 
     crossings: list[BoundaryCrossing] = []
+    line_directions: list[np.ndarray] = []
     for line_index in range(line_count):
         found, calls = scan_line_for_crossings(
             evaluate,
@@ -709,6 +720,7 @@ def recover_block(
             separation=separation,
             min_sharpness=min_sharpness,
             line_index=line_index,
+            line_directions=line_directions,
         )
         crossings.extend(found)
         telemetry.scanCalls += calls
@@ -763,10 +775,10 @@ def recover_block(
             estimates: list[np.ndarray] = []
             alignments: list[float] = []
             for crossing in ranked:
-                point = scale * (crossing.basis_point @ basis)
-                if crossing.line_direction is None:
+                point = scale * (crossing.basis_point.astype(np.float64) @ basis)
+                if crossing.line_directions is None:
                     continue
-                span_full = crossing.line_direction @ basis
+                span_full = crossing.line_directions[crossing.line].astype(np.float64) @ basis
                 span = amplitude_span * scale * span_full / max(float(np.linalg.norm(span_full)), 1e-30)
                 estimate, single_alignment, spent = gate_from_peak_amplitudes(
                     evaluate,
@@ -796,7 +808,7 @@ def recover_block(
             # over the cluster is a check that costs nothing and needs no truth. Solutions
             # that match no unit fail it, which is what removes them from the returned set
             # instead of leaving a caller to filter them.
-            cluster_points = np.stack([crossing.basis_point for crossing in cluster])
+            cluster_points = np.stack([crossing.basis_point for crossing in cluster]).astype(np.float64)
             norms = np.linalg.norm(cluster_points, axis=1)
             residual = float(np.median(np.abs(cluster_points @ gate_full) / np.maximum(norms, 1e-30)))
             if residual > gate_residual_tolerance:
@@ -954,6 +966,12 @@ def recover_block(
         # Only the refinement sweeps need a running model, and it is the same size as the
         # whole response block - two gigabytes at 512 units that the default path never reads.
         explained = np.zeros_like(responses) if up_refinement_sweeps > 0 else None
+        # One design buffer for the whole loop. Only the gated half changes from unit to unit,
+        # and rebuilding both halves each time allocates `rows x 2*active_rank` plus a
+        # same-sized temporary for the product - 5 GB per unit at 1024 units, a thousand times
+        # over. The ungated half is written once.
+        design = np.empty((up_sample_count, 2 * active_rank), dtype=np.float64)
+        design[:, active_rank:] = coordinates
         for _sweep in range(max(1, up_refinement_sweeps)):
             subtract = up_refinement_sweeps > 0
             for index in range(len(gates)):
@@ -971,8 +989,8 @@ def recover_block(
                 # zero makes `silu(c z) ~ c z / 2`, which is mean-zero and has no overlap to
                 # leak, so the up solve scored 64 of 64 on a model that was wrong about every
                 # unit's scale. With the norms measured, the same solve returned 39.
-                weighted = np.hstack((smooth[:, index][:, None] * coordinates, coordinates))
-                solution = solve_least_squares(weighted, projected)[:active_rank]
+                np.multiply(coordinates, smooth[:, index][:, None], out=design[:, :active_rank])
+                solution = solve_least_squares(design, projected)[:active_rank]
                 solved_coefficients[index] = solution
                 if subtract:
                     activations[index] = smooth[:, index] * (coordinates @ solution)
