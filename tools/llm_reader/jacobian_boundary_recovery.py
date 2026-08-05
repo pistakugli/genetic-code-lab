@@ -69,6 +69,10 @@ class RecoveryTelemetry:
     clusters: int = 0
     unitsRecovered: int = 0
     amplitudeCalls: int = 0
+    # Sweeps actually spent against the maximum allowed. The gap is what the per-unit stopping
+    # rule saves, and it is the term that decides whether a full layer is affordable.
+    amplitudeSweeps: int = 0
+    amplitudeSweepsAllowed: int = 0
     duplicatesDropped: int = 0
     clustersSkippedAsSmall: int = 0
     rejectedByResidual: int = 0
@@ -760,6 +764,7 @@ def recover_block(
             # it did recover came back above cosine 0.999: the misses were clusters too small
             # to determine a hyperplane, not gates read wrongly.
             ranked = sorted(cluster, key=lambda item: -item.peak_sharpness)[:amplitude_crossings]
+            telemetry.amplitudeSweepsAllowed += len(ranked)
             best = ranked[0]
             centroid_direction = np.mean([
                 crossing.output_direction * (1.0 if crossing.output_direction @ best.output_direction >= 0 else -1.0)
@@ -772,8 +777,17 @@ def recover_block(
             # the signal, and the up direction solved from it came back at 15 of 32. Each
             # crossing is an independent read of the same direction, so averaging them cuts
             # that error without introducing a fit.
+            # The check that decides how many crossings this unit needs. Every point in the
+            # cluster satisfies `g.x = 0` for the true gate, so the residual over the cluster
+            # says whether the direction read so far is already consistent with every point
+            # that produced it - and it costs no calls and needs no truth.
+            cluster_points = np.stack([crossing.basis_point for crossing in cluster]).astype(np.float64)
+            cluster_norms = np.linalg.norm(cluster_points, axis=1)
+
             estimates: list[np.ndarray] = []
             alignments: list[float] = []
+            gate_full = np.zeros(active_rank)
+            residual, alignment = float("inf"), 0.0
             for crossing in ranked:
                 point = scale * (crossing.basis_point.astype(np.float64) @ basis)
                 if crossing.line_directions is None:
@@ -790,27 +804,34 @@ def recover_block(
                 )
                 telemetry.oracleCalls += spent
                 telemetry.amplitudeCalls += spent
+                telemetry.amplitudeSweeps += 1
                 if single_alignment < amplitude_min_alignment:
                     continue
                 if estimates and float(estimate @ estimates[0]) < 0.0:
                     estimate = -estimate
                 estimates.append(estimate)
                 alignments.append(single_alignment)
+                averaged = np.mean(np.stack(estimates), axis=0)
+                gate_full = averaged / max(float(np.linalg.norm(averaged)), 1e-30)
+                alignment = float(np.mean(alignments))
+                residual = float(
+                    np.median(np.abs(cluster_points @ gate_full) / np.maximum(cluster_norms, 1e-30))
+                )
+                # Stop as soon as the direction satisfies its own hyperplane. How many
+                # crossings a unit needs is set by how crowded its neighbourhood is, and that
+                # varies unit to unit: one read is enough for every unit of a 64-unit block
+                # but leaves one gate at cosine 0.065 in a 128-unit block, while two is enough
+                # there. A fixed count either overpays for the easy units or fails the hard
+                # ones, and this is the term that decides the budget for a full layer -
+                # `8 * rank` calls per sweep, per unit.
+                if residual <= gate_residual_tolerance and alignment >= amplitude_min_alignment:
+                    break
             if not estimates:
                 continue
-            averaged = np.mean(np.stack(estimates), axis=0)
-            gate_full = averaged / max(float(np.linalg.norm(averaged)), 1e-30)
-            alignment = float(np.mean(alignments))
             if alignment < amplitude_min_alignment:
                 continue
-            # A gate is right only if the crossings it came from lie on its own hyperplane.
-            # Every point in the cluster satisfies g.x = 0 for the true gate, so the residual
-            # over the cluster is a check that costs nothing and needs no truth. Solutions
-            # that match no unit fail it, which is what removes them from the returned set
-            # instead of leaving a caller to filter them.
-            cluster_points = np.stack([crossing.basis_point for crossing in cluster]).astype(np.float64)
-            norms = np.linalg.norm(cluster_points, axis=1)
-            residual = float(np.median(np.abs(cluster_points @ gate_full) / np.maximum(norms, 1e-30)))
+            # Solutions that match no unit fail the same check, which is what removes them
+            # from the returned set instead of leaving a caller to filter them.
             if residual > gate_residual_tolerance:
                 telemetry.rejectedByResidual += 1
                 continue
@@ -1080,6 +1101,10 @@ def summarise(result: dict[str, Any], telemetry: RecoveryTelemetry) -> str:
         "clusters": telemetry.clusters,
         "unitsRecovered": telemetry.unitsRecovered,
         "amplitudeCalls": telemetry.amplitudeCalls,
+        "amplitudeSweeps": telemetry.amplitudeSweeps,
+        "amplitudeSweepsAllowed": telemetry.amplitudeSweepsAllowed,
+        "crossingsPerLine": telemetry.crossingsPerLine,
+        "resolvableSlotsPerLine": telemetry.resolvableSlotsPerLine,
         "duplicatesDropped": telemetry.duplicatesDropped,
         "clustersSkippedAsSmall": telemetry.clustersSkippedAsSmall,
         "rejectedByResidual": telemetry.rejectedByResidual,

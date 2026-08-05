@@ -25,9 +25,11 @@ const lane = 'nn-live-jacobian-boundary-recovery';
 // apart, so a line stops separating them once `k` approaches `2 S ||g|| / sqrt(dim)` - about
 // 770 units at the 2e4 used here, on this model.
 const variants = {
-  '64unit': { units: 64, lines: 80, basisPoints: 12, upSamples: 30_000, budget: 700_000 },
-  '128unit': { units: 128, lines: 160, basisPoints: 20, upSamples: 60_000, budget: 1_600_000 },
-  '256unit': { units: 256, lines: 320, basisPoints: 36, upSamples: 120_000, budget: 4_400_000 },
+  // Budgets are the measured cost plus a tenth, so a regression in the amplitude sweep's
+  // stopping rule shows up as a gate failure rather than as a slower green run.
+  '64unit': { units: 64, lines: 80, basisPoints: 12, upSamples: 30_000, budget: 380_000 },
+  '128unit': { units: 128, lines: 160, basisPoints: 20, upSamples: 60_000, budget: 880_000 },
+  '256unit': { units: 256, lines: 320, basisPoints: 36, upSamples: 120_000, budget: 3_200_000 },
 } as const;
 
 const requested = process.env.GCL_JACOBIAN_VARIANT ?? '64unit';
