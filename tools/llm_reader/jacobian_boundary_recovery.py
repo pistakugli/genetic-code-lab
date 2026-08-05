@@ -36,8 +36,20 @@ not repeated here.
 """
 from __future__ import annotations
 
+import os
+
+# Before numpy, because the thread pool is sized at import. Most of the host work here is
+# memory bound - differences and norms over `samples x output_dim` blocks - and spreading that
+# over every core buys nothing. Measured end to end on a 64-unit block: 8 threads is the
+# fastest at 30.4 seconds, 16 is both slower at 31.7 and twice the CPU, 4 costs one second and
+# a third of the CPU. What looked like the route hammering the processor was two thirds waste.
+# An explicit setting from the caller wins; this only fills in a default.
+for _pool in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_pool, str(min(8, os.cpu_count() or 8)))
+
 import json
 import sys
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -78,6 +90,10 @@ class RecoveryTelemetry:
     rejectedByResidual: int = 0
     upSolveCalls: int = 0
     upsRecovered: int = 0
+    # Wall seconds per phase. The route spends most of its time outside the oracle, and
+    # without this the only visible number is the total, which says nothing about which part
+    # to fix.
+    phaseSeconds: dict[str, dict[str, float]] = field(default_factory=dict)
     # How close the line scan is to its own resolution limit. A `silu` knee has a width along
     # the line of `1/(S ||g|| |g.d|)`, and boundaries are spaced about `2/k` apart, so the
     # scan stops separating them once `k` approaches `2 S ||g|| / sqrt(dim)`. Peaks are then
@@ -122,16 +138,31 @@ def recover_basis_from_jacobian(
     Gram is 75 MB and the eigendecomposition is smaller than the SVD it replaces.
     """
     axes = np.eye(input_dim)
-    gram = np.zeros((input_dim, input_dim), dtype=np.float64)
+    torch = _torch_cuda()
+    # `J^T J` is `input_dim` cubed per probe point - 29 GFLOP at 3072, once per point. The
+    # card is already answering the oracle calls that produce `J`; there is no reason for the
+    # host to do the multiply.
+    # Double precision, on the card. `J^T J` squares the condition number, and the directions
+    # that matter here are the small ones - the active subspace is what the basis is for. In
+    # single precision the held-out reconstruction of a synthetic block fell from 0.998 to
+    # 0.888, which is the whole recovery quietly degraded by a dtype.
+    gram = (torch.zeros((input_dim, input_dim), dtype=torch.float64, device="cuda")
+            if torch is not None else np.zeros((input_dim, input_dim), dtype=np.float64))
     calls = 0
     for probe_point in np.atleast_2d(point):
         plus = evaluate(probe_point[None, :] + step * axes)
         minus = evaluate(probe_point[None, :] - step * axes)
         jacobian = ((plus - minus) / (2.0 * step)).T
-        gram += jacobian.T @ jacobian
+        if torch is not None:
+            block = torch.as_tensor(jacobian, dtype=torch.float64, device="cuda")
+            gram += block.T @ block
+        else:
+            gram += jacobian.T @ jacobian
         calls += 2 * input_dim
     # Symmetric by construction, so `eigh` rather than `eig`, and its ascending order is
     # reversed to match the descending convention of `svd`.
+    if torch is not None:
+        gram = gram.cpu().numpy()
     eigenvalues, eigenvectors = np.linalg.eigh(gram)
     order = np.argsort(eigenvalues)[::-1]
     singular = np.sqrt(np.clip(eigenvalues[order], 0.0, None))
@@ -153,6 +184,7 @@ def scan_line_for_crossings(
     min_sharpness: float,
     line_index: int,
     line_directions: list[np.ndarray] | None = None,
+    timings: dict[str, float] | None = None,
 ) -> tuple[list[BoundaryCrossing], int]:
     """Walk one line and read an output direction off every boundary it crosses.
 
@@ -167,17 +199,48 @@ def scan_line_for_crossings(
         line_directions.append(np.zeros_like(direction))
     line_directions[line_index] = direction
 
+    entered = time.perf_counter()
     coordinates = np.linspace(-1.0, 1.0, samples)
     basis_points = origin[None, :] + coordinates[:, None] * direction[None, :]
     line = scale * (basis_points @ basis)
     probe_vector = probe @ basis
 
-    forward = evaluate(line + step * probe_vector[None, :])
-    backward = evaluate(line - step * probe_vector[None, :])
+    built = time.perf_counter()
+    plus = line + step * probe_vector[None, :]
+    minus = line - step * probe_vector[None, :]
+    asked = time.perf_counter()
+    forward = evaluate(plus)
+    backward = evaluate(minus)
+    answered = time.perf_counter()
     calls = 2 * samples
-    derivative = (forward - backward) / (2.0 * step)
-    turning = np.gradient(derivative, coordinates, axis=0)
-    magnitude = np.linalg.norm(turning, axis=1)
+    # The difference, its derivative along the line and the row norms, on the card. These are
+    # three passes over a `samples x output_dim` block - about 20 MB each at 801 by 3072 - and
+    # numpy spreads memory-bound work across every core it can find: measured at 131 seconds
+    # of CPU for 11 of wall clock over 80 lines, while the card that had just produced the
+    # block sat idle. Only the peaks are brought back.
+    #
+    # Double precision, because this is where the cancellation is: `forward` and `backward`
+    # differ by something of order `step`, so single precision keeps three digits of a
+    # difference the whole route is built on. Cast on the card, after the transfer - these are
+    # elementwise and bandwidth-bound, so the width costs a factor of two and the wrong dtype
+    # costs the recovery. Measured in single: a synthetic block's held-out reconstruction fell
+    # to 0.56 and half the gates pointed the wrong way.
+    torch = _torch_cuda()
+    if torch is not None:
+        left = torch.as_tensor(forward, device="cuda").double()
+        right = torch.as_tensor(backward, device="cuda").double()
+        derivative_gpu = (left - right) / (2.0 * step)
+        turning_gpu = torch.gradient(
+            derivative_gpu,
+            spacing=(torch.as_tensor(coordinates, device="cuda").double(),),
+            dim=0,
+        )[0]
+        magnitude = torch.linalg.vector_norm(turning_gpu, dim=1).cpu().numpy()
+        turning = None
+    else:
+        derivative = (forward - backward) / (2.0 * step)
+        turning = np.gradient(derivative, coordinates, axis=0)
+        magnitude = np.linalg.norm(turning, axis=1)
 
     floor = float(np.max(magnitude)) * peak_fraction
     candidates = [
@@ -197,9 +260,20 @@ def scan_line_for_crossings(
         if all(abs(index - other) >= separation for other in kept):
             kept.append(index)
 
+    if timings is not None:
+        finished = time.perf_counter()
+        timings["buildPoints"] = timings.get("buildPoints", 0.0) + (asked - entered)
+        timings["oracleWait"] = timings.get("oracleWait", 0.0) + (answered - asked)
+        timings["postProcess"] = timings.get("postProcess", 0.0) + (finished - answered)
+
     crossings: list[BoundaryCrossing] = []
-    for index in sorted(kept):
-        vector = turning[index]
+    # Only the kept peaks come back from the card - a few dozen rows out of `samples`.
+    vectors = (
+        turning_gpu[sorted(kept)].cpu().numpy() if turning is None and kept
+        else None
+    )
+    for position, index in enumerate(sorted(kept)):
+        vector = vectors[position] if vectors is not None else turning[index]
         norm = float(np.linalg.norm(vector))
         if norm <= 0.0:
             continue
@@ -458,20 +532,139 @@ def solve_least_squares(design: np.ndarray, target: np.ndarray) -> np.ndarray:
     rank-deficient design is a real case here, since near-collinear units are one of the
     negative cases this file is required to handle.
     """
-    if design.size >= 10_000_000:
+    torch = _torch_cuda()
+    # Anything past a hundred thousand entries. The earlier cut at ten million left the up
+    # solve of a 64-unit block - 30000 by 256 - on the host, which is the shape this route
+    # runs most often.
+    if torch is not None and design.size >= 100_000:
         try:
-            import torch
-
-            if torch.cuda.is_available():
-                left = torch.as_tensor(design, dtype=torch.float32, device="cuda")
-                right = torch.as_tensor(target, dtype=torch.float32, device="cuda")
-                solution = torch.linalg.lstsq(left, right.unsqueeze(1)).solution
-                if torch.isfinite(solution).all():
-                    return solution.squeeze(1).double().cpu().numpy()
+            left = torch.as_tensor(design, dtype=torch.float32, device="cuda")
+            right = torch.as_tensor(target, dtype=torch.float32, device="cuda")
+            solution = torch.linalg.lstsq(left, right.unsqueeze(1)).solution
+            if torch.isfinite(solution).all():
+                return solution.squeeze(1).double().cpu().numpy()
         except Exception:
             pass
     solution, *_ = np.linalg.lstsq(design, target, rcond=None)
     return solution
+
+
+class _Phase:
+    """Wall seconds and cores held, for one stage.
+
+    The route alternates: build points here, wait for the card, process the answer here, and
+    the only visible number was the total, which cannot say which half to fix. `coresHeld` is
+    the ratio of this process's CPU time to wall time, so a phase reading 26 is holding
+    twenty-six cores while the card idles - which is how the reconstruction turned out to be
+    accumulating outer products where one matrix multiply belonged.
+
+    Solver CPU only, deliberately. `os.times()` credits a child's time when it is reaped and
+    the oracle outlives every phase, so an oracle column read a flat zero - a number that
+    looks like an answer and is not one.
+    """
+
+    def __init__(self, telemetry: "RecoveryTelemetry", name: str) -> None:
+        self.telemetry = telemetry
+        self.name = name
+
+    def __enter__(self) -> "_Phase":
+        self.wall = time.perf_counter()
+        self.cpu = time.process_time()
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        wall = time.perf_counter() - self.wall
+        cpu = time.process_time() - self.cpu
+        self.telemetry.phaseSeconds[self.name] = {
+            "wall": round(wall, 3),
+            "solverCpu": round(cpu, 3),
+            "coresHeld": round(cpu / wall, 1) if wall > 0 else 0.0,
+        }
+
+
+def _torch_cuda():
+    """The CUDA device if there is a usable one, else `None`.
+
+    Cached on the function so the import and the availability probe happen once. The host's
+    kernel module and userspace library sit on different point releases here, so NVML refuses
+    while compute is fine - `PYTORCH_NVML_BASED_CUDA_CHECK=0` is what gets past that, and it
+    is set by the callers that need it.
+    """
+    if not hasattr(_torch_cuda, "cached"):
+        try:
+            import torch
+
+            _torch_cuda.cached = torch if torch.cuda.is_available() else None
+        except Exception:
+            _torch_cuda.cached = None
+    return _torch_cuda.cached
+
+
+def _batched_normal_equations(
+    grid: np.ndarray,
+    window: np.ndarray,
+    background: np.ndarray,
+    projected: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Least-squares error for every candidate knee scale, in one shot.
+
+    The model is `silu(c s)(a s + b)` plus a quadratic background, so each candidate `c` gives
+    a five-column design and the only thing that changes between them is the gated pair. Built
+    as one `(C, P, 5)` tensor and reduced through five-by-five normal equations, which are
+    exact enough here because the columns are a knee and a polynomial rather than an
+    ill-conditioned basis.
+
+    Runs on the GPU when there is one. The card was already answering oracle calls while this
+    loop ran on the host, which is the wrong side of the machine for an operation that is the
+    same arithmetic 240 times over.
+    """
+    torch = _torch_cuda()
+    if torch is not None:
+        device = "cuda"
+        candidates = torch.as_tensor(grid, dtype=torch.float32, device=device)
+        positions = torch.as_tensor(window, dtype=torch.float32, device=device)
+        base = torch.as_tensor(background, dtype=torch.float32, device=device)
+        target = torch.as_tensor(projected, dtype=torch.float32, device=device)
+        scaled = candidates[:, None] * positions[None, :]
+        activation = scaled * torch.sigmoid(scaled)
+        design = torch.cat((
+            torch.stack((activation * positions[None, :], activation), dim=2),
+            base[None, :, :].expand(candidates.shape[0], -1, -1),
+        ), dim=2)
+        # Column norms first. The design holds a knee beside `s^2` over five decades of `s`,
+        # so its columns differ by six orders of magnitude, and normal equations square that.
+        # In single precision the unnormalised form put the worst synthetic norm 38% out
+        # against 7% for the loop it replaced. Least squares is invariant to column scaling -
+        # the solution scales inversely and the residual does not move - so this costs nothing
+        # but conditioning.
+        scale = torch.linalg.norm(design, dim=1, keepdim=True).clamp_min(1e-30)
+        design = design / scale
+        gram = design.transpose(1, 2) @ design
+        moment = design.transpose(1, 2) @ target[None, :, None].expand(candidates.shape[0], -1, -1)
+        # A ridge of one part in a million of the trace. Some candidates put every knee outside
+        # the window, which makes two columns identically zero and the Gram singular; without
+        # it the solve raises on inputs the scan is meant to reject by scoring them badly.
+        ridge = 1e-6 * torch.diagonal(gram, dim1=1, dim2=2).sum(dim=1)
+        gram = gram + ridge[:, None, None] * torch.eye(gram.shape[1], device=device)[None, :, :]
+        solution = torch.linalg.solve(gram, moment)
+        residual = design @ solution - target[None, :, None]
+        return (residual.squeeze(2) ** 2).sum(dim=1).double().cpu().numpy(), solution.squeeze(2).double().cpu().numpy()
+
+    scaled = grid[:, None] * window[None, :]
+    activation = scaled / (1.0 + np.exp(-np.clip(scaled, -60.0, 60.0)))
+    design = np.concatenate((
+        np.stack((activation * window[None, :], activation), axis=2),
+        np.broadcast_to(background, (grid.size,) + background.shape),
+    ), axis=2)
+    scale = np.maximum(np.linalg.norm(design, axis=1, keepdims=True), 1e-30)
+    design = design / scale
+    gram = np.einsum('cpi,cpj->cij', design, design)
+    moment = np.einsum('cpi,p->ci', design, projected)
+    ridge = 1e-6 * np.trace(gram, axis1=1, axis2=2)
+    gram = gram + ridge[:, None, None] * np.eye(gram.shape[1])[None, :, :]
+    solution = np.linalg.solve(gram, moment)
+    residual = np.einsum('cpi,ci->cp', design, solution) - projected[None, :]
+    return (residual ** 2).sum(axis=1), solution
 
 
 def calibrate_gate_norms_on_rays(
@@ -577,18 +770,17 @@ def calibrate_gate_norms_on_rays(
         # a coin toss reported as a measurement. The sign is settled in the up solve instead,
         # where the difference is a quadratic form in the full input space and nothing in the
         # design can take it.
-        for candidate in grid:
-            scaled = candidate * window
-            activation = scaled / (1.0 + np.exp(-np.clip(scaled, -60.0, 60.0)))
-            design = np.hstack((
-                np.stack((activation * window, activation), axis=1),
-                background,
-            ))
-            solution, *_ = np.linalg.lstsq(design, projected, rcond=None)
-            error = float(np.sum((design @ solution - projected) ** 2))
-            if error < best_error:
-                best_norm, best_error = float(candidate), error
-        return best_norm, best_error, background_error
+        #
+        # Every candidate at once rather than one per iteration. The scan is 240 candidates
+        # deep and runs three times per ray, three rays per unit, so a 64-unit block used to
+        # walk a Python loop 115000 times over five-column systems - the route reported one
+        # minute of wall clock against twenty-four of CPU, and this was most of it. The design
+        # for all candidates is a single `(C, P, 5)` tensor, and five-by-five normal equations
+        # are exact here because the columns are a knee and a quadratic, not an ill-conditioned
+        # basis.
+        errors, solutions = _batched_normal_equations(grid, window, background, projected)
+        best = int(np.argmin(errors))
+        return float(grid[best]), float(errors[best]), background_error
 
     def measure_ray(projected: np.ndarray) -> tuple[float, float, float]:
         norm, error, reference = fit_knee(positions, projected, candidates)
@@ -648,6 +840,56 @@ def calibrate_gate_norms_on_rays(
     return norms, diagnostics
 
 
+def _decide_gate_signs(
+    raw_response: np.ndarray,
+    unmixed: np.ndarray,
+    coordinates: np.ndarray,
+    gate_norms: np.ndarray,
+) -> np.ndarray:
+    """Which side of its boundary each unit fires on, decided on the card.
+
+    Two candidate orientations per unit, each a least squares over `rows x 2*rank`, and the
+    lower residual wins. Written as a host loop it built a 24 MB design a hundred and
+    twenty-eight times and shipped each one across: 100 seconds of CPU for 3 of wall clock,
+    31 cores held. The design is assembled where it is solved, and `coordinates` - the half
+    that does not change - is uploaded once.
+
+    Falls back to the host when there is no card, with the same arithmetic.
+    """
+    torch = _torch_cuda()
+    units = raw_response.shape[1]
+    signs = np.ones(units, dtype=np.float64)
+    if torch is not None:
+        coords = torch.as_tensor(coordinates, dtype=torch.float32, device="cuda")
+        raw = torch.as_tensor(raw_response, dtype=torch.float32, device="cuda")
+        targets = torch.as_tensor(unmixed, dtype=torch.float32, device="cuda")
+        norms = torch.as_tensor(gate_norms, dtype=torch.float32, device="cuda")
+        for index in range(units):
+            best_error, best_sign = float("inf"), 1.0
+            for candidate in (1.0, -1.0):
+                z = raw[:, index] * (norms[index] * candidate)
+                design = torch.cat((z.mul(torch.sigmoid(z))[:, None] * coords, coords), dim=1)
+                solution = torch.linalg.lstsq(design, targets[:, index, None]).solution
+                error = float(((design @ solution).squeeze(1) - targets[:, index]).pow(2).sum())
+                if error < best_error:
+                    best_error, best_sign = error, candidate
+            signs[index] = best_sign
+        return signs
+
+    for index in range(units):
+        best_error, best_sign = float("inf"), 1.0
+        for candidate in (1.0, -1.0):
+            z = raw_response[:, index] * (gate_norms[index] * candidate)
+            activation = z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))
+            design = np.hstack((activation[:, None] * coordinates, coordinates))
+            solution = solve_least_squares(design, unmixed[:, index])
+            error = float(np.sum((design @ solution - unmixed[:, index]) ** 2))
+            if error < best_error:
+                best_error, best_sign = error, candidate
+        signs[index] = best_sign
+    return signs
+
+
 def recover_block(
     evaluate: Callable[[np.ndarray], np.ndarray],
     *,
@@ -700,39 +942,45 @@ def recover_block(
     # energy fell from 0.596 to 0.445 as points were added, because every added Jacobian was
     # mostly noise and the SVD kept spending rank on it.
     basis_points = np.stack([unit(rng.normal(size=input_dim)) * basis_scale for _ in range(basis_points_count)])
-    basis, spectrum, basis_calls = recover_basis_from_jacobian(
-        evaluate, input_dim, active_rank, point=basis_points, step=step
-    )
-    telemetry.basisCalls = basis_calls
-    telemetry.oracleCalls += basis_calls
-    energy = float(np.sum(spectrum[:active_rank] ** 2) / max(np.sum(spectrum ** 2), 1e-30))
-    telemetry.notes.append(f"basis energy in rank {active_rank}: {energy:.12f}")
-
-    crossings: list[BoundaryCrossing] = []
-    line_directions: list[np.ndarray] = []
-    for line_index in range(line_count):
-        found, calls = scan_line_for_crossings(
-            evaluate,
-            basis,
-            origin=unit(rng.normal(size=active_rank)),
-            direction=unit(rng.normal(size=active_rank)),
-            probe=unit(rng.normal(size=active_rank)),
-            scale=scale,
-            samples=samples,
-            step=step,
-            peak_fraction=peak_fraction,
-            separation=separation,
-            min_sharpness=min_sharpness,
-            line_index=line_index,
-            line_directions=line_directions,
+    with _Phase(telemetry, "basis"):
+        basis, spectrum, basis_calls = recover_basis_from_jacobian(
+            evaluate, input_dim, active_rank, point=basis_points, step=step
         )
-        crossings.extend(found)
-        telemetry.scanCalls += calls
-        telemetry.oracleCalls += calls
-        telemetry.linesScanned += 1
-    telemetry.crossingsFound = len(crossings)
+        telemetry.basisCalls = basis_calls
+        telemetry.oracleCalls += basis_calls
+        energy = float(np.sum(spectrum[:active_rank] ** 2) / max(np.sum(spectrum ** 2), 1e-30))
+        telemetry.notes.append(f"basis energy in rank {active_rank}: {energy:.12f}")
 
-    clusters = cluster_by_output_direction(crossings, min_cosine=cluster_min_cosine)
+    scan_timings: dict[str, float] = {}
+    with _Phase(telemetry, "lineScan"):
+        crossings: list[BoundaryCrossing] = []
+        line_directions: list[np.ndarray] = []
+        for line_index in range(line_count):
+            found, calls = scan_line_for_crossings(
+                evaluate,
+                basis,
+                origin=unit(rng.normal(size=active_rank)),
+                direction=unit(rng.normal(size=active_rank)),
+                probe=unit(rng.normal(size=active_rank)),
+                scale=scale,
+                samples=samples,
+                step=step,
+                peak_fraction=peak_fraction,
+                separation=separation,
+                min_sharpness=min_sharpness,
+                line_index=line_index,
+                line_directions=line_directions,
+                timings=scan_timings,
+            )
+            crossings.extend(found)
+            telemetry.scanCalls += calls
+            telemetry.oracleCalls += calls
+            telemetry.linesScanned += 1
+        telemetry.crossingsFound = len(crossings)
+
+    telemetry.phaseSeconds["lineScanBreakdown"] = {k: round(v, 3) for k, v in scan_timings.items()}
+    with _Phase(telemetry, "clustering"):
+        clusters = cluster_by_output_direction(crossings, min_cosine=cluster_min_cosine)
     telemetry.clusters = len(clusters)
 
     gates: list[np.ndarray] = []
@@ -905,23 +1153,32 @@ def recover_block(
         # iteration and no estimate of anything standing in for a measurement. The pseudo
         # inverse is what handles output directions that are close to collinear, which is the
         # case `identifiability_verdict` reports as ambiguous.
-        unmixed = responses @ np.linalg.pinv(output_directions)
+        mixing = np.linalg.pinv(output_directions)
+        torch_backend = _torch_cuda()
+        if torch_backend is not None:
+            unmixed = (
+                torch_backend.as_tensor(responses, dtype=torch_backend.float32, device="cuda")
+                @ torch_backend.as_tensor(mixing, dtype=torch_backend.float32, device="cuda")
+            ).double().cpu().numpy()
+        else:
+            unmixed = responses @ mixing
         # One ray per unit along its own gate direction, where the norm is what decides when
         # the curve turns on and nothing else can imitate it. See
         # `calibrate_gate_norms_on_rays` for why the isotropic cloud cannot settle this.
-        gate_norms, norm_diagnostics = calibrate_gate_norms_on_rays(
-            evaluate,
-            gate_matrix / np.linalg.norm(gate_matrix, axis=1, keepdims=True),
-            output_directions,
-            points_per_ray=norm_ray_points,
-            min_magnitude=norm_ray_min,
-            max_magnitude=norm_ray_max,
-            offset_scale=norm_ray_offset,
-            request_chunk=up_request_chunk,
-            repeats=norm_ray_repeats,
-            seed=seed + 4451,
-        )
-        telemetry.oracleCalls += len(gates) * (norm_ray_points // 2) * 2 * norm_ray_repeats
+        with _Phase(telemetry, "normCalibration"):
+            gate_norms, norm_diagnostics = calibrate_gate_norms_on_rays(
+                evaluate,
+                gate_matrix / np.linalg.norm(gate_matrix, axis=1, keepdims=True),
+                output_directions,
+                points_per_ray=norm_ray_points,
+                min_magnitude=norm_ray_min,
+                max_magnitude=norm_ray_max,
+                offset_scale=norm_ray_offset,
+                request_chunk=up_request_chunk,
+                repeats=norm_ray_repeats,
+                seed=seed + 4451,
+            )
+            telemetry.oracleCalls += len(gates) * (norm_ray_points // 2) * 2 * norm_ray_repeats
         # Which way the unit fires. The gate arrives as a null-space vector, so its sign is
         # free, and every direction measure in this file takes an absolute cosine and cannot
         # see it. That is not cosmetic: `silu` is flat on one side of the knee and linear on
@@ -935,20 +1192,14 @@ def recover_block(
         # linear in `s`, which is precisely what the background absorbs. Over the full input
         # space that same difference is `(g_i.x)(u_i.x)`, a quadratic form no column of this
         # design can take, so the residual separates them.
-        sign_rows = min(up_sample_count, 6000)
-        signs = np.ones(len(gates), dtype=np.float64)
-        for index in range(len(gates)):
-            projected_sign = unmixed[:sign_rows, index]
-            best_error, best_sign = float("inf"), 1.0
-            for candidate in (1.0, -1.0):
-                z = raw_response[:sign_rows, index] * (gate_norms[index] * candidate)
-                activation = z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))
-                design = np.hstack((activation[:, None] * coordinates[:sign_rows], coordinates[:sign_rows]))
-                solution = solve_least_squares(design, projected_sign)
-                error = float(np.sum((design @ solution - projected_sign) ** 2))
-                if error < best_error:
-                    best_error, best_sign = error, candidate
-            signs[index] = best_sign
+        with _Phase(telemetry, "signDecision"):
+            sign_rows = min(up_sample_count, 6000)
+            signs = _decide_gate_signs(
+                raw_response[:sign_rows],
+                unmixed[:sign_rows],
+                coordinates[:sign_rows],
+                gate_norms,
+            )
         gates = [row * sign for row, sign in zip(gates, signs)]
         gate_matrix = gate_matrix * signs[:, None]
         raw_response = raw_response * signs[None, :]
@@ -982,45 +1233,46 @@ def recover_block(
         # The running model is kept and adjusted rather than rebuilt: recomputing every other
         # unit's contribution inside the loop is quadratic in the unit count and made a
         # 128-unit sweep slower than the entire oracle phase.
-        solved_coefficients = [np.zeros(active_rank) for _ in gates]
-        activations = [np.zeros(up_sample_count) for _ in gates]
-        # Only the refinement sweeps need a running model, and it is the same size as the
-        # whole response block - two gigabytes at 512 units that the default path never reads.
-        explained = np.zeros_like(responses) if up_refinement_sweeps > 0 else None
-        # One design buffer for the whole loop. Only the gated half changes from unit to unit,
-        # and rebuilding both halves each time allocates `rows x 2*active_rank` plus a
-        # same-sized temporary for the product - 5 GB per unit at 1024 units, a thousand times
-        # over. The ungated half is written once.
-        design = np.empty((up_sample_count, 2 * active_rank), dtype=np.float64)
-        design[:, active_rank:] = coordinates
-        for _sweep in range(max(1, up_refinement_sweeps)):
-            subtract = up_refinement_sweeps > 0
+        with _Phase(telemetry, "upSolve"):
+            solved_coefficients = [np.zeros(active_rank) for _ in gates]
+            activations = [np.zeros(up_sample_count) for _ in gates]
+            # Only the refinement sweeps need a running model, and it is the same size as the
+            # whole response block - two gigabytes at 512 units that the default path never reads.
+            explained = np.zeros_like(responses) if up_refinement_sweeps > 0 else None
+            # One design buffer for the whole loop. Only the gated half changes from unit to unit,
+            # and rebuilding both halves each time allocates `rows x 2*active_rank` plus a
+            # same-sized temporary for the product - 5 GB per unit at 1024 units, a thousand times
+            # over. The ungated half is written once.
+            design = np.empty((up_sample_count, 2 * active_rank), dtype=np.float64)
+            design[:, active_rank:] = coordinates
+            for _sweep in range(max(1, up_refinement_sweeps)):
+                subtract = up_refinement_sweeps > 0
+                for index in range(len(gates)):
+                    if subtract:
+                        explained -= np.outer(activations[index], output_directions[index])
+                    projected = (unmixed[:, index] if not subtract
+                                 else (responses - explained) @ output_directions[index])
+                    # `silu` does not average to zero, and that is what leaks the neighbours into
+                    # `u_i`. Every other unit enters the projection as
+                    # `(d_j.d_i) silu(z_j)(u_j.x)`, whose leading term is
+                    # `(d_j.d_i) E[silu] (u_j.x)` - a plain linear function of `x` - and the
+                    # regressor `silu(z_i) x` carries the same non-zero mean, so the solve pays
+                    # for that overlap out of `u_i`. Carrying an ungated linear block absorbs it
+                    # instead. This stayed hidden while the gate norms were wrong: a norm near
+                    # zero makes `silu(c z) ~ c z / 2`, which is mean-zero and has no overlap to
+                    # leak, so the up solve scored 64 of 64 on a model that was wrong about every
+                    # unit's scale. With the norms measured, the same solve returned 39.
+                    np.multiply(coordinates, smooth[:, index][:, None], out=design[:, :active_rank])
+                    solution = solve_least_squares(design, projected)[:active_rank]
+                    solved_coefficients[index] = solution
+                    if subtract:
+                        activations[index] = smooth[:, index] * (coordinates @ solution)
+                        explained += np.outer(activations[index], output_directions[index])
             for index in range(len(gates)):
-                if subtract:
-                    explained -= np.outer(activations[index], output_directions[index])
-                projected = (unmixed[:, index] if not subtract
-                             else (responses - explained) @ output_directions[index])
-                # `silu` does not average to zero, and that is what leaks the neighbours into
-                # `u_i`. Every other unit enters the projection as
-                # `(d_j.d_i) silu(z_j)(u_j.x)`, whose leading term is
-                # `(d_j.d_i) E[silu] (u_j.x)` - a plain linear function of `x` - and the
-                # regressor `silu(z_i) x` carries the same non-zero mean, so the solve pays
-                # for that overlap out of `u_i`. Carrying an ungated linear block absorbs it
-                # instead. This stayed hidden while the gate norms were wrong: a norm near
-                # zero makes `silu(c z) ~ c z / 2`, which is mean-zero and has no overlap to
-                # leak, so the up solve scored 64 of 64 on a model that was wrong about every
-                # unit's scale. With the norms measured, the same solve returned 39.
-                np.multiply(coordinates, smooth[:, index][:, None], out=design[:, :active_rank])
-                solution = solve_least_squares(design, projected)[:active_rank]
-                solved_coefficients[index] = solution
-                if subtract:
-                    activations[index] = smooth[:, index] * (coordinates @ solution)
-                    explained += np.outer(activations[index], output_directions[index])
-        for index in range(len(gates)):
-            solution = solved_coefficients[index]
-            norm = float(np.linalg.norm(solution))
-            ups.append((solution / norm if norm > 0 else solution) @ basis)
-        telemetry.upsRecovered = len(ups)
+                solution = solved_coefficients[index]
+                norm = float(np.linalg.norm(solution))
+                ups.append((solution / norm if norm > 0 else solution) @ basis)
+            telemetry.upsRecovered = len(ups)
 
         # What the recovery is worth without the answer key. Everything else this file reports
         # per unit is a cosine against the model's own weights, which is a post-hoc witness a
@@ -1029,34 +1281,36 @@ def recover_block(
         # oracle - and that single number moves for every failure at once: a unit that was
         # missed, a norm at the wrong scale, a gate pointing the wrong way, an up direction
         # bent by a neighbour. It is the only measure here that a user without weights gets.
-        held_out = np.random.default_rng(seed + 8821).normal(
-            0.0, up_sample_scale, size=(max(reconstruction_points, 0), input_dim)
-        )
-        if held_out.shape[0]:
-            truth_chunks = [
-                evaluate(held_out[start:start + up_request_chunk])
-                for start in range(0, held_out.shape[0], up_request_chunk)
-            ]
-            observed = np.concatenate(truth_chunks, axis=0)
-            telemetry.oracleCalls += held_out.shape[0]
-            held_gate = (held_out @ gate_matrix.T) * gate_norms[None, :]
-            held_smooth = held_gate / (1.0 + np.exp(-np.clip(held_gate, -60.0, 60.0)))
-            held_coordinates = held_out @ basis.T
-            predicted = np.zeros_like(observed)
-            for index in range(len(gates)):
-                predicted += np.outer(
-                    held_smooth[:, index] * (held_coordinates @ solved_coefficients[index]),
-                    output_directions[index],
-                )
-            residual = float(np.sum((observed - predicted) ** 2))
-            total = float(np.sum((observed - observed.mean(axis=0)) ** 2))
-            reconstruction = {
-                "points": int(held_out.shape[0]),
-                "rSquared": float(1.0 - residual / total) if total > 0 else 0.0,
-                "relativeResidual": float(
-                    np.linalg.norm(observed - predicted) / max(np.linalg.norm(observed), 1e-30)
-                ),
-            }
+        with _Phase(telemetry, "reconstruction"):
+            held_out = np.random.default_rng(seed + 8821).normal(
+                0.0, up_sample_scale, size=(max(reconstruction_points, 0), input_dim)
+            )
+            if held_out.shape[0]:
+                truth_chunks = [
+                    evaluate(held_out[start:start + up_request_chunk])
+                    for start in range(0, held_out.shape[0], up_request_chunk)
+                ]
+                observed = np.concatenate(truth_chunks, axis=0)
+                telemetry.oracleCalls += held_out.shape[0]
+                held_gate = (held_out @ gate_matrix.T) * gate_norms[None, :]
+                held_smooth = held_gate / (1.0 + np.exp(-np.clip(held_gate, -60.0, 60.0)))
+                held_coordinates = held_out @ basis.T
+                # One product, not one per unit. `sum_i a_i (x) d_i` is `A D` with `A` the
+                # activations and `D` the output directions, and writing it as an accumulation
+                # of outer products allocates a full response block per unit - 98 MB times the
+                # unit count. Measured at 111 seconds of CPU against 4 of wall clock, 26 cores
+                # held, for arithmetic one matrix multiply does in a moment.
+                coefficients = np.stack(solved_coefficients)
+                predicted = (held_smooth * (held_coordinates @ coefficients.T)) @ output_directions
+                residual = float(np.sum((observed - predicted) ** 2))
+                total = float(np.sum((observed - observed.mean(axis=0)) ** 2))
+                reconstruction = {
+                    "points": int(held_out.shape[0]),
+                    "rSquared": float(1.0 - residual / total) if total > 0 else 0.0,
+                    "relativeResidual": float(
+                        np.linalg.norm(observed - predicted) / max(np.linalg.norm(observed), 1e-30)
+                    ),
+                }
         telemetry.upsRecovered = len(ups)
 
     solved_gates = np.stack(gates) if gates else np.zeros((0, active_rank))
@@ -1101,6 +1355,7 @@ def summarise(result: dict[str, Any], telemetry: RecoveryTelemetry) -> str:
         "clusters": telemetry.clusters,
         "unitsRecovered": telemetry.unitsRecovered,
         "amplitudeCalls": telemetry.amplitudeCalls,
+        "phaseSeconds": telemetry.phaseSeconds,
         "amplitudeSweeps": telemetry.amplitudeSweeps,
         "amplitudeSweepsAllowed": telemetry.amplitudeSweepsAllowed,
         "crossingsPerLine": telemetry.crossingsPerLine,
