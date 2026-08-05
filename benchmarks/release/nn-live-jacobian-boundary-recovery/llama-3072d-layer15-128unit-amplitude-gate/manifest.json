@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-05T16:43:22.162Z",
+  "generatedAt": "2026-08-05T16:46:24.564Z",
   "lane": "nn-live-jacobian-boundary-recovery",
   "variant": "llama-3072d-layer15-128unit-amplitude-gate",
-  "status": "fail",
+  "status": "pass",
   "command": {
     "argv": [
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
@@ -14,12 +14,13 @@
     "node": "v22.23.1"
   },
   "env": {
+    "GCL_JACOBIAN_REGENERATE": "0",
     "GCL_JACOBIAN_VARIANT": "128unit"
   },
   "git": {
-    "commit": "31c5307df4b6a0f0917802228374741617436d69",
-    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json\n M scripts/benchmark-nn-live-jacobian-boundary-recovery.ts",
-    "uncommittedDiffSha256": "469c5be2da3abea0d142864b87964cfaf6d969b47976ccd8886d80192b2d2806"
+    "commit": "956aeef3c5a3ea84ac517982d37a4a005eb27acd",
+    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json\n M tools/llm_reader/jacobian_boundary_recovery.py",
+    "uncommittedDiffSha256": "3c80612c7a70a01738d693e0bd5b11d842ec6d7b97ab3dc1a084745069b1c656"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json",
@@ -27,22 +28,17 @@
     "manifest": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/manifest.json"
   },
   "summary": {
-    "pass": false,
-    "regenerated": true,
+    "pass": true,
+    "regenerated": false,
     "unitCount": 128,
     "unitsFullyRecovered": 128,
     "spuriousSolutions": 0,
     "heldOutRSquared": 0.9994208553573835,
     "oracleCalls": 787264,
     "verdict": "recovered",
-    "solverSha256": "0b572db0de0ae49d36e568c17f29e2f050f9061a1f0d923dc2203528e0786bfb",
-    "failures": [
-      "no post-hoc truth unlock stage recorded",
-      "accessAudit.truthUnlockQueryCount is not a finite number",
-      "accessAudit.solverOracleCalls is not a finite number",
-      "truth unlocked at query NaN but the solver counted NaN",
-      "telemetry and access audit disagree on the call count"
-    ]
+    "solverSha256": "e9d4b4734fe20c565a5e20001f3750276725ac6b99fb1443a8939818390a628f",
+    "truthUnlockQueryCount": 787264,
+    "failures": []
   },
   "notes": [
     "unitsFullyRecovered requires the gate direction, the up direction and the gate norm together, matched to one source unit.",

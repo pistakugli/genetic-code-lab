@@ -1730,6 +1730,22 @@ def main() -> int:
 
             # Post-hoc witness, read only after the recovery above is complete and frozen.
             oracle.unlock_posthoc_truth("jacobian-boundary-recovery-frozen")
+            # Evidence rather than declaration. `accessAudit` above is four literals the tool
+            # writes about itself, and the lane asserting that those literals hold their
+            # expected values proves only that the tool spelled them correctly - audit finding
+            # F17. The oracle already keeps what is needed: it refuses `truth()` until the
+            # unlock, and it records the query count at the moment of unlocking.
+            #
+            # Two independent counters have to agree. `truthUnlockQueryCount` is what the
+            # oracle had served when truth was unlocked; `solverOracleCalls` is what the solver
+            # counted spending. If they differ, a query was made outside the accounted path,
+            # which is the thing the invariant is actually about.
+            report["accessAudit"].update({
+                "truthUnlockStage": oracle.truth_unlock_stage,
+                "truthUnlockQueryCount": oracle.truth_unlock_query_count,
+                "solverOracleCalls": int(telemetry.oracleCalls),
+                "queryCountAtReport": int(oracle.query_count),
+            })
             truth_gate, truth_up = oracle.truth()
             basis = result["basis"]
             recovered = result["gates"] @ basis

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-05T16:41:36.143Z",
+  "generatedAt": "2026-08-05T16:46:23.890Z",
   "lane": "nn-live-jacobian-boundary-recovery",
   "variant": "llama-3072d-layer15-64unit-amplitude-gate",
-  "status": "fail",
+  "status": "pass",
   "command": {
     "argv": [
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
@@ -14,12 +14,13 @@
     "node": "v22.23.1"
   },
   "env": {
-    "GCL_JACOBIAN_REGENERATE": "0"
+    "GCL_JACOBIAN_REGENERATE": "0",
+    "GCL_JACOBIAN_VARIANT": "64unit"
   },
   "git": {
-    "commit": "31c5307df4b6a0f0917802228374741617436d69",
-    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json\n M scripts/benchmark-nn-live-jacobian-boundary-recovery.ts\n M tools/llm_reader/jacobian_boundary_recovery.py",
-    "uncommittedDiffSha256": "9c68b5106edc490bd8f2bb6fd001bbe84f16e908882b7790ec04adb82b51c739"
+    "commit": "956aeef3c5a3ea84ac517982d37a4a005eb27acd",
+    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json\n M tools/llm_reader/jacobian_boundary_recovery.py",
+    "uncommittedDiffSha256": "5803ecec3e8be5fab4f993d1a5dc5bf8f5356d5e39b851e48f878f1735c67884"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json",
@@ -27,7 +28,7 @@
     "manifest": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/manifest.json"
   },
   "summary": {
-    "pass": false,
+    "pass": true,
     "regenerated": false,
     "unitCount": 64,
     "unitsFullyRecovered": 64,
@@ -35,11 +36,9 @@
     "heldOutRSquared": 0.9994036175794178,
     "oracleCalls": 338288,
     "verdict": "recovered",
-    "solverSha256": "8b9f3822f7cdd2a2414a5daff00d11f63b2059c757f946cdc053b613bb1b94fa",
+    "solverSha256": "e9d4b4734fe20c565a5e20001f3750276725ac6b99fb1443a8939818390a628f",
     "truthUnlockQueryCount": 338288,
-    "failures": [
-      "artifact was produced by a different version of the recovery tool"
-    ]
+    "failures": []
   },
   "notes": [
     "unitsFullyRecovered requires the gate direction, the up direction and the gate norm together, matched to one source unit.",
