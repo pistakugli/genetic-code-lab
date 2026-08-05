@@ -2269,18 +2269,30 @@ Run against the real model. `tools/llm_reader/jacobian_boundary_recovery.py` dri
 route end to end through `OracleClient`. On LLaMA-3.2-3B layer 15, measured per source unit
 and not per solution:
 
-| block | mode | gate > 0.99 | up > 0.99 | joint > 0.99 | output > 0.99 | spurious | calls |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 16 unit | null space | `16/16` | - | - | `16/16` | 0 | `189432` |
-| 32 unit | null space | `32/32` | - | - | `32/32` | 0 | `689792` |
-| 32 unit | amplitude | `32/32` | `32/32` | `32/32` at `0.9926` | `32/32` | 3 | `178352` |
-| 64 unit | amplitude | `64/64` at `0.9998` | `64/64` | `64/64` | `64/64` | 0 | `428496` |
-| 128 unit | amplitude | `128/128` | `106/128` | `106/128` | `128/128` | 0 | `1245056` |
+`unitsFullyRecovered` is the bar: gate direction, up direction and gate norm together,
+matched to one source unit. It replaced a joint direction bar that read `64/64` on a run whose
+gate norms were wrong by four orders of magnitude - a measure a bad solution also satisfies,
+the same shape of mistake as `distinctUnitsMatched`.
 
-Gate and output direction hold at 100% across an eight-fold increase in block size, which is
-the property that decides whether this reaches a layer. The 128-unit row was run with two
-crossings per unit and the residual filter disabled, which is why its up recovery and its
-spurious count are worse than the 32-unit row rather than better.
+`heldOutR2` is the only column a caller without the model's weights can produce. The recovered
+block is a complete function, so it is run on points the solve never saw and compared against
+the oracle.
+
+| block | fully recovered | spurious | held-out R2 | calls |
+| --- | --- | --- | --- | --- |
+| 64 unit | `64/64` | 0 | `0.99941` | `469360` |
+| 128 unit | `128/128` | 0 | `0.99945` | `1303360` |
+| 512 unit | `512/512` | 0 | `0.99931` | `14404896` |
+
+Nothing degrades across an eightfold increase in block size. The held-out number is what makes
+that claim falsifiable rather than self-reported: the same 64-unit block scanned with 14 lines
+instead of 80 recovers 37 of 64 and scores `0.61923`, without being told the unit count and
+without touching a weight.
+
+Where it stops is set by the probe scale, not by the method. A `silu` knee is
+`1/(S ||g|| |g.d|)` wide along the line while boundaries sit about `2/k` apart, so a line stops
+separating them once `k` approaches `2 S ||g|| / sqrt(dim)` - about 770 units at the `2e4` used
+above. Reaching 8192 needs `S ~ 2.1e5`.
 
 Cost, measured rather than estimated: `1232560` calls for 128 units at rank 256 is `9629` per
 unit. A full layer caps the rank at the input dimension, 3072, so the amplitude sweep costs
@@ -2299,12 +2311,16 @@ measurement that contradicted the obvious reading:
   no calls and needs no truth.
 - A gate read from one crossing reaches cosine `0.99866`; averaged over several crossings of
   the same unit it reaches `0.99962`. Each crossing is an independent read of one direction.
-- **The gate norm has to be recovered before the up direction can be solved.** A recovered
-  gate is a direction with norm 1 while the real one is around `0.02`, and `silu` is not scale
-  free, so evaluating it fifty times too far out puts every unit in saturation. That held the
-  up recovery at `14/32` through changes to sample count, sample scale, cross-talk and gate
-  accuracy, none of which was the cause. Searching one number per unit against that unit's own
-  projection takes it to `32/32`. There is no nonlinear optimisation in it: a basis from stacked Jacobians,
+- **The gate norm has to be measured, not fitted.** A recovered gate is a direction with norm
+  1 while the real one on this layer is `1.07` median, and `silu` is not scale free, so the
+  norm decides which part of the curve the unit lives on. Searching it against the unit's own
+  projection in the isotropic probe cloud is degenerate: as the candidate goes to zero
+  `silu(cz) -> cz/2`, the design collapses onto `z x` and the free up direction absorbs `c`,
+  so every small candidate scores the same residual and noise picks the grid floor. That put
+  25 of 64 norms outside 10% of truth, several at `2e-4`, which describes a unit that never
+  fires. Probing along the unit's own gate direction removes the degeneracy - on
+  `x(s) = s g_i + p` the pre-activation is exactly `||g_i|| s`, so the norm sets where the
+  curve turns on, which no fitted coefficient can imitate. 64 of 64 within 10%. There is no nonlinear optimisation in it: a basis from stacked Jacobians,
 an identity from output directions, a gate from a null space. Artifact:
 `benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/report.json`.
 
