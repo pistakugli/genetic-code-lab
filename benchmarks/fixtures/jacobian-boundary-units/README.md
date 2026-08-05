@@ -9,6 +9,10 @@ belongs next to the numbers. Audit finding F23.
 
 Uniform random draw over the layer's 8192 units, without replacement.
 
+The upper lists lived only in `/tmp` until a ladder run failed on all three rungs above 256
+with an empty unit string - the script read a fixture that was never committed. They are here
+now, which is the point of the directory.
+
 `64.txt` and `128.txt` were drawn independently and share no unit: their intersection is
 empty. `256.txt` extends `128.txt` and `512` extends `256`, so the upper rungs are nested
 supersets rather than fresh samples. That is a deliberate design for measuring what **density**
@@ -21,6 +25,8 @@ finding F22.
 | `64.txt` | 64 | independent draw |
 | `128.txt` | 128 | independent draw, disjoint from 64 |
 | `256.txt` | 256 | superset of `128.txt` |
+| `512.txt` | 512 | superset of `256.txt` |
+| `1024.txt` | 1024 | superset of `512.txt` |
 
 ## Are they representative
 
