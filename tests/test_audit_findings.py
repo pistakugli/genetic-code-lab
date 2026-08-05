@@ -67,3 +67,62 @@ class GateSignBlindSpotTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SwallowedFailureTest(unittest.TestCase):
+    """F01, F07, F08 — a broken card must not look like a working one.
+
+    `solve_least_squares` used to wrap the whole GPU path in `except Exception: pass`. An out
+    of memory, a driver fault, a shape error - all of them turned into a run that was merely
+    slower and said nothing at all. `operator-integrity-lock` forbids exactly this: a failure
+    that is silenced rather than repaired.
+
+    One condition is a legitimate answer rather than a breakdown: CUDA's `gels` driver needs
+    full rank, and a rank-deficient design is a real case here because near-collinear units are
+    one of the negative cases this route must handle. That one is caught by name, and it still
+    leaves a trace.
+    """
+
+    @staticmethod
+    def source() -> str:
+        return (REPO_ROOT / "tools/llm_reader/jacobian_boundary_recovery.py").read_text()
+
+    def test_no_blanket_exception_swallows_a_failure(self) -> None:
+        body = self.source()
+
+        # Comments explaining the removed anti-pattern are allowed; code doing it is not.
+        offending = [
+            line for line in body.splitlines()
+            if "except Exception" in line and not line.lstrip().startswith("#")
+        ]
+
+        self.assertEqual(offending, [])
+
+    def test_a_fallback_leaves_a_trace(self) -> None:
+        from tools.llm_reader.jacobian_boundary_recovery import _record_fallback
+
+        notes: list[str] = []
+        _record_fallback(notes, "card returned a non-finite solution")
+
+        # Without this the run reports a clean result produced by a path nobody chose.
+        self.assertEqual(len(notes), 1)
+        self.assertIn("non-finite", notes[0])
+
+    def test_absence_of_a_card_is_not_treated_as_a_fault(self) -> None:
+        import ast
+
+        tree = ast.parse(self.source())
+        probe = next(
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "_torch_cuda"
+        )
+        caught = [
+            ast.unparse(handler.type) if handler.type else "bare"
+            for block in ast.walk(probe) if isinstance(block, ast.Try)
+            for handler in block.handlers
+        ]
+
+        # "No torch installed" is a state, not a failure, and it is the only thing this may
+        # absorb. A driver that raises anything else has to surface, because a broken card and
+        # an absent one are different situations that used to look identical.
+        self.assertEqual(caught, ["ImportError"])

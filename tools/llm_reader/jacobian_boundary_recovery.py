@@ -512,7 +512,24 @@ def identifiability_verdict(
     }
 
 
-def solve_least_squares(design: np.ndarray, target: np.ndarray) -> np.ndarray:
+def _record_fallback(notes: list[str] | None, reason: str) -> None:
+    """Leave a trace when the card is not used for a reason other than not being there.
+
+    A silent fallback is a run that is merely slow and says nothing, which is how a broken
+    card looks exactly like a working one. The caller passes its telemetry notes; when it does
+    not, the message still reaches stderr rather than disappearing.
+    """
+    if notes is not None:
+        notes.append(reason)
+    else:
+        print(f"solve_least_squares: {reason}", file=sys.stderr)
+
+
+def solve_least_squares(
+    design: np.ndarray,
+    target: np.ndarray,
+    notes: list[str] | None = None,
+) -> np.ndarray:
     """Least squares on whichever device can actually do it.
 
     The oracle runs on the GPU and the solve did not, which put the whole route on the wrong
@@ -537,14 +554,25 @@ def solve_least_squares(design: np.ndarray, target: np.ndarray) -> np.ndarray:
     # solve of a 64-unit block - 30000 by 256 - on the host, which is the shape this route
     # runs most often.
     if torch is not None and design.size >= 100_000:
+        # Only the one condition that is a legitimate answer rather than a breakdown: CUDA's
+        # `gels` driver requires full rank, and a rank-deficient design is a real case here -
+        # near-collinear units are one of the negative cases this file has to handle. Anything
+        # else - out of memory, a driver fault, a shape error - is a failure and leaves by the
+        # front door. It used to be `except Exception: pass`, which turned a broken card into
+        # a run that was merely slow and said nothing, and `operator-integrity-lock` forbids
+        # exactly that. Audit finding F01.
         try:
             left = torch.as_tensor(design, dtype=torch.float32, device="cuda")
             right = torch.as_tensor(target, dtype=torch.float32, device="cuda")
             solution = torch.linalg.lstsq(left, right.unsqueeze(1)).solution
+        except torch.linalg.LinAlgError as rank_deficient:
+            _record_fallback(notes, f"rank-deficient design on the card: {rank_deficient}")
+        else:
+            # A non-finite solution is a failure too, not a reason to quietly try elsewhere.
+            # Falling back is right, saying nothing about it is not. Audit finding F07.
             if torch.isfinite(solution).all():
                 return solution.squeeze(1).double().cpu().numpy()
-        except Exception:
-            pass
+            _record_fallback(notes, "card returned a non-finite solution; solved on the host")
     solution, *_ = np.linalg.lstsq(design, target, rcond=None)
     return solution
 
@@ -593,10 +621,12 @@ def _torch_cuda():
     if not hasattr(_torch_cuda, "cached"):
         try:
             import torch
-
-            _torch_cuda.cached = torch if torch.cuda.is_available() else None
-        except Exception:
+        except ImportError:
+            # No torch is a legitimate state, not a fault. Audit finding F08: one blanket
+            # `except Exception` made a missing package and a broken driver look identical.
             _torch_cuda.cached = None
+        else:
+            _torch_cuda.cached = torch if torch.cuda.is_available() else None
     return _torch_cuda.cached
 
 
