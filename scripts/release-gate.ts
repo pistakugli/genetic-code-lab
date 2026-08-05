@@ -113,6 +113,11 @@ function main(): void {
     runStep('delegated citation integrity', 'npm', ['run', 'verify:delegated-citations'], { timeoutMs: 3 * 60 * 1000 });
     runStep('artifact verdict consistency', 'npm', ['run', 'verify:artifact-verdicts'], { timeoutMs: 3 * 60 * 1000 });
     runStep('artifact provenance', 'npm', ['run', 'verify:artifact-provenance'], { timeoutMs: 3 * 60 * 1000 });
+    // Four classes of defect that each reached a commit during one day of work on the
+    // Jacobian route, none of which any other verifier could see: a swallowed failure, an
+    // artifact outliving its generator, an access audit made of self-written literals, and a
+    // run writing outside its own lane.
+    runStep('solver integrity', 'npm', ['run', 'verify:solver-integrity'], { timeoutMs: 3 * 60 * 1000 });
     runStep('variant distinctness', 'npm', ['run', 'verify:variant-distinctness'], { timeoutMs: 3 * 60 * 1000 });
     runStep('semantic archive composition benchmark', 'npm', ['run', 'benchmark:semantic-archive'], { timeoutMs: 2 * 60 * 1000 });
     runStep('closed-loop archive emergence benchmark', 'npm', ['run', 'benchmark:archive-emergence'], { timeoutMs: 3 * 60 * 1000 });
