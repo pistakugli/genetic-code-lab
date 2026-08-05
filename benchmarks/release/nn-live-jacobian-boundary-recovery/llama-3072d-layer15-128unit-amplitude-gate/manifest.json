@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-05T16:46:24.564Z",
+  "generatedAt": "2026-08-05T16:54:13.691Z",
   "lane": "nn-live-jacobian-boundary-recovery",
   "variant": "llama-3072d-layer15-128unit-amplitude-gate",
   "status": "pass",
@@ -14,13 +14,12 @@
     "node": "v22.23.1"
   },
   "env": {
-    "GCL_JACOBIAN_REGENERATE": "0",
     "GCL_JACOBIAN_VARIANT": "128unit"
   },
   "git": {
-    "commit": "956aeef3c5a3ea84ac517982d37a4a005eb27acd",
-    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json\n M tools/llm_reader/jacobian_boundary_recovery.py",
-    "uncommittedDiffSha256": "3c80612c7a70a01738d693e0bd5b11d842ec6d7b97ab3dc1a084745069b1c656"
+    "commit": "00d8b6f27decbd37536af900ae67873db90d5924",
+    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/report.json\n M scripts/benchmark-nn-live-jacobian-boundary-recovery.ts\n M tests/test_audit_findings.py\n M tests/test_identifiability_verdict.py\n M tools/llm_reader/jacobian_boundary_recovery.py\n?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/intervention.json\n?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-64unit-amplitude-gate/intervention.json",
+    "uncommittedDiffSha256": "221473c1353325c7e6a062d5bde87dfe1f350989a5f100e9a1910605148d03bb"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-128unit-amplitude-gate/report.json",
@@ -29,14 +28,15 @@
   },
   "summary": {
     "pass": true,
-    "regenerated": false,
+    "regenerated": true,
     "unitCount": 128,
     "unitsFullyRecovered": 128,
     "spuriousSolutions": 0,
     "heldOutRSquared": 0.9994208553573835,
+    "realTextDeltaCosine": 0.9997181827295478,
     "oracleCalls": 787264,
     "verdict": "recovered",
-    "solverSha256": "e9d4b4734fe20c565a5e20001f3750276725ac6b99fb1443a8939818390a628f",
+    "solverSha256": "86a5b1115936f042f1c0a28f581b15aff2236c7beec462e1f4037640b7e0ef94",
     "truthUnlockQueryCount": 787264,
     "failures": []
   },

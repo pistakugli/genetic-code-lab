@@ -12,6 +12,7 @@
 import { spawnSync } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { resolveBenchmarkOutput, writeBenchmarkManifest } from './benchmark-paths';
 
@@ -67,6 +68,7 @@ function childEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
+const recoveredNpz = path.join(os.tmpdir(), `gcl-jacobian-${requested}-recovered.npz`);
 const unitsFile = path.join(repoRoot, 'benchmarks/fixtures/jacobian-boundary-units', `${settings.units}.txt`);
 if (!fs.existsSync(unitsFile)) throw new Error(`missing unit fixture: ${unitsFile}`);
 const units = fs.readFileSync(unitsFile, 'utf8').trim();
@@ -95,6 +97,10 @@ if (regenerate) {
     '--up-sample-scale', '2',
     '--max-oracle-calls', String(settings.budget * 4),
     '--output-json', output.jsonOutputPath,
+    // Not in the output directory: this is six to twelve megabytes of recovered parameters
+    // per variant, which is working material for the intervention check and not an artifact
+    // anyone reads.
+    '--output-directions-npz', recoveredNpz,
   ], {
     cwd: repoRoot,
     env: childEnv(),
@@ -107,6 +113,30 @@ if (regenerate) {
   // when nothing else had failed, which reads as a pass.
   if (result.signal) throw new Error(`recovery killed by signal ${result.signal}`);
   if (result.status !== 0) throw new Error(`recovery exited with status ${String(result.status)}`);
+}
+
+// The held-out R2 above is measured on the probe cloud, which is not where the model lives:
+// probe points carry `||x|| ~ 111` while real hidden states put `g.x` at a standard deviation
+// of 0.265. A recovery could interpolate the probe distribution well and be wrong in the
+// regime that matters - audit finding F24. The intervention check runs the recovered units
+// against real sentences and compares against a hooked forward pass, so the gate covers both.
+const interventionPath = path.join(output.outputDir, 'intervention.json');
+if (regenerate) {
+  const python = process.env.GCL_PYTHON || '.gcl-python-gpu/bin/python';
+  const checked = spawnSync(python, [
+    'tools/llm_reader/unit_intervention_test.py',
+    '--recovered-npz', recoveredNpz,
+    '--model', 'unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit',
+    '--layer', '15',
+    '--text', 'The capital of France is Paris, a city known for its architecture.',
+    '--text', 'Photosynthesis converts light energy into chemical energy stored in glucose.',
+    '--text', 'def quicksort(items): pivot = items[0]; return sorted(items)',
+    '--max-units', String(settings.units),
+    '--output-json', interventionPath,
+  ], { cwd: repoRoot, env: childEnv(), stdio: ['ignore', 'ignore', 'inherit'], timeout: 30 * 60 * 1000 });
+  if (checked.error) throw checked.error;
+  if (checked.signal) throw new Error(`intervention check killed by signal ${checked.signal}`);
+  if (checked.status !== 0) throw new Error(`intervention check exited with status ${String(checked.status)}`);
 }
 
 if (!fs.existsSync(output.jsonOutputPath)) throw new Error(`missing report: ${output.jsonOutputPath}`);
@@ -137,6 +167,13 @@ const rSquared = finiteNumber(reconstruction.rSquared, 'reconstruction.rSquared'
 if (rSquared < 0.999) failures.push(`held-out R2=${String(rSquared)}<0.999`);
 if (finiteNumber(reconstruction.relativeResidual, 'reconstruction.relativeResidual', failures) > 0.05) {
   failures.push('held-out relative residual above 0.05');
+}
+
+const intervention = record(JSON.parse(fs.readFileSync(interventionPath, 'utf8')), 'intervention');
+const deltaCosine = finiteNumber(intervention.deltaCosineMedian, 'intervention.deltaCosineMedian', failures);
+if (deltaCosine < 0.99) failures.push(`silencing delta cosine on real text ${String(deltaCosine)}<0.99`);
+if (finiteNumber(intervention.unitsTested, 'intervention.unitsTested', failures) !== settings.units) {
+  failures.push('intervention check did not cover the block');
 }
 
 if (access.solverAccess !== 'oracle-only') failures.push('solver access mode is not oracle-only');
@@ -189,6 +226,7 @@ writeBenchmarkManifest(repoRoot, output, {
     unitsFullyRecovered: fullyRecovered,
     spuriousSolutions: posthoc.spuriousSolutions,
     heldOutRSquared: rSquared,
+    realTextDeltaCosine: deltaCosine,
     oracleCalls,
     verdict: identifiability.verdict,
     solverSha256,
@@ -210,6 +248,7 @@ console.log(JSON.stringify({
   unitCount: settings.units,
   spuriousSolutions: posthoc.spuriousSolutions,
   heldOutRSquared: rSquared,
+  realTextDeltaCosine: deltaCosine,
   oracleCalls,
   failures,
 }, null, 2));

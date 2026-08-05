@@ -126,3 +126,82 @@ class SwallowedFailureTest(unittest.TestCase):
         # absorb. A driver that raises anything else has to surface, because a broken card and
         # an absent one are different situations that used to look identical.
         self.assertEqual(caught, ["ImportError"])
+
+
+@unittest.skipUnless(
+    Path("/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu").exists(),
+    "needs the GPU environment that carries the model",
+)
+class OracleProtocolIntegrationTest(unittest.TestCase):
+    """F25 — every other test in this suite talks to a synthetic teacher.
+
+    Twenty-nine tests cover the mathematics and not one of them crosses the process boundary:
+    no oracle protocol, no file handoff, no truth lock. Three of the defects this audit found -
+    a lane whose artifacts had gone stale, a verification branch that had never run, and a
+    diagnostic pass that rewrote 169 files in other lanes - all lived in exactly that gap.
+
+    This one goes through `OracleClient` against the real model, on the smallest block that
+    still exercises the whole path. It is slow, and that is the price of covering the part
+    where the failures actually were.
+    """
+
+    MODEL = "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit"
+
+    def test_the_truth_lock_refuses_before_the_recovery_is_frozen(self) -> None:
+        import tempfile
+
+        from tools.llm_reader.blind_swiglu_oracle_decompiler import OracleClient
+        from tools.llm_reader.jacobian_boundary_recovery import _oracle_namespace
+
+        with tempfile.TemporaryDirectory() as work:
+            oracle = OracleClient(
+                _oracle_namespace(
+                    model=self.MODEL, layer=15, units="8,23,43,98",
+                    device="cuda", max_oracle_calls=20000, batch_size=256,
+                ),
+                Path(work),
+            )
+            try:
+                # The invariant the whole lane rests on, exercised rather than declared: the
+                # oracle will not hand over the weights until the solver is done with it.
+                with self.assertRaises(RuntimeError):
+                    oracle.truth()
+
+                probe = np.zeros((4, int(oracle.meta["hiddenSize"])), dtype=np.float32)
+                answered = oracle.eval(probe, stage="integration-test")
+                self.assertEqual(answered.shape[0], 4)
+                served = int(oracle.query_count)
+
+                oracle.unlock_posthoc_truth("integration-test-frozen")
+                gate, up = oracle.truth()
+
+                # The two counters the lane compares, checked here against the protocol rather
+                # than against a report the tool wrote about itself.
+                self.assertEqual(oracle.truth_unlock_query_count, served)
+                self.assertEqual(gate.shape[0], 4)
+                self.assertEqual(up.shape[0], 4)
+            finally:
+                oracle.close()
+
+    def test_a_second_unlock_is_refused(self) -> None:
+        import tempfile
+
+        from tools.llm_reader.blind_swiglu_oracle_decompiler import OracleClient
+        from tools.llm_reader.jacobian_boundary_recovery import _oracle_namespace
+
+        with tempfile.TemporaryDirectory() as work:
+            oracle = OracleClient(
+                _oracle_namespace(
+                    model=self.MODEL, layer=15, units="8,23",
+                    device="cuda", max_oracle_calls=8000, batch_size=128,
+                ),
+                Path(work),
+            )
+            try:
+                oracle.unlock_posthoc_truth("first")
+                # Unlocking twice would make the recorded query count meaningless, which is the
+                # number the access evidence rests on.
+                with self.assertRaises(RuntimeError):
+                    oracle.unlock_posthoc_truth("second")
+            finally:
+                oracle.close()

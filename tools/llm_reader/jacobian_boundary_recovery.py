@@ -43,7 +43,10 @@ import os
 # over every core buys nothing. Measured end to end on a 64-unit block: 8 threads is the
 # fastest at 30.4 seconds, 16 is both slower at 31.7 and twice the CPU, 4 costs one second and
 # a third of the CPU. What looked like the route hammering the processor was two thirds waste.
-# An explicit setting from the caller wins; this only fills in a default.
+# An explicit setting from the caller wins; this only fills in a default. It also only takes
+# effect when this module is the entry point, because the pools are sized when numpy imports:
+# a test file that imports numpy first gets the machine default, and the commit that added
+# this said otherwise. Audit finding F16.
 for _pool in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
     os.environ.setdefault(_pool, str(min(8, os.cpu_count() or 8)))
 
@@ -94,6 +97,7 @@ class RecoveryTelemetry:
     # without this the only visible number is the total, which says nothing about which part
     # to fix.
     phaseSeconds: dict[str, dict[str, float]] = field(default_factory=dict)
+    lineScanBreakdown: dict[str, float] = field(default_factory=dict)
     # How close the line scan is to its own resolution limit. A `silu` knee has a width along
     # the line of `1/(S ||g|| |g.d|)`, and boundaries are spaced about `2/k` apart, so the
     # scan stops separating them once `k` approaches `2 S ||g|| / sqrt(dim)`. Peaks are then
@@ -475,25 +479,24 @@ def identifiability_verdict(
         })
 
     # A gate norm that was not identified is a unit reported at the wrong scale, and `silu`
-    # is not scale free, so that is a claim about behaviour the evidence does not carry. The
-    # ray already measures both ways this can happen - a knee that never appeared in the
-    # probed range, and independent rays that disagree about where it is - and computing that
-    # without acting on it is the same as not measuring it.
+    # is not scale free, so that matters. The ray measures both ways it can happen - a knee
+    # that never appeared in the probed range, and independent rays that disagree about where
+    # it sits - and those counts are reported below.
+    #
+    # They do not raise a finding, and that is deliberate. The two cutoffs were invented, not
+    # measured, in a file where I had written that "a number with an invented cutoff is worse
+    # than a number" - audit finding F04. Reporting a measurement without a threshold is
+    # honest; letting an invented threshold qualify a recovery is not. They return to the
+    # verdict when a run that is known to be broken shows a different distribution from one
+    # that is known to be clean.
+    norm_flags = {"kneeShareBelowThreshold": 0, "raySpreadAboveThreshold": 0}
     if norm_diagnostics:
-        unidentified = [
-            index for index, row in enumerate(norm_diagnostics)
-            if row.get("kneeShare", 1.0) < knee_share_threshold
-            or row.get("raySpread", 0.0) > ray_spread_threshold
-        ]
-        if unidentified:
-            findings.append({
-                "family": "gate-norm-not-identified",
-                "detail": (
-                    f"{len(unidentified)} solution(s) with knee share below "
-                    f"{knee_share_threshold} or ray spread above {ray_spread_threshold}"
-                ),
-                "verdict": "ambiguous",
-            })
+        norm_flags["kneeShareBelowThreshold"] = sum(
+            1 for row in norm_diagnostics if row.get("kneeShare", 1.0) < knee_share_threshold
+        )
+        norm_flags["raySpreadAboveThreshold"] = sum(
+            1 for row in norm_diagnostics if row.get("raySpread", 0.0) > ray_spread_threshold
+        )
 
     blocking = [row for row in findings if row["verdict"] == "non-identifiable"]
     return {
@@ -501,6 +504,7 @@ def identifiability_verdict(
         "verdict": "non-identifiable" if blocking else ("qualified" if findings else "recovered"),
         "findings": findings,
         "clustersFound": int(clusters_found),
+        "gateNormDiagnosticCounts": norm_flags,
         "thresholds": {
             "duplicateGateCosine": float(duplicate_gate_cosine),
             "collinear": float(collinear_threshold),
@@ -635,7 +639,7 @@ def _batched_normal_equations(
     window: np.ndarray,
     background: np.ndarray,
     projected: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """Least-squares error for every candidate knee scale, in one shot.
 
     The model is `silu(c s)(a s + b)` plus a quadratic background, so each candidate `c` gives
@@ -678,7 +682,11 @@ def _batched_normal_equations(
         gram = gram + ridge[:, None, None] * torch.eye(gram.shape[1], device=device)[None, :, :]
         solution = torch.linalg.solve(gram, moment)
         residual = design @ solution - target[None, :, None]
-        return (residual.squeeze(2) ** 2).sum(dim=1).double().cpu().numpy(), solution.squeeze(2).double().cpu().numpy()
+        # Errors only. The solution was returned alongside and never read, which in the GPU
+        # branch meant a `(C, 5)` transfer back to the host on every call - four calls per ray,
+        # three rays per unit. Audit finding F12: a synchronisation added inside the function
+        # that had just been moved to the card to avoid them.
+        return (residual.squeeze(2) ** 2).sum(dim=1).double().cpu().numpy()
 
     scaled = grid[:, None] * window[None, :]
     activation = scaled / (1.0 + np.exp(-np.clip(scaled, -60.0, 60.0)))
@@ -694,7 +702,7 @@ def _batched_normal_equations(
     gram = gram + ridge[:, None, None] * np.eye(gram.shape[1])[None, :, :]
     solution = np.linalg.solve(gram, moment)
     residual = np.einsum('cpi,ci->cp', design, solution) - projected[None, :]
-    return (residual ** 2).sum(axis=1), solution
+    return (residual ** 2).sum(axis=1)
 
 
 def calibrate_gate_norms_on_rays(
@@ -808,7 +816,7 @@ def calibrate_gate_norms_on_rays(
         # for all candidates is a single `(C, P, 5)` tensor, and five-by-five normal equations
         # are exact here because the columns are a knee and a quadratic, not an ill-conditioned
         # basis.
-        errors, solutions = _batched_normal_equations(grid, window, background, projected)
+        errors = _batched_normal_equations(grid, window, background, projected)
         best = int(np.argmin(errors))
         return float(grid[best]), float(errors[best]), background_error
 
@@ -895,15 +903,16 @@ def _decide_gate_signs(
         targets = torch.as_tensor(unmixed, dtype=torch.float32, device="cuda")
         norms = torch.as_tensor(gate_norms, dtype=torch.float32, device="cuda")
         for index in range(units):
-            best_error, best_sign = float("inf"), 1.0
+            # Both orientations scored on the card and compared there. Pulling each residual
+            # across with `float(...)` cost a synchronisation per candidate per unit - audit
+            # finding F13, the same mistake as F12 and in the same commit.
+            scored = []
             for candidate in (1.0, -1.0):
                 z = raw[:, index] * (norms[index] * candidate)
                 design = torch.cat((z.mul(torch.sigmoid(z))[:, None] * coords, coords), dim=1)
                 solution = torch.linalg.lstsq(design, targets[:, index, None]).solution
-                error = float(((design @ solution).squeeze(1) - targets[:, index]).pow(2).sum())
-                if error < best_error:
-                    best_error, best_sign = error, candidate
-            signs[index] = best_sign
+                scored.append(((design @ solution).squeeze(1) - targets[:, index]).pow(2).sum())
+            signs[index] = 1.0 if bool(scored[0] <= scored[1]) else -1.0
         return signs
 
     for index in range(units):
@@ -1009,7 +1018,10 @@ def recover_block(
             telemetry.linesScanned += 1
         telemetry.crossingsFound = len(crossings)
 
-    telemetry.phaseSeconds["lineScanBreakdown"] = {k: round(v, 3) for k, v in scan_timings.items()}
+    # Its own field, not an entry in `phaseSeconds`. It has different keys from every other
+    # entry there, so anything iterating the phases hit a `KeyError` - which I did, in my own
+    # reporting script. Audit finding F05.
+    telemetry.lineScanBreakdown = {k: round(v, 3) for k, v in scan_timings.items()}
     with _Phase(telemetry, "clustering"):
         clusters = cluster_by_output_direction(crossings, min_cosine=cluster_min_cosine)
     telemetry.clusters = len(clusters)
@@ -1267,24 +1279,18 @@ def recover_block(
         # 98304, and 6000 samples go from hopelessly underdetermined - which returned zero
         # usable up directions on the live model - to comfortably overdetermined.
         # Per unit, through its own output direction, rather than one joint solve over all of
-        # them. Projecting the response onto `d_i` leaves that unit's contribution with
-        # coefficient 1 and everyone else's scaled by `d_j . d_i`, which for directions in
-        # 3072 dimensions is around 0.018. A joint solve instead lets a small error in one
-        # gate be absorbed by another unit's column: with gates at per-unit cosine 0.9985 it
-        # returned 15 of 32 up directions above 0.99 and adding samples did not move it,
-        # because the limit was cross-talk and not conditioning.
-        # Cross-talk is what limits this, not conditioning. Projecting onto `d_i` leaves every
-        # other unit scaled by `d_j . d_i`, around 0.018 for directions in 3072 dimensions,
-        # and those errors add: at 32 units the residual noise is about 0.10 of the signal and
-        # every up direction came back above 0.99, at 128 units it is 0.20 and 22 of them did
-        # not. Sweeping repeatedly and subtracting the units already solved removes that term
-        # instead of tolerating it - each pass sees a cleaner residual than the last.
-        # Subtracting the units already solved was tried and makes things worse: 64 units went
-        # from 64/64 up directions to 60/64 with two sweeps. The cross-talk term is real, but
-        # so is the error in every not-yet-correct neighbour, and subtracting an estimate
-        # injects the second while removing the first. Default is zero sweeps, which is the
-        # plain per-unit solve; the option stays because at some unit count the trade may
-        # reverse, and because a measured dead end is worth keeping runnable.
+        # them. A joint solve lets a small error in one gate be absorbed by another unit's
+        # column: with gates at per-unit cosine 0.9985 it returned 15 of 32 up directions and
+        # adding samples did not move it.
+        #
+        # Cross-talk between units is removed before this point, not tolerated here - see the
+        # pseudo-inverse above. The description that used to sit in this comment, of projecting
+        # onto `d_i` and living with `d_j . d_i`, described the route as it was before that,
+        # and the sweep-and-subtract dead end it recommended is off by default: subtracting
+        # fitted estimates injects each neighbour's error while removing its contribution, and
+        # took 64 units from 64 up directions to 60. The option stays runnable because a
+        # measured dead end is worth keeping, and because the trade may reverse at some unit
+        # count. Audit finding F10 was that this comment outlived the code it described.
         #
         # The running model is kept and adjusted rather than rebuilt: recomputing every other
         # unit's contribution inside the loop is quadratic in the unit count and made a
@@ -1467,6 +1473,7 @@ def summarise(result: dict[str, Any], telemetry: RecoveryTelemetry) -> str:
         "unitsRecovered": telemetry.unitsRecovered,
         "amplitudeCalls": telemetry.amplitudeCalls,
         "phaseSeconds": telemetry.phaseSeconds,
+        "lineScanBreakdown": telemetry.lineScanBreakdown,
         "amplitudeSweeps": telemetry.amplitudeSweeps,
         "amplitudeSweepsAllowed": telemetry.amplitudeSweepsAllowed,
         "crossingsPerLine": telemetry.crossingsPerLine,

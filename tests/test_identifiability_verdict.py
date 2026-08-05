@@ -105,12 +105,11 @@ class IdentifiabilityVerdictTest(unittest.TestCase):
 
         self.assertIn("weak-channel-below-floor", families(result))
 
-    def test_a_gate_norm_that_was_not_identified_is_reported(self) -> None:
+    def test_norm_diagnostics_are_counted_and_reported(self) -> None:
         # `silu` is not scale free, so a unit reported at the wrong scale is a claim about
-        # behaviour the evidence does not carry. The ray measures both ways this happens - a
+        # behaviour the evidence does not carry, and both ways that happens are measured: a
         # knee that never appeared in the probed range, and independent rays that disagree
-        # about where it is - and a diagnostic that is computed but never acted on is the same
-        # as one that was never taken.
+        # about where it sits.
         result = verdict(norm_diagnostics=[
             {"norm": 1.0, "kneeShare": 1.0, "raySpread": 0.001},
             {"norm": 0.5, "kneeShare": 0.02, "raySpread": 0.001},
@@ -118,18 +117,22 @@ class IdentifiabilityVerdictTest(unittest.TestCase):
             {"norm": 1.2, "kneeShare": 1.0, "raySpread": 0.001},
         ])
 
-        self.assertIn("gate-norm-not-identified", families(result))
-        self.assertEqual(result["verdict"], "qualified")
-        detail = [row["detail"] for row in result["findings"] if row["family"] == "gate-norm-not-identified"]
-        self.assertIn("2 solution(s)", detail[0])
+        counts = result["gateNormDiagnosticCounts"]
+        self.assertEqual(counts["kneeShareBelowThreshold"], 1)
+        self.assertEqual(counts["raySpreadAboveThreshold"], 1)
 
-    def test_clean_norm_diagnostics_add_no_finding(self) -> None:
-        result = verdict(norm_diagnostics=[
-            {"norm": 1.0, "kneeShare": 1.0, "raySpread": 0.004} for _ in range(4)
+    def test_the_counts_do_not_qualify_the_recovery(self) -> None:
+        # The two cutoffs were invented rather than measured, in a file where I had written
+        # that a number with an invented cutoff is worse than a number. Reporting the count is
+        # honest; letting it qualify a recovery is not, until a broken run and a clean one are
+        # shown to separate on it.
+        noisy = verdict(norm_diagnostics=[
+            {"norm": 1.0, "kneeShare": 0.0, "raySpread": 9.0} for _ in range(4)
         ])
 
-        self.assertEqual(result["findings"], [])
-        self.assertEqual(result["verdict"], "recovered")
+        self.assertEqual(noisy["verdict"], "recovered")
+        self.assertEqual(noisy["findings"], [])
+        self.assertEqual(noisy["gateNormDiagnosticCounts"]["kneeShareBelowThreshold"], 4)
 
     def test_every_finding_carries_one_of_the_three_honest_outcomes(self) -> None:
         allowed = {"non-identifiable", "canonicalised", "ambiguous"}
