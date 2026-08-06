@@ -41,7 +41,10 @@ const variants = {
   '32unit': { units: 32, lines: 40, basisPoints: 8, upSamples: 15_000, budget: 220_000, gateMode: 'amplitude', minR2: 0.999 },
   '64unit': { units: 64, lines: 80, basisPoints: 12, upSamples: 30_000, budget: 380_000, gateMode: 'amplitude', minR2: 0.999 },
   '128unit': { units: 128, lines: 160, basisPoints: 20, upSamples: 60_000, budget: 880_000, gateMode: 'amplitude', minR2: 0.999 },
-  '256unit': { units: 256, lines: 320, basisPoints: 36, upSamples: 120_000, budget: 3_200_000, gateMode: 'amplitude', minR2: 0.999 },
+  // Budgets and floors from the ladder run, not from a guess: 256 spent 2074336 calls at R2 0.999417,
+  // 512 spent 6155552 at 0.999241.
+  '256unit': { units: 256, lines: 320, basisPoints: 36, upSamples: 120_000, budget: 2281769, gateMode: 'amplitude', minR2: 0.999 },
+  '512unit': { units: 512, lines: 640, basisPoints: 68, upSamples: 80_000, budget: 6771107, gateMode: 'amplitude', minR2: 0.999 },
 } as const;
 
 const requested = process.env.GCL_JACOBIAN_VARIANT ?? '64unit';

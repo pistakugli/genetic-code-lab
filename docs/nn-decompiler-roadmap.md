@@ -2289,12 +2289,21 @@ silenced against real sentences and compared with a hooked forward pass.
 | 32 unit | `32/32` | 0 | `0.9990760` | `0.9995760` | `167560` |
 | 64 unit | `64/64` | 0 | `0.9994036` | `0.9996909` | `338288` |
 | 128 unit | `128/128` | 0 | `0.9994209` | `0.9997182` | `787264` |
+| 256 unit | `256/256` | 0 | `0.9994170` | - | `2074336` |
+| 512 unit | `512/512` | 0 | `0.9992410` | - | `6155552` |
 
 The held-out bar is per block and taken from measurement, not from a round number. A 16-unit
 block reconstructs to `0.99868` and stays there from 8000 probe samples to 80000, so that is
 its floor rather than a sampling artefact: with fewer units, each unit's parameter error is a
 larger share of the total signal. The real-text figure does not show the same effect, which is
 consistent with that reading.
+
+Where it stops on this machine is the driver, not the method. A 1024-unit block dies inside
+the CUDA caching allocator on `nvmlInit_v2`, because the host's kernel module and userspace
+library are on different releases: `PYTORCH_NVML_BASED_CUDA_CHECK=0` gets past the
+availability probe, but the allocator calls NVML itself once the design is large enough, which
+1024 reaches and 512 does not. A reboot loads the matching module. Until then the measured
+ceiling is 512, and the resolvability rule above stays a prediction rather than a measurement.
 
 The null-space gate is measured and not shipped. On the same 32 units it reaches 31 of 32 at
 600 lines and `1047784` calls, against 32 of 32 at `167560` for the amplitude route - six times
