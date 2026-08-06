@@ -571,6 +571,23 @@ def solve_least_squares(
             solution = torch.linalg.lstsq(left, right.unsqueeze(1)).solution
         except torch.linalg.LinAlgError as rank_deficient:
             _record_fallback(notes, f"rank-deficient design on the card: {rank_deficient}")
+        except RuntimeError as fault:
+            # The host's NVIDIA kernel module and userspace library are on different point
+            # releases. `PYTORCH_NVML_BASED_CUDA_CHECK=0` gets past the availability probe, but
+            # the caching allocator calls `nvmlInit_v2` itself when it has to grow, and that
+            # assert fires - which is why a 1024-unit block dies here while 512 does not.
+            #
+            # Translated rather than swallowed or left as a PyTorch internal assert. Falling
+            # back would finish the run on the host over many hours and hand back a result
+            # whose provenance is "the card was broken", so it stops and says what to do.
+            if "nvml" not in str(fault).lower():
+                raise
+            raise RuntimeError(
+                "the CUDA allocator could not initialise NVML, which means the loaded kernel "
+                "module and the userspace library are on different releases. Reboot to load "
+                "the module that matches, then re-run. Blocks up to 512 units do not reach "
+                "the allocation size that triggers it."
+            ) from fault
         else:
             # A non-finite solution is a failure too, not a reason to quietly try elsewhere.
             # Falling back is right, saying nothing about it is not. Audit finding F07.
