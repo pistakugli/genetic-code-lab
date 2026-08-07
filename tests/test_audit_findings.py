@@ -564,3 +564,44 @@ class JointUpSolveTest(unittest.TestCase):
         body = source[source.index("def solve_up_directions_jointly") : source.index("def recover_block")]
         self.assertNotIn("np.kron", body)
         self.assertIn("chunk_rows", body)
+
+
+class ActiveRankClampTest(unittest.TestCase):
+    """`2k` stops being a rank once it passes the input dimension.
+
+    Callers ask for two directions per unit, which is right until the request exceeds the
+    space it lives in. Unclamped this does not degrade gracefully, it crashes: the basis comes
+    back with `input_dim` rows while probe lines are drawn with `2k` coordinates and the first
+    scan dies on a shape mismatch. That is every block above 1536 units on a 3072-wide model -
+    which is to say every block on the way to a whole layer.
+    """
+
+    @staticmethod
+    def teacher(units: int, dim: int, seed: int = 3):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        up = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(size=(dim, units))
+
+        def evaluate(points: np.ndarray) -> np.ndarray:
+            z = points @ gate.T
+            return ((z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (points @ up.T)) @ down.T
+
+        return evaluate
+
+    def test_a_rank_beyond_the_dimension_is_clamped_and_said_so(self) -> None:
+        from tools.llm_reader.jacobian_boundary_recovery import recover_block
+
+        # 40 units in 32 dimensions asks for rank 80 against a space of 32.
+        result, telemetry = recover_block(
+            self.teacher(40, 32), input_dim=32, active_rank=80, line_count=60, samples=401,
+            scale=2e4, step=1e-4, peak_fraction=0.05, separation=6, min_sharpness=3.0,
+            cluster_min_cosine=0.95, basis_points_count=12, basis_scale=1.0,
+            gate_mode="amplitude", amplitude_span=0.01, amplitude_min_alignment=0.5,
+            duplicate_gate_cosine=0.98, gate_residual_tolerance=1.0, amplitude_crossings=3,
+            min_cluster_size=4, up_sample_count=4000, up_sample_scale=2.0, seed=5,
+        )
+
+        self.assertEqual(result["basis"].shape[0], 32)
+        self.assertTrue(any("exceeds input dimension" in note for note in telemetry.notes))
+        self.assertGreater(result["gates"].shape[0], 0)

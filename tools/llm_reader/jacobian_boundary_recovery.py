@@ -1290,6 +1290,20 @@ def recover_block(
     rng = np.random.default_rng(seed)
     telemetry = RecoveryTelemetry()
 
+    # The active subspace cannot be wider than the space it sits in. Callers ask for `2k`
+    # because each unit contributes a gate and an up direction, and that is right until `2k`
+    # passes `input_dim`, where the subspace is simply everything and the request is
+    # meaningless. Unclamped it does not degrade, it crashes: the basis comes back with
+    # `input_dim` rows while the probe lines are drawn with `2k` coordinates, and the first
+    # scan dies on a shape mismatch. That is every block above 1536 units on this model, which
+    # is to say every block on the way to a layer.
+    if active_rank > input_dim:
+        telemetry.notes.append(
+            f"active rank {active_rank} exceeds input dimension {input_dim}; the active "
+            "subspace is the whole space"
+        )
+        active_rank = input_dim
+
     def unit(vector: np.ndarray) -> np.ndarray:
         return vector / np.linalg.norm(vector)
 
