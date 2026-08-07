@@ -303,55 +303,142 @@ def cluster_by_output_direction(
     crossings: list[BoundaryCrossing],
     *,
     min_cosine: float,
+    chunk: int = 4096,
 ) -> list[list[BoundaryCrossing]]:
     """Group crossings that belong to the same unit.
 
     Two crossings of the same boundary, on different lines, hand back the same output
     direction up to sign. Nothing else in the block shares it, which is what makes the output
     direction usable as an identity where a scalar oracle offers no identity at all.
-    """
-    clusters: list[list[BoundaryCrossing]] = []
-    centroids: list[np.ndarray] = []
-    for crossing in sorted(crossings, key=lambda item: -item.peak_sharpness):
-        placed = False
-        for index, centroid in enumerate(centroids):
-            similarity = abs(float(crossing.output_direction @ centroid))
-            if similarity >= min_cosine:
-                sign = np.sign(float(crossing.output_direction @ centroid)) or 1.0
-                clusters[index].append(crossing)
-                updated = centroid * len(clusters[index]) + sign * crossing.output_direction
-                centroids[index] = updated / np.linalg.norm(updated)
-                placed = True
-                break
-        if not placed:
-            clusters.append([crossing])
-            centroids.append(crossing.output_direction.copy())
 
-    # A second pass over centroids rather than members. One unit produced about two clusters
-    # on the first pass, because a single crossing's direction carries enough noise to miss
-    # the threshold against another crossing of the same boundary, while the two clusters'
-    # averages do not: purity was already 1.000, so nothing here risks merging real units, it
-    # only stops one unit being counted twice and its points being split between halves too
-    # small to determine a hyperplane.
-    merged = True
-    while merged and len(clusters) > 1:
-        merged = False
-        for left in range(len(clusters)):
-            for right in range(left + 1, len(clusters)):
-                similarity = abs(float(centroids[left] @ centroids[right]))
-                if similarity < min_cosine:
-                    continue
-                sign = np.sign(float(centroids[left] @ centroids[right])) or 1.0
-                clusters[left].extend(clusters[right])
-                combined = centroids[left] * len(clusters[left]) + sign * centroids[right] * len(clusters[right])
-                centroids[left] = combined / np.linalg.norm(combined)
-                del clusters[right]
-                del centroids[right]
-                merged = True
-                break
-            if merged:
-                break
-    return clusters
+    This was the wall between the route and a whole layer - not the oracle, not the algebra.
+    As a pair of Python loops it measured 0.7 seconds at 128 units and 3129.8 at 1024, which
+    is 62% of that entire run and a growth of 4471x for an eightfold block, because the first
+    pass is `O(crossings x clusters)` and the second restarts its `O(clusters^2)` scan after
+    every merge. A full layer would have been days of it.
+
+    Two changes, and the second is the one that matters. The comparisons move to the card,
+    where they are matrix products against the whole centroid block rather than a walk over
+    it. And the loop that stays in Python runs over *clusters* rather than crossings: a chunk
+    of crossings is matched against every existing centroid in one product, and only the ones
+    that match nothing - which is at most one per unit - need sequential treatment. Python
+    work drops from `O(crossings)` to `O(clusters)`.
+
+    The merge pass is not sequential at all. It is connected components over the centroid
+    cosine graph, blocked on the card and resolved by union-find, which also removes the
+    rescan-from-scratch behaviour that turned the quadratic into a cubic.
+    """
+    if not crossings:
+        return []
+    ordered = sorted(crossings, key=lambda item: -item.peak_sharpness)
+    stacked = np.stack([item.output_direction for item in ordered]).astype(np.float32)
+    total, width = stacked.shape
+
+    torch = _torch_cuda()
+    if torch is not None:
+        device_points = torch.as_tensor(stacked, device="cuda")
+        centroids = torch.zeros((max(1024, total // 4), width), dtype=torch.float32, device="cuda")
+    else:
+        device_points = stacked
+        centroids = np.zeros((max(1024, total // 4), width), dtype=np.float32)
+
+    sizes: list[int] = []
+    members: list[list[BoundaryCrossing]] = []
+    count = 0
+
+    def grow(needed: int):
+        nonlocal centroids
+        if needed <= centroids.shape[0]:
+            return
+        capacity = centroids.shape[0]
+        while capacity < needed:
+            capacity *= 2
+        if torch is not None:
+            grown = torch.zeros((capacity, width), dtype=torch.float32, device="cuda")
+        else:
+            grown = np.zeros((capacity, width), dtype=np.float32)
+        grown[:count] = centroids[:count]
+        centroids = grown
+
+    for start in range(0, total, chunk):
+        stop = min(start + chunk, total)
+        block = device_points[start:stop]
+        if count:
+            overlap = block @ centroids[:count].T
+            magnitude = overlap.abs()
+            if torch is not None:
+                best_value, best_index = magnitude.max(dim=1)
+                best_value = best_value.cpu().numpy()
+                best_index = best_index.cpu().numpy()
+                signs = torch.sign(overlap.gather(1, torch.as_tensor(best_index, device="cuda").unsqueeze(1))).squeeze(1).cpu().numpy()
+            else:
+                best_index = magnitude.argmax(axis=1)
+                best_value = magnitude[np.arange(magnitude.shape[0]), best_index]
+                signs = np.sign(overlap[np.arange(overlap.shape[0]), best_index])
+        else:
+            best_value = np.zeros(stop - start)
+            best_index = np.zeros(stop - start, dtype=int)
+            signs = np.ones(stop - start)
+
+        # Everything that already has a home is placed without touching Python's opinion of
+        # geometry; only the strays below go one at a time, and there is at most one stray per
+        # unit in the whole run.
+        for offset in range(stop - start):
+            crossing = ordered[start + offset]
+            if count and best_value[offset] >= min_cosine:
+                home = int(best_index[offset])
+                sign = 1.0 if signs[offset] >= 0 else -1.0
+                members[home].append(crossing)
+                sizes[home] += 1
+                updated = centroids[home] * (sizes[home] - 1) + sign * device_points[start + offset]
+                norm = float(updated.norm()) if torch is not None else float(np.linalg.norm(updated))
+                centroids[home] = updated / max(norm, 1e-30)
+                continue
+            grow(count + 1)
+            centroids[count] = device_points[start + offset]
+            sizes.append(1)
+            members.append([crossing])
+            count += 1
+
+    if count < 2:
+        return members
+
+    # One unit produced about two clusters on the first pass, because a single crossing's
+    # direction carries enough noise to miss the threshold against another crossing of the same
+    # boundary while the two clusters' averages do not. Purity was already 1.000, so this only
+    # stops a unit being counted twice and its points split between halves too small to
+    # determine a hyperplane.
+    parent = list(range(count))
+
+    def find(node: int) -> int:
+        while parent[node] != node:
+            parent[node] = parent[parent[node]]
+            node = parent[node]
+        return node
+
+    live = centroids[:count]
+    rows = max(1, (1 << 25) // max(count, 1))
+    for start in range(0, count, rows):
+        stop = min(start + rows, count)
+        if torch is not None:
+            overlap = (live[start:stop] @ live.T).abs()
+            # `as_tuple`, because torch returns an (N, 2) index matrix where numpy returns a
+            # tuple of index arrays, and reading one as the other silently pairs a row with a
+            # column - which merged two orthogonal directions into one cluster.
+            rows_hit, cols_hit = torch.nonzero(overlap >= min_cosine, as_tuple=True)
+            pairs = zip(rows_hit.cpu().numpy(), cols_hit.cpu().numpy())
+        else:
+            overlap = np.abs(live[start:stop] @ live.T)
+            pairs = zip(*np.nonzero(overlap >= min_cosine))
+        for row, column in pairs:
+            left, right = find(start + int(row)), find(int(column))
+            if left != right:
+                parent[max(left, right)] = min(left, right)
+
+    grouped: dict[int, list[BoundaryCrossing]] = {}
+    for index in range(count):
+        grouped.setdefault(find(index), []).extend(members[index])
+    return list(grouped.values())
 
 
 def gate_from_cluster(cluster: list[BoundaryCrossing], active_rank: int) -> tuple[np.ndarray, float] | None:
@@ -1557,14 +1644,22 @@ def recover_block(
         # unit's contribution inside the loop is quadratic in the unit count and made a
         # 128-unit sweep slower than the entire oracle phase.
         with _Phase(telemetry, "upSolve"):
-            # Every unit at once when the per-unit route cannot separate them. Reading a unit
-            # through its own output direction carries every other unit scaled by `d_j . d_i`;
-            # inverting that mixing removes it exactly, but only while there are more channels
-            # than units. Above the boundary the per-unit path has nothing but the raw
-            # projection, where the leak grows as `sqrt(k/dim)` and passes one - measured on
-            # synthetic blocks there it recovers no up direction above cosine 0.99 at all,
-            # while the joint conjugate-gradient solve recovers every one at 1.000000.
-            joint_solved = not invertible and up_refinement_sweeps == 0
+            # Every unit at once, which turns out to be better everywhere rather than only
+            # where the per-unit route breaks down.
+            #
+            # Reading a unit through its own output direction carries every other unit scaled
+            # by `d_j . d_i`. Inverting that mixing removes it exactly, but only while there
+            # are more output channels than units; above that boundary - and a layer is 8192
+            # units into 3072 channels - the per-unit path has nothing but the raw projection,
+            # where the leak grows as `sqrt(k/dim)` and passes one. There it recovers no up
+            # direction above cosine 0.99 at all against the joint solve's 1.000000.
+            #
+            # Below the boundary, where the per-unit path is at its best, the joint solve is
+            # still ahead on both axes. Measured on the live 128-unit block: held-out R2
+            # 0.9994409 against 0.9994177, and 3.7 seconds against 13.0. It also removes the
+            # per-unit design entirely, which at 1024 units was 1.6 GB built and solved a
+            # thousand times over.
+            joint_solved = up_refinement_sweeps == 0 and os.environ.get("GCL_PER_UNIT_UP") != "1"
             if joint_solved:
                 telemetry.notes.append("up directions solved jointly by conjugate gradient")
                 joint = solve_up_directions_jointly(

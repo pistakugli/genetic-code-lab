@@ -3,7 +3,7 @@
     "structureClaimAllowed": true,
     "verdict": "recovered",
     "findings": [],
-    "clustersFound": 376,
+    "clustersFound": 367,
     "gateNormDiagnosticCounts": {
       "kneeShareBelowThreshold": 0,
       "raySpreadAboveThreshold": 0
@@ -11,7 +11,7 @@
     "thresholds": {
       "duplicateGateCosine": 0.98,
       "collinear": 0.9,
-      "weakShare": 0.002,
+      "weakShare": 0.05,
       "rankEnergy": 0.98,
       "kneeShare": 0.5,
       "raySpread": 0.25
@@ -19,8 +19,8 @@
   },
   "reconstruction": {
     "points": 4000,
-    "rSquared": 0.9994208553573835,
-    "relativeResidual": 0.023940733675750975
+    "rSquared": 0.9994409440844619,
+    "relativeResidual": 0.023521854403726016
   },
   "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
   "layer": 15,
@@ -161,57 +161,57 @@
     "scanCalls": 256320,
     "linesScanned": 160,
     "crossingsFound": 4959,
-    "clusters": 376,
+    "clusters": 367,
     "unitsRecovered": 128,
     "amplitudeCalls": 270336,
     "phaseSeconds": {
       "basis": {
-        "wall": 11.521,
-        "solverCpu": 13.356,
+        "wall": 11.646,
+        "solverCpu": 13.653,
         "coresHeld": 1.2
       },
       "lineScan": {
-        "wall": 12.374,
-        "solverCpu": 81.403,
+        "wall": 12.454,
+        "solverCpu": 82.399,
         "coresHeld": 6.6
       },
       "clustering": {
-        "wall": 0.668,
-        "solverCpu": 0.67,
+        "wall": 0.213,
+        "solverCpu": 0.204,
         "coresHeld": 1.0
       },
       "normCalibration": {
-        "wall": 5.404,
-        "solverCpu": 16.009,
-        "coresHeld": 3.0
+        "wall": 5.501,
+        "solverCpu": 15.869,
+        "coresHeld": 2.9
       },
       "signDecision": {
-        "wall": 1.593,
-        "solverCpu": 2.003,
+        "wall": 1.589,
+        "solverCpu": 1.995,
         "coresHeld": 1.3
       },
       "upSolve": {
-        "wall": 12.958,
-        "solverCpu": 29.541,
-        "coresHeld": 2.3
+        "wall": 3.668,
+        "solverCpu": 28.614,
+        "coresHeld": 7.8
       },
       "reconstruction": {
-        "wall": 0.523,
-        "solverCpu": 1.568,
+        "wall": 0.515,
+        "solverCpu": 1.558,
         "coresHeld": 3.0
       }
     },
     "lineScanBreakdown": {
-      "buildPoints": 3.202,
-      "oracleWait": 7.303,
-      "postProcess": 0.707
+      "buildPoints": 3.324,
+      "oracleWait": 7.235,
+      "postProcess": 0.706
     },
     "amplitudeSweeps": 132,
     "amplitudeSweepsAllowed": 384,
     "crossingsPerLine": 30.99375,
     "resolvableSlotsPerLine": 133,
     "duplicatesDropped": 0,
-    "clustersSkippedAsSmall": 248,
+    "clustersSkippedAsSmall": 239,
     "rejectedByResidual": 0,
     "upSolveCalls": 60000,
     "upsRecovered": 128,
@@ -226,7 +226,7 @@
       46,
       45,
       45,
-      44,
+      45,
       44,
       44,
       44,
@@ -235,6 +235,8 @@
     ],
     "notes": [
       "basis energy in rank 256: 0.999854785908",
+      "output mixing inverted",
+      "up directions solved jointly by conjugate gradient",
       "identifiability verdict: recovered"
     ]
   },
@@ -250,20 +252,20 @@
   },
   "posthoc": {
     "unitsWithGateAbove099": 128,
-    "perUnitGateCosineMin": 0.9988602761281656,
-    "perUnitGateCosineMedian": 0.9999885564444653,
+    "perUnitGateCosineMin": 0.9988602761295684,
+    "perUnitGateCosineMedian": 0.9999885564447315,
     "unitsWithUpAbove099": 128,
-    "perUnitUpCosineMin": 0.9995867981823244,
+    "perUnitUpCosineMin": 0.9995696080061827,
     "unitsFullyRecovered": 128,
     "unitsWithJointAbove099": 128,
-    "perUnitJointCosineMin": 0.9988602761281656,
+    "perUnitJointCosineMin": 0.9988602761295684,
     "unitsWithOutputAbove099": 128,
-    "perUnitOutputCosineMin": 0.9993926260323982,
-    "outputCosineMedian": 0.9997606401073925,
+    "perUnitOutputCosineMin": 0.99939262893688,
+    "outputCosineMedian": 0.9997567752594523,
     "solutionCount": 128,
     "spuriousSolutions": 0,
-    "gateCosineMedian": 0.9999885564444653,
-    "gateCosineMin": 0.9988602761281656,
+    "gateCosineMedian": 0.9999885564447315,
+    "gateCosineMin": 0.9988602761295684,
     "gateCosineShareAbove099": 1.0,
     "distinctUnitsMatchedNotProofOfRecovery": 128,
     "unitCount": 128,

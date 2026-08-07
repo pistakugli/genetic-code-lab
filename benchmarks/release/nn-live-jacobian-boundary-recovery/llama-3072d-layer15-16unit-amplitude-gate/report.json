@@ -11,7 +11,7 @@
     "thresholds": {
       "duplicateGateCosine": 0.98,
       "collinear": 0.9,
-      "weakShare": 0.002,
+      "weakShare": 0.05,
       "rankEnergy": 0.98,
       "kneeShare": 0.5,
       "raySpread": 0.25
@@ -19,8 +19,8 @@
   },
   "reconstruction": {
     "points": 4000,
-    "rSquared": 0.9986804704240363,
-    "relativeResidual": 0.03620243413658513
+    "rSquared": 0.9987415858582576,
+    "relativeResidual": 0.03535411763956812
   },
   "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
   "layer": 15,
@@ -54,45 +54,45 @@
     "amplitudeCalls": 4096,
     "phaseSeconds": {
       "basis": {
-        "wall": 4.882,
-        "solverCpu": 9.319,
+        "wall": 4.935,
+        "solverCpu": 9.462,
         "coresHeld": 1.9
       },
       "lineScan": {
-        "wall": 1.688,
-        "solverCpu": 11.6,
-        "coresHeld": 6.9
+        "wall": 1.663,
+        "solverCpu": 11.321,
+        "coresHeld": 6.8
       },
       "clustering": {
-        "wall": 0.003,
-        "solverCpu": 0.024,
-        "coresHeld": 8.1
+        "wall": 0.034,
+        "solverCpu": 0.088,
+        "coresHeld": 2.6
       },
       "normCalibration": {
-        "wall": 0.732,
-        "solverCpu": 2.347,
-        "coresHeld": 3.2
+        "wall": 0.728,
+        "solverCpu": 2.495,
+        "coresHeld": 3.4
       },
       "signDecision": {
-        "wall": 0.035,
-        "solverCpu": 0.308,
-        "coresHeld": 8.8
+        "wall": 0.033,
+        "solverCpu": 0.285,
+        "coresHeld": 8.7
       },
       "upSolve": {
-        "wall": 0.055,
-        "solverCpu": 0.343,
-        "coresHeld": 6.2
+        "wall": 0.204,
+        "solverCpu": 1.714,
+        "coresHeld": 8.4
       },
       "reconstruction": {
-        "wall": 0.5,
-        "solverCpu": 1.008,
+        "wall": 0.487,
+        "solverCpu": 0.991,
         "coresHeld": 2.0
       }
     },
     "lineScanBreakdown": {
-      "buildPoints": 0.385,
-      "oracleWait": 1.021,
-      "postProcess": 0.131
+      "buildPoints": 0.357,
+      "oracleWait": 1.039,
+      "postProcess": 0.132
     },
     "amplitudeSweeps": 16,
     "amplitudeSweepsAllowed": 48,
@@ -123,6 +123,8 @@
     ],
     "notes": [
       "basis energy in rank 32: 0.999820790164",
+      "output mixing inverted",
+      "up directions solved jointly by conjugate gradient",
       "identifiability verdict: recovered"
     ]
   },
@@ -141,7 +143,7 @@
     "perUnitGateCosineMin": 0.9998289565813402,
     "perUnitGateCosineMedian": 0.9999717390842107,
     "unitsWithUpAbove099": 16,
-    "perUnitUpCosineMin": 0.9998515191833692,
+    "perUnitUpCosineMin": 0.9998342020113427,
     "unitsFullyRecovered": 16,
     "unitsWithJointAbove099": 16,
     "perUnitJointCosineMin": 0.9998289565813402,

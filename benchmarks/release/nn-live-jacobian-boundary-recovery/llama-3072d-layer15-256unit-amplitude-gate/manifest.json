@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-07T12:41:56.204Z",
+  "lane": "nn-live-jacobian-boundary-recovery",
+  "variant": "llama-3072d-layer15-256unit-amplitude-gate",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-jacobian-boundary-recovery.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.1"
+  },
+  "env": {
+    "GCL_JACOBIAN_VARIANT": "256unit"
+  },
+  "git": {
+    "commit": "9c220e59ddcdc0e692b772d76b4c507e6c81636b",
+    "statusShort": "?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/",
+    "uncommittedDiffSha256": null
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/report.md",
+    "manifest": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "regenerated": true,
+    "unitCount": 256,
+    "unitsFullyRecovered": 256,
+    "spuriousSolutions": 0,
+    "heldOutRSquared": 0.9994168946486773,
+    "realTextDeltaCosine": 0.9997055221469777,
+    "oracleCalls": 2074336,
+    "verdict": "recovered",
+    "solverSha256": "3e2594d96510231bc659f2fa0ae0c1f7eea8cb7cc7def8528c5472377908fc20",
+    "truthUnlockQueryCount": 2074336,
+    "failures": []
+  },
+  "notes": [
+    "unitsFullyRecovered requires the gate direction, the up direction and the gate norm together, matched to one source unit.",
+    "heldOutRSquared is measured without the weights, on points the solve never saw.",
+    "Oracle response width is 3072: one call carries 3072 numbers, not 1."
+  ]
+}

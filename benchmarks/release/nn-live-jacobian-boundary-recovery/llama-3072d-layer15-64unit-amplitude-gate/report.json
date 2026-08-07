@@ -3,7 +3,7 @@
     "structureClaimAllowed": true,
     "verdict": "recovered",
     "findings": [],
-    "clustersFound": 115,
+    "clustersFound": 114,
     "gateNormDiagnosticCounts": {
       "kneeShareBelowThreshold": 0,
       "raySpreadAboveThreshold": 0
@@ -11,7 +11,7 @@
     "thresholds": {
       "duplicateGateCosine": 0.98,
       "collinear": 0.9,
-      "weakShare": 0.002,
+      "weakShare": 0.05,
       "rankEnergy": 0.98,
       "kneeShare": 0.5,
       "raySpread": 0.25
@@ -19,8 +19,8 @@
   },
   "reconstruction": {
     "points": 4000,
-    "rSquared": 0.9994036175794178,
-    "relativeResidual": 0.024342127419112406
+    "rSquared": 0.9994228613794293,
+    "relativeResidual": 0.023946176722965132
   },
   "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
   "layer": 15,
@@ -97,57 +97,57 @@
     "scanCalls": 128160,
     "linesScanned": 80,
     "crossingsFound": 1549,
-    "clusters": 115,
+    "clusters": 114,
     "unitsRecovered": 64,
     "amplitudeCalls": 65536,
     "phaseSeconds": {
       "basis": {
-        "wall": 7.601,
-        "solverCpu": 10.975,
-        "coresHeld": 1.4
+        "wall": 7.71,
+        "solverCpu": 11.235,
+        "coresHeld": 1.5
       },
       "lineScan": {
-        "wall": 5.913,
-        "solverCpu": 39.64,
+        "wall": 5.902,
+        "solverCpu": 39.539,
         "coresHeld": 6.7
       },
       "clustering": {
-        "wall": 0.102,
-        "solverCpu": 0.103,
-        "coresHeld": 1.0
+        "wall": 0.081,
+        "solverCpu": 0.073,
+        "coresHeld": 0.9
       },
       "normCalibration": {
-        "wall": 2.705,
-        "solverCpu": 7.996,
+        "wall": 2.71,
+        "solverCpu": 8.003,
         "coresHeld": 3.0
       },
       "signDecision": {
-        "wall": 0.411,
-        "solverCpu": 0.814,
+        "wall": 0.401,
+        "solverCpu": 0.796,
         "coresHeld": 2.0
       },
       "upSolve": {
-        "wall": 1.369,
-        "solverCpu": 4.011,
-        "coresHeld": 2.9
+        "wall": 1.192,
+        "solverCpu": 9.282,
+        "coresHeld": 7.8
       },
       "reconstruction": {
-        "wall": 0.493,
-        "solverCpu": 1.006,
-        "coresHeld": 2.0
+        "wall": 0.514,
+        "solverCpu": 1.102,
+        "coresHeld": 2.1
       }
     },
     "lineScanBreakdown": {
-      "buildPoints": 1.511,
-      "oracleWait": 3.467,
-      "postProcess": 0.369
+      "buildPoints": 1.457,
+      "oracleWait": 3.497,
+      "postProcess": 0.367
     },
     "amplitudeSweeps": 64,
     "amplitudeSweepsAllowed": 192,
     "crossingsPerLine": 19.3625,
     "resolvableSlotsPerLine": 133,
     "duplicatesDropped": 0,
-    "clustersSkippedAsSmall": 51,
+    "clustersSkippedAsSmall": 50,
     "rejectedByResidual": 0,
     "upSolveCalls": 30000,
     "upsRecovered": 64,
@@ -171,6 +171,8 @@
     ],
     "notes": [
       "basis energy in rank 128: 0.999872729381",
+      "output mixing inverted",
+      "up directions solved jointly by conjugate gradient",
       "identifiability verdict: recovered"
     ]
   },
@@ -189,10 +191,10 @@
     "perUnitGateCosineMin": 0.9998490330443416,
     "perUnitGateCosineMedian": 0.9999910496076388,
     "unitsWithUpAbove099": 64,
-    "perUnitUpCosineMin": 0.9998318391433316,
+    "perUnitUpCosineMin": 0.9998270165636544,
     "unitsFullyRecovered": 64,
     "unitsWithJointAbove099": 64,
-    "perUnitJointCosineMin": 0.9998318391433316,
+    "perUnitJointCosineMin": 0.9998270165636544,
     "unitsWithOutputAbove099": 64,
     "perUnitOutputCosineMin": 0.9994343328091191,
     "outputCosineMedian": 0.999753607020819,
