@@ -454,3 +454,56 @@ class WeakChannelFloorScalesTest(unittest.TestCase):
                     self.families(self.verdict_for(units, weak_units=1)),
                 )
                 self.assertNotIn("weak-channel-below-floor", self.families(self.verdict_for(units)))
+
+
+class MixingInvertibilityTest(unittest.TestCase):
+    """Unmixing the output channels is only defined while there are channels to spare.
+
+    `R = A D` with `D` shaped units by output_dim. Below the boundary `D` has full row rank and
+    the pseudo-inverse recovers the activations exactly; above it the system is wide, each row
+    of `A` has more unknowns than there are equations, and `pinv` returns the minimum-norm
+    member of an infinite family - a fabrication, not a measurement.
+
+    That boundary is where a whole layer lives: 8192 units into 3072 channels. Measured on a
+    32-dimensional teacher, held-out R2 with unmixing against projection: 0.9999 vs 0.9893 at
+    12 units, 0.9076 vs 0.9253 at 43, 0.6154 vs 0.8456 at 86. It wins where it is defined and
+    loses badly where it is not.
+    """
+
+    def test_a_narrow_full_rank_mixing_is_inverted(self) -> None:
+        from tools.llm_reader.jacobian_boundary_recovery import recover_block
+
+        _result, telemetry = self._recover(units=12, dim=32)
+        self.assertTrue(any("mixing inverted" in note for note in telemetry.notes))
+
+    def test_more_units_than_channels_falls_back_to_projection(self) -> None:
+        _result, telemetry = self._recover(units=86, dim=32)
+        self.assertTrue(any("more units than channels" in note for note in telemetry.notes))
+
+    def test_the_rank_comes_from_the_matrix_not_the_count(self) -> None:
+        # Near-collinear outputs make a narrow matrix behave like a wide one, and counting rows
+        # would miss it. This is the same condition finding F28 reports as ambiguity.
+        source = (REPO_ROOT / "tools/llm_reader/jacobian_boundary_recovery.py").read_text()
+        self.assertIn("np.linalg.matrix_rank(output_directions)", source)
+
+    @staticmethod
+    def _recover(units: int, dim: int):
+        from tools.llm_reader.jacobian_boundary_recovery import recover_block
+
+        rng = np.random.default_rng(3)
+        gate = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        up = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(size=(dim, units))
+
+        def evaluate(points: np.ndarray) -> np.ndarray:
+            z = points @ gate.T
+            return ((z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (points @ up.T)) @ down.T
+
+        return recover_block(
+            evaluate, input_dim=dim, active_rank=dim, line_count=120, samples=401,
+            scale=2e4, step=1e-4, peak_fraction=0.05, separation=6, min_sharpness=3.0,
+            cluster_min_cosine=0.95, basis_points_count=16, basis_scale=1.0,
+            gate_mode="amplitude", amplitude_span=0.01, amplitude_min_alignment=0.5,
+            duplicate_gate_cosine=0.98, gate_residual_tolerance=1.0, amplitude_crossings=3,
+            min_cluster_size=4, up_sample_count=4000, up_sample_scale=2.0, seed=5,
+        )

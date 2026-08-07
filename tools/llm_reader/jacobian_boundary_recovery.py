@@ -1358,7 +1358,28 @@ def recover_block(
         # iteration and no estimate of anything standing in for a measurement. The pseudo
         # inverse is what handles output directions that are close to collinear, which is the
         # case `identifiability_verdict` reports as ambiguous.
-        mixing = np.linalg.pinv(output_directions)
+        # Whether the mixing can be inverted at all. `R = A D` with `D` shaped units by
+        # output_dim: when there are more units than output channels the system is wide, `A`
+        # has more unknowns per row than there are equations, and `pinv` does not recover the
+        # activations - it fabricates the minimum-norm member of an infinite family. Measured
+        # across the boundary on a 32-dimensional teacher, held-out R2:
+        #
+        #     12 units   unmixed 0.9999   projected 0.9893
+        #     43 units   unmixed 0.9076   projected 0.9253
+        #     86 units   unmixed 0.6154   projected 0.8456
+        #
+        # So it wins where it is defined and loses badly where it is not, and a full layer -
+        # 8192 units in 3072 channels - is firmly on the wrong side. The condition is not a
+        # tuned threshold but the one under which the operation means anything, and the rank
+        # is taken from `D` rather than from the count, because near-collinear outputs make a
+        # narrow matrix behave like a wide one.
+        invertible = output_directions.shape[0] <= output_directions.shape[1] and (
+            np.linalg.matrix_rank(output_directions) == output_directions.shape[0]
+        )
+        telemetry.notes.append(
+            f"output mixing {'inverted' if invertible else 'projected: more units than channels'}"
+        )
+        mixing = np.linalg.pinv(output_directions) if invertible else output_directions.T
         torch_backend = _torch_cuda()
         if torch_backend is not None:
             # Chunked over rows, like the solve. `responses` is rows by output_dim and
