@@ -290,3 +290,48 @@ class ChunkedSolveTest(unittest.TestCase):
         source = (REPO_ROOT / "tools/llm_reader/jacobian_boundary_recovery.py").read_text()
         self.assertIn("torch.cuda.mem_get_info()", source)
         self.assertIn("2.5 * design.size * 4", source)
+
+
+@unittest.skipUnless(
+    Path("/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu").exists(),
+    "needs the GPU environment that carries the model",
+)
+class OracleBudgetTest(unittest.TestCase):
+    """The last empty cell of the coverage matrix: what happens at the call budget.
+
+    A budget that truncates quietly is worse than no budget, because the recovery then runs on
+    a response block that is short and says nothing about it - and every measure downstream,
+    including the blind reconstruction, would be computed over data that was cut off. Measured:
+    it raises, names the stage, and leaves the counter where it was, so nothing partial is
+    handed back.
+    """
+
+    def test_exceeding_the_budget_raises_rather_than_truncating(self) -> None:
+        import tempfile
+
+        from tools.llm_reader.blind_swiglu_oracle_decompiler import OracleClient
+        from tools.llm_reader.jacobian_boundary_recovery import _oracle_namespace
+
+        with tempfile.TemporaryDirectory() as work:
+            oracle = OracleClient(
+                _oracle_namespace(
+                    model="unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit", layer=15,
+                    units="8,23,43,98", device="cuda", max_oracle_calls=2000, batch_size=256,
+                ),
+                Path(work),
+            )
+            try:
+                width = int(oracle.meta["hiddenSize"])
+                oracle.eval(np.zeros((1500, width), dtype=np.float32), stage="budget-probe")
+                self.assertEqual(oracle.query_count, 1500)
+
+                with self.assertRaises(Exception) as caught:
+                    oracle.eval(np.zeros((900, width), dtype=np.float32), stage="budget-probe")
+
+                message = str(caught.exception)
+                self.assertIn("budget-probe", message)
+                self.assertIn("2000", message)
+                # Nothing was served, so nothing partial reached the solver.
+                self.assertEqual(oracle.query_count, 1500)
+            finally:
+                oracle.close()
