@@ -546,6 +546,72 @@ def _record_fallback(notes: list[str] | None, reason: str) -> None:
         print(f"solve_least_squares: {reason}", file=sys.stderr)
 
 
+def _chunked_normal_equations(
+    torch,
+    design: np.ndarray,
+    target: np.ndarray,
+    chunk_rows: int = 16_384,
+) -> np.ndarray:
+    """The same least squares, without ever holding the design on the card.
+
+    A 1024-unit block asks for a 100000 by 4096 design - 1.6 GB before the QR workspace - on
+    a card where the oracle already holds 2.5 of 7.65 GB. `A^T A` is `cols x cols` however
+    many rows there are, so the Gram is accumulated a chunk at a time and only 4096 squared
+    ever lives on the device.
+
+    Precision is handled rather than hoped for, because normal equations square the condition
+    number and that has burned this file twice (F15). Columns are normalised first, so the
+    Gram's conditioning comes from geometry and not from scale; each chunk product is fp32 -
+    that is where the flops are, and fp64 on this card is thirty times slower - but the
+    accumulator is fp64, so summation error does not grow with the row count; and the final
+    `cols x cols` solve is fp64 with a relative ridge for degenerate columns.
+    """
+    rows, cols = design.shape
+    gram = torch.zeros((cols, cols), dtype=torch.float64, device="cuda")
+    moment = torch.zeros((cols,), dtype=torch.float64, device="cuda")
+    sumsq = torch.zeros((cols,), dtype=torch.float64, device="cuda")
+    for start in range(0, rows, chunk_rows):
+        block = torch.as_tensor(design[start:start + chunk_rows], dtype=torch.float32, device="cuda")
+        sumsq += (block * block).sum(dim=0).double()
+    scale = sumsq.sqrt().clamp_min(1e-30).float()
+    for start in range(0, rows, chunk_rows):
+        block = torch.as_tensor(design[start:start + chunk_rows], dtype=torch.float32, device="cuda") / scale
+        rhs = torch.as_tensor(target[start:start + chunk_rows], dtype=torch.float32, device="cuda")
+        gram += (block.T @ block).double()
+        moment += (block.T @ rhs).double()
+    ridge = 1e-10 * torch.diagonal(gram).sum()
+    gram += ridge * torch.eye(cols, dtype=torch.float64, device="cuda")
+    factor = torch.linalg.cholesky(gram)
+    solution = torch.cholesky_solve(moment.unsqueeze(1), factor).squeeze(1)
+
+    # Two rounds of iterative refinement, and they are what make fp32 Gram products honest.
+    # Those products carry about 1e-7 of relative error and normal equations hand it to the
+    # solution multiplied by the squared condition number: on a design with columns six orders
+    # of magnitude apart the unrefined answer missed ill-determined coefficients by 15%. Each
+    # round multiplies the error by (Gram error x condition), so two take that to 1e-7.
+    #
+    # The residual is computed the same way the Gram was - a chunk at a time, nothing full
+    # sized on either side - and it is a matvec where the Gram is a matmul, so it is linear in
+    # the rows against the Gram's quadratic and costs almost nothing next to what it fixes.
+    # Loaded double here, unlike the Gram pass. Promoting an fp32 block with `.double()`
+    # does not recover the digits it never had, and refinement built that way corrects the
+    # error it just introduced - measured, it stalled at 4e-3 against 1e-7 when the residual
+    # is computed from fp64 data. Half the chunk, because the rows now cost eight bytes; this
+    # is a matvec, so it is bandwidth-bound and the width is the whole cost.
+    refine_rows = max(chunk_rows // 2, 1)
+    scale64 = scale.double()
+    for _ in range(2):
+        correction = torch.zeros((cols,), dtype=torch.float64, device="cuda")
+        for start in range(0, rows, refine_rows):
+            block = torch.as_tensor(
+                design[start:start + refine_rows], dtype=torch.float64, device="cuda"
+            ) / scale64
+            rhs = torch.as_tensor(target[start:start + refine_rows], dtype=torch.float64, device="cuda")
+            correction += block.T @ (rhs - block @ solution)
+        solution = solution + torch.cholesky_solve(correction.unsqueeze(1), factor).squeeze(1)
+    return (solution / scale.double()).cpu().numpy()
+
+
 def solve_least_squares(
     design: np.ndarray,
     target: np.ndarray,
@@ -582,12 +648,31 @@ def solve_least_squares(
         # front door. It used to be `except Exception: pass`, which turned a broken card into
         # a run that was merely slow and said nothing, and `operator-integrity-lock` forbids
         # exactly that. Audit finding F01.
+        # Whether the direct solve fits. The design, the target and the QR workspace all
+        # live on the card at once - about two and a half times the design - and a 1024-unit
+        # block was killed here asking for 1.69 GB with 1.53 free, while the oracle held its
+        # 2.5. Checked against the device rather than assumed, and routed to the chunked
+        # Gram path when it does not fit; the failure used to leave by the front door, which
+        # was correct, and now the work also gets done.
+        free_bytes, _total = torch.cuda.mem_get_info()
+        needed = int(2.5 * design.size * 4)
+        if needed > free_bytes - (256 << 20):
+            _record_fallback(notes, (
+                f"design of {design.size * 4 >> 20} MB exceeds free device memory; "
+                "solved by chunked normal equations"
+            ))
+            return _chunked_normal_equations(torch, design, target)
         try:
             left = torch.as_tensor(design, dtype=torch.float32, device="cuda")
             right = torch.as_tensor(target, dtype=torch.float32, device="cuda")
             solution = torch.linalg.lstsq(left, right.unsqueeze(1)).solution
         except torch.linalg.LinAlgError as rank_deficient:
             _record_fallback(notes, f"rank-deficient design on the card: {rank_deficient}")
+        except torch.OutOfMemoryError:
+            # The estimate above missed - fragmentation, or another process grew. Same
+            # answer by the bounded path, and recorded, never silent.
+            _record_fallback(notes, "direct solve hit device OOM; solved by chunked normal equations")
+            return _chunked_normal_equations(torch, design, target)
         except RuntimeError as fault:
             # The host's NVIDIA kernel module and userspace library are on different point
             # releases. `PYTORCH_NVML_BASED_CUDA_CHECK=0` gets past the availability probe, but

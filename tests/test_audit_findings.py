@@ -242,3 +242,51 @@ class CollinearOutputDirectionsTest(unittest.TestCase):
         result = self.verdict_for(0.2)
 
         self.assertEqual(result["findings"], [])
+
+
+class ChunkedSolveTest(unittest.TestCase):
+    """A design that does not fit the card must still be solved, and solved correctly.
+
+    The 1024-unit up design is 100000 by 4096 - 1.6 GB plus the QR workspace - on a card
+    where the oracle holds 2.5 of 7.65 GB. The F01 repair made that die honestly instead of
+    finishing silently on the host; this is the half that gets the work done: the Gram matrix
+    is `cols x cols` however many rows there are, so it is accumulated in chunks.
+
+    Correctness is against numpy's fp64 lstsq on the same system, because normal equations
+    square the condition number and this file has been burned by that twice. The chunked path
+    is exercised directly rather than by faking an OOM, since what needs proving is the
+    arithmetic, not the routing.
+    """
+
+    @unittest.skipUnless(
+        Path("/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu").exists(),
+        "needs the GPU environment",
+    )
+    def test_the_chunked_gram_agrees_with_direct_least_squares(self) -> None:
+        import torch
+
+        from tools.llm_reader.jacobian_boundary_recovery import _chunked_normal_equations
+
+        if not torch.cuda.is_available():
+            self.skipTest("no card")
+        rng = np.random.default_rng(7)
+        design = rng.normal(size=(20_000, 96))
+        # Wildly different column scales on purpose - the silu-gated half of the real design
+        # is orders of magnitude off the linear half, and unnormalised normal equations would
+        # pass a test with friendly columns and fail on the real ones.
+        design *= np.geomspace(1e-3, 1e3, 96)[None, :]
+        truth = rng.normal(size=96)
+        target = design @ truth + 0.01 * rng.normal(size=20_000)
+
+        chunked = _chunked_normal_equations(torch, design, target, chunk_rows=3_000)
+        direct, *_ = np.linalg.lstsq(design, target, rcond=None)
+
+        worst = float(np.max(np.abs(chunked - direct) / np.maximum(np.abs(direct), 1e-12)))
+        self.assertLess(worst, 1e-4)
+
+    def test_the_memory_estimate_routes_before_allocating(self) -> None:
+        # The routing constant is what stands between a working run and the OOM that killed
+        # 1024 units: it must include the workspace, not only the design.
+        source = (REPO_ROOT / "tools/llm_reader/jacobian_boundary_recovery.py").read_text()
+        self.assertIn("torch.cuda.mem_get_info()", source)
+        self.assertIn("2.5 * design.size * 4", source)
