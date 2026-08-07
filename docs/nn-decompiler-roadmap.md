@@ -2298,6 +2298,21 @@ its floor rather than a sampling artefact: with fewer units, each unit's paramet
 larger share of the total signal. The real-text figure does not show the same effect, which is
 consistent with that reading.
 
+| 1024 unit | `1022/1024` | 0 | `0.9978800` | - | `21134848` |
+
+The resolvability rule that used to sit here was wrong, and 1024 units is what disproved it.
+It compared a `silu` knee's width along a line, `1/(S ||g|| |g.d|)`, against the spacing
+between boundaries, `2/k`, and concluded that a probe scale of `2e4` carries about 770 units.
+Measured at 1024 on that exact scale: 1022 recovered, no spurious solutions, held-out R2
+`0.99788`. Doubling the scale to `4e4` made it slightly *worse* - 1015 and `0.99032` - which
+also rules out the rule's direction, not only its constant.
+
+The error was in comparing the wrong quantities. Recovery does not need every boundary
+resolved on every line; it needs enough crossings of each unit across all lines. At 1024 units
+the scan reads 34.5 crossings per line, a detection rate of 3.4%, and with 1280 lines that is
+still about 44 independent reads per unit. Per-line resolution was never the binding
+constraint.
+
 Where it stops on this machine is the driver, not the method. A 1024-unit block dies inside
 the CUDA caching allocator on `nvmlInit_v2`, because the host's kernel module and userspace
 library are on different releases: `PYTORCH_NVML_BASED_CUDA_CHECK=0` gets past the
