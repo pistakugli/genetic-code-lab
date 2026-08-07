@@ -454,6 +454,23 @@ def identifiability_verdict(
             "verdict": "ambiguous",
         })
 
+    # The positive side of the same overlap, and the more dangerous one, because the output
+    # direction is this route's *identity*: crossings are grouped by it, so two units whose
+    # outputs nearly coincide either merge into one cluster upstream or come back as two
+    # near-parallel columns whose pseudo-inverse amplifies noise by the condition number.
+    # Measured on a six-unit teacher with one pair at cosine 0.999: cond(D) 6968, one of six
+    # up directions recovered - and the verdict said `recovered` with no findings, because
+    # only the gates were being checked for collinearity. Audit finding F28.
+    collinear_output_pairs = 0
+    if output_directions.shape[0] > 1:
+        collinear_output_pairs = int(np.sum(overlap >= collinear_threshold) // 2)
+    if collinear_output_pairs:
+        findings.append({
+            "family": "near-collinear-output-directions",
+            "detail": f"{collinear_output_pairs} output pair(s) parallel beyond {collinear_threshold}",
+            "verdict": "ambiguous",
+        })
+
     # Overcomplete budget: more clusters survived than the block can hold. Returning the
     # extras as units is the invented-structure failure this whole check exists to stop.
     if unit_budget > 0 and gates.shape[0] > unit_budget:

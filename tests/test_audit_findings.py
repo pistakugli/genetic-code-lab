@@ -205,3 +205,40 @@ class OracleProtocolIntegrationTest(unittest.TestCase):
                     oracle.unlock_posthoc_truth("second")
             finally:
                 oracle.close()
+
+
+class CollinearOutputDirectionsTest(unittest.TestCase):
+    """F28 — the identity this route clusters by was the one axis nobody checked.
+
+    The verdict inspected gate collinearity and anti-parallel outputs, but not parallel ones.
+    Two units whose output directions nearly coincide either merge into one cluster - the
+    output direction is how crossings are grouped - or return as near-parallel columns whose
+    pseudo-inverse amplifies noise by the condition number. Measured: a pair at cosine 0.999
+    took cond(D) to 6968 and the up recovery to one unit in six, while the verdict said
+    `recovered` with nothing to report.
+    """
+
+    @staticmethod
+    def verdict_for(output_cosine: float):
+        from tools.llm_reader.jacobian_boundary_recovery import identifiability_verdict
+
+        outputs = np.eye(4)
+        outputs[1] = output_cosine * outputs[0] + np.sqrt(1 - output_cosine**2) * np.eye(4)[1]
+        return identifiability_verdict(
+            basis_spectrum=np.ones(4), active_rank=4,
+            gates=np.eye(4), output_directions=outputs, clusters_found=4,
+            duplicate_gate_cosine=0.98, collinear_threshold=0.9,
+            weak_share_threshold=0.002, rank_energy_threshold=0.98, unit_budget=4,
+        )
+
+    def test_parallel_outputs_are_reported_as_ambiguous(self) -> None:
+        result = self.verdict_for(0.999)
+
+        families = {row["family"] for row in result["findings"]}
+        self.assertIn("near-collinear-output-directions", families)
+        self.assertEqual(result["verdict"], "qualified")
+
+    def test_distinct_outputs_raise_nothing(self) -> None:
+        result = self.verdict_for(0.2)
+
+        self.assertEqual(result["findings"], [])
