@@ -507,3 +507,60 @@ class MixingInvertibilityTest(unittest.TestCase):
             duplicate_gate_cosine=0.98, gate_residual_tolerance=1.0, amplitude_crossings=3,
             min_cluster_size=4, up_sample_count=4000, up_sample_scale=2.0, seed=5,
         )
+
+
+class JointUpSolveTest(unittest.TestCase):
+    """Above the channel boundary the units can only be separated together.
+
+    Reading a unit through its own output direction carries every other unit scaled by
+    `d_j . d_i`. Inverting that mixing removes it exactly, but only while there are more output
+    channels than units - and a whole layer is 8192 units into 3072 channels. Above the
+    boundary the per-unit route has nothing but the raw projection, where the leak grows as
+    `sqrt(k/dim)` and passes one.
+
+    Solving for every `u_j` together removes it, and the system has `k * rank` unknowns - 25
+    million for a layer - which is why it was written off. Conjugate gradient never needs the
+    matrix, only its action, and the action is two matrix products.
+    """
+
+    @staticmethod
+    def block(units: int, dim: int, rows: int = 4000, seed: int = 1):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        up = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(size=(units, dim))
+        down /= np.linalg.norm(down, axis=1, keepdims=True)
+        points = rng.normal(0.0, 2.0, size=(rows, dim))
+        z = points @ gate.T
+        activation = z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))
+        return activation, points, (activation * (points @ up.T)) @ down, down, up
+
+    def test_it_recovers_every_unit_where_projection_recovers_none(self) -> None:
+        from tools.llm_reader.jacobian_boundary_recovery import solve_up_directions_jointly
+
+        activation, points, responses, down, up = self.block(units=86, dim=32)
+
+        solved = solve_up_directions_jointly(activation, points, responses, down)
+
+        unit = lambda rows: rows / np.maximum(np.linalg.norm(rows, axis=1, keepdims=True), 1e-30)
+        agreement = np.abs(np.sum(unit(solved) * unit(up), axis=1))
+        # The per-unit projection gets none of these above 0.99, median 0.9489.
+        self.assertGreater(float(np.min(agreement)), 0.99)
+
+    def test_it_is_exact_below_the_boundary_too(self) -> None:
+        from tools.llm_reader.jacobian_boundary_recovery import solve_up_directions_jointly
+
+        activation, points, responses, down, up = self.block(units=12, dim=32)
+
+        solved = solve_up_directions_jointly(activation, points, responses, down)
+
+        unit = lambda rows: rows / np.maximum(np.linalg.norm(rows, axis=1, keepdims=True), 1e-30)
+        self.assertGreater(float(np.min(np.abs(np.sum(unit(solved) * unit(up), axis=1)))), 0.99)
+
+    def test_the_matrix_is_never_formed(self) -> None:
+        # 25 million unknowns for a layer. If this ever starts building the operator the memory
+        # will say so long before the arithmetic does.
+        source = (REPO_ROOT / "tools/llm_reader/jacobian_boundary_recovery.py").read_text()
+        body = source[source.index("def solve_up_directions_jointly") : source.index("def recover_block")]
+        self.assertNotIn("np.kron", body)
+        self.assertIn("chunk_rows", body)

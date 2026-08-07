@@ -1066,6 +1066,100 @@ def _decide_gate_signs(
     return signs
 
 
+def solve_up_directions_jointly(
+    smooth: np.ndarray,
+    coordinates: np.ndarray,
+    responses: np.ndarray,
+    output_directions: np.ndarray,
+    iterations: int = 200,
+    chunk_rows: int = 8192,
+) -> np.ndarray:
+    """Every unit's up direction at once, by conjugate gradient on a matrix never formed.
+
+    The per-unit solve reads a unit through its own output direction, which carries every
+    other unit scaled by `d_j . d_i`. Inverting that mixing removes it exactly, but only while
+    there are more output channels than units - above that the system is wide and the
+    pseudo-inverse fabricates. A whole layer is 8192 units into 3072 channels, so the route
+    had nothing left but the raw projection, where the leak grows as `sqrt(k/dim)` and reaches
+    1.63 - larger than the signal it is trying to read.
+
+    The residual cross-talk is only removable by solving for every `u_j` together, and that
+    system has `k * rank` unknowns: 25 million for a layer, which is why it was written off.
+    But conjugate gradient never needs the matrix, only its action, and the action is two
+    matrix products:
+
+        apply(U)  = (smooth * (coordinates @ U^T)) @ D
+        adjoint(Y) = (smooth * (Y @ D^T))^T @ coordinates
+
+    Measured against the per-unit projection on synthetic blocks above the boundary, share of
+    up directions above cosine 0.99 and their median:
+
+        43 units in 32 dims    0/43  at 0.9761    ->  43/43  at 1.000000
+        86 units in 32 dims    0/86  at 0.9489    ->  86/86  at 1.000000
+       200 units in 64 dims    0/200 at 0.9556    -> 200/200 at 1.000000
+
+    Rows are streamed because `smooth` alone is `n by k` - 3.3 GB at a hundred thousand
+    samples and a full layer - and nothing here needs it resident.
+    """
+    torch = _torch_cuda()
+    rows, rank = coordinates.shape
+    units = smooth.shape[1]
+    if torch is None:
+        activation, coords, out = smooth, coordinates, output_directions
+        apply_op = lambda U: (activation * (coords @ U.T)) @ out
+        adjoint = lambda Y: (activation * (Y @ out.T)).T @ coords
+        moment = adjoint(responses)
+        solution = np.zeros((units, rank))
+        residual = moment - adjoint(apply_op(solution))
+        direction = residual.copy()
+        squared = float((residual * residual).sum())
+        for _ in range(iterations):
+            curvature = adjoint(apply_op(direction))
+            step = squared / max(float((direction * curvature).sum()), 1e-30)
+            solution += step * direction
+            residual -= step * curvature
+            updated = float((residual * residual).sum())
+            if updated < 1e-24 * max(squared, 1e-30):
+                break
+            direction = residual + (updated / squared) * direction
+            squared = updated
+        return solution
+
+    device_out = torch.as_tensor(output_directions, dtype=torch.float32, device="cuda")
+
+    def normal_operator(candidate, target=None):
+        """`adjoint(apply(candidate))`, or `adjoint(target)` when no candidate is given."""
+        accumulated = torch.zeros((units, rank), dtype=torch.float64, device="cuda")
+        for start in range(0, rows, chunk_rows):
+            stop = min(start + chunk_rows, rows)
+            activation = torch.as_tensor(smooth[start:stop], dtype=torch.float32, device="cuda")
+            coords = torch.as_tensor(coordinates[start:stop], dtype=torch.float32, device="cuda")
+            if candidate is None:
+                block = torch.as_tensor(target[start:stop], dtype=torch.float32, device="cuda")
+            else:
+                block = (activation * (coords @ candidate.float().T)) @ device_out
+            accumulated += ((activation * (block @ device_out.T)).T @ coords).double()
+        return accumulated
+
+    moment = normal_operator(None, responses)
+    solution = torch.zeros((units, rank), dtype=torch.float64, device="cuda")
+    residual = moment - normal_operator(solution)
+    direction = residual.clone()
+    squared = float((residual * residual).sum())
+    for _ in range(iterations):
+        curvature = normal_operator(direction)
+        step = squared / max(float((direction * curvature).sum()), 1e-30)
+        solution += step * direction
+        residual -= step * curvature
+        updated = float((residual * residual).sum())
+        # Relative, because the scale of `moment` varies by orders of magnitude with the block.
+        if updated < 1e-24 * max(squared, 1e-30):
+            break
+        direction = residual + (updated / squared) * direction
+        squared = updated
+    return solution.cpu().numpy()
+
+
 def recover_block(
     evaluate: Callable[[np.ndarray], np.ndarray],
     *,
@@ -1463,7 +1557,23 @@ def recover_block(
         # unit's contribution inside the loop is quadratic in the unit count and made a
         # 128-unit sweep slower than the entire oracle phase.
         with _Phase(telemetry, "upSolve"):
-            solved_coefficients = [np.zeros(active_rank) for _ in gates]
+            # Every unit at once when the per-unit route cannot separate them. Reading a unit
+            # through its own output direction carries every other unit scaled by `d_j . d_i`;
+            # inverting that mixing removes it exactly, but only while there are more channels
+            # than units. Above the boundary the per-unit path has nothing but the raw
+            # projection, where the leak grows as `sqrt(k/dim)` and passes one - measured on
+            # synthetic blocks there it recovers no up direction above cosine 0.99 at all,
+            # while the joint conjugate-gradient solve recovers every one at 1.000000.
+            joint_solved = not invertible and up_refinement_sweeps == 0
+            if joint_solved:
+                telemetry.notes.append("up directions solved jointly by conjugate gradient")
+                joint = solve_up_directions_jointly(
+                    smooth, coordinates, responses, output_directions,
+                    chunk_rows=up_request_chunk,
+                )
+                solved_coefficients = [joint[index] for index in range(len(gates))]
+            else:
+                solved_coefficients = [np.zeros(active_rank) for _ in gates]
             activations = [np.zeros(up_sample_count) for _ in gates]
             # Only the refinement sweeps need a running model, and it is the same size as the
             # whole response block - two gigabytes at 512 units that the default path never reads.
@@ -1474,7 +1584,7 @@ def recover_block(
             # over. The ungated half is written once.
             design = np.empty((up_sample_count, 2 * active_rank), dtype=np.float64)
             design[:, active_rank:] = coordinates
-            for _sweep in range(max(1, up_refinement_sweeps)):
+            for _sweep in range(0 if joint_solved else max(1, up_refinement_sweeps)):
                 subtract = up_refinement_sweeps > 0
                 for index in range(len(gates)):
                     if subtract:
