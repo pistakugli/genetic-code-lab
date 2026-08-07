@@ -1361,10 +1361,19 @@ def recover_block(
         mixing = np.linalg.pinv(output_directions)
         torch_backend = _torch_cuda()
         if torch_backend is not None:
-            unmixed = (
-                torch_backend.as_tensor(responses, dtype=torch_backend.float32, device="cuda")
-                @ torch_backend.as_tensor(mixing, dtype=torch_backend.float32, device="cuda")
-            ).double().cpu().numpy()
+            # Chunked over rows, like the solve. `responses` is rows by output_dim and
+            # `unmixed` is rows by units, so a whole-layer block puts 3.3 GB of the second
+            # on a card that has already given 2.5 to the oracle - the same unbounded
+            # allocation the direct solve was killed by, one function away and unguarded.
+            device_mixing = torch_backend.as_tensor(mixing, dtype=torch_backend.float32, device="cuda")
+            unmixed = np.empty((responses.shape[0], mixing.shape[1]), dtype=np.float64)
+            for start in range(0, responses.shape[0], up_request_chunk):
+                stop = min(start + up_request_chunk, responses.shape[0])
+                block = torch_backend.as_tensor(
+                    responses[start:stop], dtype=torch_backend.float32, device="cuda"
+                )
+                unmixed[start:stop] = (block @ device_mixing).double().cpu().numpy()
+            del device_mixing
         else:
             unmixed = responses @ mixing
         # One ray per unit along its own gate direction, where the norm is what decides when
