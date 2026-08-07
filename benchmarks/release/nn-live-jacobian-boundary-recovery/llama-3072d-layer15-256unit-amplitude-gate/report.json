@@ -3,10 +3,10 @@
     "structureClaimAllowed": true,
     "verdict": "recovered",
     "findings": [],
-    "clustersFound": 1616,
+    "clustersFound": 1600,
     "gateNormDiagnosticCounts": {
       "kneeShareBelowThreshold": 0,
-      "raySpreadAboveThreshold": 1
+      "raySpreadAboveThreshold": 2
     },
     "thresholds": {
       "duplicateGateCosine": 0.98,
@@ -19,8 +19,8 @@
   },
   "reconstruction": {
     "points": 4000,
-    "rSquared": 0.9994168946486773,
-    "relativeResidual": 0.02403262107083776
+    "rSquared": 0.9994374427707041,
+    "relativeResidual": 0.023605379144277884
   },
   "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
   "layer": 15,
@@ -289,64 +289,64 @@
     "scanCalls": 512640,
     "linesScanned": 320,
     "crossingsFound": 14033,
-    "clusters": 1616,
+    "clusters": 1600,
     "unitsRecovered": 256,
     "amplitudeCalls": 1069056,
     "phaseSeconds": {
       "basis": {
-        "wall": 21.487,
-        "solverCpu": 19.105,
+        "wall": 19.515,
+        "solverCpu": 18.156,
         "coresHeld": 0.9
       },
       "lineScan": {
-        "wall": 31.074,
-        "solverCpu": 171.186,
-        "coresHeld": 5.5
+        "wall": 31.398,
+        "solverCpu": 174.496,
+        "coresHeld": 5.6
       },
       "clustering": {
-        "wall": 8.096,
-        "solverCpu": 8.111,
+        "wall": 0.617,
+        "solverCpu": 0.614,
         "coresHeld": 1.0
       },
       "normCalibration": {
-        "wall": 11.767,
-        "solverCpu": 33.405,
+        "wall": 11.141,
+        "solverCpu": 31.393,
         "coresHeld": 2.8
       },
       "signDecision": {
-        "wall": 6.751,
-        "solverCpu": 7.152,
+        "wall": 6.581,
+        "solverCpu": 6.983,
         "coresHeld": 1.1
       },
       "upSolve": {
-        "wall": 114.601,
-        "solverCpu": 210.78,
-        "coresHeld": 1.8
+        "wall": 13.778,
+        "solverCpu": 107.597,
+        "coresHeld": 7.8
       },
       "reconstruction": {
-        "wall": 0.571,
-        "solverCpu": 1.829,
+        "wall": 0.56,
+        "solverCpu": 1.768,
         "coresHeld": 3.2
       }
     },
     "lineScanBreakdown": {
-      "buildPoints": 7.718,
-      "oracleWait": 19.347,
-      "postProcess": 1.403
+      "buildPoints": 8.204,
+      "oracleWait": 19.233,
+      "postProcess": 1.387
     },
     "amplitudeSweeps": 261,
     "amplitudeSweepsAllowed": 768,
     "crossingsPerLine": 43.853125,
     "resolvableSlotsPerLine": 133,
     "duplicatesDropped": 0,
-    "clustersSkippedAsSmall": 1360,
+    "clustersSkippedAsSmall": 1344,
     "rejectedByResidual": 0,
     "upSolveCalls": 120000,
     "upsRecovered": 256,
     "clusterSizes": [
+      77,
       76,
       76,
-      75,
       73,
       73,
       72,
@@ -363,6 +363,8 @@
     ],
     "notes": [
       "basis energy in rank 512: 0.999872155446",
+      "output mixing inverted",
+      "up directions solved jointly by conjugate gradient",
       "identifiability verdict: recovered"
     ]
   },
@@ -378,20 +380,20 @@
   },
   "posthoc": {
     "unitsWithGateAbove099": 256,
-    "perUnitGateCosineMin": 0.9991713253939759,
-    "perUnitGateCosineMedian": 0.9999848341067583,
+    "perUnitGateCosineMin": 0.9991713254538359,
+    "perUnitGateCosineMedian": 0.9999848341067804,
     "unitsWithUpAbove099": 256,
-    "perUnitUpCosineMin": 0.9991169760361386,
+    "perUnitUpCosineMin": 0.9991066708408805,
     "unitsFullyRecovered": 256,
     "unitsWithJointAbove099": 256,
-    "perUnitJointCosineMin": 0.9991169760361386,
+    "perUnitJointCosineMin": 0.9991066708408805,
     "unitsWithOutputAbove099": 256,
-    "perUnitOutputCosineMin": 0.9993286755765471,
-    "outputCosineMedian": 0.9997540763776736,
+    "perUnitOutputCosineMin": 0.9993286807768742,
+    "outputCosineMedian": 0.9997520525808301,
     "solutionCount": 256,
     "spuriousSolutions": 0,
-    "gateCosineMedian": 0.9999848341067583,
-    "gateCosineMin": 0.9991713253939759,
+    "gateCosineMedian": 0.9999848341067804,
+    "gateCosineMin": 0.9991713254538359,
     "gateCosineShareAbove099": 1.0,
     "distinctUnitsMatchedNotProofOfRecovery": 256,
     "unitCount": 256,

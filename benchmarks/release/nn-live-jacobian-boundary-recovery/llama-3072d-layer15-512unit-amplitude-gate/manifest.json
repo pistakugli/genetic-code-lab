@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-07T12:59:55.965Z",
+  "generatedAt": "2026-08-07T19:55:15.602Z",
   "lane": "nn-live-jacobian-boundary-recovery",
   "variant": "llama-3072d-layer15-512unit-amplitude-gate",
-  "status": "pass",
+  "status": "fail",
   "command": {
     "argv": [
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
@@ -17,9 +17,9 @@
     "GCL_JACOBIAN_VARIANT": "512unit"
   },
   "git": {
-    "commit": "d00bb868f5fd1854cbc744053628c38393e9b1e8",
-    "statusShort": "?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/\n?? benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/",
-    "uncommittedDiffSha256": null
+    "commit": "e2205e2452b3ac71d80eba5af7c2c8da78e0823d",
+    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/intervention.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/intervention.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/report.json",
+    "uncommittedDiffSha256": "00c97ba5b8eb2c010e354a41a07d8d61f124012974c84e0123c6adf0335ccbfa"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/report.json",
@@ -27,18 +27,20 @@
     "manifest": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/manifest.json"
   },
   "summary": {
-    "pass": true,
+    "pass": false,
     "regenerated": true,
     "unitCount": 512,
-    "unitsFullyRecovered": 512,
+    "unitsFullyRecovered": 511,
     "spuriousSolutions": 0,
-    "heldOutRSquared": 0.9992411606428357,
-    "realTextDeltaCosine": 0.9996052353384492,
-    "oracleCalls": 6155552,
+    "heldOutRSquared": 0.9992703886126133,
+    "realTextDeltaCosine": 0.9995821180494906,
+    "oracleCalls": 6147360,
     "verdict": "recovered",
-    "solverSha256": "534d42558b698389d08bd08bc72dd93fc2249ecbd586c471f05fb19a9628fb6c",
-    "truthUnlockQueryCount": 6155552,
-    "failures": []
+    "solverSha256": "5ce6416ab3416171ec749dab18a48aae9f625c50208e3a7ad217ab80dc6005ed",
+    "truthUnlockQueryCount": 6147360,
+    "failures": [
+      "unitsFullyRecovered=511, expected 512"
+    ]
   },
   "notes": [
     "unitsFullyRecovered requires the gate direction, the up direction and the gate norm together, matched to one source unit.",

@@ -206,12 +206,41 @@ def scan_line_for_crossings(
     entered = time.perf_counter()
     coordinates = np.linspace(-1.0, 1.0, samples)
     basis_points = origin[None, :] + coordinates[:, None] * direction[None, :]
-    line = scale * (basis_points @ basis)
-    probe_vector = probe @ basis
+    # Built on the card. The line is `samples x rank` against `rank x output_dim` and the two
+    # probe offsets are copies of it, which measured as the largest single piece of host work
+    # left in the route: 3.3 seconds of the line scan's 12.4 on a 128-unit block, at six and a
+    # half cores.
+    #
+    # Double, and the first attempt at single is why this comment exists. The line carries
+    # values of order `scale` - 2e4 - while the probe offset is of order `step`. In single
+    # precision a small step falls below the resolution of the number it is added to, the two
+    # sides of the difference become the same array, and the derivative the whole route is
+    # built on becomes noise: gate cosine 0.38. That is the third time today that single
+    # precision in the wrong place has silently destroyed a recovery, after the basis Gram and
+    # the scan difference, and the pattern is always the same - it is fine where quantities are
+    # compared and fatal where they are subtracted.
+    torch_backend = _torch_cuda()
+    if torch_backend is not None:
+        device_basis = torch_backend.as_tensor(basis, dtype=torch_backend.float64, device="cuda")
+        device_line = scale * (
+            torch_backend.as_tensor(basis_points, dtype=torch_backend.float64, device="cuda") @ device_basis
+        )
+        device_probe = torch_backend.as_tensor(probe, dtype=torch_backend.float64, device="cuda") @ device_basis
+        line = None
+        probe_vector = device_probe.cpu().numpy()
+    else:
+        line = scale * (basis_points @ basis)
+        probe_vector = probe @ basis
 
     built = time.perf_counter()
-    plus = line + step * probe_vector[None, :]
-    minus = line - step * probe_vector[None, :]
+    if line is None:
+        offset = step * device_probe
+        plus = (device_line + offset).cpu().numpy()
+        minus = (device_line - offset).cpu().numpy()
+        del device_line, device_probe, device_basis
+    else:
+        plus = line + step * probe_vector[None, :]
+        minus = line - step * probe_vector[None, :]
     asked = time.perf_counter()
     forward = evaluate(plus)
     backward = evaluate(minus)
@@ -1214,15 +1243,34 @@ def solve_up_directions_jointly(
 
     device_out = torch.as_tensor(output_directions, dtype=torch.float32, device="cuda")
 
+    # Resident when they fit, streamed when they do not. Conjugate gradient walks the whole
+    # dataset twice per iteration and takes a couple of hundred iterations, so streaming from
+    # the host means four hundred uploads of everything - measured at 29 seconds of host CPU
+    # against 3.7 of wall clock on a 128-unit block, which is copying, not arithmetic. At a
+    # full layer `smooth` alone is 3.3 GB and streaming is the only option, so both paths stay.
+    free_bytes, _total = torch.cuda.mem_get_info()
+    resident = (smooth.size + coordinates.size) * 4 + (1 << 28) < free_bytes
+    if resident:
+        device_smooth = torch.as_tensor(smooth, dtype=torch.float32, device="cuda")
+        device_coords = torch.as_tensor(coordinates, dtype=torch.float32, device="cuda")
+        device_responses = torch.as_tensor(responses, dtype=torch.float32, device="cuda")
+
     def normal_operator(candidate, target=None):
         """`adjoint(apply(candidate))`, or `adjoint(target)` when no candidate is given."""
         accumulated = torch.zeros((units, rank), dtype=torch.float64, device="cuda")
         for start in range(0, rows, chunk_rows):
             stop = min(start + chunk_rows, rows)
-            activation = torch.as_tensor(smooth[start:stop], dtype=torch.float32, device="cuda")
-            coords = torch.as_tensor(coordinates[start:stop], dtype=torch.float32, device="cuda")
+            if resident:
+                activation = device_smooth[start:stop]
+                coords = device_coords[start:stop]
+            else:
+                activation = torch.as_tensor(smooth[start:stop], dtype=torch.float32, device="cuda")
+                coords = torch.as_tensor(coordinates[start:stop], dtype=torch.float32, device="cuda")
             if candidate is None:
-                block = torch.as_tensor(target[start:stop], dtype=torch.float32, device="cuda")
+                block = (
+                    device_responses[start:stop] if resident
+                    else torch.as_tensor(target[start:stop], dtype=torch.float32, device="cuda")
+                )
             else:
                 block = (activation * (coords @ candidate.float().T)) @ device_out
             accumulated += ((activation * (block @ device_out.T)).T @ coords).double()
@@ -1533,8 +1581,25 @@ def recover_block(
         # 1.07 on this layer. `silu` is not scale free, so a wrong norm evaluates the unit in
         # the wrong regime - which is why the up solve returned 14 of 32 before the norm was
         # recovered at all, and did not move when samples, scale or gate quality changed.
-        raw_response = samples_in @ gate_matrix.T
-        coordinates = samples_in @ basis.T
+        # Both products on the card. `samples_in` is `rows x output_dim` and these turn it into
+        # `rows x units` and `rows x rank`, which at a hundred thousand samples and a full
+        # layer is 2.5e12 and 9.4e11 floating point operations - on the host, while the card
+        # that had just answered every one of those samples sat idle. Double throughout: these
+        # feed `silu` and a least squares, and single precision in this file has destroyed a
+        # recovery three times.
+        torch_probe = _torch_cuda()
+        if torch_probe is not None:
+            device_samples = torch_probe.as_tensor(samples_in, dtype=torch_probe.float64, device="cuda")
+            raw_response = (
+                device_samples @ torch_probe.as_tensor(gate_matrix, dtype=torch_probe.float64, device="cuda").T
+            ).cpu().numpy()
+            coordinates = (
+                device_samples @ torch_probe.as_tensor(basis, dtype=torch_probe.float64, device="cuda").T
+            ).cpu().numpy()
+            del device_samples
+        else:
+            raw_response = samples_in @ gate_matrix.T
+            coordinates = samples_in @ basis.T
         # The probe points are not needed past these two products, and at 512 units they are
         # two gigabytes held for the rest of the solve.
         del samples_in
@@ -1599,7 +1664,19 @@ def recover_block(
             gate_norms, norm_diagnostics = calibrate_gate_norms_on_rays(
                 evaluate,
                 gate_matrix / np.linalg.norm(gate_matrix, axis=1, keepdims=True),
-                output_directions,
+                # The unmixed reader, not the raw output direction, wherever the mixing can
+                # be inverted. The ray measures the knee on the response projected onto this
+                # unit's channel, so a neighbour that overlaps it leaks straight into the
+                # measurement. Row `i` of `pinv(D)` reads unit `i` and cancels the others
+                # exactly, which is the same correction the up solve already gets.
+                #
+                # It matters for exactly the units it should. In the 512-unit block one norm
+                # came back 10.16% out against a 10% bar - unit 140, whose output norm is in
+                # the 11th percentile of the block and whose nearest neighbour sits at cosine
+                # 0.320, the second highest there. Weak channel, close neighbour, contaminated
+                # projection. Above the channel boundary `mixing` is already the transpose and
+                # this reduces to what it was.
+                mixing.T,
                 points_per_ray=norm_ray_points,
                 min_magnitude=norm_ray_min,
                 max_magnitude=norm_ray_max,
