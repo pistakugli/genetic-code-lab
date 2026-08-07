@@ -335,3 +335,122 @@ class OracleBudgetTest(unittest.TestCase):
                 self.assertEqual(oracle.query_count, 1500)
             finally:
                 oracle.close()
+
+
+class ChunkedPathAgreesEndToEndTest(unittest.TestCase):
+    """The chunked solve must return the same block, not merely the same arithmetic.
+
+    Its unit test compares against numpy on a synthetic system, which proves the algebra and
+    nothing about the route. The gap was structural: the chunked path only engages where the
+    direct solve does not fit, so the only block that reached it was one that had never been
+    recovered at all - there was nothing to compare against. `GCL_FORCE_CHUNKED_SOLVE` makes
+    it reachable on a block with a known answer.
+
+    Verified on the live 128-unit block as well: 128/128 fully recovered either way, held-out
+    R2 0.9994209 to seven places both times, identical call count. This is the fast version of
+    that check.
+    """
+
+    @staticmethod
+    def teacher(units: int = 5, dim: int = 32, seed: int = 4):
+        rng = np.random.default_rng(seed)
+        gate = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        up = rng.normal(size=(units, dim)) / np.sqrt(dim)
+        down = rng.normal(size=(dim, units))
+
+        def evaluate(points: np.ndarray) -> np.ndarray:
+            z = points @ gate.T
+            return ((z / (1.0 + np.exp(-np.clip(z, -60.0, 60.0)))) * (points @ up.T)) @ down.T
+
+        return evaluate, up
+
+    def recover(self):
+        from tools.llm_reader.jacobian_boundary_recovery import recover_block
+
+        evaluate, up = self.teacher()
+        result, _telemetry = recover_block(
+            evaluate, input_dim=32, active_rank=10, line_count=50, samples=401,
+            scale=2e4, step=1e-4, peak_fraction=0.05, separation=6, min_sharpness=3.0,
+            cluster_min_cosine=0.95, basis_points_count=8, basis_scale=1.0,
+            gate_mode="amplitude", amplitude_span=0.01, amplitude_min_alignment=0.5,
+            duplicate_gate_cosine=0.98, gate_residual_tolerance=1.0, amplitude_crossings=4,
+            min_cluster_size=1, up_sample_count=4000, up_sample_scale=2.0, seed=5,
+        )
+        return result, up
+
+    @unittest.skipUnless(
+        Path("/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu").exists(),
+        "needs the GPU environment",
+    )
+    def test_both_solve_paths_recover_the_same_block(self) -> None:
+        import os
+
+        import torch
+
+        if not torch.cuda.is_available():
+            self.skipTest("no card")
+
+        direct, _up = self.recover()
+        os.environ["GCL_FORCE_CHUNKED_SOLVE"] = "1"
+        try:
+            chunked, _up = self.recover()
+        finally:
+            os.environ.pop("GCL_FORCE_CHUNKED_SOLVE", None)
+
+        self.assertEqual(direct["upDirections"].shape, chunked["upDirections"].shape)
+        unit = lambda rows: rows / np.maximum(np.linalg.norm(rows, axis=1, keepdims=True), 1e-30)
+        agreement = np.abs(np.sum(unit(direct["upDirections"]) * unit(chunked["upDirections"]), axis=1))
+        self.assertGreater(float(np.min(agreement)), 0.9999)
+        self.assertAlmostEqual(
+            direct["reconstruction"]["rSquared"], chunked["reconstruction"]["rSquared"], places=6
+        )
+
+
+class WeakChannelFloorScalesTest(unittest.TestCase):
+    """F31 — an absolute energy floor means something different at every block size.
+
+    A unit's share of the block's gate energy is about `1/k`, so a fixed floor of 0.002 is
+    generous at sixteen units and impossible past five hundred. The family's first live firing
+    said so: 1023 of 1023 solutions flagged on a 1024-unit block that had recovered 1022 of
+    them. The check now asks whether a solution carries far less than its peers.
+    """
+
+    @staticmethod
+    def verdict_for(units: int, weak_units: int = 0):
+        from tools.llm_reader.jacobian_boundary_recovery import identifiability_verdict
+
+        gates = np.eye(units)
+        for index in range(weak_units):
+            gates[index] *= 0.01
+        return identifiability_verdict(
+            basis_spectrum=np.ones(units), active_rank=units,
+            gates=gates, output_directions=np.eye(units), clusters_found=units,
+            duplicate_gate_cosine=0.999, collinear_threshold=0.9,
+            weak_share_threshold=0.05, rank_energy_threshold=0.98, unit_budget=units,
+        )
+
+    def families(self, result) -> set:
+        return {row["family"] for row in result["findings"]}
+
+    def test_a_large_uniform_block_is_not_flagged(self) -> None:
+        # This is the case that broke: every unit at 1/1024 of the energy, all of them
+        # correctly recovered, and the old floor called every one of them weak.
+        self.assertNotIn("weak-channel-below-floor", self.families(self.verdict_for(1024)))
+
+    def test_a_genuinely_weak_unit_is_still_caught(self) -> None:
+        result = self.verdict_for(1024, weak_units=3)
+
+        self.assertIn("weak-channel-below-floor", self.families(result))
+        detail = [r["detail"] for r in result["findings"] if r["family"] == "weak-channel-below-floor"]
+        self.assertIn("3 solution(s)", detail[0])
+
+    def test_the_same_floor_behaves_the_same_at_every_size(self) -> None:
+        # Scale freedom is the point: one weak unit in sixteen and one in a thousand are the
+        # same statement, and the check has to make it the same way.
+        for units in (16, 128, 1024):
+            with self.subTest(units=units):
+                self.assertIn(
+                    "weak-channel-below-floor",
+                    self.families(self.verdict_for(units, weak_units=1)),
+                )
+                self.assertNotIn("weak-channel-below-floor", self.families(self.verdict_for(units)))

@@ -482,16 +482,27 @@ def identifiability_verdict(
 
     # Weak channel below the noise floor: a solution whose share of the recovered energy is
     # negligible is not evidence of a unit, it is evidence of a probe that found nothing.
+    #
+    # Relative to what an average unit carries, not to a constant. A unit's share of the
+    # block's gate energy is about `1/k` by construction, so an absolute floor means something
+    # different at every block size and nothing at all past `1/floor`: at the 0.002 this used
+    # to compare against, every unit of a block larger than five hundred is below it. The
+    # first live firing of this family said exactly that - 1023 of 1023 solutions flagged on a
+    # 1024-unit block that had in fact recovered 1022 of them. Audit finding F31.
+    #
+    # The question the check is for is whether a solution carries far less than its peers,
+    # which is `share * k` well under one.
     weak = 0
     if gates.shape[0]:
         strength = np.linalg.norm(gates, axis=1)
         total = float(np.sum(strength))
         if total > 0:
-            weak = int(np.sum((strength / total) < weak_share_threshold))
+            relative = (strength / total) * gates.shape[0]
+            weak = int(np.sum(relative < weak_share_threshold))
     if weak:
         findings.append({
             "family": "weak-channel-below-floor",
-            "detail": f"{weak} solution(s) below {weak_share_threshold} of recovered gate energy",
+            "detail": f"{weak} solution(s) below {weak_share_threshold} of an average unit's gate energy",
             "verdict": "canonicalised",
         })
 
@@ -656,7 +667,14 @@ def solve_least_squares(
         # was correct, and now the work also gets done.
         free_bytes, _total = torch.cuda.mem_get_info()
         needed = int(2.5 * design.size * 4)
-        if needed > free_bytes - (256 << 20):
+        # The override exists because the chunked path is otherwise unreachable on any block
+        # small enough to have a known-good answer: it only engages where the direct solve does
+        # not fit, and the only block that big had never been recovered at all. With it, the
+        # two paths can be run against the same 128-unit recovery and compared, which is the
+        # difference between "agrees with numpy on synthetic data" and "produces the same
+        # block". It is also how a machine with a larger card can exercise it in CI.
+        forced = os.environ.get("GCL_FORCE_CHUNKED_SOLVE") == "1"
+        if forced or needed > free_bytes - (256 << 20):
             _record_fallback(notes, (
                 f"design of {design.size * 4 >> 20} MB exceeds free device memory; "
                 "solved by chunked normal equations"
@@ -1083,7 +1101,7 @@ def recover_block(
     reconstruction_points: int = 4000,
     up_refinement_sweeps: int = 0,
     collinear_threshold: float = 0.9,
-    weak_share_threshold: float = 0.002,
+    weak_share_threshold: float = 0.05,
     rank_energy_threshold: float = 0.98,
     unit_budget: int = 0,
     seed: int,
@@ -1755,7 +1773,7 @@ def main() -> int:
     parser.add_argument("--norm-ray-points", type=int, default=192)
     parser.add_argument("--reconstruction-points", type=int, default=4000)
     parser.add_argument("--collinear-threshold", type=float, default=0.9)
-    parser.add_argument("--weak-share-threshold", type=float, default=0.002)
+    parser.add_argument("--weak-share-threshold", type=float, default=0.05)
     parser.add_argument("--rank-energy-threshold", type=float, default=0.98)
     parser.add_argument("--unit-budget", type=int, default=0, help="0 uses the requested unit count")
     parser.add_argument("--up-refinement-sweeps", type=int, default=0,
