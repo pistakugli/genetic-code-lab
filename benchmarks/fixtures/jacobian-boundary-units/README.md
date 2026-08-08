@@ -27,6 +27,8 @@ finding F22.
 | `256.txt` | 256 | superset of `128.txt` |
 | `512.txt` | 512 | superset of `256.txt` |
 | `1024.txt` | 1024 | superset of `512.txt` |
+| `2048.txt` | 2048 | superset of `1024.txt` |
+| `4096.txt` | 4096 | superset of `2048.txt`, the first block with more units than the layer has output channels |
 
 ## Are they representative
 
