@@ -120,6 +120,24 @@ def parse_units(unit: int, units: str | None) -> list[int]:
     return parsed
 
 
+_REPORTED_FALLBACKS: set[str] = set()
+
+
+def _record_fallback(reason: str) -> None:
+    """Leave a trace when a path is abandoned for a reason the caller can survive.
+
+    Four sites in this file caught everything and returned a default, so a missing
+    dependency, a malformed candidate and a healthy decline all produced the same
+    output and none of them produced a word. The message goes to stderr because
+    stdout carries the oracle protocol, and each distinct reason is printed once so
+    that a site inside a scoring loop cannot flood the log.
+    """
+    if reason in _REPORTED_FALLBACKS:
+        return
+    _REPORTED_FALLBACKS.add(reason)
+    print(reason, file=sys.stderr)
+
+
 def dequantized_weight(module: Any) -> Any:
     weight = module.weight
     quant_state = getattr(weight, "quant_state", None)
@@ -5114,7 +5132,10 @@ def fit_swiglu_sum(
                 np.array(residual_scales, dtype=np.float64),
                 residual_bias,
             ))
-        except Exception:
+        except (ValueError, KeyError, IndexError) as exc:
+            # A malformed single-atom candidate or an empty residual stack. Anything else here
+            # is a defect in the construction above and must not be turned into "no starts".
+            _record_fallback(f"structured starts abandoned: {type(exc).__name__}: {exc}")
             structured_starts = []
 
     gradient_starts = make_gradient_structured_starts(
@@ -7793,7 +7814,10 @@ def chebyshev_calibrate_swiglu_candidate(
 ) -> dict[str, Any]:
     try:
         from scipy.optimize import linprog
-    except Exception:
+    except ImportError:
+        # scipy absent is the one survivable outcome; an error raised while importing an scipy
+        # that is present is a broken environment and should say so rather than read as decline.
+        _record_fallback("chebyshev calibration skipped: scipy.optimize.linprog unavailable")
         return candidate
     gates_np = np.asarray(candidate["gates"], dtype=np.float64)
     ups_np = np.asarray(candidate["ups"], dtype=np.float64)
@@ -7833,7 +7857,11 @@ def chebyshev_calibrate_swiglu_candidate(
             method="highs",
             options={"presolve": True},
         )
-    except Exception:
+    except ValueError as exc:
+        # linprog rejects a program it cannot read - wrong shapes, non-finite bounds. That is a
+        # calibration that could not run, which is worth knowing, and it is not the same event
+        # as the solver running and declining to improve the candidate.
+        _record_fallback(f"chebyshev calibration skipped: linprog rejected the program: {exc}")
         return candidate
     if not result.success or result.x is None or not np.all(np.isfinite(result.x)):
         return candidate
@@ -9886,7 +9914,11 @@ def run_solver(args: argparse.Namespace) -> int:
                             score_coords, score_targets = fit_selection_coords, fit_selection_targets
                         try:
                             prediction = predict_swiglu(score_coords, candidate)
-                        except Exception:
+                        except (ValueError, KeyError) as exc:
+                            # An unusable candidate scores as infinitely bad, which is the
+                            # intended outcome - but until now so did a defect in the predictor,
+                            # and this runs once per candidate so the failure had no voice at all.
+                            _record_fallback(f"candidate scored as unusable: {type(exc).__name__}: {exc}")
                             return float("inf")
                         if prediction.shape != score_targets.shape or not np.all(np.isfinite(prediction)):
                             return float("inf")

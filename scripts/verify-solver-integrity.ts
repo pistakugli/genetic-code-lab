@@ -40,7 +40,14 @@ function walk(dir: string, match: (name: string) => boolean): string[] {
 // that today's verification does not cover: changing what an exception handler catches there
 // would let failures escape in paths I cannot re-measure now, which trades a known silence for
 // an unknown break. They are reported so the number is visible.
-const auditedSolvers = new Set(['tools/llm_reader/jacobian_boundary_recovery.py']);
+const auditedSolvers = new Set([
+  'tools/llm_reader/jacobian_boundary_recovery.py',
+  // Added once its four sites were repaired rather than counted. The deferral was that
+  // narrowing handlers in a file nothing here covers trades a known silence for an unknown
+  // break - but this file stopped being uncovered the day a real defect was found and fixed
+  // in it, so the reason expired before the entry did.
+  'tools/llm_reader/blind_swiglu_oracle_decompiler.py',
+]);
 let unauditedSwallowedFailures = 0;
 for (const file of walk(path.join(repoRoot, 'tools/llm_reader'), (name) => name.endsWith('.py'))) {
   const lines = fs.readFileSync(file, 'utf8').split('\n');
