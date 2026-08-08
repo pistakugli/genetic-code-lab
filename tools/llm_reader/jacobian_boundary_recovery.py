@@ -1590,16 +1590,21 @@ def recover_block(
         torch_probe = _torch_cuda()
         if torch_probe is not None:
             device_samples = torch_probe.as_tensor(samples_in, dtype=torch_probe.float64, device="cuda")
+            # Single on the way back, double in the product. These are inner products of
+            # probe points with recovered directions, not differences, so the width that
+            # matters is the one the multiply is done in - and everything downstream, the
+            # conjugate gradient and the sign design alike, casts to single anyway. At a full
+            # layer `rows x units` in double is 7.9 GB per copy and there are three of them.
             raw_response = (
                 device_samples @ torch_probe.as_tensor(gate_matrix, dtype=torch_probe.float64, device="cuda").T
-            ).cpu().numpy()
+            ).float().cpu().numpy()
             coordinates = (
                 device_samples @ torch_probe.as_tensor(basis, dtype=torch_probe.float64, device="cuda").T
-            ).cpu().numpy()
+            ).float().cpu().numpy()
             del device_samples
         else:
-            raw_response = samples_in @ gate_matrix.T
-            coordinates = samples_in @ basis.T
+            raw_response = (samples_in @ gate_matrix.T).astype(np.float32)
+            coordinates = (samples_in @ basis.T).astype(np.float32)
         # The probe points are not needed past these two products, and at 512 units they are
         # two gigabytes held for the rest of the solve.
         del samples_in
@@ -1646,17 +1651,23 @@ def recover_block(
             # `unmixed` is rows by units, so a whole-layer block puts 3.3 GB of the second
             # on a card that has already given 2.5 to the oracle - the same unbounded
             # allocation the direct solve was killed by, one function away and unguarded.
+            # Only as many rows as anything actually reads. The joint solve works from
+            # `responses` directly and never touches this; the sign decision needs the first
+            # few thousand. Materialising all of them is `rows x units` - 7.9 GB at a full
+            # layer for an array with one small consumer.
+            needed = responses.shape[0] if up_refinement_sweeps > 0 else min(responses.shape[0], 6000)
             device_mixing = torch_backend.as_tensor(mixing, dtype=torch_backend.float32, device="cuda")
-            unmixed = np.empty((responses.shape[0], mixing.shape[1]), dtype=np.float64)
-            for start in range(0, responses.shape[0], up_request_chunk):
-                stop = min(start + up_request_chunk, responses.shape[0])
+            unmixed = np.empty((needed, mixing.shape[1]), dtype=np.float64)
+            for start in range(0, needed, up_request_chunk):
+                stop = min(start + up_request_chunk, needed)
                 block = torch_backend.as_tensor(
                     responses[start:stop], dtype=torch_backend.float32, device="cuda"
                 )
                 unmixed[start:stop] = (block @ device_mixing).double().cpu().numpy()
             del device_mixing
         else:
-            unmixed = responses @ mixing
+            needed = responses.shape[0] if up_refinement_sweeps > 0 else min(responses.shape[0], 6000)
+            unmixed = responses[:needed] @ mixing
         # One ray per unit along its own gate direction, where the norm is what decides when
         # the curve turns on and nothing else can imitate it. See
         # `calibrate_gate_norms_on_rays` for why the isotropic cloud cannot settle this.
@@ -1709,9 +1720,12 @@ def recover_block(
             )
         gates = [row * sign for row, sign in zip(gates, signs)]
         gate_matrix = gate_matrix * signs[:, None]
-        raw_response = raw_response * signs[None, :]
-        gate_response = raw_response * gate_norms[None, :]
-        smooth = gate_response / (1.0 + np.exp(-np.clip(gate_response, -60.0, 60.0)))
+        raw_response *= signs[None, :].astype(raw_response.dtype)
+        # In place, and without a separate `gate_response`. Each of these is `rows x units`,
+        # which is 3.9 GB at a full layer even in single, and the intermediate was never read
+        # again after `smooth` was built from it.
+        smooth = raw_response * gate_norms[None, :].astype(raw_response.dtype)
+        np.divide(smooth, 1.0 + np.exp(-np.clip(smooth, -60.0, 60.0)), out=smooth)
         # Solved in basis coordinates, not in the input space. `u_i` lies in the active
         # subspace by construction, so it has `active_rank` free parameters rather than
         # `input_dim`: for 32 units in 3072 dimensions that is 2048 unknowns instead of
