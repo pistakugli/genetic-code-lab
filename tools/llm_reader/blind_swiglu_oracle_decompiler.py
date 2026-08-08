@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import json
 import math
@@ -138,6 +139,7 @@ def build_oracle_ready_payload(
     intermediate_size: int,
     oracle_mode: str,
     output_channel: int | None,
+    block_device: str,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "type": "ready",
@@ -166,6 +168,12 @@ def build_oracle_ready_payload(
             "units": [int(value) for value in units],
             "intermediateSize": int(intermediate_size),
             "device": args.device,
+            # `device` is the request; this is where the tensors that answer a call actually
+            # live. They were not the same thing: the oracle accepted `--device cuda` and then
+            # forced every weight to the host, so the only record of where the work happened
+            # agreed with the flag and disagreed with reality. A field a caller can compare
+            # against the flag turns that from an assumption into a check.
+            "blockDevice": block_device,
             "oracleMode": oracle_mode,
             "outputChannel": output_channel,
         })
@@ -175,7 +183,7 @@ def build_oracle_ready_payload(
 def validate_opaque_oracle_metadata(metadata: dict[str, Any]) -> None:
     forbidden = {
         "model", "modelType", "layer", "unit", "units", "intermediateSize",
-        "device", "oracleMode", "outputChannel",
+        "device", "blockDevice", "oracleMode", "outputChannel",
     }
     exposed = sorted(forbidden.intersection(metadata))
     if exposed:
@@ -220,11 +228,17 @@ def oracle_server(args: argparse.Namespace) -> int:
     if args.layer < 0 or args.layer >= len(layers):
         raise RuntimeError(f"layer {args.layer} outside model range 0..{len(layers) - 1}")
     mlp = layers[args.layer].mlp
-    gate_weight = dequantized_weight(mlp.gate_proj).detach().float().cpu()
-    up_weight = dequantized_weight(mlp.up_proj).detach().float().cpu()
+    # The block the oracle answers from stays on the compute device. Every weight here used to
+    # be pulled to the host with `.cpu()`, which made `--device cuda` decide only where the
+    # model was dequantized: the answering matmuls then ran on the CPU thread pool while the
+    # card held a model nothing read again. Measured on the 4096-unit rung: seven torch threads
+    # at 21 minutes of CPU each over 42 minutes of wall clock, GPU utilisation 13%.
+    compute_device = str(args.device)
+    gate_weight = dequantized_weight(mlp.gate_proj).detach().float().to(compute_device)
+    up_weight = dequantized_weight(mlp.up_proj).detach().float().to(compute_device)
     down_weight = None
     if args.output_channel >= 0:
-        down_weight = dequantized_weight(mlp.down_proj).detach().float().cpu()
+        down_weight = dequantized_weight(mlp.down_proj).detach().float().to(compute_device)
         if args.output_channel >= down_weight.shape[0]:
             raise RuntimeError(
                 f"output channel {args.output_channel} outside down_proj output range "
@@ -245,13 +259,13 @@ def oracle_server(args: argparse.Namespace) -> int:
     source_matrix: torch.Tensor | None = None
     if args.oracle_output_mode == "selected-unit-ffn-vector":
         if down_weight is None:
-            down_weight = dequantized_weight(mlp.down_proj).detach().float().cpu()
+            down_weight = dequantized_weight(mlp.down_proj).detach().float().to(compute_device)
         source_matrix = down_weight[:, units].contiguous()
-        source_scales = torch.ones(len(units), dtype=torch.float32)
+        source_scales = torch.ones(len(units), dtype=torch.float32, device=compute_device)
         oracle_mode = "selected-unit-ffn-vector"
         output_channel = None
     elif down_weight is None:
-        source_scales = torch.ones(len(units), dtype=torch.float32)
+        source_scales = torch.ones(len(units), dtype=torch.float32, device=compute_device)
         oracle_mode = "selected-unit-sum"
         output_channel = None
     else:
@@ -268,7 +282,17 @@ def oracle_server(args: argparse.Namespace) -> int:
         intermediate_size=int(gate_weight.shape[0]),
         oracle_mode=oracle_mode,
         output_channel=output_channel,
+        block_device=str(gate.device),
     )), flush=True)
+
+    # Everything the oracle answers from is now a copy in `gate`, `up`, `source_matrix` and
+    # `source_scales`; the model is dead weight from here on and holds 2.5 GB of a 7.65 GB card.
+    # The 2048-unit rung died on a 680 MiB allocation with 463 MiB free, so this is the
+    # difference between the upper rungs running and not running.
+    del gate_weight, up_weight, down_weight, mlp, layers, model
+    gc.collect()
+    if compute_device.startswith("cuda"):
+        torch.cuda.empty_cache()
 
     oracle_query_count = 0
     for line in sys.stdin:
@@ -296,7 +320,7 @@ def oracle_server(args: argparse.Namespace) -> int:
             batch_size = max(1, int(request.get("batchSize", args.batch_size)))
             with torch.no_grad():
                 for start in range(0, values.shape[0], batch_size):
-                    batch = torch.from_numpy(values[start:start + batch_size])
+                    batch = torch.from_numpy(values[start:start + batch_size]).to(compute_device)
                     gate_projection = batch @ gate.T
                     up_projection = batch @ up.T
                     atom_values = torch.nn.functional.silu(gate_projection) * up_projection
@@ -325,10 +349,10 @@ def oracle_server(args: argparse.Namespace) -> int:
                 continue
             gate_path = Path(request["gatePath"])
             up_path = Path(request["upPath"])
-            np.save(gate_path, gate.numpy().astype(np.float32))
+            np.save(gate_path, gate.cpu().numpy().astype(np.float32))
             np.save(
                 up_path,
-                (up * source_scales[:, None]).numpy().astype(np.float32),
+                (up * source_scales[:, None]).cpu().numpy().astype(np.float32),
             )
             # The output direction is part of what a vector oracle's caller recovers, so it
             # needs a witness like the other two. Without it a claim about `d_i` can only be
@@ -336,7 +360,7 @@ def oracle_server(args: argparse.Namespace) -> int:
             # unverified while being reported as a result.
             down_path = request.get("downPath")
             if down_path is not None and source_matrix is not None:
-                np.save(Path(down_path), source_matrix.numpy().astype(np.float32))
+                np.save(Path(down_path), source_matrix.cpu().numpy().astype(np.float32))
             print(json.dumps({
                 "type": "ok",
                 "truth": True,
@@ -431,6 +455,17 @@ class OracleClient:
             raise RuntimeError(f"oracle did not become ready: {ready}")
         if args.require_opaque_oracle:
             validate_opaque_oracle_metadata(ready)
+        # A cuda oracle that answers from host tensors is the failure this catches: it produces
+        # correct numbers at roughly a tenth of the throughput while holding the card's memory,
+        # so nothing downstream reports a problem and the run merely looks slow. The oracle
+        # reports where its block actually sits; a request for a card that lands on the host is
+        # a broken run, not a slow one.
+        block_device = ready.get("blockDevice")
+        if isinstance(block_device, str) and str(args.device).startswith("cuda"):
+            if not block_device.startswith("cuda"):
+                raise RuntimeError(
+                    f"oracle was asked for device {args.device!r} but answers from {block_device!r}"
+                )
         self.meta = ready
         self.work_dir = work_dir
         self.query_count = 0

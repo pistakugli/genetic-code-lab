@@ -267,6 +267,7 @@ class ResidualBlockSelectionTest(unittest.TestCase):
             intermediate_size=14336,
             oracle_mode="down-proj-output-channel",
             output_channel=2048,
+            block_device="cuda:0",
         )
 
         self.assertEqual(observed["hiddenSize"], 4096)
@@ -274,7 +275,7 @@ class ResidualBlockSelectionTest(unittest.TestCase):
         self.assertEqual(observed["protocolCapabilities"], {"eval": True, "truth": False})
         for forbidden in (
             "model", "modelType", "layer", "unit", "units",
-            "intermediateSize", "device", "oracleMode", "outputChannel",
+            "intermediateSize", "device", "blockDevice", "oracleMode", "outputChannel",
         ):
             self.assertNotIn(forbidden, observed)
         validate_opaque_oracle_metadata(observed)
@@ -283,6 +284,27 @@ class ResidualBlockSelectionTest(unittest.TestCase):
         poisoned["units"] = [7885, 2037]
         with self.assertRaisesRegex(RuntimeError, "exposed teacher manifest"):
             validate_opaque_oracle_metadata(poisoned)
+
+        # Where the answering tensors live is a witness, not a manifest field, so it belongs in
+        # the full payload and must stay out of the opaque one like the rest.
+        args.oracle_ready_mode = "full"
+        full = build_oracle_ready_payload(
+            args=args,
+            model_type="mistral",
+            units=[7885, 2037],
+            hidden_size=4096,
+            intermediate_size=14336,
+            oracle_mode="down-proj-output-channel",
+            output_channel=2048,
+            block_device="cuda:0",
+        )
+        self.assertEqual(full["device"], "cuda")
+        self.assertEqual(full["blockDevice"], "cuda:0")
+
+        leaked = dict(observed)
+        leaked["blockDevice"] = "cuda:0"
+        with self.assertRaisesRegex(RuntimeError, "exposed teacher manifest"):
+            validate_opaque_oracle_metadata(leaked)
 
     def test_oracle_truth_is_locked_until_recovery_freeze(self) -> None:
         oracle = OracleClient.__new__(OracleClient)
