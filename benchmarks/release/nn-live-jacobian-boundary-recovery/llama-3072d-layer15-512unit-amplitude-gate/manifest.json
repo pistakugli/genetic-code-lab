@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-07T19:55:15.602Z",
+  "generatedAt": "2026-08-08T05:30:20.561Z",
   "lane": "nn-live-jacobian-boundary-recovery",
   "variant": "llama-3072d-layer15-512unit-amplitude-gate",
-  "status": "fail",
+  "status": "pass",
   "command": {
     "argv": [
       "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
@@ -17,9 +17,9 @@
     "GCL_JACOBIAN_VARIANT": "512unit"
   },
   "git": {
-    "commit": "e2205e2452b3ac71d80eba5af7c2c8da78e0823d",
-    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/intervention.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/manifest.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-256unit-amplitude-gate/report.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/intervention.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/report.json",
-    "uncommittedDiffSha256": "00c97ba5b8eb2c010e354a41a07d8d61f124012974c84e0123c6adf0335ccbfa"
+    "commit": "22e5e7779d997a06b689e947cfedbd11cf734613",
+    "statusShort": "M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/intervention.json\n M benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/report.json\n M tools/llm_reader/jacobian_boundary_recovery.py\n?? benchmarks/fixtures/jacobian-boundary-units/2048.txt",
+    "uncommittedDiffSha256": "3676e41d0d9d301e7637c0381a7f17066ff3a18f89facfc70361c49c6c9a8b82"
   },
   "outputs": {
     "reportJson": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/report.json",
@@ -27,20 +27,18 @@
     "manifest": "benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-512unit-amplitude-gate/manifest.json"
   },
   "summary": {
-    "pass": false,
+    "pass": true,
     "regenerated": true,
     "unitCount": 512,
-    "unitsFullyRecovered": 511,
+    "unitsFullyRecovered": 512,
     "spuriousSolutions": 0,
-    "heldOutRSquared": 0.9992703886126133,
-    "realTextDeltaCosine": 0.9995821180494906,
+    "heldOutRSquared": 0.9992694428620376,
+    "realTextDeltaCosine": 0.9995842424425226,
     "oracleCalls": 6147360,
     "verdict": "recovered",
-    "solverSha256": "5ce6416ab3416171ec749dab18a48aae9f625c50208e3a7ad217ab80dc6005ed",
+    "solverSha256": "a9ec782bcdc2fb473a617c13e4b555ad311825825b036cf585abb374d7a5f345",
     "truthUnlockQueryCount": 6147360,
-    "failures": [
-      "unitsFullyRecovered=511, expected 512"
-    ]
+    "failures": []
   },
   "notes": [
     "unitsFullyRecovered requires the gate direction, the up direction and the gate norm together, matched to one source unit.",

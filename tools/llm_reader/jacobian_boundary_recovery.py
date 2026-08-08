@@ -156,11 +156,17 @@ def recover_basis_from_jacobian(
     for probe_point in np.atleast_2d(point):
         plus = evaluate(probe_point[None, :] + step * axes)
         minus = evaluate(probe_point[None, :] - step * axes)
-        jacobian = ((plus - minus) / (2.0 * step)).T
         if torch is not None:
-            block = torch.as_tensor(jacobian, dtype=torch.float64, device="cuda")
+            # Differenced on the card. The oracle answers `input_dim x output_dim` per point -
+            # 3072 by 3072 - and building the difference, dividing it and transposing it on the
+            # host is three arrays of 75 MB in double before the card sees any of it.
+            left = torch.as_tensor(plus, device="cuda").double()
+            right = torch.as_tensor(minus, device="cuda").double()
+            block = ((left - right) / (2.0 * step)).T
             gram += block.T @ block
+            del left, right, block
         else:
+            jacobian = ((plus - minus) / (2.0 * step)).T
             gram += jacobian.T @ jacobian
         calls += 2 * input_dim
     # Symmetric by construction, so `eigh` rather than `eig`, and its ascending order is
@@ -1029,6 +1035,20 @@ def calibrate_gate_norms_on_rays(
     batch_units = max(1, request_chunk // per_unit)
     rays = np.empty((batch_units * per_unit, input_dim), dtype=np.float64)
 
+    # The outer products that build the rays, and the projection that reads them back, on the
+    # card. Each batch is `batch_units * repeats * points` rows of `input_dim` and there is one
+    # batch per seven units, so at a full layer this is a thousand of them - built, filled and
+    # projected on the host while the oracle answering them runs on the card.
+    torch_rays = _torch_cuda()
+    device_positions = (
+        torch_rays.as_tensor(positions, dtype=torch_rays.float64, device="cuda")
+        if torch_rays is not None else None
+    )
+    device_rays = (
+        torch_rays.zeros((batch_units * per_unit, input_dim), dtype=torch_rays.float64, device="cuda")
+        if torch_rays is not None else None
+    )
+
     def build(index: int, slot: int) -> None:
         direction = gate_directions[index] / np.linalg.norm(gate_directions[index])
         for repeat in range(repeats):
@@ -1036,7 +1056,14 @@ def calibrate_gate_norms_on_rays(
             offset -= (offset @ direction) * direction
             offset *= offset_scale * np.sqrt(input_dim) / np.linalg.norm(offset)
             start = (slot * repeats + repeat) * positions.size
-            rays[start:start + positions.size] = positions[:, None] * direction[None, :] + offset[None, :]
+            if torch_rays is not None:
+                device_rays[start:start + positions.size] = (
+                    device_positions[:, None]
+                    * torch_rays.as_tensor(direction, dtype=torch_rays.float64, device="cuda")[None, :]
+                    + torch_rays.as_tensor(offset, dtype=torch_rays.float64, device="cuda")[None, :]
+                )
+            else:
+                rays[start:start + positions.size] = positions[:, None] * direction[None, :] + offset[None, :]
 
     # Wide enough to cover a transition anywhere in the probed range of `s`, since the whole
     # point is that the norm is unknown before the ray is read.
@@ -1098,18 +1125,29 @@ def calibrate_gate_norms_on_rays(
         for slot, index in enumerate(batch):
             build(index, slot)
         rows = len(batch) * per_unit
+        if torch_rays is not None:
+            rays[:rows] = device_rays[:rows].cpu().numpy()
         responses = np.concatenate(
             [evaluate(rays[start:min(start + request_chunk, rows)])
              for start in range(0, rows, request_chunk)],
             axis=0,
         )
+        if torch_rays is not None:
+            device_responses = torch_rays.as_tensor(responses, dtype=torch_rays.float64, device="cuda")
+            device_readers = torch_rays.as_tensor(
+                output_directions[list(batch)], dtype=torch_rays.float64, device="cuda"
+            )
+            projected_batch = (device_responses @ device_readers.T).cpu().numpy()
+            del device_responses, device_readers
         for slot, index in enumerate(batch):
             measured, shares = [], []
             for repeat in range(repeats):
                 start = (slot * repeats + repeat) * positions.size
-                norm, error, reference = measure_ray(
-                    responses[start:start + positions.size] @ output_directions[index]
+                projection = (
+                    projected_batch[start:start + positions.size, slot] if torch_rays is not None
+                    else responses[start:start + positions.size] @ output_directions[index]
                 )
+                norm, error, reference = measure_ray(projection)
                 measured.append(norm)
                 shares.append(float(1.0 - error / reference) if reference > 0 else 0.0)
             # Median, not mean. One ray can land on a neighbour's knee instead of this unit's,
@@ -1840,7 +1878,18 @@ def recover_block(
                 # unit count. Measured at 111 seconds of CPU against 4 of wall clock, 26 cores
                 # held, for arithmetic one matrix multiply does in a moment.
                 coefficients = np.stack(solved_coefficients)
-                predicted = (held_smooth * (held_coordinates @ coefficients.T)) @ output_directions
+                # On the card. It is one product either way, but at a full layer the operands
+                # are `points x units` and `units x output_dim` and the host was holding three
+                # cores for it while the oracle that produced the held-out block idled.
+                torch_reco = _torch_cuda()
+                if torch_reco is not None:
+                    as_t = lambda a: torch_reco.as_tensor(a, dtype=torch_reco.float32, device="cuda")
+                    predicted = (
+                        (as_t(held_smooth) * (as_t(held_coordinates) @ as_t(coefficients).T))
+                        @ as_t(output_directions)
+                    ).double().cpu().numpy()
+                else:
+                    predicted = (held_smooth * (held_coordinates @ coefficients.T)) @ output_directions
                 residual = float(np.sum((observed - predicted) ** 2))
                 total = float(np.sum((observed - observed.mean(axis=0)) ** 2))
                 reconstruction = {
@@ -2134,7 +2183,12 @@ def main() -> int:
     # from a shell that would otherwise need the list quoted.
     unit_list = [int(value) for value in args.units.replace("+", ",").split(",") if value.strip()]
     unit_spec = ",".join(str(value) for value in unit_list)
-    with tempfile.TemporaryDirectory(prefix="gcl-jacobian-recovery-") as work:
+    # In RAM when there is a tmpfs to put it in. Every oracle exchange is two `.npy` files -
+    # about 10 MB each way for a line scan - and on a disk-backed `/tmp` that measured 19.9 ms
+    # per call, an effective 0.99 GB/s, with the card at 2% utilisation the whole time. The
+    # work is neither on the host nor on the card, it is waiting on the filesystem.
+    shared = "/dev/shm" if os.path.isdir("/dev/shm") and os.access("/dev/shm", os.W_OK) else None
+    with tempfile.TemporaryDirectory(prefix="gcl-jacobian-recovery-", dir=shared) as work:
         oracle = OracleClient(
             _oracle_namespace(
                 model=args.model,
