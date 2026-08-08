@@ -1,7 +1,32 @@
 # NN Decompiler Roadmap
 
-This roadmap keeps the neural-network decompiler work honest. A lane becomes a
-release claim only when it has a command, artifact, gate, and clear boundary.
+## What this is for
+
+A trained network is a black box: you can run it and see what comes out, but you
+cannot say what any part of it is doing. This project exists to remove that. The
+goal is to read a neural network the way a decompiler reads a binary — to take a
+piece of an LLM you can only query, and come back with the units it is made of,
+what each one responds to, and a reconstruction faithful enough that being wrong
+about it would show.
+
+Read completely, an LLM's network stops being a black box. That is the target
+the work is aimed at, and it is not reached yet. What has been reached is
+recorded in Direction 1b with its scope stated: real weights of LLaMA-3.2-3B
+layer 15, blocks up to 1024 of the layer's 8192 units, solver holding oracle
+access only, every unit recovered to a cosine above 0.99 against the truth it
+never saw. The scope matters as much as the number — the oracle is configured
+with the block's own units, so those results describe a block the harness
+isolates, not a layer. The run that removes that qualifier is the one over all
+8192 units, where naming every unit says nothing that naming none would not.
+
+`docs/gcl-north-star.md` holds the full charter, including what may not be
+claimed. Two lines from it govern everything below: a black-box claim requires a
+solver that reads no weights, no hooks, and no original neuron ids; and no
+result here removes black-box behaviour universally, only for what was measured.
+
+The rest of this roadmap is the discipline that keeps the distance between the
+target and the measurement visible. A lane becomes a release claim only when it
+has a command, artifact, gate, and clear boundary.
 
 ## Focus Reset
 
