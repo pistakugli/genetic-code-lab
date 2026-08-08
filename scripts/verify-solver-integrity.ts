@@ -124,6 +124,23 @@ if (touchedLanes.size) {
   violations.push(`uncommitted release artifacts in: ${[...touchedLanes].join(', ')}`);
 }
 
+// 5. Artifact paths cited in prose. Every other claim surface here has a checker - manifests
+// carry generator hashes, reports carry access evidence, delegated citations are compared
+// field by field - and the documentation has none, which makes it the one place a claim can
+// rot indefinitely. It did: the roadmap cited an artifact that had been deleted for being
+// unreproducible, and nothing noticed.
+const citedPaths = new Set<string>();
+for (const doc of walk(path.join(repoRoot, 'docs'), (name) => name.endsWith('.md'))) {
+  const body = fs.readFileSync(doc, 'utf8');
+  for (const match of body.matchAll(/benchmarks\/release\/[A-Za-z0-9._/-]+/g)) {
+    const cited = match[0].replace(/[.,`)]+$/, '');
+    if (!fs.existsSync(path.join(repoRoot, cited))) {
+      citedPaths.add(`${path.relative(repoRoot, doc)} cites a path that does not exist: ${cited}`);
+    }
+  }
+}
+for (const missing of citedPaths) violations.push(missing);
+
 console.log(JSON.stringify({
   swallowedFailures: violations.filter((v) => v.includes('swallows')).length,
   unauditedSwallowedFailures,
@@ -133,6 +150,7 @@ console.log(JSON.stringify({
   // number is visible rather than assumed to be zero.
   unevidencedLegacyReports,
   strayLaneWrites: violations.filter((v) => v.startsWith('uncommitted')).length,
+  deadDocCitations: violations.filter((v) => v.includes('cites a path that does not exist')).length,
   violations,
 }, null, 2));
 if (violations.length) process.exit(1);

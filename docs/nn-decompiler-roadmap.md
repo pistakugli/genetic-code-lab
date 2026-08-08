@@ -2218,15 +2218,21 @@ Fixed failure case:
 
 ## Direction 1b: Whole-Layer FFN Recovery
 
-Status: measured, not built. The route to all 8192 units of a layer is not more of the
-current method, and this section records why and what replaces it.
+Status: built and release-gated from 16 to 512 units, measured to 1024, and running against
+an unselected whole-layer oracle at the time of writing. This section records the route, what
+it replaced, and which of its own earlier predictions measurement has since destroyed.
 
 Why the scalar path stops. Boundaries are read as kinks in a scalar oracle. A SiLU
 transition along a probe line has width `1/(S*|g.d|)` for probe scale `S`, while the number
 of boundaries crossed grows with the unit count, so kinks merge. Measured on a synthetic
 teacher at fixed scale, the share of boundaries read at cosine above `0.99` falls `94%` at 32
-units, `62%` at 128, `53%` at 512, `17%` at 2048. Raising `S` narrows the transitions
-linearly, so a full layer needs `S` around `5e6`, where `f ~ S^2` overruns float32.
+units, `62%` at 128, `53%` at 512, `17%` at 2048.
+
+Those numbers are real and the conclusion once drawn from them was not. This section used to
+end by extrapolating a required probe scale of `5e6` for a full layer; see the retraction
+below, where measurement at 1024 units contradicted it in direction as well as magnitude. The
+scalar path does stop - the vector oracle replaced it for reasons that survive - but not for
+the reason stated here.
 
 Why per-channel decomposition does not rescue it. Measured from the LLaMA-3.2-3B layer-15
 `down_proj`: the participation ratio of an output channel over the 8192 units has median
@@ -2313,12 +2319,13 @@ the scan reads 34.5 crossings per line, a detection rate of 3.4%, and with 1280 
 still about 44 independent reads per unit. Per-line resolution was never the binding
 constraint.
 
-Where it stops on this machine is the driver, not the method. A 1024-unit block dies inside
-the CUDA caching allocator on `nvmlInit_v2`, because the host's kernel module and userspace
-library are on different releases: `PYTORCH_NVML_BASED_CUDA_CHECK=0` gets past the
-availability probe, but the allocator calls NVML itself once the design is large enough, which
-1024 reaches and 512 does not. A reboot loads the matching module. Until then the measured
-ceiling is 512, and the resolvability rule above stays a prediction rather than a measurement.
+A 1024-unit block used to die inside the CUDA caching allocator on `nvmlInit_v2`, because the
+host's kernel module and userspace library were on different releases: the allocator calls
+NVML itself once the design is large enough, which 1024 reached and 512 did not. A reboot
+loaded the matching module and the block ran. It is recorded because the failure was a host
+condition wearing the costume of an algorithmic ceiling, and because the repair that made it
+visible - letting the card's failures leave by the front door instead of falling back to the
+host in silence - is what turned it from a mystery into a one-line diagnosis.
 
 The null-space gate is measured and not shipped. On the same 32 units it reaches 31 of 32 at
 600 lines and `1047784` calls, against 32 of 32 at `167560` for the amplitude route - six times
@@ -2344,15 +2351,14 @@ without being told the unit count and without touching a weight. Four units miss
 takes it from `0.999421` to `0.962627`, so it notices a partial block and not only a broken
 one.
 
-Where it stops is set by the probe scale, not by the method. A `silu` knee is
-`1/(S ||g|| |g.d|)` wide along the line while boundaries sit about `2/k` apart, so a line stops
-separating them once `k` approaches `2 S ||g|| / sqrt(dim)` - about 770 units at the `2e4` used
-above. Reaching 8192 needs `S ~ 2.1e5`.
-
-Cost, measured rather than estimated: `1232560` calls for 128 units at rank 256 is `9629` per
-unit. A full layer caps the rank at the input dimension, 3072, so the amplitude sweep costs
-`24576` calls per crossing; at two crossings that is roughly `400M` calls for 8192 units,
-about 4.6 days at the measured throughput.
+Cost, measured. `787264` calls for 128 units, `2074336` for 256, `6147360` for 512,
+`21134848` for 1024 - a growth exponent that rises from 1.40 to 1.78 across those steps. The
+amplitude sweep is 83% of the 1024 figure and is the term that decides a layer: `8 * rank`
+calls per sweep, with the rank capped at the input dimension, and roughly one sweep per unit
+once the sweep stops when the direction already explains the crossings it was not built from.
+That projects to about 228M calls for 8192 units. The oracle answers at 3942 calls a second
+over the whole layer, so the projection is hours rather than the days an earlier estimate of
+400M and two sweeps per unit produced.
 
 The joint gate/up cosine is the bar the fitted lanes report, so that row is a like-for-like
 comparison with the fitted path's `230633` calls - and it also returns the output direction,
@@ -2376,8 +2382,10 @@ measurement that contradicted the obvious reading:
   fires. Probing along the unit's own gate direction removes the degeneracy - on
   `x(s) = s g_i + p` the pre-activation is exactly `||g_i|| s`, so the norm sets where the
   curve turns on, which no fitted coefficient can imitate. 64 of 64 within 10%. There is no nonlinear optimisation in it: a basis from stacked Jacobians,
-an identity from output directions, a gate from a null space. Artifact:
-`benchmarks/release/nn-live-jacobian-boundary-recovery/llama-3072d-layer15-16unit-vector-oracle/report.json`.
+an identity from output directions, a gate from a null space. Artifacts:
+the six `llama-3072d-layer15-*unit-amplitude-gate` variants under
+`benchmarks/release/nn-live-jacobian-boundary-recovery/`, each carrying the sha256 of the tool
+that produced it so a stale one fails the gate rather than reading `pass`.
 
 Three settings decide whether it works, and each was measured wrong first:
 
@@ -2395,22 +2403,33 @@ Three settings decide whether it works, and each was measured wrong first:
   crossings. At step `1` the same scan gives 110 clusters from 787 crossings, and the largest
   hold 58 points.
 
-Open before this is a lane:Open before this is a lane:
+What was open here, and what closed it:
 
-1. The live oracle was scalar. `--oracle-output-mode selected-unit-ffn-vector` now returns the
-   block's whole residual-stream contribution, and `oracleResponseWidth` records that one call
-   carries `hiddenSize` numbers rather than 1, so budgets stay comparable. Not yet run against
-   a model.
-2. The closure solve has `units * input_dim` columns, which is 25 million for a full layer.
-   Exploiting the rank-1 structure per unit instead of solving the full system is the open
-   step.
-3. Cost at layer scale is estimated, not measured: roughly 2500 lines to cover 8192 units at
-   the observed yield of 10 confident crossings per line.
-4. Float32 behaviour is unmeasured. Every number above is float64 on a synthetic teacher.
+1. The live oracle was scalar. `--oracle-output-mode selected-unit-ffn-vector` returns the
+   block's whole residual-stream contribution, and `oracleResponseWidth` records that a call
+   carries `hiddenSize` numbers rather than 1 so budgets stay comparable. Closed: every row of
+   the table above is a run through it.
+2. The closure solve has `units * input_dim` columns - 25 million for a layer - and was written
+   off as infeasible. Closed by not forming the matrix: conjugate gradient needs only its
+   action, and the action is two matrix products. Given exact gates it returns every up
+   direction at cosine `1.000000` where the per-unit projection returns none above `0.99`, and
+   through the whole route on synthetic blocks above the channel boundary it takes 86 units
+   from `0/86` at R2 `0.8456` to `82/86` at `0.9795`.
+3. Cost at layer scale was estimated. Now measured to 1024 units and projected from four
+   measured points; see the cost paragraph above.
+4. Float32 behaviour was unmeasured. Now measured, and the answer is a rule rather than a
+   number: single precision is safe where quantities are compared and fatal where they are
+   subtracted. It destroyed the recovery three separate times - the basis Gram from `0.998` to
+   `0.888`, the scan difference to `0.56` with half the gates reversed, and the probe-line
+   construction to `0.38` - and each time the run completed and reported.
 
-Boundary: nothing here has been run against a real model. The claim proven so far is that the
-mechanism identifies units exactly on a synthetic SwiGLU layer at a scale where the scalar
-method has already collapsed to 17%.
+Boundary, and it is the one that matters. Every number above comes from an oracle configured
+with `down_weight[:, units]`: the harness selects the block and returns only its contribution.
+The solver never reads a weight and the post-hoc truth stays locked until it has finished -
+both are checked by the gate, which requires the unlock query count and the solver's own call
+count to agree. But the setup is not blind, so these are claims about a block the harness
+isolates, not about separating units out of a layer's full summed output. The unselected
+whole-layer run is what would change that sentence, and it has not finished.
 
 ## Direction 2: 3D / General-ND Hyperplane Stitching
 
