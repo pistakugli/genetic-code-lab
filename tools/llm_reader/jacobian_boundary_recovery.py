@@ -1665,13 +1665,35 @@ def recover_block(
             # matters is the one the multiply is done in - and everything downstream, the
             # conjugate gradient and the sign design alike, casts to single anyway. At a full
             # layer `rows x units` in double is 7.9 GB per copy and there are three of them.
-            raw_response = (
-                device_samples @ torch_probe.as_tensor(gate_matrix, dtype=torch_probe.float64, device="cuda").T
-            ).float().cpu().numpy()
-            coordinates = (
-                device_samples @ torch_probe.as_tensor(basis, dtype=torch_probe.float64, device="cuda").T
-            ).float().cpu().numpy()
+            # Chunked over rows, and the chunk is a memory budget rather than a row count -
+            # the note above says `rows x units` in double is 7.9 GB per copy at a full layer
+            # and that there are three of them, and then formed them whole anyway. That is what
+            # the 8192-unit run died on: 1.38 GiB requested with 973 MiB free. The products are
+            # row-independent, so a chunk goes to the host before the next is formed and the
+            # device holds only `chunk x units`. A row count would have had to be retuned at
+            # every block size; a budget shrinks the rows as the block grows, and leaves small
+            # blocks in one piece exactly as before.
             del device_samples
+            gate_device = torch_probe.as_tensor(gate_matrix, dtype=torch_probe.float64, device="cuda")
+            basis_device = torch_probe.as_tensor(basis, dtype=torch_probe.float64, device="cuda")
+            widest = max(int(gate_matrix.shape[0]), int(basis.shape[0]), 1)
+            row_chunk = max(1, min(up_sample_count, (512 * 1024 * 1024) // (widest * 12)))
+            raw_parts: list[np.ndarray] = []
+            coordinate_parts: list[np.ndarray] = []
+            for start in range(0, up_sample_count, row_chunk):
+                block = torch_probe.as_tensor(
+                    samples_in[start:start + row_chunk], dtype=torch_probe.float64, device="cuda"
+                )
+                raw_parts.append((block @ gate_device.T).float().cpu().numpy())
+                coordinate_parts.append((block @ basis_device.T).float().cpu().numpy())
+                del block
+            raw_response = np.concatenate(raw_parts, axis=0) if len(raw_parts) > 1 else raw_parts[0]
+            coordinates = (
+                np.concatenate(coordinate_parts, axis=0) if len(coordinate_parts) > 1 else coordinate_parts[0]
+            )
+            del raw_parts, coordinate_parts, gate_device, basis_device
+            torch_probe.cuda.empty_cache()
+            telemetry.notes.append(f"up-solve products chunked at {row_chunk} rows for {widest} columns")
         else:
             raw_response = (samples_in @ gate_matrix.T).astype(np.float32)
             coordinates = (samples_in @ basis.T).astype(np.float32)
@@ -2199,6 +2221,10 @@ def main() -> int:
     parser.add_argument("--unit-budget", type=int, default=0, help="0 uses the requested unit count")
     parser.add_argument("--up-refinement-sweeps", type=int, default=0,
                         help="subtract already-solved units before each solve; measured worse, kept runnable")
+    parser.add_argument("--allow-unidentifiable-block", action="store_true",
+                        help="run even when the unit count exceeds the oracle response width; "
+                             "the result cannot be a structure claim, but measuring the failure "
+                             "is how the verdict's blind spot to it was found")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--output-json", default="")
     parser.add_argument(
@@ -2238,6 +2264,19 @@ def main() -> int:
                 raise RuntimeError(
                     "this recovery needs a vector-valued oracle; "
                     f"the one that answered reports response width {width}"
+                )
+            # The counting argument, before the first probe rather than after forty-five
+            # million of them. This route groups crossings by output direction, and `k`
+            # directions cannot be independent inside a `width`-wide answer once `k > width`,
+            # so the grouping is degenerate by arithmetic alone. The 4096-unit block spent an
+            # hour and a half establishing that, and reported `recovered` at the end of it.
+            # The flag exists because measuring a known-impossible configuration is how the
+            # blind spot was found, and that has to stay possible on purpose.
+            if len(unit_list) > width and not args.allow_unidentifiable_block:
+                raise SystemExit(
+                    f"{len(unit_list)} units cannot be separated in a {width}-wide oracle response: "
+                    "output directions are this route's identity and cannot be independent past "
+                    "the response width. Pass --allow-unidentifiable-block to measure it anyway."
                 )
             dimension = int(oracle.meta["hiddenSize"])
             result, telemetry = recover_block(
