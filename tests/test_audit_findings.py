@@ -792,3 +792,22 @@ class GateSignDesignMustBeOverdeterminedTest(unittest.TestCase):
     def test_it_never_asks_for_more_rows_than_were_sampled(self) -> None:
         rows, _ = self.rows_for(4096, 8_000)
         self.assertLessEqual(rows, 8_000)
+
+
+class SignRowsAndUnmixedRowsAgreeTest(unittest.TestCase):
+    """F36a — two unrelated literals standing for the same quantity, and only one was raised.
+
+    `unmixed` was materialised with `min(rows, 6000)` and the sign decision asked for
+    `min(up_sample_count, 6000)`. The pair only worked because both said 6000. Raising the
+    second to two rows per design column, which is the F36 repair, left the first behind and
+    the run died two hours in on `torch.linalg.lstsq: input.size(-2) should match other.size(-2)`.
+
+    Both now come from `sign_decision_rows`, and this pins that they cannot drift apart again.
+    """
+
+    def test_the_unmixed_reader_holds_every_row_the_sign_decision_reads(self) -> None:
+        source = (REPO_ROOT / "tools/llm_reader/jacobian_boundary_recovery.py").read_text()
+        # The truncation and the consumer must be derived from one place, not from two
+        # constants that happen to match.
+        self.assertEqual(source.count("sign_decision_rows(up_sample_count, active_rank)"), 3)
+        self.assertNotIn("min(responses.shape[0], 6000)", source)

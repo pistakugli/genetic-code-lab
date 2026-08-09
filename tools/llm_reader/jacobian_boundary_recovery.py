@@ -1924,7 +1924,15 @@ def recover_block(
             # `responses` directly and never touches this; the sign decision needs the first
             # few thousand. Materialising all of them is `rows x units` - 7.9 GB at a full
             # layer for an array with one small consumer.
-            needed = responses.shape[0] if up_refinement_sweeps > 0 else min(responses.shape[0], 6000)
+            # As many rows as the sign decision will ask for, and no more. This was a literal
+            # 6000 matched to a literal 6000 in the caller; raising one without the other is
+            # what a pair of unrelated constants standing for the same quantity gets you, and
+            # it cost a two-hour run that died in `lstsq` on mismatched row counts. Both now
+            # come from `sign_decision_rows`.
+            needed = (
+                responses.shape[0] if up_refinement_sweeps > 0
+                else min(responses.shape[0], sign_decision_rows(up_sample_count, active_rank))
+            )
             device_mixing = torch_backend.as_tensor(mixing, dtype=torch_backend.float32, device="cuda")
             unmixed = np.empty((needed, mixing.shape[1]), dtype=np.float64)
             for start in range(0, needed, up_request_chunk):
@@ -1935,7 +1943,12 @@ def recover_block(
                 unmixed[start:stop] = (block @ device_mixing).double().cpu().numpy()
             del device_mixing
         else:
-            needed = responses.shape[0] if up_refinement_sweeps > 0 else min(responses.shape[0], 6000)
+            # The host branch of the same truncation, which the first repair missed - the pair
+            # of literals was in fact a triple.
+            needed = (
+                responses.shape[0] if up_refinement_sweeps > 0
+                else min(responses.shape[0], sign_decision_rows(up_sample_count, active_rank))
+            )
             unmixed = responses[:needed] @ mixing
         # One ray per unit along its own gate direction, where the norm is what decides when
         # the curve turns on and nothing else can imitate it. See
