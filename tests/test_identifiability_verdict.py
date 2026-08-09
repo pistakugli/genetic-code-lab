@@ -28,7 +28,7 @@ from tools.llm_reader.jacobian_boundary_recovery import identifiability_verdict 
 
 def verdict(**overrides):
     settings = dict(
-        basis_spectrum=np.ones(4),
+        basis_spectrum=np.concatenate([np.ones(4), np.full(4, 1e-3)]),
         active_rank=4,
         gates=np.eye(4),
         output_directions=np.eye(4),
@@ -74,7 +74,7 @@ class IdentifiabilityVerdictTest(unittest.TestCase):
 
     def test_a_duplicate_split_is_reported_as_canonicalised_not_as_two_units(self) -> None:
         gates = np.array([[1.0, 0.0, 0.0], [0.999, 0.001, 0.0], [0.0, 1.0, 0.0]])
-        result = verdict(gates=gates, output_directions=np.eye(3), basis_spectrum=np.ones(3), active_rank=3, unit_budget=3)
+        result = verdict(gates=gates, output_directions=np.eye(3), basis_spectrum=np.concatenate([np.ones(3), np.full(3, 1e-3)]), active_rank=3, unit_budget=3)
 
         self.assertIn("exact-duplicate-split", families(result))
         # Duplicates collapse to a smaller structure; they do not invalidate the recovery.
@@ -83,7 +83,7 @@ class IdentifiabilityVerdictTest(unittest.TestCase):
 
     def test_near_collinear_directions_are_reported_as_ambiguous(self) -> None:
         gates = np.array([[1.0, 0.0, 0.0], [0.95, 0.312, 0.0], [0.0, 0.0, 1.0]])
-        result = verdict(gates=gates, output_directions=np.eye(3), basis_spectrum=np.ones(3), active_rank=3, unit_budget=3)
+        result = verdict(gates=gates, output_directions=np.eye(3), basis_spectrum=np.concatenate([np.ones(3), np.full(3, 1e-3)]), active_rank=3, unit_budget=3)
 
         self.assertIn("near-collinear-directions", families(result))
         self.assertEqual(
@@ -93,7 +93,7 @@ class IdentifiabilityVerdictTest(unittest.TestCase):
 
     def test_anti_parallel_output_directions_are_flagged_as_cancellation(self) -> None:
         outputs = np.array([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
-        result = verdict(gates=np.eye(3), output_directions=outputs, basis_spectrum=np.ones(3), active_rank=3, unit_budget=3)
+        result = verdict(gates=np.eye(3), output_directions=outputs, basis_spectrum=np.concatenate([np.ones(3), np.full(3, 1e-3)]), active_rank=3, unit_budget=3)
 
         # Two units whose outputs cancel in the sum cannot have their split observed from
         # output access, whatever the gates look like.
@@ -101,7 +101,7 @@ class IdentifiabilityVerdictTest(unittest.TestCase):
 
     def test_a_channel_below_the_energy_floor_is_reported_not_counted(self) -> None:
         gates = np.array([[1.0, 0.0], [1.0, 0.0], [1e-6, 0.0]])
-        result = verdict(gates=gates, output_directions=np.eye(3)[:, :2], basis_spectrum=np.ones(2), active_rank=2, unit_budget=3)
+        result = verdict(gates=gates, output_directions=np.eye(3)[:, :2], basis_spectrum=np.concatenate([np.ones(2), np.full(2, 1e-3)]), active_rank=2, unit_budget=3)
 
         self.assertIn("weak-channel-below-floor", families(result))
 

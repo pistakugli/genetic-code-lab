@@ -549,6 +549,7 @@ def identifiability_verdict(
     weak_share_threshold: float,
     rank_energy_threshold: float,
     unit_budget: int,
+    oracle_response_width: int = 0,
     norm_diagnostics: list[dict[str, float]] | None = None,
     knee_share_threshold: float = 0.5,
     ray_spread_threshold: float = 0.25,
@@ -591,7 +592,13 @@ def identifiability_verdict(
     # is knowable before the run rather than after. The 4096-unit block spent 45 million oracle
     # calls against a 3072-wide response to arrive at 962 solutions, held-out R2 0.360, zero
     # units matched above cosine 0.99 - and a verdict of `recovered`. Audit finding F32.
-    response_width = int(output_directions.shape[1]) if output_directions.ndim == 2 else 0
+    # From the caller, not from the recovered array. A run that recovered nothing leaves
+    # `output_directions` shaped (0, 1), so the width read off it was 1 and the finding printed
+    # "4096 units requested against a 1-wide oracle response" about a 3072-wide oracle - a
+    # measurement invented by the failure it was describing.
+    response_width = int(oracle_response_width) if oracle_response_width > 0 else (
+        int(output_directions.shape[1]) if output_directions.ndim == 2 and output_directions.shape[0] else 0
+    )
     if unit_budget > 0 and response_width and unit_budget > response_width:
         findings.append({
             "family": "units-exceed-output-rank",
@@ -606,7 +613,21 @@ def identifiability_verdict(
     # requested rank does not capture the Jacobians' energy, the block is not a `rank`-sized
     # SwiGLU sum in the first place, and everything downstream is fitted to noise.
     spectrum = np.asarray(basis_spectrum, dtype=np.float64)
-    if spectrum.size:
+    if spectrum.size and active_rank >= spectrum.size:
+        # The requested rank was clamped to the input dimension, so `spectrum[:active_rank]` is
+        # the whole spectrum and `captured` is identically 1.0 - a ratio of a sum to itself,
+        # reported as a measurement. This is the only family that blocks a structure claim, and
+        # it could not fire on any block above 1536 units, which is every size the project aims
+        # at. Saying the check is inapplicable is the honest version of passing it.
+        findings.append({
+            "family": "rank-check-inapplicable",
+            "detail": (
+                f"requested rank {active_rank} reached the input dimension {spectrum.size}, "
+                "so no rank deficiency is observable"
+            ),
+            "verdict": "ambiguous",
+        })
+    elif spectrum.size:
         captured = float(np.sum(spectrum[:active_rank] ** 2) / max(np.sum(spectrum ** 2), 1e-30))
         if captured < rank_energy_threshold:
             findings.append({
@@ -1495,6 +1516,19 @@ def recover_block(
     rng = np.random.default_rng(seed)
     telemetry = RecoveryTelemetry()
 
+    # How wide the oracle's answer is, taken from the oracle rather than inferred downstream.
+    # The verdict needs it to say whether the block is wider than the response, and reading it
+    # off the recovered directions gave 1 when nothing was recovered - the failure describing
+    # itself with a number it had just invented.
+    observed_width: list[int] = []
+    _caller_evaluate = evaluate
+
+    def evaluate(points: np.ndarray) -> np.ndarray:
+        answer = _caller_evaluate(points)
+        if not observed_width and getattr(answer, "ndim", 0) == 2:
+            observed_width.append(int(answer.shape[1]))
+        return answer
+
     # The active subspace cannot be wider than the space it sits in. Callers ask for `2k`
     # because each unit contributes a gate and an up direction, and that is right until `2k`
     # passes `input_dim`, where the subspace is simply everything and the request is
@@ -1748,12 +1782,16 @@ def recover_block(
         # recovery three times.
         torch_probe = _torch_cuda()
         if torch_probe is not None:
-            device_samples = torch_probe.as_tensor(samples_in, dtype=torch_probe.float64, device="cuda")
             # Single on the way back, double in the product. These are inner products of
             # probe points with recovered directions, not differences, so the width that
             # matters is the one the multiply is done in - and everything downstream, the
-            # conjugate gradient and the sign design alike, casts to single anyway. At a full
-            # layer `rows x units` in double is 7.9 GB per copy and there are three of them.
+            # conjugate gradient and the sign design alike, casts to single anyway.
+            #
+            # The whole-array upload that used to open this branch survived the change that
+            # replaced it: nothing read it, the loop re-uploads each slice, and it was freed
+            # four lines later - but it was still asked for first, 2.95 GB at 120000 samples,
+            # on a card the same commit was trying to keep under half a gigabyte. A dead
+            # allocation is invisible in every way except the one that matters.
             # Chunked over rows, and the chunk is a memory budget rather than a row count -
             # the note above says `rows x units` in double is 7.9 GB per copy at a full layer
             # and that there are three of them, and then formed them whole anyway. That is what
@@ -1762,7 +1800,6 @@ def recover_block(
             # device holds only `chunk x units`. A row count would have had to be retuned at
             # every block size; a budget shrinks the rows as the block grows, and leaves small
             # blocks in one piece exactly as before.
-            del device_samples
             gate_device = torch_probe.as_tensor(gate_matrix, dtype=torch_probe.float64, device="cuda")
             basis_device = torch_probe.as_tensor(basis, dtype=torch_probe.float64, device="cuda")
             widest = max(int(gate_matrix.shape[0]), int(basis.shape[0]), 1)
@@ -2081,6 +2118,7 @@ def recover_block(
         weak_share_threshold=weak_share_threshold,
         rank_energy_threshold=rank_energy_threshold,
         unit_budget=unit_budget,
+        oracle_response_width=observed_width[0] if observed_width else 0,
         norm_diagnostics=norm_diagnostics if gates and up_sample_count > 0 else None,
     )
     telemetry.notes.append(f"identifiability verdict: {verdict['verdict']}")

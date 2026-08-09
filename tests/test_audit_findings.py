@@ -225,7 +225,7 @@ class CollinearOutputDirectionsTest(unittest.TestCase):
         outputs = np.eye(4)
         outputs[1] = output_cosine * outputs[0] + np.sqrt(1 - output_cosine**2) * np.eye(4)[1]
         return identifiability_verdict(
-            basis_spectrum=np.ones(4), active_rank=4,
+            basis_spectrum=np.concatenate([np.ones(4), np.full(4, 1e-3)]), active_rank=4,
             gates=np.eye(4), output_directions=outputs, clusters_found=4,
             duplicate_gate_cosine=0.98, collinear_threshold=0.9,
             weak_share_threshold=0.002, rank_energy_threshold=0.98, unit_budget=4,
@@ -423,7 +423,7 @@ class WeakChannelFloorScalesTest(unittest.TestCase):
         for index in range(weak_units):
             gates[index] *= 0.01
         return identifiability_verdict(
-            basis_spectrum=np.ones(units), active_rank=units,
+            basis_spectrum=np.concatenate([np.ones(units), np.full(units, 1e-3)]), active_rank=units,
             gates=gates, output_directions=np.eye(units), clusters_found=units,
             duplicate_gate_cosine=0.999, collinear_threshold=0.9,
             weak_share_threshold=0.05, rank_energy_threshold=0.98, unit_budget=units,
@@ -712,7 +712,7 @@ class VerdictBlindToWhatWasNotFoundTest(unittest.TestCase):
         gates = rng.normal(size=(solutions, width))
         outputs = rng.normal(size=(solutions, width))
         return identifiability_verdict(
-            basis_spectrum=np.ones(solutions),
+            basis_spectrum=np.concatenate([np.ones(solutions), np.full(solutions, 1e-3)]),
             active_rank=solutions,
             gates=gates,
             output_directions=outputs,
