@@ -2243,9 +2243,39 @@ Fixed failure case:
 
 ## Direction 1b: Whole-Layer FFN Recovery
 
-Status: built and release-gated from 16 to 512 units, measured to 1024, and running against
-an unselected whole-layer oracle at the time of writing. This section records the route, what
-it replaced, and which of its own earlier predictions measurement has since destroyed.
+Status: built and release-gated from 16 to 512 units. The climb to a whole layer has now run
+and it stops. This section records the route, what it replaced, and which of its own earlier
+predictions measurement has since destroyed - including the one at the top of this paragraph
+until the run came back.
+
+The ceiling, measured rather than predicted:
+
+| units | recovered | held-out R2 | outcome |
+| --- | --- | --- | --- |
+| 512 | 512 / 512 | 0.99936 | release-gated |
+| 1024 | 1022 / 1024 | 0.99788 | measured |
+| 2048 | 1565 / 2048 | 0.85138 | degraded |
+| 4096 | 0 / 4096 | 0.36029 | failed |
+| 8192 | — | — | did not run |
+
+The route breaks between 1024 and 2048 at this probing density, and 4096 cannot work at all:
+the block is wider than the oracle's 3072-wide answer, which makes the unmixing `R = A D`
+underdetermined, so `D+` returns the minimum-norm member of an infinite family and the
+projection fallback leaks as `sqrt(k/width)` - above one at 4096 in 3072, larger than the
+signal. That is arithmetic, so the run now refuses it up front instead of spending forty-five
+million oracle calls to arrive at it.
+
+Two things this is *not*. It is not the directions becoming parallel: 8192 random directions
+in 3072 dimensions still have typical pairwise cosine near 0.018, and both failing runs
+over-segmented rather than merged, finding 14503 and 16008 clusters. And it is not a limit on
+reading a whole layer in principle - the up solve recovers each rank-1 `M_i` from known gates
+without inverting `D` at all, so the unmixing is an optimisation that has to be dropped past
+the response width rather than a step the method depends on.
+
+All four runs above reported `verdict: recovered` with an empty findings list, including the
+one that recovered nothing. Every family in the identifiability check examined the solutions
+that came back and none examined what failed to; two counting families now close that, and no
+released rung is affected because each returns exactly its requested count.
 
 Why the scalar path stops. Boundaries are read as kinks in a scalar oracle. A SiLU
 transition along a probe line has width `1/(S*|g.d|)` for probe scale `S`, while the number
