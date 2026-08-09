@@ -20,6 +20,24 @@ if str(REPO_ROOT) not in sys.path:
 
 from tools.llm_reader.jacobian_boundary_recovery import count_fully_recovered  # noqa: E402
 
+def _cuda_available() -> bool:
+    """Whether a card is actually usable, not whether a directory exists.
+
+    These tests were gated on `.gcl-python-gpu` existing, which is a virtualenv on disk and
+    says nothing about a card. On a machine without one - or with `CUDA_VISIBLE_DEVICES=""`,
+    which is how the host path gets exercised at all - they raised instead of skipping, and
+    three environmental errors sat in the same list as real failures. A suite that cannot tell
+    "no card here" from "broken" is the reason the dead host path went unnoticed for so long.
+    """
+    if not REPO_ROOT.joinpath(".gcl-python-gpu").exists():
+        return False
+    try:
+        import torch
+    except ImportError:
+        return False
+    return bool(torch.cuda.is_available())
+
+
 
 class GateSignBlindSpotTest(unittest.TestCase):
     """F20 — the measure that certifies a recovery cannot see a reversed gate.
@@ -128,10 +146,7 @@ class SwallowedFailureTest(unittest.TestCase):
         self.assertEqual(caught, ["ImportError"])
 
 
-@unittest.skipUnless(
-    Path("/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu").exists(),
-    "needs the GPU environment that carries the model",
-)
+@unittest.skipUnless(_cuda_available(), "needs a usable CUDA device and the model environment")
 class OracleProtocolIntegrationTest(unittest.TestCase):
     """F25 — every other test in this suite talks to a synthetic teacher.
 
@@ -258,10 +273,7 @@ class ChunkedSolveTest(unittest.TestCase):
     arithmetic, not the routing.
     """
 
-    @unittest.skipUnless(
-        Path("/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu").exists(),
-        "needs the GPU environment",
-    )
+    @unittest.skipUnless(_cuda_available(), "needs a usable CUDA device")
     def test_the_chunked_gram_agrees_with_direct_least_squares(self) -> None:
         import torch
 
@@ -292,10 +304,7 @@ class ChunkedSolveTest(unittest.TestCase):
         self.assertIn("2.5 * design.size * 4", source)
 
 
-@unittest.skipUnless(
-    Path("/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu").exists(),
-    "needs the GPU environment that carries the model",
-)
+@unittest.skipUnless(_cuda_available(), "needs a usable CUDA device and the model environment")
 class OracleBudgetTest(unittest.TestCase):
     """The last empty cell of the coverage matrix: what happens at the call budget.
 
@@ -378,10 +387,7 @@ class ChunkedPathAgreesEndToEndTest(unittest.TestCase):
         )
         return result, up
 
-    @unittest.skipUnless(
-        Path("/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/.gcl-python-gpu").exists(),
-        "needs the GPU environment",
-    )
+    @unittest.skipUnless(_cuda_available(), "needs a usable CUDA device")
     def test_both_solve_paths_recover_the_same_block(self) -> None:
         import os
 

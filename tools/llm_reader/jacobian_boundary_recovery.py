@@ -1102,7 +1102,13 @@ def _batched_normal_equations(
     moment = np.einsum('cpi,p->ci', design, projected)
     ridge = 1e-6 * np.trace(gram, axis1=1, axis2=2)
     gram = gram + ridge[:, None, None] * np.eye(gram.shape[1])[None, :, :]
-    solution = np.linalg.solve(gram, moment)
+    # A stack of `c` systems, each `5 x 5`. NumPy 1 read a `b` with one fewer dimension as a
+    # stack of vectors; NumPy 2 removed that and reads it as a single matrix, so this raised
+    # `solve: Input operand 1 has a mismatch in its core dimension 0` on every call. Installed
+    # numpy is 2.4.6, which means the entire host path of this solver has been dead - the suite
+    # is green here only because this box has a card. Verified: `CUDA_VISIBLE_DEVICES=""` gives
+    # 18 errors, 16 of them this one.
+    solution = np.linalg.solve(gram, moment[..., None])[..., 0]
     residual = np.einsum('cpi,ci->cp', design, solution) - projected[None, :]
     return (residual ** 2).sum(axis=1)
 
