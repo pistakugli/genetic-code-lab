@@ -186,6 +186,32 @@ if (fs.existsSync(jacobianLane)) {
   }
 }
 
+// 7. The counted numbers, ratcheted. `unevidencedLegacyReports` and
+// `unauditedSwallowedFailures` were reported and never compared against anything, so they could
+// only be read by a human who happened to remember yesterday's figure. Concretely, what that
+// permitted: add a lane, write `accessAudit: {solverAccess: "oracle-only"}` with no evidence
+// fields, ship it - the count goes from 442 to 443, `violations` stays empty, exit 0.
+//
+// A baseline is recorded rather than hidden, following `variant-distinctness-baseline.json`.
+// Going up is a violation; going down rewrites the baseline, so the number can only be worked
+// downwards. Run with `--write-baseline` to record the current figures deliberately.
+const ratchetPath = path.join(repoRoot, 'benchmarks/release/solver-integrity-baseline.json');
+const counted = { unevidencedLegacyReports, unauditedSwallowedFailures };
+if (process.argv.includes('--write-baseline')) {
+  fs.writeFileSync(ratchetPath, `${JSON.stringify(counted, null, 2)}\n`);
+  console.log(`baseline written: ${JSON.stringify(counted)}`);
+} else if (fs.existsSync(ratchetPath)) {
+  const baseline = JSON.parse(fs.readFileSync(ratchetPath, 'utf8')) as Record<string, number>;
+  for (const [key, value] of Object.entries(counted)) {
+    const allowed = baseline[key];
+    if (typeof allowed === 'number' && value > allowed) {
+      violations.push(`${key} rose from ${String(allowed)} to ${String(value)}`);
+    }
+  }
+} else {
+  violations.push(`no ratchet baseline at ${path.relative(repoRoot, ratchetPath)}; run with --write-baseline`);
+}
+
 console.log(JSON.stringify({
   swallowedFailures: violations.filter((v) => v.includes('swallows')).length,
   unauditedSwallowedFailures,
