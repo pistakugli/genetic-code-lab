@@ -193,6 +193,8 @@ def scan_line_for_crossings(
     separation: int,
     min_sharpness: float,
     line_index: int,
+    peak_floor_mode: str = "max",
+    sharpness_mode: str = "ratio",
     line_directions: list[np.ndarray] | None = None,
     timings: dict[str, float] | None = None,
 ) -> tuple[list[BoundaryCrossing], int]:
@@ -281,7 +283,27 @@ def scan_line_for_crossings(
         turning = np.gradient(derivative, coordinates, axis=0)
         magnitude = np.linalg.norm(turning, axis=1)
 
-    floor = float(np.max(magnitude)) * peak_fraction
+    # The pre-filter that decides which samples are even considered as peaks. It used to be a
+    # fraction of the single largest turning magnitude on the line, which is a constant compared
+    # against a quantity that grows with the block: one unit with a large `(u_i.x)` sets the
+    # scale, and every other crossing on that line is measured against it. The bigger the block,
+    # the likelier such an outlier, so the floor climbs and ordinary crossings drop out.
+    #
+    # Measured across the ladder, crossings found per line: 19.4 at 64 units, 47.6 at 512, 36.3
+    # at 1024, 14.1 at 2048, 4.8 at 4096 - falling where more boundaries should give more, with
+    # occupancy of the resolvable slots down to 3.6%. The crossings were not colliding; they
+    # were being thrown away before anything looked at them. That is why 4096 returned 962
+    # solutions and 2048 missed 460 units. Same shape as F31, where an absolute floor was
+    # compared against a share that goes as 1/k. Audit finding F34.
+    #
+    # The median of the line's own turning magnitude is a background that one extreme peak does
+    # not move. It carries no multiplier, so no new cutoff is introduced, and the real filter is
+    # unchanged - the per-candidate sharpness test below, which compares each peak against its
+    # own local neighbourhood rather than against the line's loudest event.
+    if peak_floor_mode == "background":
+        floor = float(np.median(magnitude))
+    else:
+        floor = float(np.max(magnitude)) * peak_fraction
     candidates = [
         index
         for index in range(2, magnitude.size - 2)
@@ -318,9 +340,30 @@ def scan_line_for_crossings(
             continue
         window = magnitude[max(0, index - 4 * separation):index + 4 * separation + 1]
         background = float(np.median(window))
-        sharpness = float(magnitude[index] / background) if background > 0 else 0.0
         # A peak that barely stands out from its own neighbourhood is a crossing read through
         # someone else's transition, and its direction is a mixture rather than one unit's.
+        #
+        # How far it has to stand out is the question, and `peak / background >= 3` was the
+        # wrong shape for it. The background is the incoherent sum of every other unit's smooth
+        # contribution, so it grows about as `sqrt(k)` while one unit's jump does not, and a
+        # fixed ratio therefore demands more of a crossing the larger the block gets. Measured
+        # on the 2048-unit block at 40 lines: the ratio at 3.0 keeps 14.2 crossings per line,
+        # at 1.5 keeps 56.4, at 1.05 keeps 74.0. Three quarters of the real crossings were being
+        # discarded before anything looked at them, which is why 2048 missed 460 units. Audit
+        # finding F34, the same shape as F31.
+        #
+        # The distance of the peak from its own neighbourhood measured in that neighbourhood's
+        # own robust spread does not carry that bias: the numerator and the denominator grow
+        # together, so the same number means the same selectivity at every block size. The
+        # median absolute deviation is used rather than a standard deviation because the window
+        # contains the peak being tested and its shoulders.
+        if sharpness_mode == "sigma":
+            spread = float(np.median(np.abs(window - background))) * 1.4826
+            sharpness = (
+                float((magnitude[index] - background) / spread) if spread > 0 else float("inf")
+            )
+        else:
+            sharpness = float(magnitude[index] / background) if background > 0 else 0.0
         if sharpness < min_sharpness:
             continue
         crossings.append(BoundaryCrossing(
@@ -1386,6 +1429,8 @@ def recover_block(
     peak_fraction: float,
     separation: int,
     min_sharpness: float,
+    peak_floor_mode: str = "max",
+    sharpness_mode: str = "ratio",
     cluster_min_cosine: float,
     basis_points_count: int,
     basis_scale: float,
@@ -1467,6 +1512,8 @@ def recover_block(
                 peak_fraction=peak_fraction,
                 separation=separation,
                 min_sharpness=min_sharpness,
+                peak_floor_mode=peak_floor_mode,
+                sharpness_mode=sharpness_mode,
                 line_index=line_index,
                 line_directions=line_directions,
                 timings=scan_timings,
@@ -2230,6 +2277,16 @@ def main() -> int:
     parser.add_argument("--unit-budget", type=int, default=0, help="0 uses the requested unit count")
     parser.add_argument("--up-refinement-sweeps", type=int, default=0,
                         help="subtract already-solved units before each solve; measured worse, kept runnable")
+    parser.add_argument("--sharpness-mode", choices=("sigma", "ratio"), default="ratio",
+                        help="how far a peak must stand out from its neighbourhood. 'sigma' is "
+                             "distance above the local median in robust spreads, which means the "
+                             "same thing at every block size; 'ratio' is the previous peak over "
+                             "background, which demands more the larger the block gets")
+    parser.add_argument("--peak-floor-mode", choices=("background", "max"), default="max",
+                        help="what the peak pre-filter is measured against. 'background' is the "
+                             "line's median turning magnitude, which one loud crossing does not "
+                             "move; 'max' is the previous behaviour, a fraction of the line's "
+                             "largest peak, kept so the two can be compared on the same block")
     parser.add_argument("--allow-unidentifiable-block", action="store_true",
                         help="run even when the unit count exceeds the oracle response width; "
                              "the result cannot be a structure claim, but measuring the failure "
@@ -2299,6 +2356,8 @@ def main() -> int:
                 peak_fraction=args.peak_fraction,
                 separation=args.separation,
                 min_sharpness=args.min_sharpness,
+                peak_floor_mode=args.peak_floor_mode,
+                sharpness_mode=args.sharpness_mode,
                 cluster_min_cosine=args.cluster_min_cosine,
                 basis_points_count=args.basis_points,
                 basis_scale=args.basis_scale if args.basis_scale > 0 else args.scale,

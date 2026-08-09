@@ -177,6 +177,12 @@ function main(): void {
     // - checked against a held-out reconstruction that needs no weights. Runs in ninety
     // seconds, so there is no reason for it to sit outside the gate.
     runStep('NN live Jacobian boundary recovery benchmark', 'npm', ['run', 'benchmark:nn-live-jacobian-boundary-recovery'], { timeoutMs: 15 * 60 * 1000 });
+    // The other five rungs, validated against their committed artifacts rather than re-run.
+    // The roadmap called this lane release-gated from 16 to 512 units while the gate ran 64
+    // and nothing else, so five released claims had a command and an artifact and no gate.
+    // Re-running the model six times is an hour this cannot spend; checking that the artifacts
+    // still hold against the current solver and their own thresholds costs seconds.
+    runStep('NN live Jacobian ladder artifact check', 'npm', ['run', 'verify:jacobian-ladder'], { timeoutMs: 10 * 60 * 1000 });
     runStep('NN 2D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu2d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-decompile'], { timeoutMs: 3 * 60 * 1000 });
     runStep('NN randomized 3D black-box ReLU decompile benchmark', 'npm', ['run', 'benchmark:nn-blackbox-relu3d-randomized'], { timeoutMs: 3 * 60 * 1000 });
