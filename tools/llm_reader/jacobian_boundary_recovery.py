@@ -523,9 +523,18 @@ def identifiability_verdict(
     """
     findings: list[dict[str, Any]] = []
 
-    # More units than the oracle's answer is wide. The output direction is this route's
-    # identity - crossings are grouped by it - and `k` directions in a `w`-dimensional answer
-    # cannot be independent once `k > w`, so that grouping is degenerate by counting alone.
+    # More units than the oracle's answer is wide. The step this breaks is the unmixing, not
+    # the clustering: `R = A D` with `D` shaped units by output width is underdetermined once
+    # units exceed the width, so `A = R D+` fabricates the minimum-norm member of an infinite
+    # family, and the fallback that avoids it leaks as `sqrt(k/width)` - already above one at
+    # 4096 in 3072, which is larger than the signal being solved for.
+    #
+    # Worth stating precisely, because the obvious reading is wrong and would misdirect the
+    # next attempt: `k > w` does not mean directions become near-parallel. 8192 random
+    # directions in 3072 dimensions still have typical pairwise cosine around 0.018, and the
+    # measurements agree - the 4096-unit run found 14503 clusters and the 2048-unit run 16008,
+    # so the grouping was over-segmenting rather than merging. The collapse is downstream.
+    #
     # No threshold and no probe decides this, which is what makes it worth checking first: it
     # is knowable before the run rather than after. The 4096-unit block spent 45 million oracle
     # calls against a 3072-wide response to arrive at 962 solutions, held-out R2 0.360, zero
@@ -2266,9 +2275,9 @@ def main() -> int:
                     f"the one that answered reports response width {width}"
                 )
             # The counting argument, before the first probe rather than after forty-five
-            # million of them. This route groups crossings by output direction, and `k`
-            # directions cannot be independent inside a `width`-wide answer once `k > width`,
-            # so the grouping is degenerate by arithmetic alone. The 4096-unit block spent an
+            # million of them. Past the response width the unmixing `A = R D+` is
+            # underdetermined and its fallback leaks more than the signal, so the block cannot
+            # be separated however well the crossings are found. The 4096-unit block spent an
             # hour and a half establishing that, and reported `recovered` at the end of it.
             # The flag exists because measuring a known-impossible configuration is how the
             # blind spot was found, and that has to stay possible on purpose.

@@ -678,11 +678,16 @@ class VerdictBlindToWhatWasNotFoundTest(unittest.TestCase):
     there are too many. Nothing examines what failed to come back, so a block whose units mostly
     merged upstream is indistinguishable from a small clean block.
 
-    Two counts settle it without a threshold anyone had to invent. A block asking for more units
-    than the oracle's response is wide cannot have independent output directions - that is the
-    identity this route clusters by, so it is unrecoverable by arithmetic alone, knowable before
-    the first probe. And a route that returns fewer solutions than the block it was asked about
-    has described a smaller structure than the one in question.
+    Two counts settle it without a threshold anyone had to invent. Past the oracle's response
+    width the unmixing `R = A D` is underdetermined, so `D+` fabricates a minimum-norm answer
+    and the fallback that avoids it leaks more than the signal - unrecoverable by arithmetic,
+    knowable before the first probe. And a route that returns fewer solutions than the block it
+    was asked about has described a smaller structure than the one in question.
+
+    Not because the directions become parallel, which is the obvious reading and is wrong: 8192
+    random directions in 3072 dimensions still have typical pairwise cosine near 0.018, and the
+    runs agree - 14503 clusters found for 4096 units, 16008 for 2048. The grouping was
+    over-segmenting, not merging. The collapse is downstream of it.
     """
 
     @staticmethod
