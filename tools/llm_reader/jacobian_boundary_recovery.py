@@ -1463,7 +1463,11 @@ def solve_up_directions_jointly(
     # against 3.7 of wall clock on a 128-unit block, which is copying, not arithmetic. At a
     # full layer `smooth` alone is 3.3 GB and streaming is the only option, so both paths stay.
     free_bytes, _total = torch.cuda.mem_get_info()
-    resident = (smooth.size + coordinates.size) * 4 + (1 << 28) < free_bytes
+    # Every tensor the branch uploads, not two of the three. `device_responses` is
+    # `rows x output_dim` and was left out of its own guard: at 512 units and 80000 rows the
+    # check approved 748 MB and the branch then asked for a further 983 MB, so it certified a
+    # fit and OOMed inside it - on a card that also holds the oracle.
+    resident = (smooth.size + coordinates.size + responses.size) * 4 + (1 << 28) < free_bytes
     if resident:
         device_smooth = torch.as_tensor(smooth, dtype=torch.float32, device="cuda")
         device_coords = torch.as_tensor(coordinates, dtype=torch.float32, device="cuda")
@@ -1855,8 +1859,19 @@ def recover_block(
             # blocks in one piece exactly as before.
             gate_device = torch_probe.as_tensor(gate_matrix, dtype=torch_probe.float64, device="cuda")
             basis_device = torch_probe.as_tensor(basis, dtype=torch_probe.float64, device="cuda")
-            widest = max(int(gate_matrix.shape[0]), int(basis.shape[0]), 1)
-            row_chunk = max(1, min(up_sample_count, (512 * 1024 * 1024) // (widest * 12)))
+            # What a chunk actually costs, rather than the largest of its two products. Both
+            # products are live at once, each is written in fp64 and copied to fp32, and the
+            # input block itself is `input_dim` wide in fp64 - so the per-row cost is
+            # 12 * (units + rank) + 8 * input_dim, not 12 * max(units, rank). The old figure
+            # under-counted by about 2.3x at a full layer: a budget saying 512 MB while the
+            # loop held 872 MB, plus the two resident operands, against the 973 MiB free that
+            # the 8192-unit run died on.
+            units_wide = int(gate_matrix.shape[0])
+            rank_wide = int(basis.shape[0])
+            resident_operands = (gate_matrix.size + basis.size) * 8
+            per_row = 12 * (units_wide + rank_wide) + 8 * int(samples_in.shape[1])
+            budget = max(64 << 20, (512 * 1024 * 1024) - resident_operands)
+            row_chunk = max(1, min(up_sample_count, budget // max(per_row, 1)))
             raw_parts: list[np.ndarray] = []
             coordinate_parts: list[np.ndarray] = []
             for start in range(0, up_sample_count, row_chunk):
@@ -1872,7 +1887,10 @@ def recover_block(
             )
             del raw_parts, coordinate_parts, gate_device, basis_device
             torch_probe.cuda.empty_cache()
-            telemetry.notes.append(f"up-solve products chunked at {row_chunk} rows for {widest} columns")
+            telemetry.notes.append(
+                f"up-solve products chunked at {row_chunk} rows: {units_wide} unit columns, "
+                f"{rank_wide} basis columns"
+            )
         else:
             raw_response = (samples_in @ gate_matrix.T).astype(np.float32)
             coordinates = (samples_in @ basis.T).astype(np.float32)
