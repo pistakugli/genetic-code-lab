@@ -566,11 +566,20 @@ def identifiability_verdict(
     """
     findings: list[dict[str, Any]] = []
 
-    # More units than the oracle's answer is wide. The step this breaks is the unmixing, not
-    # the clustering: `R = A D` with `D` shaped units by output width is underdetermined once
-    # units exceed the width, so `A = R D+` fabricates the minimum-norm member of an infinite
-    # family, and the fallback that avoids it leaks as `sqrt(k/width)` - already above one at
-    # 4096 in 3072, which is larger than the signal being solved for.
+    # More units than the oracle's answer is wide. This finding was first written as
+    # `non-identifiable` on the reasoning that the unmixing `A = R D+` becomes underdetermined,
+    # and that reasoning does not survive reading the path that actually runs: the up solve has
+    # been joint since it was measured to beat the per-unit route everywhere, and the joint
+    # solve never forms `D+` at all. Above the boundary the per-unit route recovers no up
+    # direction above cosine 0.99 while the joint solve returns 1.000000, which is why it is the
+    # default.
+    #
+    # What genuinely degrades is narrower: the gate-norm rays are read through `pinv(D)`, whose
+    # row `i` cancels the other units exactly, and above the boundary that reader falls back to
+    # the raw transpose where the leak grows as `sqrt(k/width)` and passes one at 4096 in 3072.
+    # A contaminated norm is a unit evaluated in the wrong regime of `silu`, which is real
+    # damage - but it is one degraded reader, not an impossible problem, so this is `ambiguous`
+    # and no longer blocks the structure claim by itself.
     #
     # Worth stating precisely, because the obvious reading is wrong and would misdirect the
     # next attempt: `k > w` does not mean directions become near-parallel. 8192 random
@@ -586,8 +595,11 @@ def identifiability_verdict(
     if unit_budget > 0 and response_width and unit_budget > response_width:
         findings.append({
             "family": "units-exceed-output-rank",
-            "detail": f"{unit_budget} units requested against a {response_width}-wide oracle response",
-            "verdict": "non-identifiable",
+            "detail": (
+                f"{unit_budget} units requested against a {response_width}-wide oracle response; "
+                "gate norms are read through a projection that no longer cancels neighbours"
+            ),
+            "verdict": "ambiguous",
         })
 
     # Mis-specified activation family, and the full-slice insufficient-rank case. If the
@@ -2340,9 +2352,12 @@ def main() -> int:
             # blind spot was found, and that has to stay possible on purpose.
             if len(unit_list) > width and not args.allow_unidentifiable_block:
                 raise SystemExit(
-                    f"{len(unit_list)} units cannot be separated in a {width}-wide oracle response: "
-                    "output directions are this route's identity and cannot be independent past "
-                    "the response width. Pass --allow-unidentifiable-block to measure it anyway."
+                    f"{len(unit_list)} units against a {width}-wide oracle response was measured at "
+                    "0 of 4096 recovered, held-out R2 0.360. Above the width the gate-norm rays "
+                    "lose the reader that cancels neighbours exactly, and the leak passes one. "
+                    "This is a measured failure rather than a proof of impossibility - the up "
+                    "solve is joint and never forms the inverse - so pass "
+                    "--allow-unidentifiable-block to run it and find out."
                 )
             dimension = int(oracle.meta["hiddenSize"])
             result, telemetry = recover_block(

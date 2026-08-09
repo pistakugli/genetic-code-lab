@@ -717,8 +717,12 @@ class VerdictBlindToWhatWasNotFoundTest(unittest.TestCase):
         # 4096 units against a 3072-wide response, in miniature: 8 units, 4 channels.
         result = self.verdict(solutions=8, budget=8, width=4)
         self.assertIn("units-exceed-output-rank", self.families(result))
-        self.assertEqual(result["verdict"], "non-identifiable")
-        self.assertFalse(result["structureClaimAllowed"])
+        # Reported, not blocking. The first version of this called it non-identifiable on the
+        # reasoning that the unmixing becomes underdetermined - but the up solve has been joint
+        # since it was measured to win everywhere, and the joint solve never forms D+ at all.
+        # What degrades above the boundary is the gate-norm reader, which is one contaminated
+        # measurement rather than an impossible problem.
+        self.assertNotEqual(result["verdict"], "recovered")
 
     def test_returning_fewer_solutions_than_the_block_is_reported(self) -> None:
         result = self.verdict(solutions=3, budget=10, width=16)
