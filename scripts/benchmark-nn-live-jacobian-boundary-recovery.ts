@@ -214,7 +214,11 @@ if (unlockAt !== solverCalls) {
 }
 
 const oracleCalls = finiteNumber(telemetry.oracleCalls, 'telemetry.oracleCalls', failures);
-if (oracleCalls !== solverCalls) failures.push('telemetry and access audit disagree on the call count');
+// There used to be a comparison here of `telemetry.oracleCalls` against
+// `accessAudit.solverOracleCalls`. Both are written from the same Python variable, so it was a
+// number compared with itself: it could not fail, and it read like a second agreement backing
+// the first. The comparison with content is the one above - the oracle's counter, kept on the
+// far side of the process boundary, against the solver's own - and it is not repeated here.
 
 // Which code produced this artifact. Without it a manifest keeps reading `pass` long after
 // the tool it describes has moved on - which is what happened here within hours of the lane

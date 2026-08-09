@@ -89,6 +89,9 @@ class RecoveryTelemetry:
     amplitudeSweeps: int = 0
     amplitudeSweepsAllowed: int = 0
     duplicatesDropped: int = 0
+    clustersWithoutEstimate: int = 0
+    clustersBelowAlignment: int = 0
+    clustersUnsolved: int = 0
     clustersSkippedAsSmall: int = 0
     rejectedByResidual: int = 0
     upSolveCalls: int = 0
@@ -364,9 +367,13 @@ def scan_line_for_crossings(
         # quarters of the crossings at 2048 stands, and this is not the repair for it.
         if sharpness_mode == "sigma":
             spread = float(np.median(np.abs(window - background))) * 1.4826
-            sharpness = (
-                float((magnitude[index] - background) / spread) if spread > 0 else float("inf")
-            )
+            # A window with no spread admits nothing rather than everything. Returning infinity
+            # here made a degenerate neighbourhood the most convincing evidence in the file, the
+            # opposite polarity of the ratio branch's 0.0, and it is reachable - a quantised
+            # oracle makes half a window share its median exactly. Measured on a line through a
+            # purely linear oracle with no boundary anywhere: this returned 9 spurious crossings
+            # against the ratio test's 2.
+            sharpness = float((magnitude[index] - background) / spread) if spread > 0 else 0.0
         else:
             sharpness = float(magnitude[index] / background) if background > 0 else 0.0
         if sharpness < min_sharpness:
@@ -1376,6 +1383,7 @@ def solve_up_directions_jointly(
     output_directions: np.ndarray,
     iterations: int = 200,
     chunk_rows: int = 8192,
+    notes: list[str] | None = None,
 ) -> np.ndarray:
     """Every unit's up direction at once, by conjugate gradient on a matrix never formed.
 
@@ -1468,17 +1476,29 @@ def solve_up_directions_jointly(
     residual = moment - normal_operator(solution)
     direction = residual.clone()
     squared = float((residual * residual).sum())
-    for _ in range(iterations):
+    # Relative to where it started, which is what "relative" has to mean here. Comparing against
+    # `squared` was comparing against the *previous iteration*, because `squared = updated` runs
+    # at the bottom of the loop - so the test demanded a drop of 1e-24 within a single step and
+    # could not fire. The loop always ran its full 200 iterations, and an unconverged solve was
+    # indistinguishable from a converged one because nothing recorded either.
+    initial = max(squared, 1e-30)
+    used = iterations
+    for iteration in range(iterations):
         curvature = normal_operator(direction)
         step = squared / max(float((direction * curvature).sum()), 1e-30)
         solution += step * direction
         residual -= step * curvature
         updated = float((residual * residual).sum())
-        # Relative, because the scale of `moment` varies by orders of magnitude with the block.
-        if updated < 1e-24 * max(squared, 1e-30):
+        if updated < 1e-24 * initial:
+            used = iteration + 1
             break
         direction = residual + (updated / squared) * direction
         squared = updated
+    if notes is not None:
+        notes.append(
+            f"joint up solve: {used} of {iterations} iterations, "
+            f"residual {updated / initial:.3e} of initial"
+        )
     return solution.cpu().numpy()
 
 
@@ -1727,8 +1747,10 @@ def recover_block(
                     if held_out <= gate_residual_tolerance and alignment >= amplitude_min_alignment:
                         break
             if not estimates:
+                telemetry.clustersWithoutEstimate += 1
                 continue
             if alignment < amplitude_min_alignment:
+                telemetry.clustersBelowAlignment += 1
                 continue
             # Solutions that match no unit fail the same check, which is what removes them
             # from the returned set instead of leaving a caller to filter them.
@@ -1739,6 +1761,7 @@ def recover_block(
         else:
             solved = gate_from_cluster(cluster, active_rank)
             if solved is None:
+                telemetry.clustersUnsolved += 1
                 continue
             gate, determination = solved
         # Two clusters of one unit both solve to the same gate, and the second adds nothing
@@ -2022,12 +2045,19 @@ def recover_block(
                 telemetry.notes.append("up directions solved jointly by conjugate gradient")
                 joint = solve_up_directions_jointly(
                     smooth, coordinates, responses, output_directions,
-                    chunk_rows=up_request_chunk,
+                    chunk_rows=up_request_chunk, notes=telemetry.notes,
                 )
                 solved_coefficients = [joint[index] for index in range(len(gates))]
             else:
                 solved_coefficients = [np.zeros(active_rank) for _ in gates]
-            activations = [np.zeros(up_sample_count) for _ in gates]
+            # Both of these feed the refinement sweeps only, and the default path runs zero of
+            # them. Unguarded they cost 3.3 GB of `activations` and 4.9 GB of `design` at 4096
+            # units and 100000 samples, written and never read - while `explained` on the next
+            # line was already guarded, which is how the omission stayed invisible.
+            activations = (
+                [np.zeros(up_sample_count) for _ in gates] if not joint_solved
+                else [np.zeros(0) for _ in gates]
+            )
             # Only the refinement sweeps need a running model, and it is the same size as the
             # whole response block - two gigabytes at 512 units that the default path never reads.
             explained = np.zeros_like(responses) if up_refinement_sweeps > 0 else None
@@ -2035,8 +2065,12 @@ def recover_block(
             # and rebuilding both halves each time allocates `rows x 2*active_rank` plus a
             # same-sized temporary for the product - 5 GB per unit at 1024 units, a thousand times
             # over. The ungated half is written once.
-            design = np.empty((up_sample_count, 2 * active_rank), dtype=np.float64)
-            design[:, active_rank:] = coordinates
+            design = (
+                np.empty((up_sample_count, 2 * active_rank), dtype=np.float64)
+                if not joint_solved else None
+            )
+            if design is not None:
+                design[:, active_rank:] = coordinates
             for _sweep in range(0 if joint_solved else max(1, up_refinement_sweeps)):
                 subtract = up_refinement_sweeps > 0
                 for index in range(len(gates)):
@@ -2221,6 +2255,12 @@ def summarise(result: dict[str, Any], telemetry: RecoveryTelemetry) -> str:
         "crossingsPerLine": telemetry.crossingsPerLine,
         "resolvableSlotsPerLine": telemetry.resolvableSlotsPerLine,
         "duplicatesDropped": telemetry.duplicatesDropped,
+        # Where the rest of the clusters went. The 4096-unit run turned 14503 clusters into 962
+        # solutions and the counted reasons accounted for a fraction of the gap, which is the
+        # diagnostic the whole investigation needed and did not have.
+        "clustersWithoutEstimate": telemetry.clustersWithoutEstimate,
+        "clustersBelowAlignment": telemetry.clustersBelowAlignment,
+        "clustersUnsolved": telemetry.clustersUnsolved,
         "clustersSkippedAsSmall": telemetry.clustersSkippedAsSmall,
         "rejectedByResidual": telemetry.rejectedByResidual,
         "upSolveCalls": telemetry.upSolveCalls,
