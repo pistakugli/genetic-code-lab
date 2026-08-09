@@ -9242,14 +9242,14 @@ def write_basis_diagnostic(
             "cubicWitnessRelativeRmse": cubic_relative_rmse,
             "cubicWitnessCosine": cubic_cosine,
         },
-        "accessAudit": {
-            "solverAccess": "oracle-only",
-            "weightsUsedBySolver": False,
-            "hooksUsedBySolver": False,
-            "sourceIdsUsedBySolver": False,
-            "oracleOwnsWeights": True,
-            "postHocWitnessOnly": True,
-        },
+        # The unlock on the line above this function's recovery already put the evidence on the
+        # client; it simply never reached the report, so this lane's 233 artifacts asserted the
+        # invariant while the proof of it sat unread one attribute away.
+        "accessAudit": oracle_access_audit(
+            oracle,
+            sourceIdsUsedBySolver=False,
+            oracleOwnsWeights=True,
+        ),
     }
     output_json.write_text(dump_report_json(report) + "\n", encoding="utf-8")
     if output_md:
@@ -9334,6 +9334,49 @@ def maximum_weight_assignment(scores: np.ndarray) -> list[int]:
     if any(column < 0 for column in assignment):
         raise RuntimeError("assignment solver did not match every recovered atom")
     return assignment
+
+
+def oracle_access_audit(
+    oracle: Any,
+    *,
+    solver_oracle_calls: int | None = None,
+    **extra: Any,
+) -> dict[str, Any]:
+    """Build an access audit that cannot state its claim without carrying its evidence.
+
+    A report saying `oracle-only` on its own say-so proves that the tool spelled the string
+    correctly and nothing else - audit finding F17, and 442 released reports carried exactly
+    that. What the claim is actually about is already tracked by the client: it refuses
+    `truth()` until an explicit unlock and records the query count at the moment of unlocking,
+    so a reader can see that no truth was available while the recovery was still running.
+
+    Two counters agreeing is the strong form, and it is only evidence when they are maintained
+    independently - filling both from `oracle.query_count` would compare a number with itself,
+    which is the same circularity in a new place. So the caller passes its own count or passes
+    nothing, and the audit says which of the two it got rather than implying the stronger one.
+
+    A run whose truth was never unlocked has not demonstrated the invariant at all. That is not
+    a weaker `oracle-only`, it is an unproven one, and it is labelled so.
+    """
+    unlock_stage = getattr(oracle, "truth_unlock_stage", None)
+    unlock_count = getattr(oracle, "truth_unlock_query_count", None)
+    query_count = int(getattr(oracle, "query_count", 0))
+    proven = unlock_stage is not None and unlock_count is not None
+    audit: dict[str, Any] = {
+        "solverAccess": "oracle-only" if proven else "oracle-only-unproven",
+        "weightsUsedBySolver": False,
+        "hooksUsedBySolver": False,
+        "postHocWitnessOnly": True,
+        "truthUnlockStage": unlock_stage,
+        "truthUnlockQueryCount": unlock_count,
+        "queryCountAtReport": query_count,
+        "truthRequestCount": int(getattr(oracle, "truth_request_count", 0)),
+        "counterAgreementChecked": solver_oracle_calls is not None,
+    }
+    if solver_oracle_calls is not None:
+        audit["solverOracleCalls"] = int(solver_oracle_calls)
+    audit.update(extra)
+    return audit
 
 
 def snapshot_access_audit(args: argparse.Namespace, oracle: Any) -> dict[str, Any]:
@@ -13085,21 +13128,18 @@ def run_solver(args: argparse.Namespace) -> int:
                     ),
                     "pairedAtomGate": bool(paired_atom_gate),
                 },
-                "accessAudit": {
-                    "solverAccess": "oracle-only",
-                    "weightsUsedBySolver": False,
-                    "hooksUsedBySolver": False,
-                    "sourceIdsUsedBySolver": False,
-                    "fitSnapshotUsedBySolver": bool(args.fit_snapshot_input),
-                    "nonlinearInitialFitUsed": bool(args.recovery_path != "asymptotic-cold-start"),
-                    "oracleOwnsWeights": True,
-                    "postHocWitnessOnly": True,
-                    "truthLockedUntilRecoveryFrozen": True,
-                    "truthUnlockStage": oracle.truth_unlock_stage,
-                    "truthUnlockQueryCount": oracle.truth_unlock_query_count,
-                    "truthRequestCount": int(oracle.truth_request_count),
-                    "processBoundary": "solver parent communicates with oracle subprocess via npy batch files and JSONL commands",
-                },
+                # This site already carried the unlock evidence and was the closer of the two;
+                # it goes through the shared builder so that the claim, the unlock and the
+                # honesty about which counters were compared stay attached to each other.
+                "accessAudit": oracle_access_audit(
+                    oracle,
+                    sourceIdsUsedBySolver=False,
+                    fitSnapshotUsedBySolver=bool(args.fit_snapshot_input),
+                    nonlinearInitialFitUsed=bool(args.recovery_path != "asymptotic-cold-start"),
+                    oracleOwnsWeights=True,
+                    truthLockedUntilRecoveryFrozen=True,
+                    processBoundary="solver parent communicates with oracle subprocess via npy batch files and JSONL commands",
+                ),
                 "solver": {
                     "kind": "blind-active-subspace-explicit-swiglu-sum",
                     "probePoints": args.probe_points,

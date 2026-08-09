@@ -605,3 +605,123 @@ class ActiveRankClampTest(unittest.TestCase):
         self.assertEqual(result["basis"].shape[0], 32)
         self.assertTrue(any("exceeds input dimension" in note for note in telemetry.notes))
         self.assertGreater(result["gates"].shape[0], 0)
+
+
+class UnevidencedAccessClaimTest(unittest.TestCase):
+    """F17 at scale — 442 released reports asserted `oracle-only` and proved nothing.
+
+    The claim was six literals the tool wrote about itself. The evidence that would make it
+    checkable was already on the client one attribute away: it refuses `truth()` until an
+    explicit unlock and records the query count at that moment. These pin the builder that
+    now writes the claim and the evidence together, including the part that is easy to get
+    wrong - a run may not quietly upgrade a self-comparison into two counters agreeing.
+    """
+
+    class FakeOracle:
+        def __init__(self, *, stage=None, unlock_count=None, query_count=0, truth_requests=0):
+            self.truth_unlock_stage = stage
+            self.truth_unlock_query_count = unlock_count
+            self.query_count = query_count
+            self.truth_request_count = truth_requests
+
+    def test_a_run_that_never_unlocked_truth_does_not_claim_oracle_only(self) -> None:
+        from tools.llm_reader.blind_swiglu_oracle_decompiler import oracle_access_audit
+
+        audit = oracle_access_audit(self.FakeOracle(query_count=5000))
+        self.assertEqual(audit["solverAccess"], "oracle-only-unproven")
+        self.assertIsNone(audit["truthUnlockStage"])
+
+    def test_an_unlocked_run_carries_the_evidence_beside_the_claim(self) -> None:
+        from tools.llm_reader.blind_swiglu_oracle_decompiler import oracle_access_audit
+
+        audit = oracle_access_audit(
+            self.FakeOracle(stage="recovery-frozen", unlock_count=8192, query_count=8192)
+        )
+        self.assertEqual(audit["solverAccess"], "oracle-only")
+        self.assertEqual(audit["truthUnlockStage"], "recovery-frozen")
+        self.assertEqual(audit["truthUnlockQueryCount"], 8192)
+        self.assertEqual(audit["queryCountAtReport"], 8192)
+
+    def test_one_counter_is_never_dressed_up_as_two_agreeing(self) -> None:
+        from tools.llm_reader.blind_swiglu_oracle_decompiler import oracle_access_audit
+
+        audit = oracle_access_audit(
+            self.FakeOracle(stage="recovery-frozen", unlock_count=8192, query_count=8192)
+        )
+        # Emitting solverOracleCalls from the client's own counter would compare a number with
+        # itself and read to a checker as the strong form. The field must be absent instead.
+        self.assertNotIn("solverOracleCalls", audit)
+        self.assertFalse(audit["counterAgreementChecked"])
+
+    def test_an_independent_count_is_recorded_and_marked_as_such(self) -> None:
+        from tools.llm_reader.blind_swiglu_oracle_decompiler import oracle_access_audit
+
+        audit = oracle_access_audit(
+            self.FakeOracle(stage="recovery-frozen", unlock_count=8192, query_count=8192),
+            solver_oracle_calls=8192,
+        )
+        self.assertEqual(audit["solverOracleCalls"], 8192)
+        self.assertTrue(audit["counterAgreementChecked"])
+
+
+class VerdictBlindToWhatWasNotFoundTest(unittest.TestCase):
+    """F32 — the verdict said `recovered` on a run that recovered nothing.
+
+    Measured on the real layer: a 4096-unit block returned 962 solutions, held-out R2 0.360,
+    zero of 4096 units matched the truth above cosine 0.99 - and the identifiability verdict
+    reported `recovered` with an empty findings list and `structureClaimAllowed: true`. The
+    2048-unit block did the same at 1565 of 2048 and R2 0.851.
+
+    The cause is structural rather than a wrong constant. Every family in the verdict examines
+    the solutions the route returned: collinearity of returned gates, anti-parallel returned
+    outputs, energy share among returned solutions, and `overcomplete-budget`, which fires when
+    there are too many. Nothing examines what failed to come back, so a block whose units mostly
+    merged upstream is indistinguishable from a small clean block.
+
+    Two counts settle it without a threshold anyone had to invent. A block asking for more units
+    than the oracle's response is wide cannot have independent output directions - that is the
+    identity this route clusters by, so it is unrecoverable by arithmetic alone, knowable before
+    the first probe. And a route that returns fewer solutions than the block it was asked about
+    has described a smaller structure than the one in question.
+    """
+
+    @staticmethod
+    def verdict(*, solutions: int, budget: int, width: int):
+        from tools.llm_reader.jacobian_boundary_recovery import identifiability_verdict
+
+        rng = np.random.default_rng(11)
+        gates = rng.normal(size=(solutions, width))
+        outputs = rng.normal(size=(solutions, width))
+        return identifiability_verdict(
+            basis_spectrum=np.ones(solutions),
+            active_rank=solutions,
+            gates=gates,
+            output_directions=outputs,
+            clusters_found=solutions,
+            duplicate_gate_cosine=0.98,
+            collinear_threshold=0.9,
+            weak_share_threshold=0.05,
+            rank_energy_threshold=0.98,
+            unit_budget=budget,
+        )
+
+    def families(self, result) -> set:
+        return {row["family"] for row in result["findings"]}
+
+    def test_a_block_wider_than_the_oracle_response_is_not_identifiable(self) -> None:
+        # 4096 units against a 3072-wide response, in miniature: 8 units, 4 channels.
+        result = self.verdict(solutions=8, budget=8, width=4)
+        self.assertIn("units-exceed-output-rank", self.families(result))
+        self.assertEqual(result["verdict"], "non-identifiable")
+        self.assertFalse(result["structureClaimAllowed"])
+
+    def test_returning_fewer_solutions_than_the_block_is_reported(self) -> None:
+        result = self.verdict(solutions=3, budget=10, width=16)
+        self.assertIn("undercomplete-recovery", self.families(result))
+        self.assertNotEqual(result["verdict"], "recovered")
+
+    def test_a_complete_recovery_within_the_response_width_stays_clean(self) -> None:
+        result = self.verdict(solutions=6, budget=6, width=64)
+        self.assertNotIn("units-exceed-output-rank", self.families(result))
+        self.assertNotIn("undercomplete-recovery", self.families(result))
+        self.assertEqual(result["verdict"], "recovered")

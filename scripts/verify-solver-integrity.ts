@@ -102,16 +102,30 @@ for (const report of walk(path.join(repoRoot, 'benchmarks/release'), (name) => n
   const audit = parsed.accessAudit;
   if (!audit || audit.solverAccess !== 'oracle-only') continue;
   const lane = path.relative(repoRoot, report).split('/')[2];
-  const evidence = ['truthUnlockStage', 'truthUnlockQueryCount', 'solverOracleCalls'];
-  const missing = evidence.filter((key) => audit[key] === undefined);
+  // Two tiers, because one rule for both would either let the weak case through or demand of
+  // it a comparison it cannot honestly make. A lane that keeps its own call count can be held
+  // to two independently maintained counters agreeing, which is what rules out a query outside
+  // the accounted path. A lane with only the client's counter cannot: filling both sides from
+  // `oracle.query_count` compares a number with itself. What that lane can still show is that
+  // the truth was locked until a named stage and at which query count it opened, so that is
+  // what is required of it - real evidence, and not dressed up as the stronger kind.
+  const strong = audit.solverOracleCalls !== undefined;
+  const evidence = strong
+    ? ['truthUnlockStage', 'truthUnlockQueryCount', 'solverOracleCalls']
+    : ['truthUnlockStage', 'truthUnlockQueryCount', 'queryCountAtReport'];
+  const missing = evidence.filter((key) => audit[key] === undefined || audit[key] === null);
   if (!evidenceLanes.has(lane)) {
     if (missing.length) unevidencedLegacyReports += 1;
     continue;
   }
   if (missing.length) {
     violations.push(`${path.relative(repoRoot, report)} claims oracle-only but is missing ${missing.join(', ')}`);
-  } else if (audit.truthUnlockQueryCount !== audit.solverOracleCalls) {
+  } else if (strong && audit.truthUnlockQueryCount !== audit.solverOracleCalls) {
     violations.push(`${path.relative(repoRoot, report)} unlocked truth at a different count than the solver spent`);
+  } else if (strong && audit.counterAgreementChecked === false) {
+    // Carrying the field while declaring the comparison unavailable is a report claiming the
+    // strong form on a number it just said was not independent.
+    violations.push(`${path.relative(repoRoot, report)} reports solverOracleCalls but marks the counters as not independently checked`);
   }
 }
 

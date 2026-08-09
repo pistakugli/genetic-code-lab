@@ -523,6 +523,21 @@ def identifiability_verdict(
     """
     findings: list[dict[str, Any]] = []
 
+    # More units than the oracle's answer is wide. The output direction is this route's
+    # identity - crossings are grouped by it - and `k` directions in a `w`-dimensional answer
+    # cannot be independent once `k > w`, so that grouping is degenerate by counting alone.
+    # No threshold and no probe decides this, which is what makes it worth checking first: it
+    # is knowable before the run rather than after. The 4096-unit block spent 45 million oracle
+    # calls against a 3072-wide response to arrive at 962 solutions, held-out R2 0.360, zero
+    # units matched above cosine 0.99 - and a verdict of `recovered`. Audit finding F32.
+    response_width = int(output_directions.shape[1]) if output_directions.ndim == 2 else 0
+    if unit_budget > 0 and response_width and unit_budget > response_width:
+        findings.append({
+            "family": "units-exceed-output-rank",
+            "detail": f"{unit_budget} units requested against a {response_width}-wide oracle response",
+            "verdict": "non-identifiable",
+        })
+
     # Mis-specified activation family, and the full-slice insufficient-rank case. If the
     # requested rank does not capture the Jacobians' energy, the block is not a `rank`-sized
     # SwiGLU sum in the first place, and everything downstream is fitted to noise.
@@ -600,6 +615,23 @@ def identifiability_verdict(
             "family": "overcomplete-budget",
             "detail": f"{gates.shape[0]} solutions returned for a budget of {unit_budget}",
             "verdict": "non-identifiable",
+        })
+
+    # The other side of that count, which had no check at all. Every family here examines the
+    # solutions that came back - their collinearity, their energy share, whether there are too
+    # many of them. A block whose units mostly merged upstream returns few solutions, and the
+    # few that survive are exactly the well-separated ones, so it reads as a small clean block
+    # and passes every test above. That is how 962 solutions for a 4096-unit block and 1565 for
+    # a 2048-unit one were both reported as `recovered` with an empty findings list.
+    #
+    # The evidence in that case supports a smaller structure than the block asked about, which
+    # is what `canonicalised` already means here. No cutoff is invented: the comparison is a
+    # count against the count requested. Audit finding F32.
+    if unit_budget > 0 and gates.shape[0] < unit_budget:
+        findings.append({
+            "family": "undercomplete-recovery",
+            "detail": f"{gates.shape[0]} solution(s) returned for a block of {unit_budget}",
+            "verdict": "canonicalised",
         })
 
     # Weak channel below the noise floor: a solution whose share of the recovered energy is
