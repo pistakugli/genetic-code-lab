@@ -488,6 +488,25 @@ class MixingInvertibilityTest(unittest.TestCase):
     both sides, and what changes is only what may be claimed about it.
     """
 
+    def test_the_reader_is_the_pseudo_inverse_on_both_sides_measured_not_asserted(self) -> None:
+        """The mutation this replaces a note-string check with.
+
+        Putting `if invertible else output_directions.T` back passed the entire suite, because
+        the note beside it is written independently of the branch. So this compares the reader
+        to both candidates numerically, on a wide matrix where they differ.
+        """
+        from tools.llm_reader.jacobian_boundary_recovery import output_channel_reader
+
+        rng = np.random.default_rng(23)
+        wide = rng.normal(size=(86, 32))
+        wide /= np.linalg.norm(wide, axis=1, keepdims=True)
+        reader = output_channel_reader(wide)
+
+        self.assertTrue(np.allclose(reader, np.linalg.pinv(wide), atol=1e-10))
+        # And it is genuinely not the transpose: on this matrix the two disagree by far more
+        # than any tolerance, which is what makes the assertion above load-bearing.
+        self.assertGreater(float(np.linalg.norm(reader - wide.T)), 1.0)
+
     def test_a_narrow_full_rank_mixing_is_inverted(self) -> None:
         _result, telemetry = self._recover(units=12, dim=32)
         self.assertTrue(any("pseudo-inverted" in note for note in telemetry.notes))

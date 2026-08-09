@@ -795,6 +795,25 @@ def identifiability_verdict(
     }
 
 
+def output_channel_reader(output_directions: np.ndarray) -> np.ndarray:
+    """The linear reader that takes oracle responses back to per-unit activations.
+
+    Its own function because a test that asserts on the telemetry note beside it asserts on a
+    string the code writes about itself. Verified by mutation: putting the transpose back for a
+    wide system passed the whole suite, because the note is produced independently of the branch
+    and kept saying `pseudo-inverted`. That is the request-recorded-as-outcome defect, committed
+    inside the test written to replace the one it deleted. Behaviour has to be checkable as
+    behaviour, so the reader is a value a test can compare against both candidates.
+
+    The pseudo-inverse on both sides. Above the boundary it does not recover the activations -
+    nothing linear can - but the transpose does not either, and it is the worse of the two.
+    Measured on real SwiGLU structure at matched `k/dim`, on reading correlation and held-out
+    reconstruction: 0.769/0.862 against 1.000/1.000 at 0.67, 0.650/0.703 against 0.866/0.930 at
+    1.33, and 0.519/0.292 against 0.608/0.700 at 2.67 - a whole layer, 8192 into 3072.
+    """
+    return np.linalg.pinv(output_directions)
+
+
 def sign_decision_rows(up_sample_count: int, active_rank: int) -> int:
     """How many probe rows the gate-sign comparison needs.
 
@@ -1913,7 +1932,7 @@ def recover_block(
             "output mixing pseudo-inverted"
             + ("" if invertible else "; wide system, reader is least squares rather than exact")
         )
-        mixing = np.linalg.pinv(output_directions)
+        mixing = output_channel_reader(output_directions)
         torch_backend = _torch_cuda()
         if torch_backend is not None:
             # Chunked over rows, like the solve. `responses` is rows by output_dim and
