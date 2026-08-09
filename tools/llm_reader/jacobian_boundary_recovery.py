@@ -353,10 +353,15 @@ def scan_line_for_crossings(
         # finding F34, the same shape as F31.
         #
         # The distance of the peak from its own neighbourhood measured in that neighbourhood's
-        # own robust spread does not carry that bias: the numerator and the denominator grow
-        # together, so the same number means the same selectivity at every block size. The
-        # median absolute deviation is used rather than a standard deviation because the window
-        # contains the peak being tested and its shoulders.
+        # own robust spread should not carry that bias - numerator and denominator grow
+        # together - and on the 64-unit block it held 64/64 at every threshold tried.
+        #
+        # Measured end to end at 2048 and it is worse, which settles it: sigma 6.0 recovers
+        # 700 of 2048 at held-out R2 0.697 against the ratio's 1565 and 0.851, and it finds
+        # *fewer* crossings per line, 8.9 against 14.1. The spread grows faster than the excess
+        # at that block size, so the z-score is the stricter test rather than the fairer one.
+        # Kept selectable and not default: the finding that a fixed ratio discards three
+        # quarters of the crossings at 2048 stands, and this is not the repair for it.
         if sharpness_mode == "sigma":
             spread = float(np.median(np.abs(window - background))) * 1.4826
             sharpness = (
