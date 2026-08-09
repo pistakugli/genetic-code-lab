@@ -1801,10 +1801,27 @@ def recover_block(
         invertible = output_directions.shape[0] <= output_directions.shape[1] and (
             np.linalg.matrix_rank(output_directions) == output_directions.shape[0]
         )
+        # The pseudo-inverse either way. Above the boundary it does not recover the activations
+        # - nothing linear can - but the transpose does not either, and it is the worse of the
+        # two failures rather than the safer one. The measurement above that said otherwise was
+        # taken on a 32-dimensional teacher, where random directions sit at pairwise cosine
+        # around 0.18 and `D` is badly conditioned; at 256 that is 0.06 and at the real 3072 it
+        # is 0.018, which is a different geometry, and the conclusion did not carry.
+        #
+        # Re-measured on real SwiGLU structure at matched `k/dim` ratios, reading correlation
+        # and the held-out reconstruction the pipeline actually cares about:
+        #
+        #     k/dim 0.67   transpose r 0.769  R2 0.862   |  pinv r 1.000  R2 1.000
+        #     k/dim 1.33   transpose r 0.650  R2 0.703   |  pinv r 0.866  R2 0.930
+        #     k/dim 2.67   transpose r 0.519  R2 0.292   |  pinv r 0.608  R2 0.700
+        #
+        # 2.67 is 8192 units into 3072 channels - a whole layer - where the projection loses
+        # two thirds of the reconstruction and the pseudo-inverse loses a third.
         telemetry.notes.append(
-            f"output mixing {'inverted' if invertible else 'projected: more units than channels'}"
+            "output mixing pseudo-inverted"
+            + ("" if invertible else "; wide system, reader is least squares rather than exact")
         )
-        mixing = np.linalg.pinv(output_directions) if invertible else output_directions.T
+        mixing = np.linalg.pinv(output_directions)
         torch_backend = _torch_cuda()
         if torch_backend is not None:
             # Chunked over rows, like the solve. `responses` is rows by output_dim and

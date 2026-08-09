@@ -457,28 +457,42 @@ class WeakChannelFloorScalesTest(unittest.TestCase):
 
 
 class MixingInvertibilityTest(unittest.TestCase):
-    """Unmixing the output channels is only defined while there are channels to spare.
+    """Which linear reader recovers the activations, on both sides of the channel boundary.
 
     `R = A D` with `D` shaped units by output_dim. Below the boundary `D` has full row rank and
-    the pseudo-inverse recovers the activations exactly; above it the system is wide, each row
-    of `A` has more unknowns than there are equations, and `pinv` returns the minimum-norm
-    member of an infinite family - a fabrication, not a measurement.
+    the pseudo-inverse recovers the activations exactly. Above it the system is wide and nothing
+    linear can recover them - but that is a statement about both candidates, and the question is
+    which failure is smaller.
 
-    That boundary is where a whole layer lives: 8192 units into 3072 channels. Measured on a
-    32-dimensional teacher, held-out R2 with unmixing against projection: 0.9999 vs 0.9893 at
-    12 units, 0.9076 vs 0.9253 at 43, 0.6154 vs 0.8456 at 86. It wins where it is defined and
-    loses badly where it is not.
+    The answer used to be "the raw projection", from a 32-dimensional teacher: held-out R2 of
+    unmixing against projection 0.9076 vs 0.9253 at 43 units and 0.6154 vs 0.8456 at 86. That
+    conclusion did not carry, because 32 dimensions is a different geometry - random directions
+    sit at pairwise cosine about 0.18 there, 0.06 at 256, and 0.018 at the real 3072, and it is
+    the conditioning of `D` that decides how a pseudo-inverse behaves.
+
+    Re-measured on real SwiGLU structure at matched `k/dim` ratios, reading correlation and
+    held-out reconstruction:
+
+        k/dim 0.67   transpose r 0.769  R2 0.862   |  pinv r 1.000  R2 1.000
+        k/dim 1.33   transpose r 0.650  R2 0.703   |  pinv r 0.866  R2 0.930
+        k/dim 2.67   transpose r 0.519  R2 0.292   |  pinv r 0.608  R2 0.700
+
+    2.67 is a whole layer, 8192 units into 3072 channels, where the projection loses two thirds
+    of the reconstruction and the pseudo-inverse loses a third. So the reader is the same on
+    both sides, and what changes is only what may be claimed about it.
     """
 
     def test_a_narrow_full_rank_mixing_is_inverted(self) -> None:
-        from tools.llm_reader.jacobian_boundary_recovery import recover_block
-
         _result, telemetry = self._recover(units=12, dim=32)
-        self.assertTrue(any("mixing inverted" in note for note in telemetry.notes))
+        self.assertTrue(any("pseudo-inverted" in note for note in telemetry.notes))
+        # Exact here, so nothing qualifies it.
+        self.assertFalse(any("wide system" in note for note in telemetry.notes))
 
-    def test_more_units_than_channels_falls_back_to_projection(self) -> None:
+    def test_a_wide_system_still_uses_the_pseudo_inverse_and_says_it_is_least_squares(self) -> None:
         _result, telemetry = self._recover(units=86, dim=32)
-        self.assertTrue(any("more units than channels" in note for note in telemetry.notes))
+        self.assertTrue(any("pseudo-inverted" in note for note in telemetry.notes))
+        # The reader does not change above the boundary; the claim about it does.
+        self.assertTrue(any("wide system" in note for note in telemetry.notes))
 
     def test_the_rank_comes_from_the_matrix_not_the_count(self) -> None:
         # Near-collinear outputs make a narrow matrix behave like a wide one, and counting rows
