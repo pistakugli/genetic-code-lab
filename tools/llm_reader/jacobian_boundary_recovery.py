@@ -762,6 +762,27 @@ def identifiability_verdict(
     }
 
 
+def sign_decision_rows(up_sample_count: int, active_rank: int) -> int:
+    """How many probe rows the gate-sign comparison needs.
+
+    The design is `[silu(z) * coords | coords]`, so it has `2 * active_rank` columns, and the
+    caller used to pass a flat 6000 rows. `active_rank` clamps to the input dimension - 3072 on
+    this model - so from 2048 units upward the design is 6000 by 6144. Both orientations then
+    interpolate the target exactly, both residuals land around 1e-24, and `scored[0] <= scored[1]`
+    returns whichever way the rounding fell.
+
+    The consequence is the failure this step exists to prevent: a flipped gate is a unit that
+    fires exactly when the real one is silent, and no cosine downstream can see it because they
+    are all absolute. The boundary also lands exactly where the ladder breaks - 512 and 1024 had
+    2.9 and 1.5 rows per column and recovered 512/512 and 1022/1024; 2048 and 4096 had 0.98 and
+    recovered 1565/2048 and 0/4096.
+
+    Two rows per column, bounded by what was actually sampled. That is 12288 rows at full rank,
+    a 302 MB fp32 design rather than 147 MB - affordable, and the alternative is a coin flip.
+    """
+    return min(int(up_sample_count), max(6000, 4 * int(active_rank)))
+
+
 def _record_fallback(notes: list[str] | None, reason: str) -> None:
     """Leave a trace when the card is not used for a reason other than not being there.
 
@@ -1888,7 +1909,14 @@ def recover_block(
         # space that same difference is `(g_i.x)(u_i.x)`, a quadratic form no column of this
         # design can take, so the residual separates them.
         with _Phase(telemetry, "signDecision"):
-            sign_rows = min(up_sample_count, 6000)
+            sign_rows = sign_decision_rows(up_sample_count, active_rank)
+            if sign_rows <= 2 * active_rank:
+                # Never silent again. Below this the two orientations both interpolate and the
+                # comparison returns whichever way the rounding fell, which is a coin flip on
+                # the one property that cannot be seen by any cosine downstream.
+                telemetry.notes.append(
+                    f"gate signs undetermined: {sign_rows} rows against {2 * active_rank} columns"
+                )
             signs = _decide_gate_signs(
                 raw_response[:sign_rows],
                 unmixed[:sign_rows],

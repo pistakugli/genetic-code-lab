@@ -226,9 +226,17 @@ const solverSha256 = crypto
   .update(fs.readFileSync(path.join(repoRoot, 'tools/llm_reader/jacobian_boundary_recovery.py')))
   .digest('hex');
 const manifestPath = path.join(output.outputDir, 'manifest.json');
+// Which hash goes back into the manifest. This has to be the one that produced the numbers,
+// and on the validation path that is the hash already recorded, not the current file - the
+// numbers were not recomputed. Writing the current hash here made the check self-healing: the
+// first run reported the mismatch and overwrote the evidence for it, so a second run with no
+// intervening change was green over numbers a different tool had produced. Both of today's
+// stale-artifact detections were one re-run away from disappearing.
+let producingSha256 = solverSha256;
 if (!regenerate && fs.existsSync(manifestPath)) {
   const previous = record(JSON.parse(fs.readFileSync(manifestPath, 'utf8')), 'manifest');
   const summary = record(previous.summary, 'manifest.summary');
+  if (typeof summary.solverSha256 === 'string') producingSha256 = summary.solverSha256;
   if (summary.solverSha256 !== solverSha256) {
     failures.push('artifact was produced by a different version of the recovery tool');
   }
@@ -248,7 +256,7 @@ writeBenchmarkManifest(repoRoot, output, {
     realTextDeltaCosine: deltaCosine,
     oracleCalls,
     verdict: identifiability.verdict,
-    solverSha256,
+    solverSha256: producingSha256,
     truthUnlockQueryCount: access.truthUnlockQueryCount,
     failures,
   },

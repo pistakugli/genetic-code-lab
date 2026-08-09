@@ -748,3 +748,41 @@ class VerdictBlindToWhatWasNotFoundTest(unittest.TestCase):
         self.assertNotIn("units-exceed-output-rank", self.families(result))
         self.assertNotIn("undercomplete-recovery", self.families(result))
         self.assertEqual(result["verdict"], "recovered")
+
+
+class GateSignDesignMustBeOverdeterminedTest(unittest.TestCase):
+    """F36 — above 1024 units the gate sign was decided by rounding noise.
+
+    `_decide_gate_signs` scores the two orientations by least-squares residual against a design
+    of `2 * active_rank` columns, and the caller passed a fixed 6000 rows. `active_rank` clamps
+    to the input dimension, 3072 on this model, so the design is 6000 by 6144 from 2048 units
+    upward: both orientations fit the target exactly, both residuals are on the order of 1e-24,
+    and the comparison returns whichever way the rounding fell.
+
+    That is not a small error. A flipped gate describes a unit that fires exactly when the real
+    one is silent - the failure this whole step exists to prevent, measured once at 25 of 64
+    units ranking inputs backwards. And the boundary lands exactly where the ladder breaks:
+    512 and 1024 have ratios of 2.9 and 1.5 rows per column and recovered 512/512 and 1022/1024,
+    while 2048 and 4096 have 0.98 and recovered 1565/2048 and 0/4096.
+
+    The rule is a shape rule, so it can be checked without running a recovery.
+    """
+
+    @staticmethod
+    def rows_for(units: int, up_sample_count: int, input_dim: int = 3072) -> tuple[int, int]:
+        from tools.llm_reader.jacobian_boundary_recovery import sign_decision_rows
+
+        active_rank = min(2 * units, input_dim)
+        return sign_decision_rows(up_sample_count, active_rank), 2 * active_rank
+
+    def test_the_design_is_overdetermined_at_every_ladder_size(self) -> None:
+        for units, samples in ((512, 80_000), (1024, 100_000), (2048, 100_000), (4096, 110_000)):
+            rows, columns = self.rows_for(units, samples)
+            with self.subTest(units=units):
+                # Two rows per column, not two thirds of one. Anything at or below 1.0 means the
+                # two candidates both interpolate and the winner is decided by nothing.
+                self.assertGreaterEqual(rows, 2 * columns)
+
+    def test_it_never_asks_for_more_rows_than_were_sampled(self) -> None:
+        rows, _ = self.rows_for(4096, 8_000)
+        self.assertLessEqual(rows, 8_000)
