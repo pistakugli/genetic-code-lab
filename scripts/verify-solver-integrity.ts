@@ -162,6 +162,30 @@ for (const doc of walk(path.join(repoRoot, 'docs'), (name) => name.endsWith('.md
 }
 for (const missing of citedPaths) violations.push(missing);
 
+// 6. Released variants with no command that makes them. The roadmap's own rule is that a lane
+// becomes a release claim only with a command, artifact, gate and boundary - and the 512-unit
+// variant had been shipped, cited and gated with no npm script behind it, found by accident
+// while writing a regeneration loop that asked for a script that was not there. An artifact
+// nobody can re-run is a number, not a result.
+const jacobianVariants = new Set<string>();
+const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8')) as {
+  scripts?: Record<string, string>;
+};
+for (const command of Object.values(pkg.scripts ?? {})) {
+  const match = /GCL_JACOBIAN_VARIANT=(\w+)/.exec(command);
+  if (match) jacobianVariants.add(match[1]);
+}
+const jacobianLane = path.join(repoRoot, 'benchmarks/release/nn-live-jacobian-boundary-recovery');
+if (fs.existsSync(jacobianLane)) {
+  for (const entry of fs.readdirSync(jacobianLane, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const named = /layer15-(\w+)-[a-z]+-gate$/.exec(entry.name);
+    if (named && !jacobianVariants.has(named[1])) {
+      violations.push(`benchmarks/release/nn-live-jacobian-boundary-recovery/${entry.name} has no npm script that produces it`);
+    }
+  }
+}
+
 console.log(JSON.stringify({
   swallowedFailures: violations.filter((v) => v.includes('swallows')).length,
   unauditedSwallowedFailures,
@@ -172,6 +196,7 @@ console.log(JSON.stringify({
   unevidencedLegacyReports,
   strayLaneWrites: violations.filter((v) => v.startsWith('uncommitted')).length,
   deadDocCitations: violations.filter((v) => v.includes('cites a path that does not exist')).length,
+  unreproducibleVariants: violations.filter((v) => v.includes('no npm script that produces it')).length,
   violations,
 }, null, 2));
 if (violations.length) process.exit(1);
