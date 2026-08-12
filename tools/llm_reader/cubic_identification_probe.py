@@ -147,7 +147,12 @@ further is the wrong move: the answer is fewer units per solve. A distant base p
 *measured* span and the rank falls with them. Measured at `n=16`, `k=64`, four base points and
 four readers: rank 128 at scales 1 through 25 with all 64 units loud, then 123 at scale 50 where
 61 are, and 99 at scale 100 where 44 are. The rank tracks the active count exactly at scale 50.
-That is the subset mechanism a full layer needs, measured but not yet built into a pipeline.
+That is the subset mechanism a full layer needs, and it is now the pipeline: `--tile` walks base
+points, solves whatever subset each one presents, and merges by cosine between recovered
+directions with no truth involved. At `n=16` with `k=64` - four times the input dimension and
+eight times the response width, a size no single solve can hold - twenty base points and 391680
+oracle points cover 64 of 64, merging 67 distinct directions of which one is spurious. Coverage
+climbs 15, 22, 32, 41, 47, 52 over the first six and closes from there.
 
 Scale, which is what kept this at toy sizes. The minor map has `n^4` rows - 1.8 GiB at `n=16`
 and 15.8 GiB at `n=24`, where the card refused it. Only the null space is wanted and it lives in
@@ -1056,6 +1061,95 @@ def oracle_recovery(
     }
 
 
+def tile_recovery(
+    units: int,
+    input_dim: int,
+    output_dim: int,
+    base_scale: float,
+    trials: int,
+    reader_count: int,
+    rank_cap: int,
+    seed: int,
+    tolerance: float,
+    span_tolerance: float,
+    purity: float,
+    collinearity: float,
+    steps: list[float],
+    direction_multiple: float,
+    device: torch.device,
+) -> dict:
+    """Cover a layer wider than one solve can hold, by solving subsets of it.
+
+    The extraction cost is `(2k)^4` in the coefficient space, so a layer is never one solve: at
+    `k=64` the Gram alone asks for more card than exists. It does not have to be. A base point at
+    scale `S` weights unit `i` by `silu''(g_i.x0)`, which decays, so units under the measurement
+    floor leave the *measured* span and take rank with them - the rank tracks the loud count. Each
+    base point therefore presents a different small subset, and enough of them cover the layer.
+
+    Merging uses no truth. Directions from different base points are the same unit when their
+    cosine says so, and the truth match afterwards only scores what the merge already decided.
+    """
+    teacher = make_teacher(units, input_dim, output_dim, seed, device)
+    generator = torch.Generator(device=device).manual_seed(seed + 101)
+    merged: list[torch.Tensor] = []
+    growth: list[int] = []
+    skipped = 0
+
+    for _ in range(trials):
+        base_point = torch.randn(1, input_dim, generator=generator, device=device, dtype=DTYPE)
+        base_point = base_point / base_point.norm() * base_scale
+        readers = torch.randn(reader_count, output_dim, generator=generator, device=device, dtype=DTYPE)
+        readers = readers / readers.norm(dim=1, keepdim=True)
+        try:
+            span_basis, rank = measured_lifted_span(
+                teacher, base_point, readers, input_dim, steps, direction_multiple, span_tolerance
+            )
+            if rank // 2 > rank_cap:
+                skipped += 1
+                del span_basis
+                torch.cuda.empty_cache()
+                growth.append(len(merged))
+                continue
+            gates, _ = foobi_gates(span_basis, input_dim, tolerance, purity, collinearity, seed + 7)
+            del span_basis
+        except torch.OutOfMemoryError:
+            skipped += 1
+            torch.cuda.empty_cache()
+            growth.append(len(merged))
+            continue
+        torch.cuda.empty_cache()
+        for index in range(gates.shape[0]):
+            direction = gates[index]
+            if any(abs(float(direction @ existing)) >= collinearity for existing in merged):
+                continue
+            merged.append(direction)
+        growth.append(len(merged))
+
+    truth = teacher.gate / teacher.gate.norm(dim=1, keepdim=True)
+    if merged:
+        cosines = (torch.stack(merged) @ truth.T).abs()
+        matched = int((cosines.max(dim=0).values >= 0.99).sum())
+        spurious = int((cosines.max(dim=1).values < 0.99).sum())
+    else:
+        matched, spurious = 0, 0
+    return {
+        "units": units,
+        "inputDim": input_dim,
+        "unitsPerInputDim": units / input_dim,
+        "responseWidth": output_dim,
+        "baseScale": base_scale,
+        "basePoints": trials,
+        "solvesSkippedTooLarge": skipped,
+        "distinctDirectionsMerged": len(merged),
+        "unitsCovered": matched,
+        "coverage": matched / units,
+        "spuriousDirections": spurious,
+        "oracleCallsPoints": teacher.counter.points,
+        "growth": growth,
+        "device": str(truth.device),
+    }
+
+
 def cost_laws(input_dim: int) -> dict:
     """The two measured cost laws, evaluated rather than quoted.
 
@@ -1101,6 +1195,10 @@ def main() -> int:
     parser.add_argument("--readers", type=int, default=2)
     parser.add_argument("--base-count", type=int, default=3)
     parser.add_argument("--span-tolerance", type=float, default=1e-5)
+    parser.add_argument("--tile", type=int, nargs="*", default=None,
+                        help="unit counts to cover by tiling subsets over base points")
+    parser.add_argument("--tile-trials", type=int, default=20)
+    parser.add_argument("--rank-cap", type=int, default=52)
     parser.add_argument("--lifted-sweep", type=int, nargs="*", default=None,
                         help="unit counts to measure the lifted identifiability ceiling at")
     parser.add_argument("--sweep-units", type=int, nargs="*", default=None)
@@ -1130,6 +1228,18 @@ def main() -> int:
     report = {"runs": runs}
     if args.project_dim:
         report["costProjection"] = [cost_laws(dim) for dim in args.project_dim]
+    if args.tile:
+        report["tileRecovery"] = [
+            tile_recovery(
+                units=count, input_dim=args.input_dim, output_dim=args.reach_width,
+                base_scale=args.base_scale, trials=args.tile_trials, reader_count=args.readers,
+                rank_cap=args.rank_cap, seed=args.seed, tolerance=args.rank_tolerance,
+                span_tolerance=args.span_tolerance, purity=args.purity,
+                collinearity=args.collinearity, steps=list(args.steps),
+                direction_multiple=args.direction_multiple, device=device,
+            )
+            for count in args.tile
+        ]
     if args.oracle_recover:
         report["oracleRecovery"] = [
             oracle_recovery(
