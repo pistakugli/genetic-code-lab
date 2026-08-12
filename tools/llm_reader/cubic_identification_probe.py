@@ -140,6 +140,15 @@ Measured, it is `True` at every recovering row and `False` at every failing one 
 returned at `n=8, k=13` against 0 at `k=14`, 20 against 0 at `n=10`, and 30 and 40 returned at
 `n=16`.
 
+Where it stops now, and the way past it. The Gram is `(2k)^2` square, so `k=50` peaks at 4.49
+GiB and returns 50 of 50 while `k=64` runs out of card in the eigendecomposition. Pushing `k`
+further is the wrong move: the answer is fewer units per solve. A distant base point weights unit
+`i` by `silu''(g_i.x0)`, which decays, so units below the measurement floor drop out of the
+*measured* span and the rank falls with them. Measured at `n=16`, `k=64`, four base points and
+four readers: rank 128 at scales 1 through 25 with all 64 units loud, then 123 at scale 50 where
+61 are, and 99 at scale 100 where 44 are. The rank tracks the active count exactly at scale 50.
+That is the subset mechanism a full layer needs, measured but not yet built into a pipeline.
+
 Scale, which is what kept this at toy sizes. The minor map has `n^4` rows - 1.8 GiB at `n=16`
 and 15.8 GiB at `n=24`, where the card refused it. Only the null space is wanted and it lives in
 the Gram matrix, which contracts to traces:
@@ -868,17 +877,29 @@ def minor_gram(basis_matrices: torch.Tensor) -> torch.Tensor:
     dimension only enters through matrix products of size `n`.
     """
     symmetric = (basis_matrices + basis_matrices.transpose(1, 2)) / 2
+    count = symmetric.shape[0]
     inner = torch.einsum("rij,sij->rs", symmetric, symmetric)
     products = torch.einsum("rab,sbc->rsac", symmetric, symmetric)
-    first = torch.einsum("ruab,svba->rsuv", products, products)
-    second = torch.einsum("rvab,suba->rsuv", products, products)
-    gram = (
-        torch.einsum("ru,sv->rsuv", inner, inner)
-        + torch.einsum("rv,su->rsuv", inner, inner)
-        - first
-        - second
-    )
-    count = symmetric.shape[0]
+    transposed = products.transpose(2, 3).contiguous()
+
+    # Blocked over the first index. The result is `(2k)^2` square and unavoidable, but forming
+    # the two trace terms whole needs two more tensors of that size at once, which is what put a
+    # `k=64` run 2 GiB over a 7.65 GiB card. A block of rows costs `block * (2k)^3` instead.
+    gram = torch.empty((count, count, count, count), device=symmetric.device, dtype=DTYPE)
+    block = max(1, min(count, int(2 ** 26 // max(count ** 3, 1)) or 1))
+    for start in range(0, count, block):
+        stop = min(start + block, count)
+        head = products[start:stop]
+        first = torch.einsum("ruab,svba->rsuv", head, products)
+        second = torch.einsum("rvab,suba->rsuv", head, products)
+        gram[start:stop] = (
+            torch.einsum("ru,sv->rsuv", inner[start:stop], inner)
+            + torch.einsum("rv,su->rsuv", inner[start:stop], inner)
+            - first
+            - second
+        )
+        del first, second
+    del products, transposed
     return gram.reshape(count * count, count * count)
 
 
