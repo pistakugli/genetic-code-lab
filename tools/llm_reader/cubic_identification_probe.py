@@ -201,6 +201,20 @@ same rank, and `A=1` stops at 12 however many readers it gets. Through the whole
 
 A wider answer now makes the read *cheaper*, where in the boundary route it was the ceiling.
 
+Probing inside a subspace cuts the per-solve cost again, and hands back something less than a
+unit. Restricting the input to a random `d`-dimensional `V` leaves a SwiGLU with gates `P_V g_i`,
+so everything above applies with `n` replaced by `d` and a base point costs `12 d^2`. Measured at
+`n=64`, `k=64`, `m=32`, base scale 150: `d=24` returns 12 gates all matching the projected truth
+at median cosine `0.999966` for 10392 points, and `d=16` returns 12 at `0.999849` for 4888 -
+`4.7x` and `10.1x` against probing the full input.
+
+Whether that is a saving depends on `n` and the honest accounting says so. What comes back is
+`P_V g_i`, so a unit needs seeing in about `n/d` subspaces before its direction is determined,
+and stitching those together is not implemented here. Carrying that factor: subspace probing is
+about `k n d` against `0.27 k n^2` for the full input, so the ratio is `3.7 d/n` - `0.93` at
+`n=64` where it buys nothing, `0.23` at 256, `0.019` at 3072. It is a large-`n` mechanism, which
+is the regime that matters, and it is one implemented solve short of being usable.
+
 It is still not a layer, and the arithmetic should be read rather than rounded off. At `n=3072`
 the response width pins anchors at the floor of two, so a base point is about `1.1e8` points, and
 base points grow about `k/4` - 2048 of them for 8192 units, so `1.9e11`. The boundary route spent
@@ -982,6 +996,97 @@ def minor_map(basis_matrices: torch.Tensor) -> torch.Tensor:
         - torch.einsum("sil,rkj->rsijkl", symmetric, symmetric)
     ) / 2.0
     return minors.reshape(count * count, -1).T
+
+
+class SubspaceOracle:
+    """The same block seen through a `d`-dimensional slice of its input.
+
+    Restricting `x` to a subspace `V` leaves a SwiGLU with gates `P_V g_i` and ups `P_V u_i`, so
+    everything above applies with `n` replaced by `d`. A base point costs `12 d^2` instead of
+    `12 n^2`, and the counter still charges the real oracle, because the restriction is a choice
+    of where to probe rather than a different machine.
+
+    What comes back is the projection, not the unit. Recovering `g_i` from projections means
+    stitching across overlapping subspaces, which is not implemented here.
+    """
+
+    def __init__(self, teacher: Teacher, basis: torch.Tensor) -> None:
+        self.teacher = teacher
+        self.basis = basis
+        self.counter = teacher.counter
+
+    def __call__(self, points: torch.Tensor) -> torch.Tensor:
+        return self.teacher(points @ self.basis.T)
+
+
+def subspace_probe(
+    units: int,
+    input_dim: int,
+    output_dim: int,
+    subspace_dim: int,
+    base_scale: float,
+    rank_cap: int,
+    seed: int,
+    tolerance: float,
+    span_tolerance: float,
+    purity: float,
+    collinearity: float,
+    steps: list[float],
+    device: torch.device,
+) -> dict:
+    """One solve inside a random subspace, scored against the projected gates."""
+    teacher = make_teacher(units, input_dim, output_dim, seed, device)
+    generator = torch.Generator(device=device).manual_seed(seed + 9)
+    basis, _ = torch.linalg.qr(
+        torch.randn(input_dim, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+    )
+    oracle = SubspaceOracle(teacher, basis)
+
+    base_point = torch.randn(subspace_dim, generator=generator, device=device, dtype=DTYPE)
+    base_point = base_point / base_point.norm() * base_scale
+    readers = torch.randn(output_dim, output_dim, generator=generator, device=device, dtype=DTYPE)
+    readers = readers / readers.norm(dim=1, keepdim=True)
+    anchors = torch.randn(3, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+    anchors = anchors / anchors.norm(dim=1, keepdim=True)
+
+    before = teacher.counter.points
+    span_basis, rank = measured_lifted_span_by_slices(
+        oracle, base_point, readers, anchors, subspace_dim, steps, span_tolerance
+    )
+    calls = teacher.counter.points - before
+    if rank // 2 > rank_cap:
+        del span_basis
+        torch.cuda.empty_cache()
+        return {
+            "subspaceDim": subspace_dim, "baseScale": base_scale, "spanRank": rank,
+            "tooLargeForSolve": True, "oracleCallsPoints": calls, "device": str(basis.device),
+        }
+    gates, _ = foobi_gates(span_basis, subspace_dim, tolerance, purity, collinearity, seed + 7)
+    del span_basis
+    torch.cuda.empty_cache()
+
+    projected = teacher.gate @ basis
+    projected = projected / projected.norm(dim=1, keepdim=True)
+    best = (
+        (gates @ projected.T).abs().max(dim=1).values
+        if gates.shape[0] > 0
+        else torch.zeros(1, device=device, dtype=DTYPE)
+    )
+    return {
+        "units": units,
+        "inputDim": input_dim,
+        "subspaceDim": subspace_dim,
+        "baseScale": base_scale,
+        "spanRank": rank,
+        "tooLargeForSolve": False,
+        "gatesReturned": int(gates.shape[0]),
+        "gatesMatchingProjection": int((best >= 0.99).sum()),
+        "medianCosine": float(best.median()),
+        "oracleCallsPoints": calls,
+        "callsAgainstFullDim": (12 * input_dim * input_dim) / max(calls, 1),
+        "recoversProjectionsOnly": True,
+        "device": str(basis.device),
+    }
 
 
 def minor_gram(basis_matrices: torch.Tensor) -> torch.Tensor:
