@@ -154,6 +154,27 @@ eight times the response width, a size no single solve can hold - twenty base po
 oracle points cover 64 of 64, merging 67 distinct directions of which one is spurious. Coverage
 climbs 15, 22, 32, 41, 47, 52 over the first six and closes from there.
 
+How that scales, and where it does not. The distance is chosen by probe rather than by hand,
+since the loud count at a given distance grows with the layer. Measured at `n=16`, rank cap 45:
+
+| units | scale | base points | covered | spurious | oracle points |
+| --- | --- | --- | --- | --- | --- |
+| 16 | 4 | 10 | 16/16 | 0 | 215424 |
+| 32 | 4 | 15 | 32/32 | 0 | 313344 |
+| 64 | 60 | 20 | 63/64 | 2 | 450432 |
+| 128 | 120 | 30 | 120/128 | 4 | 665856 |
+
+`k=128` is eight times the input dimension and sixteen times the response width. Coverage decays
+slowly while base points grow about `k/4`. The probe rule is not optimal and the table says so:
+at `k=64` it takes 60 and covers 63, where the hand-tuned 120 covered all 64 - the first distance
+that fits is not the one that separates best.
+
+The cost does not reach a real layer, and it would take a measurement that does not exist to say
+otherwise. Each base point pays the full-tensor route, `4n(n+1)(n+2)`, which is `1.16e11` points
+at `n=3072` before any tiling; slices would bring that to roughly `3.4e9` per base point, times
+base points growing with `k`. What is measured is that the identification holds to sixteen times
+the response width. The arithmetic to 3072 is where it stops.
+
 Scale, which is what kept this at toy sizes. The minor map has `n^4` rows - 1.8 GiB at `n=16`
 and 15.8 GiB at `n=24`, where the card refused it. Only the null space is wanted and it lives in
 the Gram matrix, which contracts to traces:
