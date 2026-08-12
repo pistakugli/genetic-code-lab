@@ -127,12 +127,29 @@ Measured at `n=8`, where the pencil ceiling is 4 units:
 | 13 | 1.63 | 13/13 | 0.999999999999999 |
 | 14 | 1.75 | 0/14 | - |
 
-Three seeds each, and the seeds agree at every row including the failure. The break at 14 is
-where the isolation bound `(n^2-n+2)/4 = 14.5` says the solutions stop being isolated, so the
-solver runs out exactly where the geometry does rather than somewhere of its own.
+Three seeds each, and the seeds agree at every row including the failure.
 
-That is the overcomplete recovery this file said it did not have. `k > n` is recovered, and the
-ceiling is now the isolation bound rather than any property of the algorithm.
+That last sentence used to read that the solver runs out exactly where the geometry does, and
+scanning `n=10` showed it does not. There the last working count is 20 and 21 fails - three
+seeds each way - while the isolation bound allows 23. So the solver stops one below the bound at
+`n=8` and three below it at `n=10`: near the geometry, not at it, and two points are not a law.
+
+What does say when to trust a run, without any truth to compare against, is the null space
+dimension. It should be exactly the `k` symmetric directions `c (x) c` plus the `k(2k-1)`
+antisymmetric ones that are there by construction. Measured at `n=10`: `741` at `k=19` and `820`
+at `k=20`, both exactly `k(2k-1) + 2k`, both recovering fully; `939` at `k=21` against `903`
+predicted, an excess of 36, recovering nothing. The run can report `nullityExcess` and say
+whether to believe itself.
+
+From the oracle, not from a span. The paragraph above used to end by admitting that `W` was
+built analytically from the true gates and ups. It is now measured: third derivatives along
+lines through several base points, every probe point charged to the counter, no weight read
+anywhere. At `n=8` with four base points and two readers, 11520 oracle points return 13 of 13
+gates at median cosine `0.999998`, and 10 units - already overcomplete - come back 10/10 for
+8640. One bug had to be fixed to get there: the measured span and the minor null space were
+sharing a rank threshold, and at `1e-8` the span admitted three noise directions as real ones,
+reporting rank 27 where `2k = 24` and recovering nothing. They are separate numbers now, and the
+span's is set by the measurement error rather than by arithmetic.
 
 This is a measurement harness against a synthetic teacher, in the idiom of
 `jacobian_jump_probe.py`. It is not wired into a lane. Run it directly.
@@ -735,6 +752,76 @@ def lifted_reach(
     }
 
 
+def measure_cubic_forms_at(
+    teacher: Teacher,
+    base_point: torch.Tensor,
+    directions: torch.Tensor,
+    steps: list[float],
+) -> torch.Tensor:
+    """Third derivative along lines through `base_point`, returned as a vector.
+
+    Two differences from the origin version, both forced. The function is not homogeneous around
+    a base point, so the length trick that let `phi(v) = |v|^3 phi(v/|v|)` rescale the probe is
+    gone and the directions have to be unit already. And the whole output vector comes back
+    rather than one reader's projection, because readers are free once the points are paid for -
+    the oracle answers `m` numbers per call whether one of them is read or all of them.
+    """
+    estimates = []
+    for step in steps:
+        offsets = [2.0 * step, step, -step, -2.0 * step]
+        values = [teacher(base_point[None, :] + directions * offset) for offset in offsets]
+        estimates.append((values[0] - 2.0 * values[1] + 2.0 * values[2] - values[3]) / (2.0 * step ** 3))
+    stacked = torch.stack(estimates, dim=0)
+    if len(steps) == 1:
+        return stacked[0]
+    step_squares = torch.tensor([[1.0, s ** 2] for s in steps], device=directions.device, dtype=DTYPE)
+    solution = torch.linalg.lstsq(step_squares, stacked.reshape(len(steps), -1)).solution
+    return solution[0].reshape(stacked.shape[1], stacked.shape[2])
+
+
+def measured_lifted_span(
+    teacher: Teacher,
+    base_points: torch.Tensor,
+    readers: torch.Tensor,
+    input_dim: int,
+    steps: list[float],
+    direction_multiple: float,
+    tolerance: float,
+) -> tuple[torch.Tensor, int]:
+    """Build `W` from what the oracle answers, not from the weights.
+
+    The rank threshold here is not the one the minor null space uses, and conflating them is a
+    bug this file had: the span is built from *measured* tensors carrying about `1e-8` relative
+    error, so a cutoff at `1e-8` admits noise directions as real ones. Measured at `n=8`, `k=12`:
+    the span came back rank 27 where `2k = 24`, and those three noise directions took the
+    recovery from 12/12 to 0/12. The null space, by contrast, is computed in exact arithmetic
+    from an orthonormal basis and wants a tight cutoff. Two numbers, two names.
+
+    Every measured tensor `S` at a base point satisfies
+    `S(.,.,e_c) = sum_i [alpha_i g_c + (beta_i/3) u_c] g_i g_i^T + (beta_i/3) g_c sym(g_i u_i^T)`,
+    so each of its `n` slices already lies inside `span{g_i (x) g_i, sym(g_i (x) u_i)}`. Collecting
+    slices across base points and readers therefore fills `W` from below, and the rank stops at
+    `2k` when it is full. This is the step that turns the recovery above from a statement about a
+    span into a statement about an oracle.
+    """
+    coefficient_count = len(monomial_index(input_dim))
+    direction_count = int(math.ceil(direction_multiple * coefficient_count))
+    generator = torch.Generator(device=base_points.device).manual_seed(17)
+    directions = torch.randn(direction_count, input_dim, generator=generator, device=base_points.device, dtype=DTYPE)
+    directions = directions / directions.norm(dim=1, keepdim=True)
+
+    slices: list[torch.Tensor] = []
+    for index in range(base_points.shape[0]):
+        forms = measure_cubic_forms_at(teacher, base_points[index], directions, steps)
+        for reader in readers:
+            tensor = recover_symmetric_tensor(directions, forms @ reader, input_dim)
+            slices.append(tensor.permute(2, 0, 1).reshape(input_dim, -1))
+    stacked = torch.cat(slices, dim=0)
+    left, spectrum, _ = torch.linalg.svd(stacked.T, full_matrices=False)
+    rank = int((spectrum > spectrum[0] * tolerance).sum())
+    return left[:, :rank], rank
+
+
 def minor_map(basis_matrices: torch.Tensor) -> torch.Tensor:
     """The 2x2 minors of `M = sum_r c_r B_r`, as a linear map on `c (x) c`.
 
@@ -843,10 +930,72 @@ def overcomplete_recovery(
         "pencilCeiling": input_dim // 2,
         "isolatedSolutionCeiling": (input_dim * input_dim - input_dim + 2) // 4,
         "nullity": nullity,
+        "nullityExcess": nullity - (units * (2 * units - 1) + 2 * units),
         "gatesReturned": int(gates.shape[0]),
         "gatesAbove0.99": int((best >= 0.99).sum()),
         "gatesAbove0.999": int((best >= 0.999).sum()),
         "medianCosine": float(best.median()),
+        "device": str(span_basis.device),
+    }
+
+
+def oracle_recovery(
+    units: int,
+    input_dim: int,
+    output_dim: int,
+    base_point_count: int,
+    reader_count: int,
+    base_scale: float,
+    seed: int,
+    tolerance: float,
+    span_tolerance: float,
+    purity: float,
+    collinearity: float,
+    steps: list[float],
+    direction_multiple: float,
+    device: torch.device,
+) -> dict:
+    """Oracle to gates, with nothing read off the weights and every point charged."""
+    teacher = make_teacher(units, input_dim, output_dim, seed, device)
+    generator = torch.Generator(device=device).manual_seed(seed + 23)
+    base_points = torch.randn(base_point_count, input_dim, generator=generator, device=device, dtype=DTYPE)
+    base_points = base_points / base_points.norm(dim=1, keepdim=True) * base_scale
+    readers = torch.randn(reader_count, output_dim, generator=generator, device=device, dtype=DTYPE)
+    readers = readers / readers.norm(dim=1, keepdim=True)
+
+    span_basis, span_rank = measured_lifted_span(
+        teacher, base_points, readers, input_dim, steps, direction_multiple, span_tolerance
+    )
+    gates, nullity = foobi_gates(span_basis, input_dim, tolerance, purity, collinearity, seed + 3)
+    truth = teacher.gate / teacher.gate.norm(dim=1, keepdim=True)
+    best = (
+        (gates @ truth.T).abs().max(dim=0).values
+        if gates.shape[0] > 0
+        else torch.zeros(units, device=device, dtype=DTYPE)
+    )
+    return {
+        "units": units,
+        "inputDim": input_dim,
+        "responseWidth": output_dim,
+        "unitsPerInputDim": units / input_dim,
+        "overcomplete": units > input_dim,
+        "basePoints": base_point_count,
+        "readers": reader_count,
+        "measuredSpanRank": span_rank,
+        "spanRankIsTwoK": span_rank == 2 * units,
+        "spanTolerance": span_tolerance,
+        "nullity": nullity,
+        # A check that needs no truth. The minor null space should be exactly the k symmetric
+        # directions `c (x) c` plus the `2k(2k-1)/2` antisymmetric ones that are there by
+        # construction, so `k(2k-1) + 2k` is what a healthy run reports. Measured at n=10: exact
+        # at k=19 and k=20, both of which recover fully, and 36 too many at k=21, which recovers
+        # nothing. So the run can say whether to trust itself.
+        "nullityExcess": nullity - (units * (2 * units - 1) + 2 * units),
+        "gatesReturned": int(gates.shape[0]),
+        "gatesAbove0.99": int((best >= 0.99).sum()),
+        "gatesAbove0.999": int((best >= 0.999).sum()),
+        "medianCosine": float(best.median()),
+        "oracleCallsPoints": teacher.counter.points,
         "device": str(span_basis.device),
     }
 
@@ -890,6 +1039,12 @@ def main() -> int:
     parser.add_argument("--recover-sweep", type=int, nargs="*", default=None,
                         help="unit counts to run the overcomplete recovery at")
     parser.add_argument("--purity", type=float, default=0.9)
+    parser.add_argument("--oracle-recover", type=int, nargs="*", default=None,
+                        help="unit counts to run oracle-to-gates recovery at")
+    parser.add_argument("--base-scale", type=float, default=1.0)
+    parser.add_argument("--readers", type=int, default=2)
+    parser.add_argument("--base-count", type=int, default=3)
+    parser.add_argument("--span-tolerance", type=float, default=1e-5)
     parser.add_argument("--lifted-sweep", type=int, nargs="*", default=None,
                         help="unit counts to measure the lifted identifiability ceiling at")
     parser.add_argument("--sweep-units", type=int, nargs="*", default=None)
@@ -919,6 +1074,18 @@ def main() -> int:
     report = {"runs": runs}
     if args.project_dim:
         report["costProjection"] = [cost_laws(dim) for dim in args.project_dim]
+    if args.oracle_recover:
+        report["oracleRecovery"] = [
+            oracle_recovery(
+                units=count, input_dim=args.input_dim, output_dim=args.reach_width,
+                base_point_count=args.base_count, reader_count=args.readers,
+                base_scale=args.base_scale, seed=args.seed, tolerance=args.rank_tolerance,
+                span_tolerance=args.span_tolerance,
+                purity=args.purity, collinearity=args.collinearity, steps=list(args.steps),
+                direction_multiple=args.direction_multiple, device=device,
+            )
+            for count in args.oracle_recover
+        ]
     if args.recover_sweep:
         report["overcompleteRecovery"] = [
             overcomplete_recovery(
