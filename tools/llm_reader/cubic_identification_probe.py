@@ -216,6 +216,16 @@ scale. The partition makes the assembly exact rather than a fit. Measured at `n=
 `d=16`, `e=8`, seven blocks: 5 groups cover every block and all 5 assemble to full-dimension
 gates above cosine 0.99, median `0.999802`, for 34216 points - 6843 a gate.
 
+What limits this is per-block recall, and the measurement says where it is not. At a shared base
+point 19 of 64 units are loud, the measured span in each block has rank 45 to 50 - so the span
+holds them - and every direction returned is correct. The solve returns 8 to 11 of about 23. So
+the loss is the solver's recall, not the localisation and not the span. Drawing several random
+pencils instead of one recovers strictly more of the same span at no cost in precision: 10
+directions all correct from one draw, 15 all correct from five. Lowering the purity test buys
+recall with precision instead, which is not a trade worth making - 0.7 gives 23 at precision
+0.870 and 0.3 gives 77 at 0.338. Through the pipeline that is 67 local recoveries to 91, five
+assembled gates to six, and 6843 points a gate to 5702.
+
 The base point has to live in the core, and that was the difference between working and not.
 With a fresh base point per subspace each one localises onto a different subset, so a unit is
 almost never seen twice: 52 groups from 67 recoveries, nothing assembled above 0.85. In the core
@@ -1271,6 +1281,7 @@ def foobi_gates(
     purity: float,
     collinearity: float,
     seed: int,
+    attempts: int = 5,
 ) -> tuple[torch.Tensor, int]:
     """Recover the gate directions from the lifted span, including when `k > n`.
 
@@ -1291,29 +1302,36 @@ def foobi_gates(
         return torch.zeros((0, input_dim), device=span_basis.device, dtype=DTYPE), nullity
     null_space = vectors[:, :nullity].T.reshape(-1, count, count)
 
-    generator = torch.Generator(device=span_basis.device).manual_seed(seed)
-    left_mix = torch.randn(nullity, generator=generator, device=span_basis.device, dtype=DTYPE)
-    right_mix = torch.randn(nullity, generator=generator, device=span_basis.device, dtype=DTYPE)
-    first = torch.einsum("q,qrs->rs", left_mix, null_space)
-    second = torch.einsum("q,qrs->rs", right_mix, null_space)
-    first = (first + first.T) / 2
-    second = (second + second.T) / 2
-    _, coefficients = torch.linalg.eig(first @ torch.linalg.pinv(second))
-
+    # One random pencil does not separate every eigenvalue it could. Which units come back
+    # depends on the mixing vectors, so several draws recover strictly more of the same span at
+    # no cost in precision - measured on a span of rank 46 from a subspace solve: one draw
+    # returns 10 directions, all correct; five return 15, all correct. Lowering the purity test
+    # instead buys recall with precision, which is not a trade worth making: 0.7 gives 23 at
+    # 0.870, and 0.3 gives 77 at 0.338.
     kept: list[torch.Tensor] = []
-    for column in range(coefficients.real.shape[1]):
-        candidate = torch.einsum("r,rij->ij", coefficients.real[:, column], basis_matrices)
-        candidate = (candidate + candidate.T) / 2
-        values, vectors = torch.linalg.eigh(candidate)
-        magnitude = values.abs()
-        if float(magnitude.max()) <= 0:
-            continue
-        if float(magnitude.max() / magnitude.sum().clamp_min(1e-300)) <= purity:
-            continue
-        direction = vectors[:, int(magnitude.argmax())]
-        if any(abs(float(direction @ existing)) >= collinearity for existing in kept):
-            continue
-        kept.append(direction)
+    for attempt in range(max(1, attempts)):
+        generator = torch.Generator(device=span_basis.device).manual_seed(seed + 13 * attempt)
+        left_mix = torch.randn(nullity, generator=generator, device=span_basis.device, dtype=DTYPE)
+        right_mix = torch.randn(nullity, generator=generator, device=span_basis.device, dtype=DTYPE)
+        first = torch.einsum("q,qrs->rs", left_mix, null_space)
+        second = torch.einsum("q,qrs->rs", right_mix, null_space)
+        first = (first + first.T) / 2
+        second = (second + second.T) / 2
+        _, coefficients = torch.linalg.eig(first @ torch.linalg.pinv(second))
+
+        for column in range(coefficients.real.shape[1]):
+            candidate = torch.einsum("r,rij->ij", coefficients.real[:, column], basis_matrices)
+            candidate = (candidate + candidate.T) / 2
+            values, vectors = torch.linalg.eigh(candidate)
+            magnitude = values.abs()
+            if float(magnitude.max()) <= 0:
+                continue
+            if float(magnitude.max() / magnitude.sum().clamp_min(1e-300)) <= purity:
+                continue
+            direction = vectors[:, int(magnitude.argmax())]
+            if any(abs(float(direction @ existing)) >= collinearity for existing in kept):
+                continue
+            kept.append(direction)
     if not kept:
         return torch.zeros((0, input_dim), device=span_basis.device, dtype=DTYPE), nullity
     return torch.stack(kept), nullity
