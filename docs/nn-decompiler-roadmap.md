@@ -2553,6 +2553,29 @@ The rank is `min(k, m*P)` at every point, and the conditioning stays between `1.
 `4.5e-01` across two seeds, so the separation is real rather than a rank counted at a threshold.
 The same law asks for three base points to reach 8192 units behind a 3072-wide answer.
 
+And the input dimension is not the last wall either. The pencil stops at `2k <= n` because it
+diagonalises in `R^n`, where each unit costs two of `n` directions. The `(ab)` unfolding of the
+same tensor puts each unit in `Sym^2(R^n)` - `g (x) g` and `sym(g (x) u)` - where the room is
+`n(n+1)/2`, quadratic where it was linear. Measured at `n=10`, whose pencil ceiling is 5:
+
+| units `k` | `2k` | span rank | smallest/largest singular value |
+| --- | --- | --- | --- |
+| 5 | 10 | 10 | 1.82e-01 |
+| 12 | 24 | 24 | 7.93e-02 |
+| 25 | 50 | 50 | 1.59e-02 |
+| 27 | 54 | 54 | 1.13e-03 |
+| 28 | 56 | 55 | 8.86e-17 |
+
+The rank is `min(2k, n(n+1)/2)` at every setting and the collapse lands exactly where `2k`
+passes the room, so the ceiling is `k <= n(n+1)/4`: 27 units at `n=10` against the pencil's 5,
+and **2360064** at `n=3072` against 1536.
+
+Which puts 8192 nowhere near any of the three walls this measured - response width, input
+dimension, or lifted room. Identifiability is not what is stopping a whole layer. The extraction
+is: recovering the `g_i` means finding the rank-1 elements of that lifted span, a FOOBI-class
+step that is not implemented. That is the one gate left, and it is an algorithm to write rather
+than a bound to argue with.
+
 What this changes and what it does not. The units behind a too-narrow answer are separable in
 what the oracle can be made to show - that is the necessary condition, and it is now measured
 rather than assumed against. It is not a recovery: the pencil still needs `2k <= n`, and nothing

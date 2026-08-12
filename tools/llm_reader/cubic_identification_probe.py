@@ -68,8 +68,21 @@ threshold. For a 3072-wide answer over 8192 units the same law asks for three ba
 What that is and is not. It is the necessary condition - the units' contributions are separable
 in what the oracle can be made to show - measured, conditioned, and reproducible through
 `--base-point-sweep`. It is not a recovery run: the pencil above still needs `2k <= n`, and no
-decomposition here yet recovers `k > n` units. The next gate is that decomposition, and this
-file's contribution is that the wall it has to beat is `n`, not `m`.
+decomposition here yet recovers `k > n` units.
+
+And the wall the next decomposition has to beat is not `n` either. The pencil stops at `2k <= n`
+because it diagonalises in `R^n`, where each unit costs two of `n` directions. The `(ab)`
+unfolding of the same tensor puts each unit in `Sym^2(R^n)` instead, as `g (x) g` and
+`sym(g (x) u)`, and there the room is `n(n+1)/2` - quadratic where it was linear. Measured
+(`--lifted-sweep`): the span's rank is `min(2k, n(n+1)/2)` at every setting, so the ceiling is
+`k <= n(n+1)/4`. At `n=10` that is 27 units against the pencil's 5, holding at 1.13e-03 for
+`k=27` and collapsing to 8.9e-17 at `k=28`, which is exactly where `2k` passes the room. For a
+3072-wide input it is **2360064** units against the pencil's 1536, and 8192 is nowhere near it.
+
+So the whole layer is not blocked by identifiability at any of the three walls this file
+measured - response width, input dimension, or lifted room. What is missing is the extraction:
+recovering the `g_i` means finding the rank-1 elements of that lifted span, a FOOBI-class step
+that is not implemented here. That is the next gate, and it is now the only one left standing.
 
 This is a measurement harness against a synthetic teacher, in the idiom of
 `jacobian_jump_probe.py`. It is not wired into a lane. Run it directly.
@@ -619,6 +632,50 @@ def base_point_reach(
     }
 
 
+def lifted_reach(
+    units: int,
+    input_dim: int,
+    output_dim: int,
+    seed: int,
+    tolerance: float,
+    device: torch.device,
+) -> dict:
+    """Where the ceiling goes once the unit is a point in `Sym^2` instead of a vector in `R^n`.
+
+    The pencil stops at `2k <= n` because it diagonalises in `R^n`, where `k` units contribute
+    `2k` directions and there is only room for `n`. The `(ab)` unfolding of the same tensor puts
+    each unit in `Sym^2(R^n)` instead - `g (x) g` and `sym(g (x) u)` - and that space has
+    dimension `n(n+1)/2`, which is quadratic where the old room was linear.
+
+    Measured here as the rank of that span, with the conditioning next to it because a rank at a
+    threshold proves nothing on its own: `min(2k, n(n+1)/2)` at every setting, so the ceiling is
+    `k <= n(n+1)/4`. At `n=10` that is 27 units against the pencil's 5, and the span for `k=25` -
+    two and a half times overcomplete - separates at 1.6e-02.
+
+    This is the identifiability ceiling, not a recovery. Extracting the `g_i` means finding the
+    rank-1 elements of that span, which is a FOOBI-class step and is not implemented here.
+    """
+    teacher = make_teacher(units, input_dim, output_dim, seed, device)
+    gate, up = teacher.gate, teacher.up
+    gate_outer = torch.einsum("ia,ib->iab", gate, gate)
+    mixed = (torch.einsum("ia,ib->iab", gate, up) + torch.einsum("ia,ib->iab", up, gate)) / 2.0
+    span = torch.cat([gate_outer, mixed], dim=0).reshape(2 * units, -1)
+    spectrum = torch.linalg.svdvals(span)
+    rank = int((spectrum > spectrum[0] * tolerance).sum())
+    room = input_dim * (input_dim + 1) // 2
+    return {
+        "units": units,
+        "inputDim": input_dim,
+        "liftedRoom": room,
+        "spanRank": rank,
+        "rankMatchesMin2KRoom": rank == min(2 * units, room),
+        "conditioning": float(spectrum[min(2 * units, spectrum.shape[0]) - 1] / spectrum[0]),
+        "pencilCeiling": input_dim // 2,
+        "liftedCeiling": room // 2,
+        "device": str(span.device),
+    }
+
+
 def cost_laws(input_dim: int) -> dict:
     """The two measured cost laws, evaluated rather than quoted.
 
@@ -655,6 +712,8 @@ def main() -> int:
                         help="base-point counts to measure the response-width ceiling against")
     parser.add_argument("--reach-units", type=int, default=40)
     parser.add_argument("--reach-width", type=int, default=8)
+    parser.add_argument("--lifted-sweep", type=int, nargs="*", default=None,
+                        help="unit counts to measure the lifted identifiability ceiling at")
     parser.add_argument("--sweep-units", type=int, nargs="*", default=None)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--output-json", type=str, default=None)
@@ -682,6 +741,18 @@ def main() -> int:
     report = {"runs": runs}
     if args.project_dim:
         report["costProjection"] = [cost_laws(dim) for dim in args.project_dim]
+    if args.lifted_sweep:
+        report["liftedReach"] = [
+            lifted_reach(
+                units=count,
+                input_dim=args.input_dim,
+                output_dim=args.reach_width,
+                seed=args.seed,
+                tolerance=args.rank_tolerance,
+                device=device,
+            )
+            for count in args.lifted_sweep
+        ]
     if args.base_point_sweep:
         report["basePointReach"] = [
             base_point_reach(
