@@ -134,12 +134,19 @@ scanning `n=10` showed it does not. There the last working count is 20 and 21 fa
 seeds each way - while the isolation bound allows 23. So the solver stops one below the bound at
 `n=8` and three below it at `n=10`: near the geometry, not at it, and two points are not a law.
 
-What does say when to trust a run, without any truth to compare against, is the null space
-dimension. It should be exactly the `k` symmetric directions `c (x) c` plus the `k(2k-1)`
-antisymmetric ones that are there by construction. Measured at `n=10`: `741` at `k=19` and `820`
-at `k=20`, both exactly `k(2k-1) + 2k`, both recovering fully; `939` at `k=21` against `903`
-predicted, an excess of 36, recovering nothing. The run can report `nullityExcess` and say
-whether to believe itself.
+What says when to trust a run, without any truth to compare against, is the count: the span has
+rank `2k` when the units are separable, so a healthy run returns exactly that many halves.
+Measured, it is `True` at every recovering row and `False` at every failing one - 13 of 13
+returned at `n=8, k=13` against 0 at `k=14`, 20 against 0 at `n=10`, and 30 and 40 returned at
+`n=16`.
+
+Scale, which is what kept this at toy sizes. The minor map has `n^4` rows - 1.8 GiB at `n=16`
+and 15.8 GiB at `n=24`, where the card refused it. Only the null space is wanted and it lives in
+the Gram matrix, which contracts to traces:
+`<Phi(A,B),Phi(C,D)> = <A,C><B,D> + <A,D><B,C> - tr(ACBD) - tr(ADBC)`. Checked against the
+explicit product at `n=8`: relative difference `5.9e-16`, nullity identical. Memory stops
+depending on `n` - `n=24, k=30` now runs in 0.59 GiB and returns 30 of 30, and `n=16, k=40`
+returns 40 of 40 at two and a half times overcomplete.
 
 From the oracle, not from a span. The paragraph above used to end by admitting that `W` was
 built analytically from the true gates and ups. It is now measured: third derivatives along
@@ -846,6 +853,35 @@ def minor_map(basis_matrices: torch.Tensor) -> torch.Tensor:
     return minors.reshape(count * count, -1).T
 
 
+def minor_gram(basis_matrices: torch.Tensor) -> torch.Tensor:
+    """`Psi^T Psi` without ever forming `Psi`, whose row count is `n^4`.
+
+    The explicit minor map is what stopped this method at toy sizes: `n^4` rows against `(2k)^2`
+    columns is 1.8 GiB at `n=16` and 15.8 GiB at `n=24`, so the card refused the second one. Only
+    the null space is wanted, and that lives in the Gram matrix, which contracts to traces:
+
+        <Phi(A,B), Phi(C,D)> = <A,C><B,D> + <A,D><B,C> - tr(ACBD) - tr(ADBC)
+
+    Checked against the explicit product at `n=8`: relative difference `5.9e-16` for `k=6` and
+    `1.6e-15` for `k=10`, with the nullity identical at 78 and 210. Memory drops from 4.5 MiB to
+    0.16 MiB there, and stops depending on `n` at all - the cost is now `(2k)^4` and the input
+    dimension only enters through matrix products of size `n`.
+    """
+    symmetric = (basis_matrices + basis_matrices.transpose(1, 2)) / 2
+    inner = torch.einsum("rij,sij->rs", symmetric, symmetric)
+    products = torch.einsum("rab,sbc->rsac", symmetric, symmetric)
+    first = torch.einsum("ruab,svba->rsuv", products, products)
+    second = torch.einsum("rvab,suba->rsuv", products, products)
+    gram = (
+        torch.einsum("ru,sv->rsuv", inner, inner)
+        + torch.einsum("rv,su->rsuv", inner, inner)
+        - first
+        - second
+    )
+    count = symmetric.shape[0]
+    return gram.reshape(count * count, count * count)
+
+
 def foobi_gates(
     span_basis: torch.Tensor,
     input_dim: int,
@@ -864,13 +900,14 @@ def foobi_gates(
     """
     count = span_basis.shape[1]
     basis_matrices = span_basis.T.reshape(count, input_dim, input_dim)
-    mapped = minor_map(basis_matrices)
-    spectrum = torch.linalg.svdvals(mapped)
-    _, _, right = torch.linalg.svd(mapped, full_matrices=True)
-    nullity = int((spectrum < spectrum[0] * tolerance).sum()) + max(0, mapped.shape[1] - spectrum.shape[0])
+    gram = minor_gram(basis_matrices)
+    values, vectors = torch.linalg.eigh(gram)
+    # `gram` is `Psi^T Psi`, so its eigenvalues are the squared singular values of `Psi` and the
+    # cutoff has to be squared with them.
+    nullity = int((values < values.max() * tolerance * tolerance).sum())
     if nullity < 2:
         return torch.zeros((0, input_dim), device=span_basis.device, dtype=DTYPE), nullity
-    null_space = right[right.shape[0] - nullity:, :].reshape(-1, count, count)
+    null_space = vectors[:, :nullity].T.reshape(-1, count, count)
 
     generator = torch.Generator(device=span_basis.device).manual_seed(seed)
     left_mix = torch.randn(nullity, generator=generator, device=span_basis.device, dtype=DTYPE)
@@ -930,7 +967,7 @@ def overcomplete_recovery(
         "pencilCeiling": input_dim // 2,
         "isolatedSolutionCeiling": (input_dim * input_dim - input_dim + 2) // 4,
         "nullity": nullity,
-        "nullityExcess": nullity - (units * (2 * units - 1) + 2 * units),
+        "gatesMatchUnitCount": int(gates.shape[0]) == units,
         "gatesReturned": int(gates.shape[0]),
         "gatesAbove0.99": int((best >= 0.99).sum()),
         "gatesAbove0.999": int((best >= 0.999).sum()),
@@ -985,12 +1022,10 @@ def oracle_recovery(
         "spanRankIsTwoK": span_rank == 2 * units,
         "spanTolerance": span_tolerance,
         "nullity": nullity,
-        # A check that needs no truth. The minor null space should be exactly the k symmetric
-        # directions `c (x) c` plus the `2k(2k-1)/2` antisymmetric ones that are there by
-        # construction, so `k(2k-1) + 2k` is what a healthy run reports. Measured at n=10: exact
-        # at k=19 and k=20, both of which recover fully, and 36 too many at k=21, which recovers
-        # nothing. So the run can say whether to trust itself.
-        "nullityExcess": nullity - (units * (2 * units - 1) + 2 * units),
+        # A check that needs no truth. The span's rank is `2k` when the units are separable, so
+        # a healthy run returns exactly `spanRank / 2` distinct rank-1 directions. A run that has
+        # gone past the geometry returns some other number, and says so without being told.
+        "gatesMatchSpanRank": int(gates.shape[0]) == span_rank // 2,
         "gatesReturned": int(gates.shape[0]),
         "gatesAbove0.99": int((best >= 0.99).sum()),
         "gatesAbove0.999": int((best >= 0.999).sum()),
