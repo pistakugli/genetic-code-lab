@@ -1091,13 +1091,34 @@ def tile_recovery(
     """
     teacher = make_teacher(units, input_dim, output_dim, seed, device)
     generator = torch.Generator(device=device).manual_seed(seed + 101)
+
+    # Scale is not a constant to guess. The loud count at a given distance grows with the layer,
+    # so a scale tuned at k=64 presents oversized subsets at k=256 and starved ones at k=16.
+    # Probe geometrically and take the nearest scale whose subset fits the solve: the cheapest
+    # honest search, and the cost is one span measurement per candidate.
+    chosen_scale = base_scale
+    if base_scale <= 0:
+        probe_readers = torch.randn(reader_count, output_dim, generator=generator, device=device, dtype=DTYPE)
+        probe_readers = probe_readers / probe_readers.norm(dim=1, keepdim=True)
+        chosen_scale = 1.0
+        for candidate in [4.0, 15.0, 60.0, 120.0, 250.0, 500.0, 1000.0, 2000.0]:
+            probe_point = torch.randn(1, input_dim, generator=generator, device=device, dtype=DTYPE)
+            probe_point = probe_point / probe_point.norm() * candidate
+            _, probe_rank = measured_lifted_span(
+                teacher, probe_point, probe_readers, input_dim, steps, direction_multiple, span_tolerance
+            )
+            torch.cuda.empty_cache()
+            chosen_scale = candidate
+            if probe_rank // 2 <= rank_cap:
+                break
+
     merged: list[torch.Tensor] = []
     growth: list[int] = []
     skipped = 0
 
     for _ in range(trials):
         base_point = torch.randn(1, input_dim, generator=generator, device=device, dtype=DTYPE)
-        base_point = base_point / base_point.norm() * base_scale
+        base_point = base_point / base_point.norm() * chosen_scale
         readers = torch.randn(reader_count, output_dim, generator=generator, device=device, dtype=DTYPE)
         readers = readers / readers.norm(dim=1, keepdim=True)
         try:
@@ -1137,7 +1158,8 @@ def tile_recovery(
         "inputDim": input_dim,
         "unitsPerInputDim": units / input_dim,
         "responseWidth": output_dim,
-        "baseScale": base_scale,
+        "baseScale": chosen_scale,
+        "baseScaleAuto": base_scale <= 0,
         "basePoints": trials,
         "solvesSkippedTooLarge": skipped,
         "distinctDirectionsMerged": len(merged),
