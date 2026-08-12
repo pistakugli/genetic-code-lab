@@ -81,8 +81,30 @@ unfolding of the same tensor puts each unit in `Sym^2(R^n)` instead, as `g (x) g
 
 So the whole layer is not blocked by identifiability at any of the three walls this file
 measured - response width, input dimension, or lifted room. What is missing is the extraction:
-recovering the `g_i` means finding the rank-1 elements of that lifted span, a FOOBI-class step
-that is not implemented here. That is the next gate, and it is now the only one left standing.
+recovering the `g_i` means finding the rank-1 elements of that lifted span.
+
+A correction to the paragraph above, from trying it. Full span rank says the units are
+*distinguishable*; it does not say the extraction has isolated answers. Rank-1 matrices form a
+variety of projective dimension `n-1`, and membership in `W` imposes `n(n+1)/2 - 2k` conditions,
+so solutions are isolated only for `k <= (n^2-n+2)/4` - 23 at `n=10` where the rank ceiling said
+27, and 2358528 rather than 2360064 at `n=3072`. The difference is small and the reason is not:
+at `k=25`, `n=10`, the search returned 61 distinct directions and none of them was a gate.
+
+Three routes to the extraction were tried and none of them recovers `k > n`. The objective is
+right - `f(v) = ||(I - P_W) vec(v v^T)||^2` reads `1e-16` on true gates against `0.5` on random
+directions, and `g g^T` sits in `W` to `2e-16` - so what is missing is a solver, not a
+formulation. Projected gradient descent on that quartic returns 2 to 5 of `k` from thousands of
+restarts; the landscape is flat and most restarts stall above zero. Rayleigh iteration on
+`A(v) = mat((I - P_W) vec(v v^T))` fails for a structural reason worth keeping: at a solution
+*every* eigenvalue of `A` is `~1e-16`, so the smallest eigenvector is noise and the fixed point
+carries no direction - measured, cosine 0.397 against the gate it had converged to. And
+localising with a distant base point, which does thin the active set - participation ratio falls
+from 64 to 9.2 as the base point norm goes 0 to 50 at `k=64`, `n=16` - does not drop the
+*unfolding rank*, which stays saturated at `n` because the quiet units are quiet and not absent.
+That route returned 2 of 6 at its best setting.
+
+The gate that remains is a real FOOBI-class solver. Two shortcuts to it are now measured dead,
+which is the useful part of the above.
 
 This is a measurement harness against a synthetic teacher, in the idiom of
 `jacobian_jump_probe.py`. It is not wired into a lane. Run it directly.
@@ -368,7 +390,7 @@ def jennrich(tensor: torch.Tensor, rank: int) -> tuple[torch.Tensor, torch.Tenso
     # A real tensor with real factors still comes back complex from a non-symmetric eig. The
     # imaginary part is the conditioning of the pencil, so it is reported rather than dropped.
     imaginary_share = float(
-        eigenvectors.imag.abs().max() / eigenvectors.abs().max().clamp_min(1e-300)
+        (eigenvectors.imag.abs().max() / eigenvectors.abs().max().clamp_min(1e-300)).detach()
     )
     factors = (basis.to(eigenvectors.dtype) @ eigenvectors).real
     factors = factors / factors.norm(dim=0, keepdim=True).clamp_min(1e-300)
@@ -652,8 +674,14 @@ def lifted_reach(
     `k <= n(n+1)/4`. At `n=10` that is 27 units against the pencil's 5, and the span for `k=25` -
     two and a half times overcomplete - separates at 1.6e-02.
 
-    This is the identifiability ceiling, not a recovery. Extracting the `g_i` means finding the
-    rank-1 elements of that span, which is a FOOBI-class step and is not implemented here.
+    Two ceilings, and the difference between them is a correction to what this function used to
+    report. The span having full rank `2k` says the units are *distinguishable*. It does not say
+    the extraction has isolated answers. Rank-1 matrices form a variety of projective dimension
+    `n-1` in `Sym^2`, and asking one to lie in `W` imposes `codim(W) = n(n+1)/2 - 2k` conditions,
+    so the solutions are isolated only when `n - 1 <= n(n+1)/2 - 2k`, that is `k <= (n^2-n+2)/4`.
+    Below that the two ceilings differ by one or two units; above it the search returns a
+    continuum. Measured at `n=10`, where identifiability allows 27 and isolation allows 23: at
+    `k=25` the extraction returned 61 distinct directions and none of them was a gate.
     """
     teacher = make_teacher(units, input_dim, output_dim, seed, device)
     gate, up = teacher.gate, teacher.up
@@ -672,6 +700,9 @@ def lifted_reach(
         "conditioning": float(spectrum[min(2 * units, spectrum.shape[0]) - 1] / spectrum[0]),
         "pencilCeiling": input_dim // 2,
         "liftedCeiling": room // 2,
+        # What the span can tell apart, and what a search can pin down, are different numbers.
+        "isolatedSolutionCeiling": (input_dim * input_dim - input_dim + 2) // 4,
+        "solutionsIsolated": 2 * units <= (input_dim * input_dim - input_dim + 2) // 2,
         "device": str(span.device),
     }
 
