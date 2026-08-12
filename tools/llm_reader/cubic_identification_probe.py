@@ -216,6 +216,22 @@ scale. The partition makes the assembly exact rather than a fit. Measured at `n=
 `d=16`, `e=8`, seven blocks: 5 groups cover every block and all 5 assemble to full-dimension
 gates above cosine 0.99, median `0.999802`, for 34216 points - 6843 a gate.
 
+Blocks merge across core points, which is what turns a product into a union. A unit's block
+component `P_{W_t} g` does not depend on where the base point sits, and neither does its
+signature `P_A g`, so block 3 recovered at one core point and block 5 at another are two pieces
+of the same vector. Requiring all blocks at a single core point multiplies a per-block recall of
+about 0.7 seven times over; drawing from several core points and grouping everything by signature
+does not. Measured at `n=64`, `k=64`, `d=16`, `e=8`:
+
+| core points | assembled | correct | median cosine | oracle points | per gate |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 3 | 3 | 0.999745 | 34216 | 11405 |
+| 3 | 12 | 12 | 0.999800 | 102648 | 8554 |
+| 6 | 27 | 27 | 0.999795 | 205296 | 7603 |
+
+Every assembled direction is correct at every setting, and the cost per gate *falls* as core
+points are added, because the union grows faster than the linear cost of collecting it.
+
 What limits this is per-block recall, and the measurement says where it is not. At a shared base
 point 19 of 64 units are loud, the measured span in each block has rank 45 to 50 - so the span
 holds them - and every direction returned is correct. The solve returns 8 to 11 of about 23. So
@@ -1119,6 +1135,8 @@ def stitch_recovery(
     core_dim: int,
     base_scale: float,
     rank_cap: int,
+    core_points: int,
+    pencil_draws: int,
     seed: int,
     tolerance: float,
     span_tolerance: float,
@@ -1151,36 +1169,47 @@ def stitch_recovery(
     blocks = [frame[:, index:index + block_width] for index in range(core_dim, input_dim, block_width)]
     blocks = [block for block in blocks if block.shape[1] == block_width]
 
-    core_point = torch.randn(core_dim, generator=generator, device=device, dtype=DTYPE)
-    core_point = core_point / core_point.norm() * base_scale
-    base_point = torch.cat([core_point, torch.zeros(block_width, device=device, dtype=DTYPE)])
     readers = torch.randn(output_dim, output_dim, generator=generator, device=device, dtype=DTYPE)
     readers = readers / readers.norm(dim=1, keepdim=True)
 
+    # Several core points, and the blocks merge across all of them. A unit's block component
+    # `P_{W_t} g` does not depend on where the base point sits, and neither does its signature
+    # `P_A g`, so a recovery of block 3 at one core point and block 5 at another are two pieces
+    # of the same vector. Per-block recall saturates at about 0.7 - measured, drawing 1, 5, 15,
+    # 40 and 100 pencils gives 0.435, 0.652, 0.696, 0.739, 0.783 with precision falling from
+    # 1.000 to 0.783 past 15 - so requiring all blocks at one core point discards most units.
+    # Independent core points turn that product into a union.
     recoveries: list[tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]] = []
     oversized = 0
-    for block_index, block in enumerate(blocks):
-        subspace = torch.cat([core, block], dim=1)
-        oracle = SubspaceOracle(teacher, subspace)
-        anchors = torch.randn(3, subspace_dim, generator=generator, device=device, dtype=DTYPE)
-        anchors = anchors / anchors.norm(dim=1, keepdim=True)
-        span_basis, rank = measured_lifted_span_by_slices(
-            oracle, base_point, readers, anchors, subspace_dim, steps, span_tolerance
-        )
-        if rank // 2 > rank_cap:
-            oversized += 1
+    for core_index in range(max(1, core_points)):
+        core_point = torch.randn(core_dim, generator=generator, device=device, dtype=DTYPE)
+        core_point = core_point / core_point.norm() * base_scale
+        base_point = torch.cat([core_point, torch.zeros(block_width, device=device, dtype=DTYPE)])
+        for block_index, block in enumerate(blocks):
+            subspace = torch.cat([core, block], dim=1)
+            oracle = SubspaceOracle(teacher, subspace)
+            anchors = torch.randn(3, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+            anchors = anchors / anchors.norm(dim=1, keepdim=True)
+            span_basis, rank = measured_lifted_span_by_slices(
+                oracle, base_point, readers, anchors, subspace_dim, steps, span_tolerance
+            )
+            if rank // 2 > rank_cap:
+                oversized += 1
+                del span_basis
+                torch.cuda.empty_cache()
+                continue
+            gates, _ = foobi_gates(
+                span_basis, subspace_dim, tolerance, purity, collinearity,
+                seed + 7 + 101 * core_index, attempts=pencil_draws,
+            )
             del span_basis
             torch.cuda.empty_cache()
-            continue
-        gates, _ = foobi_gates(span_basis, subspace_dim, tolerance, purity, collinearity, seed + 7)
-        del span_basis
-        torch.cuda.empty_cache()
-        for index in range(gates.shape[0]):
-            recovered = gates[index]
-            head, tail = recovered[:core_dim], recovered[core_dim:]
-            if float(head.norm()) < 1e-9:
-                continue
-            recoveries.append((head / head.norm(), head, tail, block_index))
+            for index in range(gates.shape[0]):
+                recovered = gates[index]
+                head, tail = recovered[:core_dim], recovered[core_dim:]
+                if float(head.norm()) < 1e-9:
+                    continue
+                recoveries.append((head / head.norm(), head, tail, block_index))
 
     groups: list[list[tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]]] = []
     for record in recoveries:
@@ -1220,6 +1249,8 @@ def stitch_recovery(
         "subspaceDim": subspace_dim,
         "coreDim": core_dim,
         "blocks": len(blocks),
+        "corePoints": core_points,
+        "pencilDraws": pencil_draws,
         "localRecoveries": len(recoveries),
         "groups": len(groups),
         "groupsCoveringAllBlocks": len(complete),
