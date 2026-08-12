@@ -169,11 +169,28 @@ slowly while base points grow about `k/4`. The probe rule is not optimal and the
 at `k=64` it takes 60 and covers 63, where the hand-tuned 120 covered all 64 - the first distance
 that fits is not the one that separates best.
 
-The cost does not reach a real layer, and it would take a measurement that does not exist to say
-otherwise. Each base point pays the full-tensor route, `4n(n+1)(n+2)`, which is `1.16e11` points
-at `n=3072` before any tiling; slices would bring that to roughly `3.4e9` per base point, times
-base points growing with `k`. What is measured is that the identification holds to sixteen times
-the response width. The arithmetic to 3072 is where it stops.
+The per-base-point cost is now the slice route, and the saving is measured rather than promised.
+Fitting every degree-3 coefficient is `4n^3`; the span only needs enough slices to reach
+`2k_loud`, and each by polarisation is `O(n^2)`, so the ratio is linear in `n` and crosses at 15
+for this anchor count. Measured against the same span, subspace angle `1.000000000` at each:
+
+| n | slices | tensor | ratio |
+| --- | --- | --- | --- |
+| 24 | 38992 | 62400 | 1.60x |
+| 32 | 67312 | 143616 | 2.13x |
+| 48 | 146992 | 470400 | 3.20x |
+| 64 | 257392 | 1098240 | 4.27x |
+| 96 | 570352 | 3650304 | 6.40x |
+
+At `n=3072` that is `204.8x` - `5.7e8` points a base point instead of `1.16e11`. The tensor route
+also runs out of card at `n=24` where the slice route does not, so this is not only cheaper.
+
+It is still not a layer, and the arithmetic should be read rather than rounded off. A subset that
+fits the solve needs about `2 * rank_cap` slices, so roughly `1.2e9` points a base point at
+`n=3072`, and base points grow about `k/4`, which is 2048 of them for 8192 units: `2.4e12` oracle
+points. The boundary route spent `4.5e7` to fail at 4096. So what is measured here is that the
+identification holds to sixteen times the response width and that the cost law is `4 A n^2` a base
+point - not that a layer of 8192 has been read, and not that this one could afford to.
 
 Scale, which is what kept this at toy sizes. The minor map has `n^4` rows - 1.8 GiB at `n=16`
 and 15.8 GiB at `n=24`, where the card refused it. Only the null space is wanted and it lives in
@@ -802,23 +819,86 @@ def measure_cubic_forms_at(
 ) -> torch.Tensor:
     """Third derivative along lines through `base_point`, returned as a vector.
 
-    Two differences from the origin version, both forced. The function is not homogeneous around
-    a base point, so the length trick that let `phi(v) = |v|^3 phi(v/|v|)` rescale the probe is
-    gone and the directions have to be unit already. And the whole output vector comes back
-    rather than one reader's projection, because readers are free once the points are paid for -
-    the oracle answers `m` numbers per call whether one of them is read or all of them.
+    The whole output vector comes back rather than one reader's projection, because readers are
+    free once the points are paid for - the oracle answers `m` numbers per call whether one of
+    them is read or all of them.
+
+    The length rescale applies here too, and a comment in this file used to claim it did not. `y`
+    is not homogeneous around a base point but its third *directional derivative* is: along
+    `t -> y(x0 + t d)` the third derivative is a cubic form in `d`. So a step `h` along a vector
+    of length `L` is a step `hL` in the function and pays `L^2` in the truncation term for
+    nothing. Probe the unit direction and put `L^3` back, which is what the origin version does
+    and what polarisation needs, since it probes vectors of length up to about 2.4.
     """
+    lengths = directions.norm(dim=1, keepdim=True).clamp_min(1e-300)
+    unit_directions = directions / lengths
+    cube = (lengths.squeeze(1) ** 3).unsqueeze(1)
+
     estimates = []
     for step in steps:
         offsets = [2.0 * step, step, -step, -2.0 * step]
-        values = [teacher(base_point[None, :] + directions * offset) for offset in offsets]
-        estimates.append((values[0] - 2.0 * values[1] + 2.0 * values[2] - values[3]) / (2.0 * step ** 3))
+        values = [teacher(base_point[None, :] + unit_directions * offset) for offset in offsets]
+        derivative = (values[0] - 2.0 * values[1] + 2.0 * values[2] - values[3]) / (2.0 * step ** 3)
+        estimates.append(derivative * cube)
     stacked = torch.stack(estimates, dim=0)
     if len(steps) == 1:
         return stacked[0]
     step_squares = torch.tensor([[1.0, s ** 2] for s in steps], device=directions.device, dtype=DTYPE)
     solution = torch.linalg.lstsq(step_squares, stacked.reshape(len(steps), -1)).solution
     return solution[0].reshape(stacked.shape[1], stacked.shape[2])
+
+
+def measured_lifted_span_by_slices(
+    teacher: Teacher,
+    base_point: torch.Tensor,
+    readers: torch.Tensor,
+    anchors: torch.Tensor,
+    input_dim: int,
+    steps: list[float],
+    tolerance: float,
+) -> tuple[torch.Tensor, int]:
+    """The same span, paid for by polarisation instead of by fitting the whole tensor.
+
+    Fitting every degree-3 coefficient costs `4n(n+1)(n+2)` points and then throws most of the
+    tensor away: the span only needs enough slices to reach rank `2k_loud`, which is tens, not
+    `n`. Each slice by polarisation costs `O(n^2)`, and the terms that do not mention the anchor
+    are shared across all of them.
+
+    Which route is cheaper is a function of `n` and was measured rather than assumed: the tensor
+    is `4n^3` and slices are about `4 A n^2` for `A` anchors, so slices win only past `n ~ 90 A/45`.
+    At `n=16` the tensor route is the cheap one and this would be a pessimisation; at `n=3072` it
+    is the difference between `1.16e11` points per base point and something a run could finish.
+    """
+    basis = torch.eye(input_dim, device=base_point.device, dtype=DTYPE)
+    rows, cols = torch.triu_indices(input_dim, input_dim, device=base_point.device)
+    pair_sum = basis[rows] + basis[cols]
+
+    shared_pair = measure_cubic_forms_at(teacher, base_point, pair_sum, steps)
+    shared_basis = measure_cubic_forms_at(teacher, base_point, basis, steps)
+
+    slices: list[torch.Tensor] = []
+    for anchor in anchors:
+        pair_anchor = measure_cubic_forms_at(teacher, base_point, pair_sum + anchor[None, :], steps)
+        basis_anchor = measure_cubic_forms_at(teacher, base_point, basis + anchor[None, :], steps)
+        anchor_only = measure_cubic_forms_at(teacher, base_point, anchor.unsqueeze(0), steps)[0]
+        for reader in readers:
+            entries = (
+                pair_anchor @ reader
+                - shared_pair @ reader
+                - (basis_anchor @ reader)[rows]
+                - (basis_anchor @ reader)[cols]
+                + (shared_basis @ reader)[rows]
+                + (shared_basis @ reader)[cols]
+                + (anchor_only @ reader)
+            ) / 6.0
+            matrix = torch.zeros((input_dim, input_dim), device=base_point.device, dtype=DTYPE)
+            matrix[rows, cols] = entries
+            matrix[cols, rows] = entries
+            slices.append(matrix.reshape(-1))
+    stacked = torch.stack(slices, dim=0)
+    left, spectrum, _ = torch.linalg.svd(stacked.T, full_matrices=False)
+    rank = int((spectrum > spectrum[0] * tolerance).sum())
+    return left[:, :rank], rank
 
 
 def measured_lifted_span(
@@ -1097,6 +1177,7 @@ def tile_recovery(
     collinearity: float,
     steps: list[float],
     direction_multiple: float,
+    slice_crossover: int,
     device: torch.device,
 ) -> dict:
     """Cover a layer wider than one solve can hold, by solving subsets of it.
@@ -1143,9 +1224,23 @@ def tile_recovery(
         readers = torch.randn(reader_count, output_dim, generator=generator, device=device, dtype=DTYPE)
         readers = readers / readers.norm(dim=1, keepdim=True)
         try:
-            span_basis, rank = measured_lifted_span(
-                teacher, base_point, readers, input_dim, steps, direction_multiple, span_tolerance
-            )
+            if input_dim >= slice_crossover:
+                # Measured, not assumed: the tensor route is `4n^3` and slices are `4 A n^2`, so
+                # the ratio is linear in `n` and crosses at 15 for the anchor count this uses -
+                # 1.60x at n=24, 2.13x at 32, 3.20x at 48, 4.27x at 64, 6.40x at 96, all against
+                # the same span to a subspace angle of 1.000000000.
+                anchors = torch.randn(
+                    max(2, -(-2 * rank_cap // max(reader_count, 1))),
+                    input_dim, generator=generator, device=device, dtype=DTYPE,
+                )
+                anchors = anchors / anchors.norm(dim=1, keepdim=True)
+                span_basis, rank = measured_lifted_span_by_slices(
+                    teacher, base_point[0], readers, anchors, input_dim, steps, span_tolerance
+                )
+            else:
+                span_basis, rank = measured_lifted_span(
+                    teacher, base_point, readers, input_dim, steps, direction_multiple, span_tolerance
+                )
             if rank // 2 > rank_cap:
                 skipped += 1
                 del span_basis
@@ -1187,6 +1282,7 @@ def tile_recovery(
         "unitsCovered": matched,
         "coverage": matched / units,
         "spuriousDirections": spurious,
+        "spanRoute": "slices" if input_dim >= slice_crossover else "tensor",
         "oracleCallsPoints": teacher.counter.points,
         "growth": growth,
         "device": str(truth.device),
@@ -1242,6 +1338,7 @@ def main() -> int:
                         help="unit counts to cover by tiling subsets over base points")
     parser.add_argument("--tile-trials", type=int, default=20)
     parser.add_argument("--rank-cap", type=int, default=52)
+    parser.add_argument("--slice-crossover", type=int, default=16)
     parser.add_argument("--lifted-sweep", type=int, nargs="*", default=None,
                         help="unit counts to measure the lifted identifiability ceiling at")
     parser.add_argument("--sweep-units", type=int, nargs="*", default=None)
@@ -1279,7 +1376,8 @@ def main() -> int:
                 rank_cap=args.rank_cap, seed=args.seed, tolerance=args.rank_tolerance,
                 span_tolerance=args.span_tolerance, purity=args.purity,
                 collinearity=args.collinearity, steps=list(args.steps),
-                direction_multiple=args.direction_multiple, device=device,
+                direction_multiple=args.direction_multiple,
+                slice_crossover=args.slice_crossover, device=device,
             )
             for count in args.tile
         ]
