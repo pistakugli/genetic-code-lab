@@ -2486,6 +2486,46 @@ count to agree. But the setup is not blind, so these are claims about a block th
 isolates, not about separating units out of a layer's full summed output. The unselected
 whole-layer run is what would change that sentence, and it has not finished.
 
+### The third-derivative route, and the wall it also has
+
+The paragraph above says the response width is an optimisation to be dropped rather than a step
+the method depends on, which invites the reading that some other identity reaches a whole layer.
+One was built and measured: `tools/llm_reader/cubic_identification_probe.py`. It does identify
+units, and it does not reach 8192 either.
+
+Along `t -> y(t d)` the third derivative is `1.5 sum_i (g_i.d)^2 (u_i.d) d_i`, so through a fixed
+reader it is a cubic form whose symmetric tensor is `sum_i lambda_i sym(g_i g_i u_i)`. The pencil
+`S(.,.,x) S(.,.,y)^+` returns the gate directions at cosine `1.000000`, the unit count comes out
+as `rank/2` rather than being supplied, and with the gates known the ups are one linear least
+squares - nothing iterative anywhere. The second derivative cannot do this: `sym(g u^T)` is
+symmetric in the two, so it cannot say which is the gate.
+
+What it costs and where it stops, measured on a synthetic teacher at three input dimensions:
+
+| n | ceiling `n/2` | at the ceiling | one past it | full-tensor calls | two-slice calls |
+| --- | --- | --- | --- | --- | --- |
+| 16 | 8 | gate 8/8, up 7/8 | `k=9`: 0/9 | 19584 | 3664 |
+| 24 | 12 | gate 12/12, up 12/12 | `k=13`: 0/13 | 62400 | 7792 |
+| 28 | 14 | gate 14/14, up 14/14 | `k=15`: 1/15 | 97440 | 10432 |
+
+The wall is `2k <= n` on the *input* dimension, because each unit spans the plane `span{g_i,u_i}`
+and the unfolding rank saturates at `n`. For a 3072-wide input that is 1536 units. So this route
+moves the wall off the response width and onto the input dimension; it does not remove it, and
+1536 must not be cited as a path to a full layer.
+
+The cost is the better half. Fitting every degree-3 coefficient is `4n(n+1)(n+2)` oracle points,
+but the pencil reads two slices, and measuring only those by polarisation is
+`8(1.5n(n+1) + 3n + 2)` - the same gates to the same cosine for `n/3` less. At `n=3072` that is
+`113356816` against `116077387776`, which puts the affordable version in the range the boundary
+route already spent (45M on the 4096 rung). Both figures are arithmetic on laws checked against
+the call counter at the three dimensions above, not measurements of a live layer, and the tool
+labels them `extrapolatedFromMeasuredLaw`.
+
+Reaching 8192 units in 3072 dimensions needs `k > n`, which is an overcomplete decomposition and
+a different algorithm rather than a setting on this one. That is the next gate for the whole
+layer, and nothing here is wired into a lane: the numbers are from a synthetic teacher where the
+truth is known, which is the whole scope of the claim.
+
 ## Direction 2: 3D / General-ND Hyperplane Stitching
 
 Status: started and release-lane gated for clean/noisy 3D teachers, the first
