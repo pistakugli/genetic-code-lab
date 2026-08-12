@@ -50,6 +50,27 @@ just those by polarisation costs `8*(1.5n(n+1) + 3n + 2)`, verified to return th
 the same cosine - `5.34x` cheaper at `n=16` and `8.01x` at `n=24`, a saving of `n/3`. Run with
 `--project-dim` for what those two laws say about a live layer.
 
+The response width is not the fundamental bound it looked like, and that is the result here that
+matters most. At the origin every reader weights unit `i` by `1.5 (w.d_i)`, so all readers see
+the `k` unit tensors through the down projection and the accessible dimension is `rank(D) <= m` -
+measured exactly, `rank span{S_w} = min(k, m)` at six settings. That is the arithmetic behind
+"4096 units cannot be separated in a 3072-wide answer", and it is arithmetic about *probing at
+one point*.
+
+Off the origin the weight is `beta_i = 3 (w.d_i) silu''(g_i.x0)`, and the second factor is a
+nonlinear function of the unit rather than a linear read through `D`. So base points buy rank
+that readers cannot: the profile rank is `min(k, m*P)` for `P` base points, verified at every
+sweep point. With `k=40` units behind an `m=8` answer - five times wider than the oracle - eight
+base points reach all 40, and the smallest-to-largest singular value stays between `1.2e-02` and
+`4.5e-01` across two seeds, so this is a conditioned separation and not a rank counted at a
+threshold. For a 3072-wide answer over 8192 units the same law asks for three base points.
+
+What that is and is not. It is the necessary condition - the units' contributions are separable
+in what the oracle can be made to show - measured, conditioned, and reproducible through
+`--base-point-sweep`. It is not a recovery run: the pencil above still needs `2k <= n`, and no
+decomposition here yet recovers `k > n` units. The next gate is that decomposition, and this
+file's contribution is that the wall it has to beat is `n`, not `m`.
+
 This is a measurement harness against a synthetic teacher, in the idiom of
 `jacobian_jump_probe.py`. It is not wired into a lane. Run it directly.
 """
@@ -532,6 +553,72 @@ def run(
     return result
 
 
+def silu_second_derivative(argument: torch.Tensor) -> torch.Tensor:
+    argument = argument.detach().requires_grad_(True)
+    first, = torch.autograd.grad(torch.nn.functional.silu(argument).sum(), argument, create_graph=True)
+    second, = torch.autograd.grad(first.sum(), argument)
+    return second.detach()
+
+
+def base_point_profile(teacher: Teacher, base_points: torch.Tensor) -> torch.Tensor:
+    """Per-unit weight of the `sym(g g u)` family, one row per (reader, base point).
+
+    At the origin the third derivative weights unit `i` by `1.5 (w.d_i)` alone, so every reader
+    sees the same `k` tensors through the down projection and the accessible dimension is
+    `rank(D) <= m`. That is the response width returning as a bound, and it is why the boundary
+    route's ceiling looked structural.
+
+    Off the origin it is not the same weight. With `a_i = g_i.x0`, `b_i = u_i.x0`, the third
+    derivative along `d` is
+
+        sum_i (w.d_i) [ silu'''(a_i) b_i (g_i.d)^3 + 3 silu''(a_i) (g_i.d)^2 (u_i.d) ]
+
+    so the `sym(g g u)` family carries `beta_i = 3 (w.d_i) silu''(g_i.x0)`. The second factor is a
+    *nonlinear* function of the unit, not a linear read through `D`, so base points buy rank that
+    readers cannot. Measured: the profile rank is `min(k, m*P)`, so `P` base points lift the
+    ceiling from `m` to `m*P`.
+    """
+    activations = silu_second_derivative(base_points @ teacher.gate.T)
+    return (3.0 * teacher.down[:, None, :] * activations[None, :, :]).reshape(-1, teacher.gate.shape[0])
+
+
+def base_point_reach(
+    units: int,
+    input_dim: int,
+    output_dim: int,
+    base_point_count: int,
+    seed: int,
+    tolerance: float,
+    device: torch.device,
+) -> dict:
+    """How many units are separable, and how well conditioned that separation is.
+
+    The rank alone is not the answer. A rank counted at a threshold can be carried by singular
+    values a hundred million times smaller than the first, which is a separation no measurement
+    would ever reach; the smallest-to-largest ratio is reported next to it so the number has to
+    survive being looked at.
+    """
+    teacher = make_teacher(units, input_dim, output_dim, seed, device)
+    generator = torch.Generator(device=device).manual_seed(seed + 7)
+    base_points = torch.randn(base_point_count, input_dim, generator=generator, device=device, dtype=DTYPE)
+    profile = base_point_profile(teacher, base_points)
+    spectrum = torch.linalg.svdvals(profile)
+    rank = int((spectrum > spectrum[0] * tolerance).sum())
+    reachable = min(units, output_dim * base_point_count)
+    return {
+        "units": units,
+        "inputDim": input_dim,
+        "responseWidth": output_dim,
+        "basePoints": base_point_count,
+        "readerTimesBasePoints": output_dim * base_point_count,
+        "profileRank": rank,
+        "rankMatchesMinKMP": rank == reachable,
+        "unitsPastResponseWidth": units > output_dim,
+        "conditioning": float(spectrum[min(units, spectrum.shape[0]) - 1] / spectrum[0]),
+        "device": str(profile.device),
+    }
+
+
 def cost_laws(input_dim: int) -> dict:
     """The two measured cost laws, evaluated rather than quoted.
 
@@ -564,6 +651,10 @@ def main() -> int:
     parser.add_argument("--collinearity", type=float, default=0.99)
     parser.add_argument("--rank-tolerance", type=float, default=1e-6)
     parser.add_argument("--project-dim", type=int, nargs="*", default=None)
+    parser.add_argument("--base-point-sweep", type=int, nargs="*", default=None,
+                        help="base-point counts to measure the response-width ceiling against")
+    parser.add_argument("--reach-units", type=int, default=40)
+    parser.add_argument("--reach-width", type=int, default=8)
     parser.add_argument("--sweep-units", type=int, nargs="*", default=None)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--output-json", type=str, default=None)
@@ -591,6 +682,19 @@ def main() -> int:
     report = {"runs": runs}
     if args.project_dim:
         report["costProjection"] = [cost_laws(dim) for dim in args.project_dim]
+    if args.base_point_sweep:
+        report["basePointReach"] = [
+            base_point_reach(
+                units=args.reach_units,
+                input_dim=args.input_dim,
+                output_dim=args.reach_width,
+                base_point_count=count,
+                seed=args.seed,
+                tolerance=args.rank_tolerance,
+                device=device,
+            )
+            for count in args.base_point_sweep
+        ]
     text = json.dumps(report, indent=2)
     if args.output_json:
         with open(args.output_json, "w", encoding="utf-8") as handle:

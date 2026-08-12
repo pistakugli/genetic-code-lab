@@ -2526,6 +2526,41 @@ a different algorithm rather than a setting on this one. That is the next gate f
 layer, and nothing here is wired into a lane: the numbers are from a synthetic teacher where the
 truth is known, which is the whole scope of the claim.
 
+#### Retraction: the response width is a bound on probing at one point, not on the layer
+
+This section says above that `4096 cannot work at all` because the block is wider than the
+answer, and calls it arithmetic. The arithmetic is right and its scope was not. It is a statement
+about derivatives taken at the origin.
+
+At the origin the third derivative weights unit `i` by `1.5 (w.d_i)`, so every reader sees the
+same `k` unit tensors through the down projection and the accessible dimension is `rank(D) <= m`.
+Measured directly: `rank span{S_w} = min(k, m)` at six settings, including `k=40` behind `m=8`
+returning exactly `8`. That is the ceiling this section described.
+
+Off the origin the weight is `beta_i = 3 (w.d_i) silu''(g_i.x0)`. The second factor is a
+nonlinear function of the unit, not a linear read through `D`, so base points buy rank that
+readers cannot. Measured, `k=40` units behind an `m=8` answer:
+
+| base points `P` | `m*P` | profile rank | smallest/largest singular value |
+| --- | --- | --- | --- |
+| 1 | 8 | 8 | 4.45e-01 |
+| 2 | 16 | 16 | 4.33e-02 |
+| 4 | 32 | 32 | 1.18e-02 |
+| 8 | 64 | **40** | 1.98e-02 |
+| 16 | 128 | 40 | 3.12e-02 |
+
+The rank is `min(k, m*P)` at every point, and the conditioning stays between `1.2e-02` and
+`4.5e-01` across two seeds, so the separation is real rather than a rank counted at a threshold.
+The same law asks for three base points to reach 8192 units behind a 3072-wide answer.
+
+What this changes and what it does not. The units behind a too-narrow answer are separable in
+what the oracle can be made to show - that is the necessary condition, and it is now measured
+rather than assumed against. It is not a recovery: the pencil still needs `2k <= n`, and nothing
+here has recovered `k > n` units. The refusal in the solver stays correct for what the solver
+does. What is retracted is only the wider reading that a layer wider than its answer cannot be
+read at all; the wall that a whole-layer method has to beat is the input dimension, not the
+response width. Reproduce with `--base-point-sweep`.
+
 ## Direction 2: 3D / General-ND Hyperplane Stitching
 
 Status: started and release-lane gated for clean/noisy 3D teachers, the first
