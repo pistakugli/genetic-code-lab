@@ -208,12 +208,24 @@ so everything above applies with `n` replaced by `d` and a base point costs `12 
 at median cosine `0.999966` for 10392 points, and `d=16` returns 12 at `0.999849` for 4888 -
 `4.7x` and `10.1x` against probing the full input.
 
-Whether that is a saving depends on `n` and the honest accounting says so. What comes back is
-`P_V g_i`, so a unit needs seeing in about `n/d` subspaces before its direction is determined,
-and stitching those together is not implemented here. Carrying that factor: subspace probing is
-about `k n d` against `0.27 k n^2` for the full input, so the ratio is `3.7 d/n` - `0.93` at
-`n=64` where it buys nothing, `0.23` at 256, `0.019` at 3072. It is a large-`n` mechanism, which
-is the regime that matters, and it is one implemented solve short of being usable.
+What comes back is `P_V g_i`, so the subspaces have to be stitched, and that is now implemented.
+Give every `V_t = A + W_t` the same core `A` with the `W_t` an orthogonal partition of the rest:
+`P_A P_{V_t} = P_A`, so the core block of a recovery is the same vector for every `t` up to
+scale - the signature that groups recoveries into units, and the length that puts blocks on one
+scale. The partition makes the assembly exact rather than a fit. Measured at `n=64`, `k=64`,
+`d=16`, `e=8`, seven blocks: 5 groups cover every block and all 5 assemble to full-dimension
+gates above cosine 0.99, median `0.999802`, for 34216 points - 6843 a gate.
+
+The base point has to live in the core, and that was the difference between working and not.
+With a fresh base point per subspace each one localises onto a different subset, so a unit is
+almost never seen twice: 52 groups from 67 recoveries, nothing assembled above 0.85. In the core
+it is the same point in the full space for every solve and the loud set is shared.
+
+Whether this is a saving depends on `n`. Carrying the `n/d` subspaces a unit must appear in,
+subspace probing is about `k n d` against `0.27 k n^2` for the full input - a ratio of `3.7 d/n`,
+so `0.93` at `n=64` where it buys nothing and the measured 6843 a gate against about 4096 for
+full-input probing says the same, then `0.23` at 256 and `0.019` at 3072. A large-`n` mechanism,
+now built rather than argued.
 
 It is still not a layer, and the arithmetic should be read rather than rounded off. At `n=3072`
 the response width pins anchors at the floor of two, so a base point is about `1.1e8` points, and
@@ -1086,6 +1098,128 @@ def subspace_probe(
         "callsAgainstFullDim": (12 * input_dim * input_dim) / max(calls, 1),
         "recoversProjectionsOnly": True,
         "device": str(basis.device),
+    }
+
+
+def stitch_recovery(
+    units: int,
+    input_dim: int,
+    output_dim: int,
+    subspace_dim: int,
+    core_dim: int,
+    base_scale: float,
+    rank_cap: int,
+    seed: int,
+    tolerance: float,
+    span_tolerance: float,
+    purity: float,
+    collinearity: float,
+    steps: list[float],
+    device: torch.device,
+) -> dict:
+    """Full-dimension gates from subspace solves, by giving every subspace the same core.
+
+    A subspace solve returns `P_V g`, which is not a unit. Stitching needs two things and one
+    core supplies both. Let every `V_t = A + W_t` share a core `A` and take the `W_t` as an
+    orthogonal partition of the rest. Then `P_A P_{V_t} = P_A`, so the core block of a recovered
+    projection is the same vector for every `t` up to scale: it is the signature that says which
+    recoveries are one unit, and its length is what puts the blocks on a common scale. The
+    orthogonal partition then makes the assembly exact rather than a fit.
+
+    The base point has to live in the core too, and that was the difference between working and
+    not. With a fresh base point per subspace, each one localises onto a different subset and a
+    unit is almost never seen twice: 52 groups from 67 recoveries, 11 with two subspaces, nothing
+    assembled above cosine 0.85. Put the base point in `A` and it is the same point in the full
+    space for every solve, so the loud set is the same one - 20 groups, and every group that
+    covers all blocks assembles.
+    """
+    teacher = make_teacher(units, input_dim, output_dim, seed, device)
+    generator = torch.Generator(device=device).manual_seed(seed + 31)
+    frame, _ = torch.linalg.qr(torch.randn(input_dim, input_dim, generator=generator, device=device, dtype=DTYPE))
+    core = frame[:, :core_dim]
+    block_width = subspace_dim - core_dim
+    blocks = [frame[:, index:index + block_width] for index in range(core_dim, input_dim, block_width)]
+    blocks = [block for block in blocks if block.shape[1] == block_width]
+
+    core_point = torch.randn(core_dim, generator=generator, device=device, dtype=DTYPE)
+    core_point = core_point / core_point.norm() * base_scale
+    base_point = torch.cat([core_point, torch.zeros(block_width, device=device, dtype=DTYPE)])
+    readers = torch.randn(output_dim, output_dim, generator=generator, device=device, dtype=DTYPE)
+    readers = readers / readers.norm(dim=1, keepdim=True)
+
+    recoveries: list[tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]] = []
+    oversized = 0
+    for block_index, block in enumerate(blocks):
+        subspace = torch.cat([core, block], dim=1)
+        oracle = SubspaceOracle(teacher, subspace)
+        anchors = torch.randn(3, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        anchors = anchors / anchors.norm(dim=1, keepdim=True)
+        span_basis, rank = measured_lifted_span_by_slices(
+            oracle, base_point, readers, anchors, subspace_dim, steps, span_tolerance
+        )
+        if rank // 2 > rank_cap:
+            oversized += 1
+            del span_basis
+            torch.cuda.empty_cache()
+            continue
+        gates, _ = foobi_gates(span_basis, subspace_dim, tolerance, purity, collinearity, seed + 7)
+        del span_basis
+        torch.cuda.empty_cache()
+        for index in range(gates.shape[0]):
+            recovered = gates[index]
+            head, tail = recovered[:core_dim], recovered[core_dim:]
+            if float(head.norm()) < 1e-9:
+                continue
+            recoveries.append((head / head.norm(), head, tail, block_index))
+
+    groups: list[list[tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]]] = []
+    for record in recoveries:
+        for group in groups:
+            if abs(float(record[0] @ group[0][0])) >= 0.999:
+                group.append(record)
+                break
+        else:
+            groups.append([record])
+
+    complete = [group for group in groups if len({item[3] for item in group}) == len(blocks)]
+    assembled: list[torch.Tensor] = []
+    for group in complete:
+        _, reference, _, _ = group[0]
+        vector = core @ reference
+        used: set[int] = set()
+        for _, head, tail, block_index in group:
+            if block_index in used:
+                continue
+            used.add(block_index)
+            factor = float(reference.norm() / head.norm())
+            if float(head @ reference) < 0:
+                factor = -factor
+            vector = vector + blocks[block_index] @ (tail * factor)
+        assembled.append(vector / vector.norm())
+
+    truth = teacher.gate / teacher.gate.norm(dim=1, keepdim=True)
+    if assembled:
+        best = (torch.stack(assembled) @ truth.T).abs().max(dim=1).values
+        matched = int((best >= 0.99).sum())
+        median = float(best.median())
+    else:
+        matched, median = 0, 0.0
+    return {
+        "units": units,
+        "inputDim": input_dim,
+        "subspaceDim": subspace_dim,
+        "coreDim": core_dim,
+        "blocks": len(blocks),
+        "localRecoveries": len(recoveries),
+        "groups": len(groups),
+        "groupsCoveringAllBlocks": len(complete),
+        "solvesOversized": oversized,
+        "fullDimensionGates": len(assembled),
+        "gatesAbove0.99": matched,
+        "medianCosine": median,
+        "oracleCallsPoints": teacher.counter.points,
+        "callsPerAssembledGate": teacher.counter.points // max(len(assembled), 1),
+        "device": str(truth.device),
     }
 
 
