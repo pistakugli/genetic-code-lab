@@ -2571,10 +2571,38 @@ passes the room, so the ceiling is `k <= n(n+1)/4`: 27 units at `n=10` against t
 and **2360064** at `n=3072` against 1536.
 
 Which puts 8192 nowhere near any of the three walls this measured - response width, input
-dimension, or lifted room. Identifiability is not what is stopping a whole layer. The extraction
-is: recovering the `g_i` means finding the rank-1 elements of that lifted span, a FOOBI-class
-step that is not implemented. That is the one gate left, and it is an algorithm to write rather
-than a bound to argue with.
+dimension, or lifted room. Identifiability is not what is stopping a whole layer.
+
+#### The overcomplete recovery, and the ceiling it runs into
+
+The extraction was the gate, and it is now written. Searching for `v` directly makes rank-1-ness
+a quartic with a flat landscape and nothing to steer by at the solution - three routes tried that
+way and returned 2 to 5 of `k`. Rank is a statement about minors, and minors are bilinear:
+`Phi(M,N)_ijkl = 1/2 (M_ij N_kl + N_ij M_kl - M_il N_kj - N_il M_kj)` vanishes identically at
+`M = N = v v^T`, so `Phi(M(c), M(c)) = 0` is linear in `c (x) c`. The search becomes a null space,
+whose spanning elements `c^(i) (x) c^(i)` are rank-1 in the `2k`-dimensional coefficient space -
+where a pencil separates them, the same pencil that could not work in `R^n`. Nothing iterates.
+
+| n | pencil ceiling | k | k/n | recovered | median cosine |
+| --- | --- | --- | --- | --- | --- |
+| 8 | 4 | 10 | 1.25 | 10/10 | 0.999999999999999 |
+| 8 | 4 | 12 | 1.50 | 12/12 | 1.000000000000000 |
+| 8 | 4 | 13 | 1.63 | 13/13 | 0.999999999999999 |
+| 8 | 4 | 14 | 1.75 | 0/14 | - |
+| 10 | 5 | 15 | 1.50 | 15/15 | 0.999999999999999 |
+| 10 | 5 | 18 | 1.80 | 18/18 | 1.000000000000000 |
+
+Three seeds at n=8, agreeing at every row including the failure. The break at 14 is where the
+isolation bound `(n^2-n+2)/4 = 14.5` says solutions stop being isolated, so the solver stops
+where the geometry does rather than where its own conditioning gives out - which also makes that
+bound a prediction that held rather than a correction after the fact.
+
+Scope, and it is narrower than the table looks. The span `W` here is built analytically from the
+true gates and ups, not measured from an oracle. What is verified is the extraction step, not the
+whole chain. Joining it to a measured span - `W` from third derivatives at several base points,
+which is where the rank was shown to be available - is the remaining work, and until that runs
+this is recovery from a span rather than recovery from an oracle. Reproduce with
+`--recover-sweep`.
 
 What this changes and what it does not. The units behind a too-narrow answer are separable in
 what the oracle can be made to show - that is the necessary condition, and it is now measured

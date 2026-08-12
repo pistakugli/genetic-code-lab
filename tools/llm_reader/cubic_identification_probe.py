@@ -103,8 +103,36 @@ from 64 to 9.2 as the base point norm goes 0 to 50 at `k=64`, `n=16` - does not 
 *unfolding rank*, which stays saturated at `n` because the quiet units are quiet and not absent.
 That route returned 2 of 6 at its best setting.
 
-The gate that remains is a real FOOBI-class solver. Two shortcuts to it are now measured dead,
-which is the useful part of the above.
+The solver that works, and why the three above could not. All of them searched for `v` directly,
+which makes rank-1-ness a quartic condition with a flat landscape and, at the solution, no
+second-order information left to steer by. Rank is a statement about minors, and minors are
+bilinear:
+
+    Phi(M,N)_ijkl = 1/2 (M_ij N_kl + N_ij M_kl - M_il N_kj - N_il M_kj)
+
+vanishes identically at `M = N = v v^T`. So `Phi(M(c), M(c)) = 0` is *linear* in `c (x) c`, and
+the search is a null space rather than an optimisation. The null space is spanned by
+`c^(i) (x) c^(i)`, which are rank-1 in the `2k`-dimensional coefficient space - so the same
+pencil that failed in `R^n` separates them there, where the objects really are rank-1. Each `c`
+rebuilds a matrix whose top eigenvector is a gate, and a purity test drops anything that did not
+come back rank-1. Nothing iterates.
+
+Measured at `n=8`, where the pencil ceiling is 4 units:
+
+| units `k` | `k/n` | recovered | median cosine |
+| --- | --- | --- | --- |
+| 8 | 1.00 | 8/8 | 1.000000000000000 |
+| 10 | 1.25 | 10/10 | 0.999999999999999 |
+| 12 | 1.50 | 12/12 | 1.000000000000000 |
+| 13 | 1.63 | 13/13 | 0.999999999999999 |
+| 14 | 1.75 | 0/14 | - |
+
+Three seeds each, and the seeds agree at every row including the failure. The break at 14 is
+where the isolation bound `(n^2-n+2)/4 = 14.5` says the solutions stop being isolated, so the
+solver runs out exactly where the geometry does rather than somewhere of its own.
+
+That is the overcomplete recovery this file said it did not have. `k > n` is recovered, and the
+ceiling is now the isolation bound rather than any property of the algorithm.
 
 This is a measurement harness against a synthetic teacher, in the idiom of
 `jacobian_jump_probe.py`. It is not wired into a lane. Run it directly.
@@ -707,6 +735,122 @@ def lifted_reach(
     }
 
 
+def minor_map(basis_matrices: torch.Tensor) -> torch.Tensor:
+    """The 2x2 minors of `M = sum_r c_r B_r`, as a linear map on `c (x) c`.
+
+    This is what the three dead routes were missing. Searching for rank-1 elements of `W`
+    directly is a quartic in `v` with a flat landscape and no usable second-order information at
+    the solution. But rank is a statement about minors, and minors are *bilinear*:
+
+        Phi(M,N)_ijkl = 1/2 (M_ij N_kl + N_ij M_kl - M_il N_kj - N_il M_kj)
+
+    vanishes identically when `M = N = v v^T`, because both halves are `v_i v_j v_k v_l`. So
+    `Phi(M(c), M(c)) = sum_rs c_r c_s Phi(B_r, B_s) = 0` is *linear* in `c (x) c`, and the search
+    becomes a null space instead of an optimisation. Nothing here iterates.
+    """
+    count = basis_matrices.shape[0]
+    symmetric = (basis_matrices + basis_matrices.transpose(1, 2)) / 2
+    minors = (
+        torch.einsum("rij,skl->rsijkl", symmetric, symmetric)
+        + torch.einsum("sij,rkl->rsijkl", symmetric, symmetric)
+        - torch.einsum("ril,skj->rsijkl", symmetric, symmetric)
+        - torch.einsum("sil,rkj->rsijkl", symmetric, symmetric)
+    ) / 2.0
+    return minors.reshape(count * count, -1).T
+
+
+def foobi_gates(
+    span_basis: torch.Tensor,
+    input_dim: int,
+    tolerance: float,
+    purity: float,
+    collinearity: float,
+    seed: int,
+) -> tuple[torch.Tensor, int]:
+    """Recover the gate directions from the lifted span, including when `k > n`.
+
+    The null space of `minor_map` is spanned by `c^(i) (x) c^(i)`, the coefficient vectors of the
+    rank-1 elements. Those are genuinely rank-1 matrices in the `2k`-dimensional coefficient
+    space, so a pencil separates them there - the same pencil that could not work in `R^n`, now
+    applied where the objects actually are rank-1. Each recovered `c` rebuilds a matrix whose top
+    eigenvector is a gate; the purity test rejects any that did not come back rank-1.
+    """
+    count = span_basis.shape[1]
+    basis_matrices = span_basis.T.reshape(count, input_dim, input_dim)
+    mapped = minor_map(basis_matrices)
+    spectrum = torch.linalg.svdvals(mapped)
+    _, _, right = torch.linalg.svd(mapped, full_matrices=True)
+    nullity = int((spectrum < spectrum[0] * tolerance).sum()) + max(0, mapped.shape[1] - spectrum.shape[0])
+    if nullity < 2:
+        return torch.zeros((0, input_dim), device=span_basis.device, dtype=DTYPE), nullity
+    null_space = right[right.shape[0] - nullity:, :].reshape(-1, count, count)
+
+    generator = torch.Generator(device=span_basis.device).manual_seed(seed)
+    left_mix = torch.randn(nullity, generator=generator, device=span_basis.device, dtype=DTYPE)
+    right_mix = torch.randn(nullity, generator=generator, device=span_basis.device, dtype=DTYPE)
+    first = torch.einsum("q,qrs->rs", left_mix, null_space)
+    second = torch.einsum("q,qrs->rs", right_mix, null_space)
+    first = (first + first.T) / 2
+    second = (second + second.T) / 2
+    _, coefficients = torch.linalg.eig(first @ torch.linalg.pinv(second))
+
+    kept: list[torch.Tensor] = []
+    for column in range(coefficients.real.shape[1]):
+        candidate = torch.einsum("r,rij->ij", coefficients.real[:, column], basis_matrices)
+        candidate = (candidate + candidate.T) / 2
+        values, vectors = torch.linalg.eigh(candidate)
+        magnitude = values.abs()
+        if float(magnitude.max()) <= 0:
+            continue
+        if float(magnitude.max() / magnitude.sum().clamp_min(1e-300)) <= purity:
+            continue
+        direction = vectors[:, int(magnitude.argmax())]
+        if any(abs(float(direction @ existing)) >= collinearity for existing in kept):
+            continue
+        kept.append(direction)
+    if not kept:
+        return torch.zeros((0, input_dim), device=span_basis.device, dtype=DTYPE), nullity
+    return torch.stack(kept), nullity
+
+
+def overcomplete_recovery(
+    units: int,
+    input_dim: int,
+    output_dim: int,
+    seed: int,
+    tolerance: float,
+    purity: float,
+    collinearity: float,
+    device: torch.device,
+) -> dict:
+    """End to end: lift, take the minor null space, and match the gates against truth."""
+    teacher = make_teacher(units, input_dim, output_dim, seed, device)
+    gate, up = teacher.gate, teacher.up
+    gate_outer = torch.einsum("ia,ib->iab", gate, gate).reshape(units, -1)
+    mixed = ((torch.einsum("ia,ib->iab", gate, up) + torch.einsum("ia,ib->iab", up, gate)) / 2.0).reshape(units, -1)
+    span_basis, _ = torch.linalg.qr(torch.cat([gate_outer, mixed], dim=0).T)
+    gates, nullity = foobi_gates(span_basis, input_dim, tolerance, purity, collinearity, seed + 3)
+    truth = gate / gate.norm(dim=1, keepdim=True)
+    if gates.shape[0] == 0:
+        best = torch.zeros(units, device=device, dtype=DTYPE)
+    else:
+        best = (gates @ truth.T).abs().max(dim=0).values
+    return {
+        "units": units,
+        "inputDim": input_dim,
+        "unitsPerInputDim": units / input_dim,
+        "overcomplete": units > input_dim,
+        "pencilCeiling": input_dim // 2,
+        "isolatedSolutionCeiling": (input_dim * input_dim - input_dim + 2) // 4,
+        "nullity": nullity,
+        "gatesReturned": int(gates.shape[0]),
+        "gatesAbove0.99": int((best >= 0.99).sum()),
+        "gatesAbove0.999": int((best >= 0.999).sum()),
+        "medianCosine": float(best.median()),
+        "device": str(span_basis.device),
+    }
+
+
 def cost_laws(input_dim: int) -> dict:
     """The two measured cost laws, evaluated rather than quoted.
 
@@ -743,6 +887,9 @@ def main() -> int:
                         help="base-point counts to measure the response-width ceiling against")
     parser.add_argument("--reach-units", type=int, default=40)
     parser.add_argument("--reach-width", type=int, default=8)
+    parser.add_argument("--recover-sweep", type=int, nargs="*", default=None,
+                        help="unit counts to run the overcomplete recovery at")
+    parser.add_argument("--purity", type=float, default=0.9)
     parser.add_argument("--lifted-sweep", type=int, nargs="*", default=None,
                         help="unit counts to measure the lifted identifiability ceiling at")
     parser.add_argument("--sweep-units", type=int, nargs="*", default=None)
@@ -772,6 +919,15 @@ def main() -> int:
     report = {"runs": runs}
     if args.project_dim:
         report["costProjection"] = [cost_laws(dim) for dim in args.project_dim]
+    if args.recover_sweep:
+        report["overcompleteRecovery"] = [
+            overcomplete_recovery(
+                units=count, input_dim=args.input_dim, output_dim=args.reach_width,
+                seed=args.seed, tolerance=args.rank_tolerance, purity=args.purity,
+                collinearity=args.collinearity, device=device,
+            )
+            for count in args.recover_sweep
+        ]
     if args.lifted_sweep:
         report["liftedReach"] = [
             lifted_reach(
