@@ -185,12 +185,28 @@ for this anchor count. Measured against the same span, subspace angle `1.0000000
 At `n=3072` that is `204.8x` - `5.7e8` points a base point instead of `1.16e11`. The tensor route
 also runs out of card at `n=24` where the slice route does not, so this is not only cheaper.
 
-It is still not a layer, and the arithmetic should be read rather than rounded off. A subset that
-fits the solve needs about `2 * rank_cap` slices, so roughly `1.2e9` points a base point at
-`n=3072`, and base points grow about `k/4`, which is 2048 of them for 8192 units: `2.4e12` oracle
-points. The boundary route spent `4.5e7` to fail at 4096. So what is measured here is that the
-identification holds to sixteen times the response width and that the cost law is `4 A n^2` a base
-point - not that a layer of 8192 has been read, and not that this one could afford to.
+Anchors are the expensive axis and readers are free, which inverts what the response width means
+here. The oracle answers `m` numbers per call whether one is read or all of them, so one anchor
+already yields `R` slices - but only `k_loud` independent ones, since they share an anchor. Two
+anchors are the floor and `A * R >= 2 k_loud` is the condition. Measured at `n=32`, `k=12`: `A=2`
+with 24 readers reaches rank 24 for 13456 points where `A=14` with 3 readers needs 67312 for the
+same rank, and `A=1` stops at 12 however many readers it gets. Through the whole pipeline at
+`n=32`, `k=32`, covering 32 of 32 each time:
+
+| response width | readers | anchors | oracle points |
+| --- | --- | --- | --- |
+| 8 | 8 | 8 | 915456 |
+| 24 | 24 | 3 | 646176 |
+| 48 | 48 | 2 | 592320 |
+
+A wider answer now makes the read *cheaper*, where in the boundary route it was the ceiling.
+
+It is still not a layer, and the arithmetic should be read rather than rounded off. At `n=3072`
+the response width pins anchors at the floor of two, so a base point is about `1.1e8` points, and
+base points grow about `k/4` - 2048 of them for 8192 units, so `1.9e11`. The boundary route spent
+`4.5e7` to fail at 4096. So what is measured is that the identification holds to sixteen times
+the response width and that a base point costs `12 n^2`; not that a layer of 8192 has been read,
+and not that this could afford to.
 
 Scale, which is what kept this at toy sizes. The minor map has `n^4` rows - 1.8 GiB at `n=16`
 and 15.8 GiB at `n=24`, where the card refused it. Only the null space is wanted and it lives in
@@ -1221,7 +1237,15 @@ def tile_recovery(
     for _ in range(trials):
         base_point = torch.randn(1, input_dim, generator=generator, device=device, dtype=DTYPE)
         base_point = base_point / base_point.norm() * chosen_scale
-        readers = torch.randn(reader_count, output_dim, generator=generator, device=device, dtype=DTYPE)
+        # Readers are free and anchors are not. The oracle answers `m` numbers per call whether
+        # one is read or all of them, so a single anchor already yields `R` slices - but only
+        # `k_loud` independent ones, because they all sit at the same anchor. Two anchors are the
+        # floor and `A * R >= 2 k_loud` is the condition. Measured at n=32, k=12: A=2 with 24
+        # readers reaches rank 24 for 13456 points where A=14 with 3 readers needs 67312 for the
+        # same rank, and A=1 stops at 12 however many readers it is given.
+        effective_readers = max(1, min(output_dim, max(reader_count, 2 * rank_cap)))
+        anchor_count = max(2, -(-2 * rank_cap // effective_readers))
+        readers = torch.randn(effective_readers, output_dim, generator=generator, device=device, dtype=DTYPE)
         readers = readers / readers.norm(dim=1, keepdim=True)
         try:
             if input_dim >= slice_crossover:
@@ -1230,8 +1254,7 @@ def tile_recovery(
                 # 1.60x at n=24, 2.13x at 32, 3.20x at 48, 4.27x at 64, 6.40x at 96, all against
                 # the same span to a subspace angle of 1.000000000.
                 anchors = torch.randn(
-                    max(2, -(-2 * rank_cap // max(reader_count, 1))),
-                    input_dim, generator=generator, device=device, dtype=DTYPE,
+                    anchor_count, input_dim, generator=generator, device=device, dtype=DTYPE,
                 )
                 anchors = anchors / anchors.norm(dim=1, keepdim=True)
                 span_basis, rank = measured_lifted_span_by_slices(
@@ -1283,6 +1306,8 @@ def tile_recovery(
         "coverage": matched / units,
         "spuriousDirections": spurious,
         "spanRoute": "slices" if input_dim >= slice_crossover else "tensor",
+        "readersUsed": max(1, min(output_dim, max(reader_count, 2 * rank_cap))),
+        "anchorsPerBasePoint": max(2, -(-2 * rank_cap // max(1, min(output_dim, max(reader_count, 2 * rank_cap))))),
         "oracleCallsPoints": teacher.counter.points,
         "growth": growth,
         "device": str(truth.device),
