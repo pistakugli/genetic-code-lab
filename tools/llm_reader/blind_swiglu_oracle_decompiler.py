@@ -2024,6 +2024,28 @@ def fit_swiglu_sum_batched(
 
         gates_np = gates.detach().cpu().numpy().astype(np.float64)
         ups_np = ups.detach().cpu().numpy().astype(np.float64)
+        # The scoring loop below needs `silu(coords @ g.T) * (coords @ u.T)` for every restart in
+        # the chunk, and it used to recompute all of it on the host - two `N x rank` by
+        # `rank x atoms` products per restart, 512 restarts to a fit. Measured at N=32000,
+        # atoms=32: about 30 s of host BLAS against 5 s for the least squares that follows, and
+        # that is the load that showed up as 31 cores busy with the card idle.
+        #
+        # The card already holds `coords`, `gates` and `ups` - it just finished optimising them.
+        # Computing the activations there in float64 gives the host the same quantity it was
+        # about to compute, at the same precision. It is not bit-identical, because cuBLAS and
+        # OpenBLAS sum in different orders, but it is the same arithmetic to ~1e-16 relative,
+        # far below the 1e-3 scale at which the mae comparisons below choose between restarts.
+        chunk_activations = None
+        if str(x.device).startswith("cuda"):
+            with torch.no_grad():
+                coords_device = x.double()
+                gates_device = gates.detach().double()
+                ups_device = ups.detach().double()
+                chunk_activations = (
+                    torch.nn.functional.silu(coords_device @ gates_device.transpose(1, 2))
+                    * (coords_device @ ups_device.transpose(1, 2))
+                ).cpu().numpy()
+                del coords_device, gates_device, ups_device
         for local_restart in range(current_count):
             if chunk_kind == "structured":
                 restart = chunk_start + local_restart
@@ -2033,7 +2055,10 @@ def fit_swiglu_sum_batched(
                 random_restart_index = chunk_start + local_restart
                 restart = structured_start_count + random_restart_index
                 start_kind = "random"
-            activation_np = silu_np(coords @ gates_np[local_restart].T) * (coords @ ups_np[local_restart].T)
+            if chunk_activations is not None:
+                activation_np = chunk_activations[local_restart]
+            else:
+                activation_np = silu_np(coords @ gates_np[local_restart].T) * (coords @ ups_np[local_restart].T)
             design = np.column_stack([activation_np, ones])
             try:
                 coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
