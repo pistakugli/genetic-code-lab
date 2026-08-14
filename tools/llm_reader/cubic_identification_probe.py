@@ -286,8 +286,11 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from dataclasses import dataclass, field
 from itertools import combinations_with_replacement
+from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -322,6 +325,176 @@ class Teacher:
         z = points @ self.gate.T
         activation = torch.nn.functional.silu(z)
         return (activation * (points @ self.up.T)) @ self.down.T
+
+
+class LiveTeacher:
+    """The same call the synthetic teacher answers, served by the real block through the oracle.
+
+    Everything above this line was measured against a teacher whose weights this file wrote. That
+    makes every number here a statement about the method and none of them a statement about a
+    layer. This class is the only place the two meet: it presents `__call__(points) -> values` and
+    a `counter`, which is the whole surface `measure_cubic_forms_at` uses, and answers it by
+    spending real oracle calls.
+
+    Two things are not the same as the synthetic path and both matter. The transport is float32 -
+    the client saves inputs as float32 and the block answers in it - while the third-derivative
+    stencil divides by `2h^3`, so the relative error on a value is amplified by about `1/h^3`
+    before anything downstream sees it. And the truth is locked: `gate` and `up` are unavailable
+    until `unlock` is called, which is what keeps a comparison against them post-hoc.
+    """
+
+    def __init__(self, client: Any, device: torch.device) -> None:
+        self.client = client
+        self.device = device
+        self.counter = OracleCallCounter()
+
+    def __call__(self, points: torch.Tensor) -> torch.Tensor:
+        self.counter.charge(int(points.shape[0]))
+        values = self.client.eval(points.detach().cpu().numpy(), stage="cubic-probe")
+        return torch.as_tensor(values, dtype=DTYPE, device=self.device)
+
+
+def open_live_oracle(
+    model: str,
+    layer: int,
+    units: str,
+    device: str,
+    max_calls: int,
+    work_dir: Path,
+    local_files_only: bool,
+) -> Any:
+    """Start the real block behind the same protocol the lanes use, and refuse a host answer."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import blind_swiglu_oracle_decompiler as live
+
+    work_dir.mkdir(parents=True, exist_ok=True)
+    arguments = argparse.Namespace(
+        max_oracle_calls=int(max_calls),
+        oracle_read_fd=-1,
+        oracle_write_fd=-1,
+        model=model,
+        layer=int(layer),
+        unit=0,
+        units=units,
+        device=device,
+        oracle_batch_size=2048,
+        output_channel=-1,
+        oracle_output_mode="selected-unit-ffn-vector",
+        oracle_quantization_step=0.0,
+        local_files_only=bool(local_files_only),
+        require_opaque_oracle=False,
+    )
+    return live.OracleClient(arguments, work_dir)
+
+
+def live_form_check(
+    model: str,
+    layer: int,
+    units: str,
+    direction_count: int,
+    subspace_dim: int,
+    base_scale: float,
+    steps: list[float],
+    seed: int,
+    max_calls: int,
+    work_dir: Path,
+    local_files_only: bool,
+    device: torch.device,
+) -> dict:
+    """Does the third derivative survive the trip through a real, float32 oracle.
+
+    This is the first gate that has to pass before any of the recovery above means anything about
+    a layer, and it is cheap: `8` points a direction. It measures the cubic form the way the span
+    builder does, then unlocks the post-hoc truth and computes what the form should have been.
+    Agreement is the claim; the query count and the device the block answered from are recorded
+    beside it so neither can be assumed later.
+    """
+    client = open_live_oracle(model, layer, units, str(device), max_calls, work_dir, local_files_only)
+    try:
+        hidden = int(client.meta["hiddenSize"])
+        generator = torch.Generator(device=device).manual_seed(seed)
+        frame, _ = torch.linalg.qr(
+            torch.randn(hidden, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        )
+        base_point = torch.randn(subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        base_point = base_point / base_point.norm() * base_scale
+        directions = torch.randn(direction_count, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        directions = directions / directions.norm(dim=1, keepdim=True)
+
+        teacher = LiveTeacher(client, device)
+        lifted_base = frame @ base_point
+        lifted_directions = directions @ frame.T
+
+        # The step is the whole experiment, not a detail. Transport is float32, so a value
+        # carries about `1e-7` relative error and the stencil divides by `2h^3`: the noise on the
+        # estimate is roughly `eps * |y| / h^3` while the signal does not move with `h` at all.
+        # At `h=0.02` that is 0.025 against a form of size 3e-5, which is why the first live check
+        # came back at relative error 0.945 - not a broken bridge, a step three orders too small.
+        # Every candidate is measured before the truth is unlocked, so the choice cannot have
+        # been informed by the answer.
+        step_sets = [list(steps)] if len(steps) > 1 else [[float(steps[0]), 2.0 * float(steps[0])]]
+        step_sets = step_sets + [[0.5, 1.0], [2.0, 4.0], [8.0, 16.0], [32.0, 64.0]]
+        measurements = [
+            measure_cubic_forms_at(teacher, lifted_base, lifted_directions, candidate)
+            for candidate in step_sets
+        ]
+        measured = measurements[0]
+        solver_calls = int(client.query_count)
+
+        # Only now, and the oracle enforces it rather than this file promising it.
+        client.unlock_posthoc_truth("live-form-check")
+        gate_truth, up_truth = client.truth()
+        down_truth = client.truth_down()
+        gate = torch.as_tensor(gate_truth, dtype=DTYPE, device=device)
+        up = torch.as_tensor(up_truth, dtype=DTYPE, device=device)
+        down = (
+            torch.as_tensor(down_truth, dtype=DTYPE, device=device)
+            if down_truth is not None
+            else torch.eye(gate.shape[0], device=device, dtype=DTYPE)
+        )
+        truth_teacher = Teacher(gate=gate, up=up, down=down)
+        analytic = torch.stack([
+            analytic_cubic_form(truth_teacher, reader, lifted_directions)
+            for reader in torch.eye(int(down.shape[0]), device=device, dtype=DTYPE)
+        ], dim=1)
+
+        scale = analytic.norm(dim=1).clamp_min(1e-300)
+        step_report = []
+        for candidate, estimate in zip(step_sets, measurements):
+            errors = (estimate - analytic).norm(dim=1) / scale
+            step_report.append({
+                "steps": candidate,
+                "relativeErrorMedian": float(errors.median()),
+                "relativeErrorMin": float(errors.min()),
+            })
+        best = min(step_report, key=lambda entry: entry["relativeErrorMedian"])
+        relative = (measured - analytic).norm(dim=1) / scale
+        return {
+            "stepSweep": step_report,
+            "bestSteps": best["steps"],
+            "bestRelativeErrorMedian": best["relativeErrorMedian"],
+            "model": model,
+            "layer": int(layer),
+            "units": units,
+            "hiddenSize": hidden,
+            "blockDevice": client.meta.get("blockDevice"),
+            "oracleResponseWidth": client.meta.get("oracleResponseWidth"),
+            "subspaceDim": int(subspace_dim),
+            "directions": int(direction_count),
+            "baseScale": float(base_scale),
+            "steps": list(steps),
+            "solverOracleCalls": solver_calls,
+            "truthUnlockStage": client.truth_unlock_stage,
+            "truthUnlockQueryCount": client.truth_unlock_query_count,
+            "unlockedAfterAllSolverCalls": client.truth_unlock_query_count == solver_calls,
+            "analyticFormNormMedian": float(scale.median()),
+            "relativeErrorMedian": float(relative.median()),
+            "relativeErrorMax": float(relative.max()),
+            "relativeErrorMin": float(relative.min()),
+            "device": str(measured.device),
+        }
+    finally:
+        client.close()
 
 
 def make_teacher(units: int, input_dim: int, output_dim: int, seed: int, device: torch.device) -> Teacher:
@@ -1819,6 +1992,17 @@ def main() -> int:
     parser.add_argument("--core-points", type=int, default=0,
                         help="core points to spend; 0 derives 1.5k from the unit count")
     parser.add_argument("--pencil-draws", type=int, default=5)
+    parser.add_argument("--live-form-check", action="store_true",
+                        help="measure the cubic form through the real oracle and check it post-hoc")
+    parser.add_argument("--live-model", type=str, default="unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit")
+    parser.add_argument("--live-layer", type=int, default=15)
+    parser.add_argument("--live-units", type=str, default="0,1,2,3,4,5,6,7")
+    parser.add_argument("--live-directions", type=int, default=40)
+    parser.add_argument("--live-subspace-dim", type=int, default=8)
+    parser.add_argument("--live-base-scale", type=float, default=1.0)
+    parser.add_argument("--live-max-calls", type=int, default=200000)
+    parser.add_argument("--live-work-dir", type=str, default=None)
+    parser.add_argument("--live-local-files-only", action="store_true")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--output-json", type=str, default=None)
     args = parser.parse_args()
@@ -1835,6 +2019,7 @@ def main() -> int:
     selected_modes = [
         args.stitch, args.tile, args.oracle_recover, args.recover_sweep,
         args.lifted_sweep, args.base_point_sweep, args.project_dim,
+        args.live_form_check or None,
     ]
     runs: list[dict] = []
     if args.sweep_units or not any(selected_modes):
@@ -1854,6 +2039,15 @@ def main() -> int:
             for count in unit_list
         ]
     report = {"runs": runs}
+    if args.live_form_check:
+        work_dir = Path(args.live_work_dir) if args.live_work_dir else Path("/tmp/cubic-live-check")
+        report["liveFormCheck"] = live_form_check(
+            model=args.live_model, layer=args.live_layer, units=args.live_units,
+            direction_count=args.live_directions, subspace_dim=args.live_subspace_dim,
+            base_scale=args.live_base_scale, steps=list(args.steps), seed=args.seed,
+            max_calls=args.live_max_calls, work_dir=work_dir,
+            local_files_only=args.live_local_files_only, device=device,
+        )
     if args.project_dim:
         report["costProjection"] = [cost_laws(dim) for dim in args.project_dim]
     if args.tile:
