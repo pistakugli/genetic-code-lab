@@ -742,16 +742,33 @@ def estimate_gradient(
     return dimension * np.mean(directional[:, None] * directions, axis=0)
 
 
+def coordinate_perturbation_batch(base: np.ndarray, offsets: list[float]) -> np.ndarray:
+    """`base` repeated with one coordinate shifted per row, one block per offset.
+
+    This is the inner loop of every coordinate gradient, and it used to be written with a dense
+    identity: `np.eye(dimension)` at `dim x dim`, then `base + step * eye`, then a `vstack` of
+    the blocks. At the hidden size of a real model that is 37.7 MB of identity that is the same
+    on every call, and three full passes over 9.4 million floats to express a batch whose rows
+    differ from `base` in exactly one entry. The multiscale estimator paid it six times a probe
+    point.
+
+    One allocation, one diagonal write, and the row order is unchanged.
+    """
+    dimension = int(base.shape[0])
+    batch = np.repeat(base[None, :], dimension * len(offsets), axis=0)
+    index = np.arange(dimension)
+    for position, offset in enumerate(offsets):
+        batch[position * dimension + index, index] += offset
+    return batch
+
+
 def estimate_coordinate_gradient(
     oracle: OracleClient,
     base: np.ndarray,
     step: float,
 ) -> np.ndarray:
     dimension = base.shape[0]
-    eye = np.eye(dimension, dtype=np.float32)
-    plus = base[None, :] + step * eye
-    minus = base[None, :] - step * eye
-    values = oracle.eval(np.vstack([plus, minus]))
+    values = oracle.eval(coordinate_perturbation_batch(base, [step, -step]))
     return (values[:dimension] - values[dimension:]) / (2.0 * step)
 
 
@@ -760,10 +777,9 @@ def estimate_forward_coordinate_gradient(
     base: np.ndarray,
     step: float,
 ) -> np.ndarray:
-    dimension = base.shape[0]
-    eye = np.eye(dimension, dtype=np.float32)
-    shifted = base[None, :] + step * eye
-    values = oracle.eval(np.vstack([base[None, :], shifted]))
+    values = oracle.eval(
+        np.vstack([base[None, :], coordinate_perturbation_batch(base, [step])])
+    )
     return (values[1:] - values[0]) / step
 
 
@@ -844,14 +860,10 @@ def estimate_symmetric_multiscale_coordinate_gradients(
     steps: list[float],
 ) -> np.ndarray:
     dimension = base.shape[0]
-    eye = np.eye(dimension, dtype=np.float32)
-    query_blocks: list[np.ndarray] = []
+    offsets: list[float] = []
     for step in steps:
-        query_blocks.extend([
-            base[None, :] + step * eye,
-            base[None, :] - step * eye,
-        ])
-    values = oracle.eval(np.vstack(query_blocks)).reshape(len(steps), 2, dimension)
+        offsets.extend([step, -step])
+    values = oracle.eval(coordinate_perturbation_batch(base, offsets)).reshape(len(steps), 2, dimension)
     step_values = np.asarray(steps, dtype=np.float64)[:, None]
     return (values[:, 0, :] - values[:, 1, :]) / (2.0 * step_values)
 
