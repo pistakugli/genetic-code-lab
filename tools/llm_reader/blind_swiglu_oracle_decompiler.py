@@ -2278,6 +2278,10 @@ def fit_swiglu_sum_batched(
     if best.get("polished"):
         suffixes.append("lbfgs-polish")
     best["fitMode"] = "+".join([batched_mode] + suffixes)
+    # Where the optimisation ran, read off a tensor rather than off the flag that asked for it.
+    # This path has always been on the card, but nothing said so, and finding that out took a
+    # profiler and `nvidia-smi pmon` on a live run. A field costs nothing and answers it.
+    best["fitDevice"] = str(device)
     return best
 
 
@@ -5077,8 +5081,23 @@ def fit_swiglu_sum(
 
     torch.manual_seed(seed)
     fit_dtype = torch.float64 if atom_count >= 4 else torch.float32
-    x = torch.tensor(coords, dtype=fit_dtype)
-    y = torch.tensor(targets, dtype=fit_dtype)
+    # Every tensor here used to be created without a device, so the whole optimisation - steps
+    # times restarts, 2600 x 512 in the high-atom profile - ran through libtorch_cpu. Measured on
+    # a live 32-unit run: 31.13 cores busy in the solver, zero disk traffic, and no compute rows
+    # for that pid in `nvidia-smi pmon` while the card held the oracle and idled.
+    #
+    # `GCL_BLIND_SWIGLU_FIT_DEVICE` forces the choice, because the card is not always the right
+    # answer: a fit of four atoms over six hundred points is a stream of tiny kernels where the
+    # launch overhead outweighs the arithmetic, and the card can also be busy with something
+    # else entirely. The chosen device is reported in the fit result, so which processor did the
+    # work is a recorded fact rather than an assumption about a flag.
+    requested_device = os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE", "").strip().lower()
+    if requested_device in {"cpu", "cuda"}:
+        fit_device = torch.device(requested_device)
+    else:
+        fit_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    x = torch.tensor(coords, dtype=fit_dtype, device=fit_device)
+    y = torch.tensor(targets, dtype=fit_dtype, device=fit_device)
     has_gradient_witness = (
         gradient_coords is not None
         and gradient_targets is not None
@@ -5086,8 +5105,8 @@ def fit_swiglu_sum(
         and gradient_coords.shape[0] > 0
     )
     if has_gradient_witness:
-        gx = torch.tensor(gradient_coords, dtype=fit_dtype)
-        gy = torch.tensor(gradient_targets, dtype=fit_dtype)
+        gx = torch.tensor(gradient_coords, dtype=fit_dtype, device=fit_device)
+        gy = torch.tensor(gradient_targets, dtype=fit_dtype, device=fit_device)
     else:
         gx = None
         gy = None
@@ -5116,8 +5135,8 @@ def fit_swiglu_sum(
         and effective_cubic_directions.shape[0] == effective_cubic_targets.shape[0]
     )
     if has_cubic_witness:
-        cv = torch.tensor(effective_cubic_directions, dtype=fit_dtype)
-        cy = torch.tensor(effective_cubic_targets, dtype=fit_dtype)
+        cv = torch.tensor(effective_cubic_directions, dtype=fit_dtype, device=fit_device)
+        cy = torch.tensor(effective_cubic_targets, dtype=fit_dtype, device=fit_device)
         target_cubic_scale = torch.mean(cy ** 2).detach().clamp_min(1e-12)
     else:
         cv = None
@@ -5259,15 +5278,15 @@ def fit_swiglu_sum(
         torch.manual_seed(seed + restart)
         if restart < structured_start_count:
             gate_init, up_init, scale_init, bias_init = structured_starts[restart]
-            gates = torch.nn.Parameter(torch.tensor(gate_init, dtype=fit_dtype))
-            ups = torch.nn.Parameter(torch.tensor(up_init, dtype=fit_dtype))
-            scales = torch.nn.Parameter(torch.tensor(scale_init, dtype=fit_dtype))
-            bias = torch.nn.Parameter(torch.tensor(bias_init, dtype=fit_dtype))
+            gates = torch.nn.Parameter(torch.tensor(gate_init, dtype=fit_dtype, device=fit_device))
+            ups = torch.nn.Parameter(torch.tensor(up_init, dtype=fit_dtype, device=fit_device))
+            scales = torch.nn.Parameter(torch.tensor(scale_init, dtype=fit_dtype, device=fit_device))
+            bias = torch.nn.Parameter(torch.tensor(bias_init, dtype=fit_dtype, device=fit_device))
         else:
-            gates = torch.nn.Parameter(torch.randn(atom_count, rank, dtype=fit_dtype) * 0.6)
-            ups = torch.nn.Parameter(torch.randn(atom_count, rank, dtype=fit_dtype) * 0.6)
-            scales = torch.nn.Parameter(torch.ones(atom_count, dtype=fit_dtype) * max(0.1, target_scale / max(1, atom_count)))
-            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets)), dtype=fit_dtype))
+            gates = torch.nn.Parameter(torch.randn(atom_count, rank, dtype=fit_dtype, device=fit_device) * 0.6)
+            ups = torch.nn.Parameter(torch.randn(atom_count, rank, dtype=fit_dtype, device=fit_device) * 0.6)
+            scales = torch.nn.Parameter(torch.ones(atom_count, dtype=fit_dtype, device=fit_device) * max(0.1, target_scale / max(1, atom_count)))
+            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets)), dtype=fit_dtype, device=fit_device))
         optimizer = torch.optim.Adam([gates, ups, scales, bias], lr=learning_rate)
         for _ in range(steps):
             optimizer.zero_grad()
@@ -5285,7 +5304,7 @@ def fit_swiglu_sum(
                     + silu_values[:, :, None] * ups[None, :, :]
                 )
                 predicted_gradients = torch.sum(gradient_terms, dim=1)
-                target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(torch.tensor(1e-12, dtype=fit_dtype))
+                target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(torch.tensor(1e-12, dtype=fit_dtype, device=fit_device))
                 loss = loss + gradient_weight * torch.mean((predicted_gradients - gy) ** 2) / target_grad_scale
             if has_cubic_witness and cv is not None and cy is not None and target_cubic_scale is not None:
                 cubic_gate_projection = cv @ gates.T
@@ -5321,7 +5340,7 @@ def fit_swiglu_sum(
                     + silu_values[:, :, None] * ups[None, :, :]
                 )
                 predicted_gradients = torch.sum(gradient_terms, dim=1)
-                target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(torch.tensor(1e-12, dtype=fit_dtype))
+                target_grad_scale = torch.mean(gy ** 2).detach().clamp_min(torch.tensor(1e-12, dtype=fit_dtype, device=fit_device))
                 loss = loss + gradient_weight * torch.mean((predicted_gradients - gy) ** 2) / target_grad_scale
             if has_cubic_witness and cv is not None and cy is not None and target_cubic_scale is not None:
                 cubic_gate_projection = cv @ gates.T
@@ -5373,6 +5392,10 @@ def fit_swiglu_sum(
                 "ups": ups.detach().cpu().numpy().astype(np.float64),
                 "scales": scale_values,
                 "bias": bias_value,
+                # Where the optimisation actually ran, taken from a tensor rather than from the
+                # request. This is the field that would have shown, without a profiler, that the
+                # whole fit was on the host while the card held the oracle and idled.
+                "fitDevice": str(gates.device),
             }
             start_kind = str(candidate["startKind"])
             previous_kind_score = best_score_by_start_kind.get(start_kind)
