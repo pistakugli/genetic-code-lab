@@ -9123,10 +9123,27 @@ def validation_full_tail_polish_cubic_trigger(method: str, cubic_score_count: in
     return method in {"gradient-polish", "asymptotic-gate-stitch"} and cubic_score_count > 0
 
 
+_PROGRESS_CLOCK: dict[str, float] = {}
+
+
 def log_progress(args: argparse.Namespace, phase: str, **fields: Any) -> None:
     if not getattr(args, "progress", False):
         return
-    print(json.dumps({"type": "progress", "phase": phase, **fields}), file=sys.stderr, flush=True)
+    # How long the run has been going, and how long since the last phase said anything. Without
+    # these two numbers a stalled run and a working one look identical from outside, and finding
+    # out where the minutes went took a profiler, `nvidia-smi pmon` and three wrong guesses. The
+    # phase that is slow is now the phase that reports a large `sincePreviousSeconds`.
+    now = time.monotonic()
+    started = _PROGRESS_CLOCK.setdefault("start", now)
+    previous = _PROGRESS_CLOCK.get("previous", started)
+    _PROGRESS_CLOCK["previous"] = now
+    print(json.dumps({
+        "type": "progress",
+        "phase": phase,
+        "elapsedSeconds": round(now - started, 1),
+        "sincePreviousSeconds": round(now - previous, 1),
+        **fields,
+    }), file=sys.stderr, flush=True)
 
 
 def validation_counterexample_inputs(
