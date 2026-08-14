@@ -4972,6 +4972,53 @@ def make_gradient_gate_directions(
     return directions[:max_candidates]
 
 
+def lstsq_preferring_device(design: np.ndarray, targets: np.ndarray) -> np.ndarray | None:
+    """Least squares on the card when there is one, on the host when there is not.
+
+    These designs are `atom_count * rank + 1` columns wide - 257 at eight atoms over rank 32, and
+    more than a thousand at the sizes a real block uses - and there are dozens of them in one
+    `make_gradient_structured_starts`. Measured on this box: 1.695 s against 0.090 s at 12000 by
+    257, 4.444 against 0.067 at 12000 by 513, and 23.641 against 0.476 at 32000 by 1025. The
+    residual norms match to six decimals at every size, which is the property that matters - two
+    least-squares solutions of the same full-rank system are the same solution.
+
+    Full rank is the catch. numpy uses `gelsd`, an SVD, which handles a rank-deficient design;
+    the card has `gels`, a QR, which does not. So a non-finite answer is not accepted here - it
+    falls back to numpy, which is exactly the case `gelsd` exists for. Returns None when neither
+    can solve it, which is what every caller already handles.
+    """
+    forced_device = os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE", "").strip().lower()
+    if forced_device != "cpu":
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                device_design = torch.as_tensor(design, device="cuda", dtype=torch.float64)
+                device_targets = torch.as_tensor(targets, device="cuda", dtype=torch.float64)
+                solution = torch.linalg.lstsq(
+                    device_design, device_targets.unsqueeze(1)
+                ).solution.squeeze(1)
+                if bool(torch.isfinite(solution).all()):
+                    answer = solution.cpu().numpy()
+                    del device_design, device_targets, solution
+                    torch.cuda.empty_cache()
+                    return answer
+                DEVICE_BATCH_FALLBACKS.append("lstsq: non-finite solution on device")
+                del device_design, device_targets, solution
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
+        except RuntimeError as error:
+            DEVICE_BATCH_FALLBACKS.append(f"lstsq: {type(error).__name__}: {error}")
+    try:
+        coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
+    except np.linalg.LinAlgError:
+        return None
+    if not np.all(np.isfinite(coeffs)):
+        return None
+    return coeffs
+
+
 def solve_fixed_gate_start(
     coords: np.ndarray,
     targets: np.ndarray,
@@ -4981,11 +5028,8 @@ def solve_fixed_gate_start(
         return None
     blocks = [silu_np(coords @ gate)[:, None] * coords for gate in gates]
     design = np.column_stack(blocks + [np.ones(coords.shape[0], dtype=np.float64)])
-    try:
-        coeffs, *_ = np.linalg.lstsq(design, targets, rcond=None)
-    except np.linalg.LinAlgError:
-        return None
-    if not np.all(np.isfinite(coeffs)):
+    coeffs = lstsq_preferring_device(design, targets)
+    if coeffs is None:
         return None
     rank = coords.shape[1]
     raw_up_values = coeffs[:-1].reshape(gates.shape[0], rank).astype(np.float64)
@@ -5171,11 +5215,8 @@ def make_gradient_structured_starts(
             selected_gates.append(pool[best_choice[1]])
             blocks = [silu_np(xs @ gate)[:, None] * xs for gate in selected_gates]
             design = np.column_stack(blocks + [np.ones(xs.shape[0], dtype=np.float64)])
-            try:
-                solved, *_ = np.linalg.lstsq(design, ys, rcond=None)
-            except np.linalg.LinAlgError:
-                return None
-            if not np.all(np.isfinite(solved)):
+            solved = lstsq_preferring_device(design, ys)
+            if solved is None:
                 return None
             residual = ys - design @ solved
         return solve_selected(selected_gates)
