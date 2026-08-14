@@ -11,6 +11,7 @@
     "build": "tsc && node -e \"const fs=require('fs'); fs.mkdirSync('dist/server',{recursive:true}); fs.copyFileSync('src/server/dashboard.html','dist/server/dashboard.html')\"",
     "start": "node dist/cli/index.js",
     "test": "jest",
+    "test:cubic-live-access": ".gcl-python-gpu/bin/python tests/test_cubic_live_access.py",
     "test:nn-residual-block-selection": ".gcl-python-gpu/bin/python tests/test_residual_block_selection.py",
     "test:watch": "jest --watch",
     "serve": "node dist/server/index.js",
