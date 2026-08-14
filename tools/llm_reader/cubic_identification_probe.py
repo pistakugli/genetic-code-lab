@@ -561,8 +561,6 @@ def live_subspace_solve(
         )
         base_point = torch.randn(subspace_dim, generator=generator, device=device, dtype=DTYPE)
         base_point = base_point / base_point.norm() * base_scale
-        readers = torch.randn(reader_count, hidden, generator=generator, device=device, dtype=DTYPE)
-        readers = readers / readers.norm(dim=1, keepdim=True)
 
         # `anchors * readers` is a ceiling on the measured rank, and the span needs `2k`. Three
         # anchors against eight readers is 24, which is under the 32 a 16-unit block asks for, so
@@ -570,7 +568,22 @@ def live_subspace_solve(
         # rank-deficient measurement that looked like the method failing. The count is derived
         # here for the same reason `stitch_recovery` derives it, and the ceiling is reported so a
         # span that ran out of slices says so instead of being read as a small block.
-        anchor_count = max(anchor_count, -(-2 * rank_target // max(reader_count, 1)))
+        # Anchors cost points and readers do not. A slice needs one of each, and the ceiling on
+        # the measured rank is their product - but an anchor multiplies the whole polarisation
+        # design, `d(d+1)/2 + d + 1` directions of it, while a reader is another column of an
+        # answer already paid for. Measured on 16 live units at subspace 48, same ceiling 48
+        # either way: 8 readers and 6 anchors give 16/16 at cosine 0.9999953 for 68592 calls, and
+        # 24 readers with 2 anchors give 16/16 at 0.9999996 for 29392. Same recovery, better
+        # agreement, 2.33x fewer calls.
+        #
+        # So anchors sit at the floor - one anchor cannot separate the span whatever it is given,
+        # two is the least that can, which `tile_recovery` measured first - and the readers carry
+        # the ceiling. The margin over `2k` is deliberate: a rank read at its own ceiling says
+        # nothing about the layer, which is the trap the scale probe fell into.
+        anchor_count = max(2, anchor_count) if anchor_count > 0 else 2
+        reader_count = max(reader_count, -(-3 * rank_target // anchor_count))
+        readers = torch.randn(reader_count, hidden, generator=generator, device=device, dtype=DTYPE)
+        readers = readers / readers.norm(dim=1, keepdim=True)
         slice_rank_ceiling = anchor_count * reader_count
         anchors = torch.randn(anchor_count, subspace_dim, generator=generator, device=device, dtype=DTYPE)
         anchors = anchors / anchors.norm(dim=1, keepdim=True)
@@ -671,6 +684,7 @@ def live_stitch(
         # The readers are drawn here and handed to the bridge, so the answer that crosses the bus
         # is already `reader_count` wide. `stitch_recovery` then reads them as coordinates, which
         # is what identity readers mean, and the arithmetic downstream is untouched.
+        reader_count = max(reader_count, -(-3 * rank_cap // 2))
         reader_generator = torch.Generator(device=device).manual_seed(seed + 31)
         projection = torch.randn(
             reader_count, hidden, generator=reader_generator, device=device, dtype=DTYPE
@@ -690,7 +704,7 @@ def live_stitch(
             seed=seed, tolerance=tolerance, span_tolerance=span_tolerance,
             purity=purity, collinearity=collinearity, steps=steps, device=device,
             teacher=teacher, truth_gate_provider=truth_gate_provider,
-            reader_count=reader_count, identity_readers=True,
+            reader_count=reader_count, identity_readers=True, min_anchors=2,
         )
         report.update({
             "model": model,
@@ -1550,6 +1564,7 @@ def stitch_recovery(
     truth_gate_provider: Any = None,
     reader_count: int = 0,
     identity_readers: bool = False,
+    min_anchors: int = 3,
 ) -> dict:
     """Full-dimension gates from subspace solves, by giving every subspace the same core.
 
@@ -1625,7 +1640,11 @@ def stitch_recovery(
     # recover nothing, because a saturated measurement reports its own ceiling and says nothing
     # about the layer. The count now comes from the cap, and `sliceRankCeiling` is reported so a
     # saturated span is visible rather than silent.
-    anchor_count = max(3, -(-2 * rank_cap // max(int(readers.shape[0]), 1)))
+    # The floor is a parameter because the two paths measured different ones. On the synthetic
+    # teacher three anchors is what every result above was taken at; on a live block two is the
+    # floor and it is 2.33x cheaper at equal recovery, because an anchor multiplies the whole
+    # polarisation design while a reader is another column of an answer already paid for.
+    anchor_count = max(min_anchors, -(-2 * rank_cap // max(int(readers.shape[0]), 1)))
     slice_rank_ceiling = anchor_count * int(readers.shape[0])
 
     # The scale was a flag, and it decides everything: measured at n=64, k=64, scales 4 and 15
@@ -2253,7 +2272,8 @@ def main() -> int:
     parser.add_argument("--live-subspace-solve", action="store_true",
                         help="solve one subspace of the real layer and score it post-hoc")
     parser.add_argument("--live-readers", type=int, default=8)
-    parser.add_argument("--live-anchors", type=int, default=3)
+    parser.add_argument("--live-anchors", type=int, default=2,
+                        help="anchors per solve; 2 is the measured floor and anchors are what cost points")
     parser.add_argument("--live-stitch", action="store_true",
                         help="stitch full-dimension gates out of the real layer")
     parser.add_argument("--live-local-files-only", action="store_true")
