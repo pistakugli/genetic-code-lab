@@ -321,7 +321,16 @@ for (const testCase of cases) {
   const defaultValidationScale = llamaHighAtomProfile ? '0.35' : '0.65';
   const defaultFitGradientCount = '256';
   const defaultFitGradientWeight = highAtomProfile ? '1.0' : '0.2';
-  const defaultMaxOracleCalls = highAtomProfile ? '300000' : '180000';
+  // Same step at 16 that the deadline had, and the same reason it is wrong: the training sample
+  // is `unitCount * 1000` points and every one of them is an oracle call, so the bill scales
+  // with the block while the cap did not. The passing 16-unit variants spend 230765 and 230633
+  // of 300000; the 32-unit case reached 231745 at `train-sampled` alone, with validation and any
+  // rescue still to come. A cap that the workload outgrows is a cliff, not a budget.
+  //
+  // At 16 units this returns 300000, the number it already was.
+  const defaultMaxOracleCalls = highAtomProfile
+    ? String(300000 * Math.max(1, Math.ceil(testCase.unitCount / 16)))
+    : '180000';
   const env = {
     ...process.env,
     GCL_PYTHON: resolveGclPython(),
