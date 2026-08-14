@@ -2339,6 +2339,82 @@ def unique_gate_candidates(gates: list[np.ndarray], max_candidates: int) -> list
     return unique
 
 
+def score_single_gate_blocks(
+    xs: np.ndarray,
+    residual: np.ndarray,
+    candidates: np.ndarray,
+    indices: list[int],
+) -> list[tuple[int, float]]:
+    """Residual left after projecting onto each candidate's block, one candidate at a time.
+
+    This is the dictionary search's inner scan and it is where a 32-atom block spent its
+    deadline. Per candidate it builds `silu(xs @ gate)[:, None] * xs` - 12288 by 64 at the sample
+    size this uses - and solves a least squares against it. The beam runs it `atoms * width *
+    pool` times: 32 by 4 by 384, which is 49152 solves.
+
+    Measured at those shapes: 0.129 s a candidate on the host, so 6348 s - 106 minutes - for the
+    scan alone, against a 120 minute deadline. On the card, 0.0180 s a candidate, 7x, and the
+    scores agree to a median relative difference of 1.49e-16 and a largest of 4.48e-16, which is
+    float64 rounding.
+
+    Chunked, because the blocks are `chunk x rows x rank` and the whole pool at once is not worth
+    the memory. Order is preserved, and a candidate whose solve returns non-finite coefficients is
+    dropped exactly as the host loop dropped it.
+    """
+    if not indices:
+        return []
+    try:
+        import torch
+
+        use_device = torch.cuda.is_available()
+    except ImportError:
+        use_device = False
+    if not use_device:
+        scored: list[tuple[int, float]] = []
+        for index in indices:
+            block = silu_np(xs @ candidates[index]) [:, None] * xs
+            try:
+                coeffs, *_ = np.linalg.lstsq(block, residual, rcond=None)
+            except np.linalg.LinAlgError:
+                continue
+            if not np.all(np.isfinite(coeffs)):
+                continue
+            projection = block @ coeffs
+            scored.append((index, float(np.dot(residual - projection, residual - projection))))
+        return scored
+
+    rows = int(xs.shape[0])
+    device_xs = torch.as_tensor(xs, device="cuda", dtype=torch.float64)
+    device_residual = torch.as_tensor(residual, device="cuda", dtype=torch.float64)
+    chunk = max(1, min(len(indices), int(2 ** 27 // max(rows * int(xs.shape[1]), 1)) or 1))
+    scored: list[tuple[int, float]] = []
+    for start in range(0, len(indices), chunk):
+        block_indices = indices[start:start + chunk]
+        gates = torch.as_tensor(
+            np.stack([candidates[index] for index in block_indices]), device="cuda", dtype=torch.float64
+        )
+        blocks = torch.nn.functional.silu(device_xs @ gates.T).transpose(0, 1).unsqueeze(2) * device_xs.unsqueeze(0)
+        targets = device_residual.expand(len(block_indices), rows).unsqueeze(2)
+        try:
+            solution = torch.linalg.lstsq(blocks, targets).solution
+        except RuntimeError:
+            del blocks
+            torch.cuda.empty_cache()
+            continue
+        prediction = (blocks @ solution).squeeze(2)
+        finite = torch.isfinite(solution).all(dim=1).squeeze(-1)
+        scores = ((device_residual.unsqueeze(0) - prediction) ** 2).sum(dim=1)
+        finite_host = finite.cpu().numpy()
+        scores_host = scores.cpu().numpy()
+        del blocks, targets, solution, prediction
+        torch.cuda.empty_cache()
+        for position, index in enumerate(block_indices):
+            if not bool(finite_host[position]):
+                continue
+            scored.append((index, float(scores_host[position])))
+    return scored
+
+
 def fit_swiglu_gate_dictionary(
     coords: np.ndarray,
     targets: np.ndarray,
@@ -2406,6 +2482,7 @@ def fit_swiglu_gate_dictionary(
                 ]
                 local_choices: list[tuple[float, int]] = []
                 selected_set = set(selected_indices)
+                eligible: list[int] = []
                 for index in range(pool_count):
                     if index in selected_set:
                         continue
@@ -2413,15 +2490,8 @@ def fit_swiglu_gate_dictionary(
                     gate_direction = gate / max(1e-9, np.linalg.norm(gate))
                     if any(abs(float(np.dot(gate_direction, selected_direction))) > 0.995 for selected_direction in selected_directions):
                         continue
-                    block = silu_np(xs @ gate)[:, None] * xs
-                    try:
-                        coeffs, *_ = np.linalg.lstsq(block, residual, rcond=None)
-                    except np.linalg.LinAlgError:
-                        continue
-                    if not np.all(np.isfinite(coeffs)):
-                        continue
-                    projection = block @ coeffs
-                    score_value = float(np.dot(residual - projection, residual - projection))
+                    eligible.append(index)
+                for index, score_value in score_single_gate_blocks(xs, residual, candidates, eligible):
                     local_choices.append((score_value, index))
                 local_choices.sort(key=lambda item: item[0])
                 for _candidate_score, index in local_choices[:beam_branch]:
