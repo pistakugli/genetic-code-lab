@@ -1161,6 +1161,20 @@ def stitch_recovery(
     space for every solve, so the loud set is the same one - 20 groups, and every group that
     covers all blocks assembles.
     """
+    # Core points follow the unit count, not the input dimension, and that was worth measuring
+    # because it decides whether a live layer is reachable at all. Every earlier sweep held
+    # `k = n`, so a requirement that grows with `k` and one that grows with `n` fit the same
+    # numbers. Separating them at fixed `n=256`, `d=48`, 96 core points: `k=64` covers 64 of 64,
+    # `k=128` covers 110 of 128, `k=256` covers 135 of 256. At `1.5 k` core points instead, the
+    # three land on 100%, 99% and 97%, and `n=512` with `k=64` at 96 points gives 95%.
+    #
+    # The oracle cost does not depend on `k` at all - it is `blocks * core_points * c(d)`, and
+    # `k=64` and `k=256` at the same geometry both charge 23 318 184 points. So the bill for a
+    # live block is set by how wide the layer's input is and how many units are wanted, not by
+    # how many units the layer has.
+    core_points_derived = core_points <= 0
+    core_points = core_points if core_points > 0 else max(1, (3 * units + 1) // 2)
+
     teacher = make_teacher(units, input_dim, output_dim, seed, device)
     generator = torch.Generator(device=device).manual_seed(seed + 31)
     frame, _ = torch.linalg.qr(torch.randn(input_dim, input_dim, generator=generator, device=device, dtype=DTYPE))
@@ -1373,6 +1387,7 @@ def stitch_recovery(
         "coreDim": core_dim,
         "blocks": len(blocks),
         "corePoints": core_points,
+        "corePointsDerivedFromUnits": core_points_derived,
         "pencilDraws": pencil_draws,
         "baseScale": base_scale,
         "baseScaleAuto": bool(scale_probe),
@@ -1801,7 +1816,8 @@ def main() -> int:
                         help="unit counts to assemble full-dimension gates for from subspace solves")
     parser.add_argument("--subspace-dim", type=int, default=16)
     parser.add_argument("--core-dim", type=int, default=8)
-    parser.add_argument("--core-points", type=int, default=1)
+    parser.add_argument("--core-points", type=int, default=0,
+                        help="core points to spend; 0 derives 1.5k from the unit count")
     parser.add_argument("--pencil-draws", type=int, default=5)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--output-json", type=str, default=None)
