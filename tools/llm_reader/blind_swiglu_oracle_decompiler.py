@@ -5438,6 +5438,10 @@ def fit_swiglu_sum(
         residual_steps = max(240, min(700, steps // 4))
         try:
             for atom_index in range(atom_count):
+                # One `fit_swiglu_atom` an atom, each one a full restart sweep, and at 32 atoms
+                # this greedy pass is the whole gap between `train-sampled` and the batched fit
+                # entering. It had no marker, so the gap looked like a single unexplained stall.
+                emit_progress("fit-greedy-atom", atom=int(atom_index), of=int(atom_count))
                 single = fit_swiglu_atom(
                     coords,
                     residual,
