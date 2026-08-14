@@ -5053,6 +5053,24 @@ def make_gradient_structured_starts(
         xs = coords
         ys = targets
     gate_norms = np.array([0.18, 0.28, 0.42, 0.65, 0.95, 1.35, 1.9, 2.7], dtype=np.float64)
+    # What this step costs, in the artifact rather than in someone's profiler. The direction list
+    # carries the basis rows, every basis pair - `rank(rank-1)/2`, so 2016 at rank 64 - a few
+    # hundred random ones and the QR and SVD sets, and each is scored at eight gate norms. The
+    # product is the whole cost: measured at 12000 rows and rank 32 this call takes about two
+    # minutes, and `np.linalg.lstsq` at that shape is 0.0177 s a solve, which multiplies out to
+    # what the phase marker shows.
+    #
+    # Three ways of making it cheaper were measured and none of them worked. Batching the solves
+    # on the card: 1.0x, 119.48 s against 124.82 s. Replacing `gelsd` with QR and a triangular
+    # solve: 0.7x at 12000 by 33 and 0.5x at 12000 by 65, so numpy's choice is already the right
+    # one. The cost is the candidate count, and cutting that is an algorithm change with quality
+    # consequences, not a free optimisation - so it is recorded here rather than guessed at.
+    emit_progress(
+        "starts-gradient-scoring",
+        directions=len(directions),
+        norms=int(gate_norms.shape[0]),
+        candidates=len(directions) * int(gate_norms.shape[0]),
+    )
     scored: list[tuple[float, np.ndarray]] = []
     ones = np.ones(xs.shape[0], dtype=np.float64)
     for direction in directions:
