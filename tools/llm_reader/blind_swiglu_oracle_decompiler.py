@@ -1568,9 +1568,26 @@ def fit_swiglu_atom(
     import torch
 
     torch.manual_seed(seed)
-    x = torch.tensor(coords, dtype=torch.float32)
-    y = torch.tensor(targets, dtype=torch.float32)
     rank = coords.shape[1]
+    # This one stays on the host, and the reason is measured twice with opposite answers.
+    #
+    # The Adam loop alone, at 32000 rows and 300 steps, is faster on the card from rank 4 up:
+    # 1.11x, 1.25x at 16, 2.10x at 64, 10.34x at 128. On that evidence the card looks right.
+    #
+    # The whole function says otherwise. At rank 64 over 12000 rows it takes 7.75 s on the host
+    # and 21.49 s on the card - 2.8x slower - because after the Adam loop comes LBFGS with
+    # `strong_wolfe`, and a line search is a long sequence of tiny closure evaluations, each one
+    # a synchronisation the card pays for and the host does not. The gate that comes back is the
+    # same either way, cosine 1.000000000.
+    #
+    # The first measurement was the harness measuring a part instead of the whole, which is
+    # exactly the failure it is easy to ship: a benchmark of the loop that dominates a profile is
+    # not a benchmark of the function that contains it. The override remains for anyone who wants
+    # to re-measure on other hardware.
+    requested_device = os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE", "").strip().lower()
+    fit_device = torch.device(requested_device) if requested_device in {"cpu", "cuda"} else torch.device("cpu")
+    x = torch.tensor(coords, dtype=torch.float32, device=fit_device)
+    y = torch.tensor(targets, dtype=torch.float32, device=fit_device)
     target_scale = float(np.std(targets)) or 1.0
     target_variance = float(np.mean((targets - np.mean(targets)) ** 2))
     best: dict[str, Any] | None = None
@@ -1614,22 +1631,22 @@ def fit_swiglu_atom(
     for restart in range(restart_count):
         if restart < len(structured_starts):
             gate_init, up_init, scale_init, bias_init = structured_starts[restart]
-            gate = torch.nn.Parameter(torch.tensor(gate_init, dtype=torch.float32))
-            up = torch.nn.Parameter(torch.tensor(up_init, dtype=torch.float32))
-            scale = torch.nn.Parameter(torch.tensor(scale_init, dtype=torch.float32))
-            bias = torch.nn.Parameter(torch.tensor(bias_init, dtype=torch.float32))
+            gate = torch.nn.Parameter(torch.tensor(gate_init, dtype=torch.float32).to(fit_device))
+            up = torch.nn.Parameter(torch.tensor(up_init, dtype=torch.float32).to(fit_device))
+            scale = torch.nn.Parameter(torch.tensor(scale_init, dtype=torch.float32).to(fit_device))
+            bias = torch.nn.Parameter(torch.tensor(bias_init, dtype=torch.float32).to(fit_device))
         elif restart - len(structured_starts) < len(base_starts) and rank == 2:
             base_index = restart - len(structured_starts)
             gate_init, up_init = base_starts[base_index]
-            gate = torch.nn.Parameter(torch.tensor(normalize(gate_init) * 0.75, dtype=torch.float32))
-            up = torch.nn.Parameter(torch.tensor(normalize(up_init) * 0.75, dtype=torch.float32))
-            scale = torch.nn.Parameter(torch.tensor(max(0.1, target_scale)))
-            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets))))
+            gate = torch.nn.Parameter(torch.tensor(normalize(gate_init) * 0.75, dtype=torch.float32).to(fit_device))
+            up = torch.nn.Parameter(torch.tensor(normalize(up_init) * 0.75, dtype=torch.float32).to(fit_device))
+            scale = torch.nn.Parameter(torch.tensor(max(0.1, target_scale), device=fit_device))
+            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets)), device=fit_device))
         else:
-            gate = torch.nn.Parameter(torch.randn(rank) * 0.8)
-            up = torch.nn.Parameter(torch.randn(rank) * 0.8)
-            scale = torch.nn.Parameter(torch.tensor(max(0.1, target_scale)))
-            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets))))
+            gate = torch.nn.Parameter((torch.randn(rank) * 0.8).to(fit_device))
+            up = torch.nn.Parameter((torch.randn(rank) * 0.8).to(fit_device))
+            scale = torch.nn.Parameter(torch.tensor(max(0.1, target_scale), device=fit_device))
+            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets)), device=fit_device))
         optimizer = torch.optim.Adam([gate, up, scale, bias], lr=learning_rate)
         for _ in range(steps):
             optimizer.zero_grad()
