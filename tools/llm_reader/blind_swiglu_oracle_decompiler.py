@@ -2583,10 +2583,13 @@ def score_single_gate_blocks(
     """
     if not indices:
         return []
+    # The same override the fits honour, for the same reason: a step that takes the card while a
+    # measurement asked for the host turns an A/B into a comparison of the card with itself.
+    forced_device = os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE", "").strip().lower()
     try:
         import torch
 
-        use_device = torch.cuda.is_available()
+        use_device = forced_device != "cpu" and torch.cuda.is_available()
     except ImportError:
         use_device = False
     if not use_device:
@@ -5140,7 +5143,13 @@ def make_gradient_structured_starts(
         residual = ys.astype(np.float64) - float(np.mean(ys))
         solved: np.ndarray | None = None
         for _atom_index in range(atom_count):
-            best_choice: tuple[float, int] | None = None
+            # The eligibility tests are cheap and stay on the host; the scoring is one block build
+            # and one least squares per candidate, `atom_count` times over the pool, and that is
+            # the part that costs. It is the same scan `score_single_gate_blocks` already batches,
+            # and the choice is the same choice: it returns the squared residual left after
+            # projection, and improvement is `||r||^2` minus that, so the largest improvement is
+            # the smallest returned score. The constant `||r||^2` cannot reorder anything.
+            eligible: list[int] = []
             for index, gate in enumerate(pool):
                 if index in selected_indices:
                     continue
@@ -5149,15 +5158,11 @@ def make_gradient_structured_starts(
                     continue
                 if any(abs(float(np.dot(direction, existing / max(1e-9, np.linalg.norm(existing))))) >= max_abs_cosine for existing in selected_gates):
                     continue
-                block = silu_np(xs @ gate)[:, None] * xs
-                try:
-                    coeffs, *_ = np.linalg.lstsq(block, residual, rcond=None)
-                except np.linalg.LinAlgError:
-                    continue
-                if not np.all(np.isfinite(coeffs)):
-                    continue
-                projection = block @ coeffs
-                improvement = float(np.dot(residual, residual) - np.dot(residual - projection, residual - projection))
+                eligible.append(index)
+            residual_energy = float(np.dot(residual, residual))
+            best_choice: tuple[float, int] | None = None
+            for index, remaining in score_single_gate_blocks(xs, residual, pool, eligible):
+                improvement = residual_energy - remaining
                 if best_choice is None or improvement > best_choice[0]:
                     best_choice = (improvement, index)
             if best_choice is None or best_choice[0] <= 1e-12:
