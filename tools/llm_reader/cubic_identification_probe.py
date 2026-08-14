@@ -497,6 +497,117 @@ def live_form_check(
         client.close()
 
 
+def live_subspace_solve(
+    model: str,
+    layer: int,
+    units: str,
+    subspace_dim: int,
+    base_scale: float,
+    reader_count: int,
+    anchor_count: int,
+    rank_target: int,
+    steps: list[float],
+    seed: int,
+    tolerance: float,
+    span_tolerance: float,
+    purity: float,
+    collinearity: float,
+    pencil_draws: int,
+    max_calls: int,
+    work_dir: Path,
+    local_files_only: bool,
+    device: torch.device,
+) -> dict:
+    """One subspace of the real layer, solved: measured span, FOOBI, then the truth.
+
+    The form check proved the third derivative survives the trip. This is the next thing that has
+    to be true before a full stitch is worth its oracle bill: that the span measured through a
+    live oracle still has the structure the extraction needs, and that the directions coming back
+    are the layer's gates projected into the subspace rather than noise that happens to be
+    rank-1.
+
+    Nothing about the truth is touched until the recovery is frozen. The comparison afterwards
+    scores what the solver already decided; it cannot steer it.
+    """
+    client = open_live_oracle(model, layer, units, str(device), max_calls, work_dir, local_files_only)
+    try:
+        hidden = int(client.meta["hiddenSize"])
+        generator = torch.Generator(device=device).manual_seed(seed + 31)
+        frame, _ = torch.linalg.qr(
+            torch.randn(hidden, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        )
+        base_point = torch.randn(subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        base_point = base_point / base_point.norm() * base_scale
+        readers = torch.randn(reader_count, hidden, generator=generator, device=device, dtype=DTYPE)
+        readers = readers / readers.norm(dim=1, keepdim=True)
+
+        # `anchors * readers` is a ceiling on the measured rank, and the span needs `2k`. Three
+        # anchors against eight readers is 24, which is under the 32 a 16-unit block asks for, so
+        # the first live run at that size returned a rank-24 span and zero directions - a
+        # rank-deficient measurement that looked like the method failing. The count is derived
+        # here for the same reason `stitch_recovery` derives it, and the ceiling is reported so a
+        # span that ran out of slices says so instead of being read as a small block.
+        anchor_count = max(anchor_count, -(-2 * rank_target // max(reader_count, 1)))
+        slice_rank_ceiling = anchor_count * reader_count
+        anchors = torch.randn(anchor_count, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        anchors = anchors / anchors.norm(dim=1, keepdim=True)
+
+        teacher = LiveTeacher(client, device)
+        oracle = SubspaceOracle(teacher, frame)
+        span_basis, rank = measured_lifted_span_by_slices(
+            oracle, base_point, readers, anchors, subspace_dim, steps, span_tolerance
+        )
+        gates, nullity = foobi_gates(
+            span_basis, subspace_dim, tolerance, purity, collinearity, seed + 7, attempts=pencil_draws
+        )
+        solver_calls = int(client.query_count)
+        recovered = int(gates.shape[0])
+
+        client.unlock_posthoc_truth("live-subspace-solve")
+        gate_truth, _ = client.truth()
+        truth = torch.as_tensor(gate_truth, dtype=DTYPE, device=device)
+        projected = truth @ frame
+        projected = projected / projected.norm(dim=1, keepdim=True).clamp_min(1e-300)
+        if recovered:
+            cosines = (gates @ projected.T).abs()
+            per_unit = cosines.max(dim=0).values
+            per_direction = cosines.max(dim=1).values
+            covered = int((per_unit >= 0.99).sum())
+            clean = int((per_direction >= 0.99).sum())
+            median = float(per_direction.median())
+        else:
+            covered, clean, median = 0, 0, 0.0
+        return {
+            "model": model,
+            "layer": int(layer),
+            "units": units,
+            "unitCount": int(truth.shape[0]),
+            "hiddenSize": hidden,
+            "blockDevice": client.meta.get("blockDevice"),
+            "subspaceDim": int(subspace_dim),
+            "baseScale": float(base_scale),
+            "readers": int(reader_count),
+            "anchors": int(anchor_count),
+            "sliceRankCeiling": int(slice_rank_ceiling),
+            "spanSaturatedAtCeiling": int(rank) >= int(slice_rank_ceiling),
+            "steps": list(steps),
+            "measuredSpanRank": int(rank),
+            "spanRankIsTwoK": int(rank) == 2 * int(truth.shape[0]),
+            "minorNullity": int(nullity),
+            "directionsReturned": recovered,
+            "directionsMatchingAUnit": clean,
+            "unitsRecovered": covered,
+            "unitCoverage": covered / max(int(truth.shape[0]), 1),
+            "medianCosine": median,
+            "solverOracleCalls": solver_calls,
+            "truthUnlockQueryCount": client.truth_unlock_query_count,
+            "unlockedAfterAllSolverCalls": client.truth_unlock_query_count == solver_calls,
+            "device": str(span_basis.device),
+        }
+    finally:
+        client.close()
+
+
 def make_teacher(units: int, input_dim: int, output_dim: int, seed: int, device: torch.device) -> Teacher:
     generator = torch.Generator(device=device).manual_seed(seed)
 
@@ -1084,9 +1195,27 @@ def measure_cubic_forms_at(
     stacked = torch.stack(estimates, dim=0)
     if len(steps) == 1:
         return stacked[0]
+    # Two unknowns, and the right-hand side is the whole measurement. `lstsq` fits
+    # `value(h) = a0 + a1 h^2` against `directions x width` right-hand columns, and its workspace
+    # scales with that count: at 48 dimensions against a 3072-wide live response it is 1176 x 3072
+    # columns and a 13.86 GiB request on a 7.65 GiB card, which is where the first 16-unit live
+    # solve died.
+    #
+    # The columns are independent, so the fit is chunked rather than replaced. Normal equations
+    # would also fit in memory and were tried first, but they square the condition number and the
+    # run came back with different numbers - same recovery, different intermediates - and a
+    # substitution that moves results is not a repair. Chunking keeps the same solver and the same
+    # answer, and only bounds the workspace.
     step_squares = torch.tensor([[1.0, s ** 2] for s in steps], device=directions.device, dtype=DTYPE)
-    solution = torch.linalg.lstsq(step_squares, stacked.reshape(len(steps), -1)).solution
-    return solution[0].reshape(stacked.shape[1], stacked.shape[2])
+    flattened = stacked.reshape(len(steps), -1)
+    columns = int(flattened.shape[1])
+    chunk = max(1, min(columns, 1 << 20))
+    pieces = [
+        torch.linalg.lstsq(step_squares, flattened[:, start:start + chunk]).solution[0]
+        for start in range(0, columns, chunk)
+    ]
+    solution = torch.cat(pieces) if len(pieces) > 1 else pieces[0]
+    return solution.reshape(stacked.shape[1], stacked.shape[2])
 
 
 def measured_lifted_span_by_slices(
@@ -2002,6 +2131,10 @@ def main() -> int:
     parser.add_argument("--live-base-scale", type=float, default=1.0)
     parser.add_argument("--live-max-calls", type=int, default=200000)
     parser.add_argument("--live-work-dir", type=str, default=None)
+    parser.add_argument("--live-subspace-solve", action="store_true",
+                        help="solve one subspace of the real layer and score it post-hoc")
+    parser.add_argument("--live-readers", type=int, default=8)
+    parser.add_argument("--live-anchors", type=int, default=3)
     parser.add_argument("--live-local-files-only", action="store_true")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--output-json", type=str, default=None)
@@ -2019,7 +2152,7 @@ def main() -> int:
     selected_modes = [
         args.stitch, args.tile, args.oracle_recover, args.recover_sweep,
         args.lifted_sweep, args.base_point_sweep, args.project_dim,
-        args.live_form_check or None,
+        args.live_form_check or None, args.live_subspace_solve or None,
     ]
     runs: list[dict] = []
     if args.sweep_units or not any(selected_modes):
@@ -2045,6 +2178,19 @@ def main() -> int:
             model=args.live_model, layer=args.live_layer, units=args.live_units,
             direction_count=args.live_directions, subspace_dim=args.live_subspace_dim,
             base_scale=args.live_base_scale, steps=list(args.steps), seed=args.seed,
+            max_calls=args.live_max_calls, work_dir=work_dir,
+            local_files_only=args.live_local_files_only, device=device,
+        )
+    if args.live_subspace_solve:
+        work_dir = Path(args.live_work_dir) if args.live_work_dir else Path("/tmp/cubic-live-check")
+        report["liveSubspaceSolve"] = live_subspace_solve(
+            model=args.live_model, layer=args.live_layer, units=args.live_units,
+            subspace_dim=args.live_subspace_dim, base_scale=args.live_base_scale,
+            reader_count=args.live_readers, anchor_count=args.live_anchors,
+            rank_target=args.rank_cap,
+            steps=list(args.steps), seed=args.seed, tolerance=args.rank_tolerance,
+            span_tolerance=args.span_tolerance, purity=args.purity,
+            collinearity=args.collinearity, pencil_draws=args.pencil_draws,
             max_calls=args.live_max_calls, work_dir=work_dir,
             local_files_only=args.live_local_files_only, device=device,
         )
