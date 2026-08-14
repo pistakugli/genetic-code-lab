@@ -1968,6 +1968,7 @@ def fit_swiglu_sum_batched(
         })
         return rescored
 
+    emit_progress("fit-chunks-start", chunks=len(chunk_specs), atomCount=int(atom_count), rows=int(coords.shape[0]))
     for chunk_kind, chunk_start, current_count in chunk_specs:
         if chunk_kind == "random":
             generator = torch.Generator(device=device)
@@ -2033,6 +2034,7 @@ def fit_swiglu_sum_batched(
             loss.backward()
             optimizer.step()
 
+        emit_progress("fit-chunk-optimised", chunkKind=chunk_kind, chunkStart=int(chunk_start), count=int(current_count))
         gates_np = gates.detach().cpu().numpy().astype(np.float64)
         ups_np = ups.detach().cpu().numpy().astype(np.float64)
         # The scoring loop below needs `silu(coords @ g.T) * (coords @ u.T)` for every restart in
@@ -9191,6 +9193,17 @@ def validation_full_tail_polish_cubic_trigger(method: str, cubic_score_count: in
 
 
 _PROGRESS_CLOCK: dict[str, float] = {}
+# Set once by `main` so code far from the argument namespace can still report. The fit is the
+# longest phase in a run and had no markers inside it at all: `train-sampled` fires at 7.1 s and
+# the next line arrives tens of minutes later, which says the fit is slow and nothing about which
+# part. A module-level hook avoids threading a callback through a dozen signatures.
+_PROGRESS_HOOK: dict[str, Any] = {}
+
+
+def emit_progress(phase: str, **fields: Any) -> None:
+    hook = _PROGRESS_HOOK.get("args")
+    if hook is not None:
+        log_progress(hook, phase, **fields)
 
 
 def log_progress(args: argparse.Namespace, phase: str, **fields: Any) -> None:
@@ -13867,6 +13880,7 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
     parent_death = die_with_parent()
+    _PROGRESS_HOOK["args"] = args
     if parent_death != "armed":
         # Not fatal, and not silent either: a run whose children can outlive it is a different
         # run, and this is the only place that knows.
