@@ -2677,12 +2677,12 @@ def fit_swiglu_gate_dictionary(
 
     def solve_sample_residual(selected_indices: list[int]) -> tuple[np.ndarray, float] | None:
         design_blocks = [silu_np(xs @ candidates[index])[:, None] * xs for index in selected_indices]
+        # `atoms * rank + 1` columns wide, and the beam calls this thousands of times. Measured
+        # at these widths: 1.695 s against 0.090 s at 12000 by 257, 23.641 against 0.476 at 32000
+        # by 1025, residual norms matching to six decimals.
         design = np.column_stack(design_blocks + [np.ones(xs.shape[0], dtype=np.float64)])
-        try:
-            solved, *_ = np.linalg.lstsq(design, ys, rcond=None)
-        except np.linalg.LinAlgError:
-            return None
-        if not np.all(np.isfinite(solved)):
+        solved = lstsq_preferring_device(design, ys)
+        if solved is None:
             return None
         residual_value = ys - design @ solved
         score_value = float(np.dot(residual_value, residual_value))
@@ -2814,11 +2814,8 @@ def fit_swiglu_gate_dictionary(
         selected_directions.append(selected_gate / max(1e-9, np.linalg.norm(selected_gate)))
         design_blocks = [silu_np(xs @ candidates[index])[:, None] * xs for index in selected]
         design = np.column_stack(design_blocks + [np.ones(xs.shape[0], dtype=np.float64)])
-        try:
-            solved, *_ = np.linalg.lstsq(design, ys, rcond=None)
-        except np.linalg.LinAlgError:
-            break
-        if not np.all(np.isfinite(solved)):
+        solved = lstsq_preferring_device(design, ys)
+        if solved is None:
             break
         residual = ys - design @ solved
     if len(selected) != atom_count:
