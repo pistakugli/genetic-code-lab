@@ -1820,11 +1820,21 @@ def fit_swiglu_sum_batched(
             "GCL_BLIND_SWIGLU_EXTRA_GATE_CANDIDATE_LIMIT",
             "1536" if atom_count >= 16 else "512",
         ) or "0")
-        for gate in extra_gate_candidates[:max(0, candidate_limit)]:
-            if np.all(np.isfinite(gate)) and np.linalg.norm(gate) > 1e-9:
-                gate_value = np.asarray(gate, dtype=np.float64)
-                gate_candidate_pool.append((quick_gate_candidate_score(gate_value), gate_value))
-                extra_gate_candidate_count += 1
+        usable = [
+            np.asarray(gate, dtype=np.float64)
+            for gate in extra_gate_candidates[:max(0, candidate_limit)]
+            if np.all(np.isfinite(gate)) and np.linalg.norm(gate) > 1e-9
+        ]
+        # Up to 1536 of these at 16 atoms and above, each a block build and a least squares on
+        # the host - the same shape of work as the dictionary scan, and on the same critical
+        # path. Scored in one batch on the card when there is one, with the per-gate host scorer
+        # kept as the fallback and as the definition of what the batch has to reproduce.
+        quick_scores = batch_gate_candidate_mae(
+            extra_score_coords, extra_score_targets, usable, quick_gate_candidate_score
+        )
+        for gate_value, gate_score in zip(usable, quick_scores):
+            gate_candidate_pool.append((gate_score, gate_value))
+            extra_gate_candidate_count += 1
     for gate_start, _up_start, _scale_start, _bias_start in structured_starts:
         for gate in gate_start:
             if np.all(np.isfinite(gate)) and np.linalg.norm(gate) > 1e-9:
@@ -2337,6 +2347,63 @@ def unique_gate_candidates(gates: list[np.ndarray], max_candidates: int) -> list
             if len(unique) >= max_candidates:
                 return unique
     return unique
+
+
+def batch_gate_candidate_mae(
+    coords: np.ndarray,
+    targets: np.ndarray,
+    gates: list[np.ndarray],
+    host_scorer: Any,
+) -> list[float]:
+    """Mean absolute error of a one-atom fit for each candidate gate, in one batch.
+
+    `host_scorer` is the per-gate function this replaces. It is passed in rather than
+    reimplemented so the fallback cannot drift from the batched path, and so a machine without a
+    card behaves exactly as before.
+
+    Chunked over candidates: the design is `rows x (rank + 1)` per gate, so the whole set at once
+    is not worth the memory. A gate whose solve is not finite scores `inf`, which is what the
+    host scorer returns for the same case, and `inf` sorts to the back of the pool either way.
+    """
+    if not gates:
+        return []
+    try:
+        import torch
+
+        use_device = torch.cuda.is_available()
+    except ImportError:
+        use_device = False
+    if not use_device:
+        return [float(host_scorer(gate)) for gate in gates]
+
+    rows, rank = int(coords.shape[0]), int(coords.shape[1])
+    device_coords = torch.as_tensor(coords, device="cuda", dtype=torch.float64)
+    device_targets = torch.as_tensor(targets, device="cuda", dtype=torch.float64)
+    ones_column = torch.ones((rows, 1), device="cuda", dtype=torch.float64)
+    chunk = max(1, min(len(gates), int(2 ** 27 // max(rows * (rank + 1), 1)) or 1))
+    scores: list[float] = []
+    for start in range(0, len(gates), chunk):
+        block_gates = gates[start:start + chunk]
+        count = len(block_gates)
+        device_gates = torch.as_tensor(np.stack(block_gates), device="cuda", dtype=torch.float64)
+        activation = torch.nn.functional.silu(device_coords @ device_gates.T).transpose(0, 1)
+        blocks = activation.unsqueeze(2) * device_coords.unsqueeze(0)
+        design = torch.cat([blocks, ones_column.expand(count, rows, 1)], dim=2)
+        try:
+            solution = torch.linalg.lstsq(design, device_targets.expand(count, rows).unsqueeze(2)).solution
+        except RuntimeError:
+            del blocks, design
+            torch.cuda.empty_cache()
+            scores.extend(float(host_scorer(gate)) for gate in block_gates)
+            continue
+        prediction = (design @ solution).squeeze(2)
+        finite = torch.isfinite(solution).all(dim=1).squeeze(-1).cpu().numpy()
+        mae = (prediction - device_targets.unsqueeze(0)).abs().mean(dim=1).cpu().numpy()
+        del blocks, design, solution, prediction, activation
+        torch.cuda.empty_cache()
+        for position in range(count):
+            scores.append(float(mae[position]) if bool(finite[position]) else float("inf"))
+    return scores
 
 
 def score_single_gate_blocks(
