@@ -2482,6 +2482,15 @@ def unique_gate_candidates(gates: list[np.ndarray], max_candidates: int) -> list
     return unique
 
 
+DEVICE_BATCH_FALLBACKS: list[str] = []
+
+
+def _device_chunk(rows: int, columns: int, budget_bytes: int = 256 * 1024 * 1024) -> int:
+    """How many candidates fit in one device allocation, counted in bytes."""
+    per_candidate = max(1, 8 * int(rows) * int(columns))
+    return max(1, budget_bytes // per_candidate)
+
+
 def batch_gate_candidate_mae(
     coords: np.ndarray,
     targets: np.ndarray,
@@ -2513,7 +2522,15 @@ def batch_gate_candidate_mae(
     device_coords = torch.as_tensor(coords, device="cuda", dtype=torch.float64)
     device_targets = torch.as_tensor(targets, device="cuda", dtype=torch.float64)
     ones_column = torch.ones((rows, 1), device="cuda", dtype=torch.float64)
-    chunk = max(1, min(len(gates), int(2 ** 27 // max(rows * (rank + 1), 1)) or 1))
+    # A budget in bytes, not in elements. The element form asked for 338 candidates at 12000 by
+    # 33 in float64, which is 1.07 GB in one allocation - the card refused it, the except below
+    # caught the refusal, and the whole call quietly finished on the host at 1.0x. A measurement
+    # of "batching does not help here" came out of that, and it was wrong.
+    #
+    # Measured at 12288 rows and rank 64: 17.1x at 16 candidates a chunk, 21.6x at 48 and at 128,
+    # 20.3x at 256, against 26.55 s on the host - so anything in the low hundreds of megabytes
+    # wins and the exact number does not matter much.
+    chunk = max(1, min(len(gates), _device_chunk(rows, rank + 1)))
     scores: list[float] = []
     for start in range(0, len(gates), chunk):
         block_gates = gates[start:start + chunk]
@@ -2524,7 +2541,10 @@ def batch_gate_candidate_mae(
         design = torch.cat([blocks, ones_column.expand(count, rows, 1)], dim=2)
         try:
             solution = torch.linalg.lstsq(design, device_targets.expand(count, rows).unsqueeze(2)).solution
-        except RuntimeError:
+        except RuntimeError as error:
+            # Not silent. A fallback nobody can see turns a broken fast path into a slow correct
+            # one and calls it a measurement.
+            DEVICE_BATCH_FALLBACKS.append(f"{type(error).__name__}: {error}")
             del blocks, design
             torch.cuda.empty_cache()
             scores.extend(float(host_scorer(gate)) for gate in block_gates)
@@ -2586,7 +2606,7 @@ def score_single_gate_blocks(
     rows = int(xs.shape[0])
     device_xs = torch.as_tensor(xs, device="cuda", dtype=torch.float64)
     device_residual = torch.as_tensor(residual, device="cuda", dtype=torch.float64)
-    chunk = max(1, min(len(indices), int(2 ** 27 // max(rows * int(xs.shape[1]), 1)) or 1))
+    chunk = max(1, min(len(indices), _device_chunk(rows, int(xs.shape[1]))))
     scored: list[tuple[int, float]] = []
     for start in range(0, len(indices), chunk):
         block_indices = indices[start:start + chunk]
@@ -2597,7 +2617,8 @@ def score_single_gate_blocks(
         targets = device_residual.expand(len(block_indices), rows).unsqueeze(2)
         try:
             solution = torch.linalg.lstsq(blocks, targets).solution
-        except RuntimeError:
+        except RuntimeError as error:
+            DEVICE_BATCH_FALLBACKS.append(f"{type(error).__name__}: {error}")
             del blocks
             torch.cuda.empty_cache()
             continue
@@ -5071,21 +5092,28 @@ def make_gradient_structured_starts(
         norms=int(gate_norms.shape[0]),
         candidates=len(directions) * int(gate_norms.shape[0]),
     )
-    scored: list[tuple[float, np.ndarray]] = []
     ones = np.ones(xs.shape[0], dtype=np.float64)
-    for direction in directions:
-        for norm_value in gate_norms:
-            gate = direction * norm_value
-            block = silu_np(xs @ gate)[:, None] * xs
-            design = np.column_stack([block, ones])
-            try:
-                coeffs, *_ = np.linalg.lstsq(design, ys, rcond=None)
-            except np.linalg.LinAlgError:
-                continue
-            if not np.all(np.isfinite(coeffs)):
-                continue
-            predicted = design @ coeffs
-            scored.append((float(np.mean(np.abs(predicted - ys))), gate))
+
+    def host_gate_score(gate: np.ndarray) -> float:
+        block = silu_np(xs @ gate)[:, None] * xs
+        design = np.column_stack([block, ones])
+        try:
+            coeffs, *_ = np.linalg.lstsq(design, ys, rcond=None)
+        except np.linalg.LinAlgError:
+            return float("inf")
+        if not np.all(np.isfinite(coeffs)):
+            return float("inf")
+        return float(np.mean(np.abs(design @ coeffs - ys)))
+
+    candidate_gates = [
+        direction * norm_value for direction in directions for norm_value in gate_norms
+    ]
+    candidate_scores = batch_gate_candidate_mae(xs, ys, candidate_gates, host_gate_score)
+    scored: list[tuple[float, np.ndarray]] = [
+        (score, gate)
+        for gate, score in zip(candidate_gates, candidate_scores)
+        if np.isfinite(score)
+    ]
     if len(scored) < atom_count:
         return []
     scored.sort(key=lambda item: item[0])
