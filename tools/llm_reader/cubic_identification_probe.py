@@ -1206,11 +1206,22 @@ def stitch_recovery(
     # separate - and both ends of the scale range do that, the near end because every unit is
     # loud and the far end because what is left is noise.
     #
-    # The usable scales are the ones whose rank falls strictly below that ceiling, and among
-    # those the smallest rank is the cleanest loud subset. Measured at 7 anchors, ceiling 56:
-    # 56, 56, 51, 42, 28, 49, 56, 56 across 15 to 4000, minimum at 500 - the scale that recovers
-    # the layer. At 3 anchors, ceiling 24: 24, 24, 24, 24, 20, 21, 24, 24, minimum at 500 again.
-    # The rule reproduces the measured operating point at both anchor counts.
+    # Reading the rank instead - smallest rank strictly below the ceiling - reproduced the
+    # operating point at n=64 and then failed outright at n=256, where every candidate from 15 to
+    # 4000 saturates at 24 and nothing is strictly below anything. It fell back to scale 1.0 and
+    # covered 0 of 256, while a hand-set 1000 covered 27 with the same three anchors. A saturated
+    # rank does not mean the solve is useless; it means the rank cannot rank the scales.
+    #
+    # So the probe runs the solve it is choosing for and counts what comes back. One block, one
+    # candidate, `foobi_gates` on the measured span, and the score is the number of directions
+    # that pass the purity test. That is the quantity coverage actually follows: at n=256, scales
+    # 500, 1000 and 2000 give 1.2, 4.9 and 3.2 directions a solve and 1, 27 and 25 units covered.
+    # Eight extra solves against `blocks * core_points` of them is a rounding error in the cost.
+    #
+    # The scale itself moves with `n`, which is why a fixed number could not survive the jump:
+    # the base point lives in the `e`-dimensional core, so the drive `g.x0` carries a factor
+    # `sqrt(e/n)` for a gate of unit norm, and the same drive needs `S` proportional to `sqrt(n)`.
+    # Measured: 500 at n=64 and 1000 at n=256, which is the ratio the law asks for.
     scale_probe: list[dict] = []
     if base_scale <= 0:
         probe_subspace = torch.cat([core, blocks[0]], dim=1)
@@ -1219,24 +1230,42 @@ def stitch_recovery(
         probe_oracle = SubspaceOracle(teacher, probe_subspace)
         probe_anchors = torch.randn(anchor_count, probe_dim, generator=generator, device=device, dtype=DTYPE)
         probe_anchors = probe_anchors / probe_anchors.norm(dim=1, keepdim=True)
-        best_rank = slice_rank_ceiling
-        base_scale = 1.0
-        for candidate in [15.0, 60.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0]:
+        best_score = -1
+        base_scale = 0.0
+        reference = 500.0 * math.sqrt(input_dim / 64.0)
+        for step_index in range(-3, 4):
+            candidate = reference * (2.0 ** step_index)
             probe_core = torch.randn(core_dim, generator=generator, device=device, dtype=DTYPE)
             probe_core = probe_core / probe_core.norm() * candidate
             probe_point = torch.cat([probe_core, torch.zeros(probe_width, device=device, dtype=DTYPE)])
             probe_basis, probe_rank = measured_lifted_span_by_slices(
                 probe_oracle, probe_point, readers, probe_anchors, probe_dim, steps, span_tolerance
             )
+            if probe_rank // 2 > rank_cap:
+                recovered = 0
+            else:
+                probe_gates, _ = foobi_gates(
+                    probe_basis, probe_dim, tolerance, purity, collinearity, seed + 7, attempts=pencil_draws,
+                )
+                recovered = int(probe_gates.shape[0])
+                del probe_gates
             del probe_basis
             torch.cuda.empty_cache()
             scale_probe.append({
                 "scale": candidate,
                 "measuredRank": probe_rank,
                 "saturated": probe_rank >= slice_rank_ceiling,
+                "recoveredDirections": recovered,
             })
-            if probe_rank < best_rank and probe_rank // 2 <= rank_cap:
-                best_rank, base_scale = probe_rank, candidate
+            if recovered > best_score:
+                best_score, base_scale = recovered, candidate
+        # A probe that recovered nothing anywhere has not chosen a scale, and returning one that
+        # was never seen to work is how the rank criterion covered 0 of 256 without saying so.
+        if best_score <= 0:
+            raise RuntimeError(
+                f"base-scale probe recovered no directions at any candidate around {reference:.1f}; "
+                f"ranks {[entry['measuredRank'] for entry in scale_probe]}"
+            )
 
     # Several core points, and the blocks merge across all of them. A unit's block component
     # `P_{W_t} g` does not depend on where the base point sits, and neither does its signature
