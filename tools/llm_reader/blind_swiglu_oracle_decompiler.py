@@ -1711,6 +1711,7 @@ def fit_swiglu_sum_batched(
         raise RuntimeError("batched SwiGLU fit requires CUDA")
 
     torch.manual_seed(seed)
+    emit_progress("fit-batched-entered", atomCount=int(atom_count), rows=int(coords.shape[0]))
     device = torch.device("cuda")
     fit_dtype = torch.float32
     x = torch.tensor(coords, dtype=fit_dtype, device=device)
@@ -1835,6 +1836,7 @@ def fit_swiglu_sum_batched(
         for gate_value, gate_score in zip(usable, quick_scores):
             gate_candidate_pool.append((gate_score, gate_value))
             extra_gate_candidate_count += 1
+        emit_progress("fit-extra-candidates-scored", scored=int(extra_gate_candidate_count))
     for gate_start, _up_start, _scale_start, _bias_start in structured_starts:
         for gate in gate_start:
             if np.all(np.isfinite(gate)) and np.linalg.norm(gate) > 1e-9:
