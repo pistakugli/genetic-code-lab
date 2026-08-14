@@ -1172,6 +1172,62 @@ def stitch_recovery(
     readers = torch.randn(output_dim, output_dim, generator=generator, device=device, dtype=DTYPE)
     readers = readers / readers.norm(dim=1, keepdim=True)
 
+    # Anchors were a fixed 3, and that number - not the geometry, not the solver - was the per
+    # block ceiling. Slices at one anchor see the same span through one down projection, so the
+    # measured rank stops at `anchors * readers` however many units are loud, and `2 k_loud` of
+    # them is what a solve needs. Three anchors against eight readers is rank 24, which is twelve
+    # units, and the recall that saturated at 0.7 was a solve being handed half the block.
+    # `tile_recovery` already carried the rule `A * R >= 2 k_loud`; this path did not.
+    #
+    # It shows up as a flat probe: rank 24 at every scale from 15 to 4000, including the two that
+    # recover nothing, because a saturated measurement reports its own ceiling and says nothing
+    # about the layer. The count now comes from the cap, and `sliceRankCeiling` is reported so a
+    # saturated span is visible rather than silent.
+    anchor_count = max(3, -(-2 * rank_cap // max(int(readers.shape[0]), 1)))
+    slice_rank_ceiling = anchor_count * int(readers.shape[0])
+
+    # The scale was a flag, and it decides everything: measured at n=64, k=64, scales 4 and 15
+    # recover nothing because the base point sits near the origin where the rank is `min(k, m)`,
+    # 500 covers the layer, and 4000 and above starve it again. The peak is not a constant either
+    # - it moves with `k`, so a number tuned once is wrong at the next block size.
+    #
+    # Probe for it, and read the rank the other way round from the obvious one. Argmax of the
+    # measured rank picks the worst scale: at 3 anchors it returned 24 at every scale from 15 to
+    # 4000, chose 15.0 on the tie, and covered nothing. A rank sitting at `anchors * readers` is
+    # the measurement reporting its own ceiling - the loud set is larger than the slices can
+    # separate - and both ends of the scale range do that, the near end because every unit is
+    # loud and the far end because what is left is noise.
+    #
+    # The usable scales are the ones whose rank falls strictly below that ceiling, and among
+    # those the smallest rank is the cleanest loud subset. Measured at 7 anchors, ceiling 56:
+    # 56, 56, 51, 42, 28, 49, 56, 56 across 15 to 4000, minimum at 500 - the scale that recovers
+    # the layer. At 3 anchors, ceiling 24: 24, 24, 24, 24, 20, 21, 24, 24, minimum at 500 again.
+    # The rule reproduces the measured operating point at both anchor counts.
+    scale_probe: list[dict] = []
+    if base_scale <= 0:
+        probe_subspace = torch.cat([core, blocks[0]], dim=1)
+        probe_oracle = SubspaceOracle(teacher, probe_subspace)
+        probe_anchors = torch.randn(anchor_count, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        probe_anchors = probe_anchors / probe_anchors.norm(dim=1, keepdim=True)
+        best_rank = slice_rank_ceiling
+        base_scale = 1.0
+        for candidate in [15.0, 60.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0]:
+            probe_core = torch.randn(core_dim, generator=generator, device=device, dtype=DTYPE)
+            probe_core = probe_core / probe_core.norm() * candidate
+            probe_point = torch.cat([probe_core, torch.zeros(block_width, device=device, dtype=DTYPE)])
+            probe_basis, probe_rank = measured_lifted_span_by_slices(
+                probe_oracle, probe_point, readers, probe_anchors, subspace_dim, steps, span_tolerance
+            )
+            del probe_basis
+            torch.cuda.empty_cache()
+            scale_probe.append({
+                "scale": candidate,
+                "measuredRank": probe_rank,
+                "saturated": probe_rank >= slice_rank_ceiling,
+            })
+            if probe_rank < best_rank and probe_rank // 2 <= rank_cap:
+                best_rank, base_scale = probe_rank, candidate
+
     # Several core points, and the blocks merge across all of them. A unit's block component
     # `P_{W_t} g` does not depend on where the base point sits, and neither does its signature
     # `P_A g`, so a recovery of block 3 at one core point and block 5 at another are two pieces
@@ -1188,7 +1244,7 @@ def stitch_recovery(
         for block_index, block in enumerate(blocks):
             subspace = torch.cat([core, block], dim=1)
             oracle = SubspaceOracle(teacher, subspace)
-            anchors = torch.randn(3, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+            anchors = torch.randn(anchor_count, subspace_dim, generator=generator, device=device, dtype=DTYPE)
             anchors = anchors / anchors.norm(dim=1, keepdim=True)
             span_basis, rank = measured_lifted_span_by_slices(
                 oracle, base_point, readers, anchors, subspace_dim, steps, span_tolerance
@@ -1266,6 +1322,12 @@ def stitch_recovery(
         "blocks": len(blocks),
         "corePoints": core_points,
         "pencilDraws": pencil_draws,
+        "baseScale": base_scale,
+        "baseScaleAuto": bool(scale_probe),
+        "scaleProbe": scale_probe,
+        "anchorsPerSolve": anchor_count,
+        "readersUsed": int(readers.shape[0]),
+        "sliceRankCeiling": slice_rank_ceiling,
         "localRecoveries": len(recoveries),
         "groups": len(groups),
         "groupsCoveringAllBlocks": len(complete),
