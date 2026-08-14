@@ -300,7 +300,18 @@ for (const testCase of cases) {
   const sweepCases = caseToSweepCase(testCase);
   const highAtomProfile = testCase.unitCount >= 16;
   const llamaHighAtomProfile = testCase.family === 'llama' && highAtomProfile;
-  const defaultTimeoutMs = highAtomProfile ? '3600000' : '1800000';
+  // The high-atom profile is a step at 16 units, and everything in it except the wall clock
+  // scales with the block: `trainCount` is `unitCount * 1000`, and the fit has twice the atoms
+  // to place at 32 than at 16. So the first rung above 16 was given a 16-unit deadline for
+  // double the work, and it died on it - the 32-unit case reached `train-sampled` at 231745
+  // oracle calls and was then killed by SIGTERM, with the basis already recovered cleanly at
+  // active rank 64 and energy ratio 0.999999999999999. Nothing about the recovery had failed.
+  //
+  // The deadline now grows with the block it is given. At 16 units this is 3600000, the number
+  // it already was, so every passing variant keeps its exact budget.
+  const defaultTimeoutMs = highAtomProfile
+    ? String(3600000 * Math.max(1, Math.ceil(testCase.unitCount / 16)))
+    : '1800000';
   const defaultTrainCount = highAtomProfile ? String(Math.max(16000, testCase.unitCount * 1000)) : String(Math.max(14400, testCase.unitCount * 1400));
   const defaultValidationCount = highAtomProfile ? '4096' : '3072';
   const defaultFitSteps = highAtomProfile ? '2600' : '3200';
