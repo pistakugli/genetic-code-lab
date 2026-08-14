@@ -1300,24 +1300,60 @@ def make_quadratic_atom_starts(
         xs = coords
         ys = targets
     ys = ys.astype(np.float64) - float(np.mean(ys))
-    columns: list[np.ndarray] = []
-    pairs: list[tuple[int, int]] = []
-    for left in range(rank):
-        for right in range(left, rank):
-            feature = xs[:, left] * xs[:, right]
-            if left != right:
-                feature = 2.0 * feature
-            columns.append(feature)
-            pairs.append((left, right))
-    design = np.column_stack(columns)
-    ridge = 1e-8 * np.eye(design.shape[1], dtype=np.float64)
+    # One column per unordered pair, so `rank(rank+1)/2` of them - 2080 at rank 64 - built over
+    # `sample_count` rows, and then a normal-equation solve on that. Profiled inside
+    # `fit_swiglu_atom`, this single call was 34.6% of the time, and the greedy pass calls it once
+    # per atom, 32 times.
+    #
+    # It is the opposite shape from the LBFGS line search next door: one large dense product,
+    # 6144 by 2080, and one 2080-square solve. Measured: 6.05 s on the host against 0.48 s on the
+    # card, 12.7x, with coefficients agreeing to a median relative difference of 6.73e-15 and a
+    # largest of 1.71e-11 - which is what a normal-equation solve on a matrix of this condition
+    # gives in float64 whichever library runs it.
+    rows_index, cols_index = np.triu_indices(rank)
+    pairs = list(zip(rows_index.tolist(), cols_index.tolist()))
+    off_diagonal = rows_index != cols_index
+    coeffs = None
     try:
-        coeffs = np.linalg.solve(design.T @ design + ridge, design.T @ ys)
-    except np.linalg.LinAlgError:
+        import torch
+
+        use_device = torch.cuda.is_available()
+    except ImportError:
+        use_device = False
+    if use_device:
         try:
-            coeffs, *_ = np.linalg.lstsq(design, ys, rcond=None)
+            device_xs = torch.as_tensor(xs, device="cuda", dtype=torch.float64)
+            device_ys = torch.as_tensor(ys, device="cuda", dtype=torch.float64)
+            device_rows = torch.as_tensor(rows_index, device="cuda")
+            device_cols = torch.as_tensor(cols_index, device="cuda")
+            feature_matrix = device_xs[:, device_rows] * device_xs[:, device_cols]
+            feature_matrix = torch.where(
+                torch.as_tensor(off_diagonal, device="cuda")[None, :],
+                feature_matrix * 2.0,
+                feature_matrix,
+            )
+            gram = feature_matrix.T @ feature_matrix
+            gram += 1e-8 * torch.eye(gram.shape[0], device="cuda", dtype=torch.float64)
+            coeffs = torch.linalg.solve(gram, feature_matrix.T @ device_ys).cpu().numpy()
+            del device_xs, device_ys, feature_matrix, gram
+            torch.cuda.empty_cache()
+        except (torch.OutOfMemoryError, RuntimeError):
+            coeffs = None
+            torch.cuda.empty_cache()
+    if coeffs is None:
+        columns = [
+            (2.0 if left != right else 1.0) * (xs[:, left] * xs[:, right])
+            for left, right in pairs
+        ]
+        design = np.column_stack(columns)
+        ridge = 1e-8 * np.eye(design.shape[1], dtype=np.float64)
+        try:
+            coeffs = np.linalg.solve(design.T @ design + ridge, design.T @ ys)
         except np.linalg.LinAlgError:
-            return []
+            try:
+                coeffs, *_ = np.linalg.lstsq(design, ys, rcond=None)
+            except np.linalg.LinAlgError:
+                return []
     if not np.all(np.isfinite(coeffs)):
         return []
     quadratic = np.zeros((rank, rank), dtype=np.float64)
