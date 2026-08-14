@@ -1167,7 +1167,15 @@ def stitch_recovery(
     core = frame[:, :core_dim]
     block_width = subspace_dim - core_dim
     blocks = [frame[:, index:index + block_width] for index in range(core_dim, input_dim, block_width)]
-    blocks = [block for block in blocks if block.shape[1] == block_width]
+    # The tail block used to be dropped for being narrow, and dropping it drops coordinates: with
+    # `core_dim=8` and `block_width=16` at `n=64` the last 8 directions of the frame are in no
+    # block at all, so an assembled gate is missing that part of the space and cannot reach the
+    # 0.99 cosine however well the solves went. Nothing reported it, because every field is
+    # computed from what was assembled. A short block is not a problem for the solve - the
+    # subspace is `core + block` and its width is whatever it is - so keep it and carry the width
+    # per block instead of assuming one.
+    blocks = [block for block in blocks if block.shape[1] > 0]
+    covered_directions = core_dim + sum(int(block.shape[1]) for block in blocks)
 
     readers = torch.randn(output_dim, output_dim, generator=generator, device=device, dtype=DTYPE)
     readers = readers / readers.norm(dim=1, keepdim=True)
@@ -1206,17 +1214,19 @@ def stitch_recovery(
     scale_probe: list[dict] = []
     if base_scale <= 0:
         probe_subspace = torch.cat([core, blocks[0]], dim=1)
+        probe_width = int(blocks[0].shape[1])
+        probe_dim = core_dim + probe_width
         probe_oracle = SubspaceOracle(teacher, probe_subspace)
-        probe_anchors = torch.randn(anchor_count, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+        probe_anchors = torch.randn(anchor_count, probe_dim, generator=generator, device=device, dtype=DTYPE)
         probe_anchors = probe_anchors / probe_anchors.norm(dim=1, keepdim=True)
         best_rank = slice_rank_ceiling
         base_scale = 1.0
         for candidate in [15.0, 60.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0]:
             probe_core = torch.randn(core_dim, generator=generator, device=device, dtype=DTYPE)
             probe_core = probe_core / probe_core.norm() * candidate
-            probe_point = torch.cat([probe_core, torch.zeros(block_width, device=device, dtype=DTYPE)])
+            probe_point = torch.cat([probe_core, torch.zeros(probe_width, device=device, dtype=DTYPE)])
             probe_basis, probe_rank = measured_lifted_span_by_slices(
-                probe_oracle, probe_point, readers, probe_anchors, subspace_dim, steps, span_tolerance
+                probe_oracle, probe_point, readers, probe_anchors, probe_dim, steps, span_tolerance
             )
             del probe_basis
             torch.cuda.empty_cache()
@@ -1240,14 +1250,19 @@ def stitch_recovery(
     for core_index in range(max(1, core_points)):
         core_point = torch.randn(core_dim, generator=generator, device=device, dtype=DTYPE)
         core_point = core_point / core_point.norm() * base_scale
-        base_point = torch.cat([core_point, torch.zeros(block_width, device=device, dtype=DTYPE)])
         for block_index, block in enumerate(blocks):
+            # Width per block, not one width for all of them: the tail block is narrower and the
+            # base point, the anchors and the solve all have to agree with the subspace actually
+            # being probed.
+            width = int(block.shape[1])
+            solve_dim = core_dim + width
+            base_point = torch.cat([core_point, torch.zeros(width, device=device, dtype=DTYPE)])
             subspace = torch.cat([core, block], dim=1)
             oracle = SubspaceOracle(teacher, subspace)
-            anchors = torch.randn(anchor_count, subspace_dim, generator=generator, device=device, dtype=DTYPE)
+            anchors = torch.randn(anchor_count, solve_dim, generator=generator, device=device, dtype=DTYPE)
             anchors = anchors / anchors.norm(dim=1, keepdim=True)
             span_basis, rank = measured_lifted_span_by_slices(
-                oracle, base_point, readers, anchors, subspace_dim, steps, span_tolerance
+                oracle, base_point, readers, anchors, solve_dim, steps, span_tolerance
             )
             if rank // 2 > rank_cap:
                 oversized += 1
@@ -1255,7 +1270,7 @@ def stitch_recovery(
                 torch.cuda.empty_cache()
                 continue
             gates, _ = foobi_gates(
-                span_basis, subspace_dim, tolerance, purity, collinearity,
+                span_basis, solve_dim, tolerance, purity, collinearity,
                 seed + 7 + 101 * core_index, attempts=pencil_draws,
             )
             del span_basis
@@ -1275,6 +1290,14 @@ def stitch_recovery(
                 break
         else:
             groups.append([record])
+
+    # A group is discarded whole when it misses one block, and that is a product: at per-block
+    # recall `p` a unit needs all `len(blocks)` of them. Whether the loss sits one block short or
+    # far from complete decides what is worth building next, so count it rather than assume it.
+    # The histogram is over groups, indexed by how many distinct blocks each one covers.
+    block_coverage = [0] * (len(blocks) + 1)
+    for group in groups:
+        block_coverage[len({item[3] for item in group})] += 1
 
     complete = [group for group in groups if len({item[3] for item in group}) == len(blocks)]
     assembled: list[torch.Tensor] = []
@@ -1332,6 +1355,13 @@ def stitch_recovery(
         "groups": len(groups),
         "groupsCoveringAllBlocks": len(complete),
         "solvesOversized": oversized,
+        # If the blocks do not tile the space, an assembled gate is missing coordinates and no
+        # other field can say so - they are all computed from what came back. This one can fail.
+        "directionsInBlocks": covered_directions,
+        "blocksTileInputSpace": covered_directions == input_dim,
+        "blockWidths": [int(block.shape[1]) for block in blocks],
+        "groupsByBlocksCovered": block_coverage,
+        "groupsOneBlockShort": block_coverage[len(blocks) - 1] if len(blocks) else 0,
         "fullDimensionGates": len(deduplicated),
         "assembledBeforeDeduplication": len(assembled),
         "duplicateDirections": len(assembled) - len(deduplicated),
