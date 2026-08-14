@@ -5503,6 +5503,11 @@ def fit_swiglu_sum(
             _record_fallback(f"structured starts abandoned: {type(exc).__name__}: {exc}")
             structured_starts = []
 
+    # Four more construction steps stand between the greedy pass and the batched fit, and none of
+    # them said anything. Measured on a live 32-unit run, the greedy pass ends at 138.6 s and the
+    # next marker had not arrived 340 s later - a second unnamed stall immediately after the
+    # first one was named. Each step reports now, so the next run says which.
+    emit_progress("starts-greedy-done", starts=len(structured_starts))
     gradient_starts = make_gradient_structured_starts(
         coords,
         targets,
@@ -5512,12 +5517,14 @@ def fit_swiglu_sum(
         atom_count,
         seed + 2029,
     )
+    emit_progress("starts-gradient-done", added=len(gradient_starts))
     quadratic_multi_starts = make_quadratic_multi_structured_starts(
         coords,
         targets,
         atom_count,
         seed + 3037,
     )
+    emit_progress("starts-quadratic-multi-done", added=len(quadratic_multi_starts))
     structured_starts.extend(quadratic_multi_starts)
     structured_starts.extend(gradient_starts)
     if structured_starts and atom_count >= 4:
@@ -5529,6 +5536,7 @@ def fit_swiglu_sum(
             seed + 4051,
             max_starts=max(12, min(24, atom_count + 2)),
         )
+        emit_progress("starts-expanded", starts=len(structured_starts))
     extra_gate_candidates = make_oracle_gate_candidate_pool(
         gradient_coords,
         gradient_targets,
@@ -5536,6 +5544,7 @@ def fit_swiglu_sum(
         atom_count,
         seed + 5087,
     )
+    emit_progress("starts-oracle-pool-done", candidates=len(extra_gate_candidates))
 
     if fit_mode in {"auto", "batched"} and atom_count >= 4:
         try:
