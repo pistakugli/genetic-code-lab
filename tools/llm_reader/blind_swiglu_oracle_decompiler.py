@@ -1628,32 +1628,104 @@ def fit_swiglu_atom(
         (np.array([1.0, -1.0]), np.array([1.0, 1.0])),
     ]
     restart_count = len(structured_starts) + 16
+
+    # The Adam phase is run for every restart at once, on the card, and that combination is the
+    # whole point: measured at 12000 rows, 20 restarts, 300 steps, batching on the host is 5 to 8
+    # times *slower* (2.73 s to 21.47 s at rank 2) and running the restarts one at a time on the
+    # card is no better than the host. Together they are 16.8x at rank 2 and 17.2x at rank 64.
+    # Each half alone is a pessimisation, which is why moving only the device, or only the
+    # batching, kept measuring worse.
+    #
+    # Restarts are independent, so a summed loss gives each one exactly the gradient it would
+    # have had alone, and Adam is elementwise. The starts are drawn on the host in the order they
+    # were always drawn, then stacked, so these are the same restarts from the same seeds.
+    #
+    # LBFGS stays per restart afterwards. It is a quasi-Newton method with one history over its
+    # parameters: batching it would let restarts pull on each other, which is a different
+    # algorithm rather than a faster one.
+    batch_device = fit_device
+    if requested_device not in {"cpu", "cuda"} and torch.cuda.is_available():
+        batch_device = torch.device("cuda")
+    initial_gates: list[torch.Tensor] = []
+    initial_ups: list[torch.Tensor] = []
+    initial_scales: list[float] = []
+    initial_biases: list[float] = []
     for restart in range(restart_count):
         if restart < len(structured_starts):
             gate_init, up_init, scale_init, bias_init = structured_starts[restart]
-            gate = torch.nn.Parameter(torch.tensor(gate_init, dtype=torch.float32).to(fit_device))
-            up = torch.nn.Parameter(torch.tensor(up_init, dtype=torch.float32).to(fit_device))
-            scale = torch.nn.Parameter(torch.tensor(scale_init, dtype=torch.float32).to(fit_device))
-            bias = torch.nn.Parameter(torch.tensor(bias_init, dtype=torch.float32).to(fit_device))
+            initial_gates.append(torch.tensor(gate_init, dtype=torch.float32))
+            initial_ups.append(torch.tensor(up_init, dtype=torch.float32))
+            initial_scales.append(float(scale_init))
+            initial_biases.append(float(bias_init))
         elif restart - len(structured_starts) < len(base_starts) and rank == 2:
             base_index = restart - len(structured_starts)
             gate_init, up_init = base_starts[base_index]
-            gate = torch.nn.Parameter(torch.tensor(normalize(gate_init) * 0.75, dtype=torch.float32).to(fit_device))
-            up = torch.nn.Parameter(torch.tensor(normalize(up_init) * 0.75, dtype=torch.float32).to(fit_device))
-            scale = torch.nn.Parameter(torch.tensor(max(0.1, target_scale), device=fit_device))
-            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets)), device=fit_device))
+            initial_gates.append(torch.tensor(normalize(gate_init) * 0.75, dtype=torch.float32))
+            initial_ups.append(torch.tensor(normalize(up_init) * 0.75, dtype=torch.float32))
+            initial_scales.append(max(0.1, target_scale))
+            initial_biases.append(float(np.mean(targets)))
         else:
-            gate = torch.nn.Parameter((torch.randn(rank) * 0.8).to(fit_device))
-            up = torch.nn.Parameter((torch.randn(rank) * 0.8).to(fit_device))
-            scale = torch.nn.Parameter(torch.tensor(max(0.1, target_scale), device=fit_device))
-            bias = torch.nn.Parameter(torch.tensor(float(np.mean(targets)), device=fit_device))
-        optimizer = torch.optim.Adam([gate, up, scale, bias], lr=learning_rate)
+            initial_gates.append(torch.randn(rank) * 0.8)
+            initial_ups.append(torch.randn(rank) * 0.8)
+            initial_scales.append(max(0.1, target_scale))
+            initial_biases.append(float(np.mean(targets)))
+
+    # Group size is the whole point of the measurement, not a tuning knob. On the card the
+    # restarts go together; on the host they go one at a time, because batching there is 5 to 8
+    # times slower - the grouped design is much larger and nothing on a CPU pays that back. A
+    # group of one is exactly the sequential loop this replaced.
+    batch_x = x.to(batch_device)
+    batch_y = y.to(batch_device)
+    group = restart_count if str(batch_device).startswith("cuda") else 1
+    adam_gate_parts: list[torch.Tensor] = []
+    adam_up_parts: list[torch.Tensor] = []
+    adam_scale_parts: list[torch.Tensor] = []
+    adam_bias_parts: list[torch.Tensor] = []
+    for group_start in range(0, restart_count, group):
+        group_end = min(group_start + group, restart_count)
+        batch_gate = torch.nn.Parameter(
+            torch.stack(initial_gates[group_start:group_end]).to(batch_device)
+        )
+        batch_up = torch.nn.Parameter(
+            torch.stack(initial_ups[group_start:group_end]).to(batch_device)
+        )
+        batch_scale = torch.nn.Parameter(torch.tensor(
+            initial_scales[group_start:group_end], dtype=torch.float32, device=batch_device
+        ))
+        batch_bias = torch.nn.Parameter(torch.tensor(
+            initial_biases[group_start:group_end], dtype=torch.float32, device=batch_device
+        ))
+        batch_optimizer = torch.optim.Adam(
+            [batch_gate, batch_up, batch_scale, batch_bias], lr=learning_rate
+        )
         for _ in range(steps):
-            optimizer.zero_grad()
-            prediction = scale * torch.nn.functional.silu(x @ gate) * (x @ up) + bias
-            loss = torch.mean((prediction - y) ** 2)
-            loss.backward()
-            optimizer.step()
+            batch_optimizer.zero_grad()
+            batch_prediction = (
+                batch_scale[None, :]
+                * torch.nn.functional.silu(batch_x @ batch_gate.T)
+                * (batch_x @ batch_up.T)
+                + batch_bias[None, :]
+            )
+            torch.mean((batch_prediction - batch_y[:, None]) ** 2, dim=0).sum().backward()
+            batch_optimizer.step()
+        adam_gate_parts.append(batch_gate.detach().to(fit_device))
+        adam_up_parts.append(batch_up.detach().to(fit_device))
+        adam_scale_parts.append(batch_scale.detach().to(fit_device))
+        adam_bias_parts.append(batch_bias.detach().to(fit_device))
+        del batch_gate, batch_up, batch_scale, batch_bias, batch_optimizer
+    adam_gates = torch.cat(adam_gate_parts)
+    adam_ups = torch.cat(adam_up_parts)
+    adam_scales = torch.cat(adam_scale_parts)
+    adam_biases = torch.cat(adam_bias_parts)
+    del batch_x, batch_y
+    if str(batch_device).startswith("cuda"):
+        torch.cuda.empty_cache()
+
+    for restart in range(restart_count):
+        gate = torch.nn.Parameter(adam_gates[restart].clone())
+        up = torch.nn.Parameter(adam_ups[restart].clone())
+        scale = torch.nn.Parameter(adam_scales[restart].clone())
+        bias = torch.nn.Parameter(adam_biases[restart].clone())
         lbfgs = torch.optim.LBFGS([gate, up, scale, bias], lr=0.8, max_iter=160, line_search_fn="strong_wolfe")
 
         def closure() -> torch.Tensor:
