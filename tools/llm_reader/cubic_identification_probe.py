@@ -1236,13 +1236,28 @@ def stitch_recovery(
             vector = vector + blocks[block_index] @ (tail * factor)
         assembled.append(vector / vector.norm())
 
+    # One unit can come back as several assembled directions: the signature `P_A g` is only
+    # `core_dim` long, so two recoveries of one unit at different core points can miss the 0.999
+    # grouping test on core-block noise and assemble twice. Deduplicate in the full space, where
+    # the vectors are `input_dim` long and the comparison is not noise-limited.
+    deduplicated: list[torch.Tensor] = []
+    for vector in assembled:
+        if any(abs(float(vector @ kept)) >= collinearity for kept in deduplicated):
+            continue
+        deduplicated.append(vector)
+
     truth = teacher.gate / teacher.gate.norm(dim=1, keepdim=True)
-    if assembled:
-        best = (torch.stack(assembled) @ truth.T).abs().max(dim=1).values
+    if deduplicated:
+        cosines = (torch.stack(deduplicated) @ truth.T).abs()
+        # Per direction: is it a real unit. Per unit: was it covered. The first is precision and
+        # the second is coverage, and only the second can be read against the unit count - an
+        # earlier field counted correct directions and reported 65 of 64 units on a duplicate.
+        best = cosines.max(dim=1).values
         matched = int((best >= 0.99).sum())
+        covered = int((cosines.max(dim=0).values >= 0.99).sum())
         median = float(best.median())
     else:
-        matched, median = 0, 0.0
+        matched, covered, median = 0, 0, 0.0
     return {
         "units": units,
         "inputDim": input_dim,
@@ -1255,11 +1270,17 @@ def stitch_recovery(
         "groups": len(groups),
         "groupsCoveringAllBlocks": len(complete),
         "solvesOversized": oversized,
-        "fullDimensionGates": len(assembled),
+        "fullDimensionGates": len(deduplicated),
+        "assembledBeforeDeduplication": len(assembled),
+        "duplicateDirections": len(assembled) - len(deduplicated),
         "gatesAbove0.99": matched,
+        "spuriousDirections": len(deduplicated) - matched,
+        "unitsCovered": covered,
+        "coverage": covered / units,
         "medianCosine": median,
         "oracleCallsPoints": teacher.counter.points,
-        "callsPerAssembledGate": teacher.counter.points // max(len(assembled), 1),
+        "callsPerCoveredUnit": teacher.counter.points // max(covered, 1),
+        "callsPerAssembledGate": teacher.counter.points // max(len(deduplicated), 1),
         "device": str(truth.device),
     }
 
@@ -1655,6 +1676,12 @@ def main() -> int:
     parser.add_argument("--lifted-sweep", type=int, nargs="*", default=None,
                         help="unit counts to measure the lifted identifiability ceiling at")
     parser.add_argument("--sweep-units", type=int, nargs="*", default=None)
+    parser.add_argument("--stitch", type=int, nargs="*", default=None,
+                        help="unit counts to assemble full-dimension gates for from subspace solves")
+    parser.add_argument("--subspace-dim", type=int, default=16)
+    parser.add_argument("--core-dim", type=int, default=8)
+    parser.add_argument("--core-points", type=int, default=1)
+    parser.add_argument("--pencil-draws", type=int, default=5)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--output-json", type=str, default=None)
     args = parser.parse_args()
@@ -1663,21 +1690,32 @@ def main() -> int:
     if device.type == "cuda" and not torch.cuda.is_available():
         raise SystemExit("cuda requested and not available; this probe is a GPU measurement")
 
-    unit_list = args.sweep_units if args.sweep_units else [args.units]
-    runs = [
-        run(
-            units=count,
-            input_dim=args.input_dim,
-            output_dim=args.output_dim,
-            seed=args.seed,
-            direction_multiple=args.direction_multiple,
-            steps=list(args.steps),
-            collinearity=args.collinearity,
-            rank_tolerance=args.rank_tolerance,
-            device=device,
-        )
-        for count in unit_list
+    # The pencil run is the default mode, not a preamble to the others. It fits the full symmetric
+    # tensor, whose design is `4n(n+1)(n+2)` rows against `C(n+2,3)` monomials, so at `n=64` it
+    # allocates 6.89 GiB before any requested mode is reached and the card has nothing left: a
+    # `--stitch` run at that dimension died on 20 MiB it should never have had to ask for. Run it
+    # when it was asked for - explicitly by `--sweep-units`, or by default when no mode was named.
+    selected_modes = [
+        args.stitch, args.tile, args.oracle_recover, args.recover_sweep,
+        args.lifted_sweep, args.base_point_sweep, args.project_dim,
     ]
+    runs: list[dict] = []
+    if args.sweep_units or not any(selected_modes):
+        unit_list = args.sweep_units if args.sweep_units else [args.units]
+        runs = [
+            run(
+                units=count,
+                input_dim=args.input_dim,
+                output_dim=args.output_dim,
+                seed=args.seed,
+                direction_multiple=args.direction_multiple,
+                steps=list(args.steps),
+                collinearity=args.collinearity,
+                rank_tolerance=args.rank_tolerance,
+                device=device,
+            )
+            for count in unit_list
+        ]
     report = {"runs": runs}
     if args.project_dim:
         report["costProjection"] = [cost_laws(dim) for dim in args.project_dim]
@@ -1705,6 +1743,19 @@ def main() -> int:
                 direction_multiple=args.direction_multiple, device=device,
             )
             for count in args.oracle_recover
+        ]
+    if args.stitch:
+        report["stitchRecovery"] = [
+            stitch_recovery(
+                units=count, input_dim=args.input_dim, output_dim=args.reach_width,
+                subspace_dim=args.subspace_dim, core_dim=args.core_dim,
+                base_scale=args.base_scale, rank_cap=args.rank_cap,
+                core_points=args.core_points, pencil_draws=args.pencil_draws,
+                seed=args.seed, tolerance=args.rank_tolerance,
+                span_tolerance=args.span_tolerance, purity=args.purity,
+                collinearity=args.collinearity, steps=list(args.steps), device=device,
+            )
+            for count in args.stitch
         ]
     if args.recover_sweep:
         report["overcompleteRecovery"] = [
