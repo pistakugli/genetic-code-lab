@@ -9204,13 +9204,18 @@ def log_progress(args: argparse.Namespace, phase: str, **fields: Any) -> None:
     started = _PROGRESS_CLOCK.setdefault("start", now)
     previous = _PROGRESS_CLOCK.get("previous", started)
     _PROGRESS_CLOCK["previous"] = now
+    # On stdout, which the sweep inherits. Its own comment says "stdout stays inherited so
+    # progress streams live; stderr is piped so the last words of a process that dies are still
+    # available" - and progress was going to the piped one, so it streamed nowhere. A run's phases
+    # were only readable after it died, in the failure tail, which is the opposite of what a
+    # progress line is for and is why locating a slow phase took a profiler.
     print(json.dumps({
         "type": "progress",
         "phase": phase,
         "elapsedSeconds": round(now - started, 1),
         "sincePreviousSeconds": round(now - previous, 1),
         **fields,
-    }), file=sys.stderr, flush=True)
+    }), flush=True)
 
 
 def validation_counterexample_inputs(
