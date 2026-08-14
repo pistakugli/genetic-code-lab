@@ -287,6 +287,7 @@ import argparse
 import json
 import math
 import sys
+import time
 from dataclasses import dataclass, field
 from itertools import combinations_with_replacement
 from pathlib import Path
@@ -343,15 +344,37 @@ class LiveTeacher:
     until `unlock` is called, which is what keeps a comparison against them post-hoc.
     """
 
-    def __init__(self, client: Any, device: torch.device) -> None:
+    def __init__(self, client: Any, device: torch.device, projection: torch.Tensor | None = None) -> None:
         self.client = client
         self.device = device
         self.counter = OracleCallCounter()
+        # Readers are free in oracle calls and expensive in transport. The block answers 3072
+        # numbers a point, of which a solve reads eight, and every one of them crosses the bus
+        # twice and the disk twice: 29 MB out, 14 MB written, 14 MB read, 29 MB back, per eval
+        # call, 88 calls a solve. Projecting is linear and commutes with the difference stencil,
+        # so doing it here is the same arithmetic against 384x less traffic. The oracle charge is
+        # identical - the points are what is billed, not the width of the answer.
+        self.projection = projection
+        # What a live call costs in seconds, separated from what the solve costs. A stitched
+        # recovery is `blocks * core_points` solves, so whether the route is hours or days is
+        # decided by this number and not by anything on the card - and the transport writes both
+        # the request and the answer to disk as `.npy`, at 3072 floats each way per point.
+        self.eval_seconds = 0.0
+        self.eval_calls = 0
 
     def __call__(self, points: torch.Tensor) -> torch.Tensor:
         self.counter.charge(int(points.shape[0]))
-        values = self.client.eval(points.detach().cpu().numpy(), stage="cubic-probe")
-        return torch.as_tensor(values, dtype=DTYPE, device=self.device)
+        started = time.monotonic()
+        # float32 on the way out because the transport casts to it anyway; sending float64 pays
+        # twice the bus for numbers the client immediately narrows.
+        request = points.detach().to(torch.float32).cpu().numpy()
+        values = self.client.eval(request, stage="cubic-probe")
+        answer = torch.as_tensor(values, dtype=DTYPE, device=self.device)
+        self.eval_seconds += time.monotonic() - started
+        self.eval_calls += 1
+        if self.projection is None:
+            return answer
+        return answer @ self.projection.T
 
 
 def open_live_oracle(
@@ -600,10 +623,87 @@ def live_subspace_solve(
             "unitCoverage": covered / max(int(truth.shape[0]), 1),
             "medianCosine": median,
             "solverOracleCalls": solver_calls,
+            "oracleEvalSeconds": round(teacher.eval_seconds, 3),
+            "oracleEvalCalls": teacher.eval_calls,
+            "pointsPerSecond": round(solver_calls / max(teacher.eval_seconds, 1e-9), 1),
+            "secondsPerEvalCall": round(teacher.eval_seconds / max(teacher.eval_calls, 1), 4),
             "truthUnlockQueryCount": client.truth_unlock_query_count,
             "unlockedAfterAllSolverCalls": client.truth_unlock_query_count == solver_calls,
             "device": str(span_basis.device),
         }
+    finally:
+        client.close()
+
+
+def live_stitch(
+    model: str,
+    layer: int,
+    units: str,
+    subspace_dim: int,
+    core_dim: int,
+    base_scale: float,
+    reader_count: int,
+    rank_cap: int,
+    core_points: int,
+    pencil_draws: int,
+    steps: list[float],
+    seed: int,
+    tolerance: float,
+    span_tolerance: float,
+    purity: float,
+    collinearity: float,
+    max_calls: int,
+    work_dir: Path,
+    local_files_only: bool,
+    device: torch.device,
+) -> dict:
+    """The stitched recovery, with the real layer answering.
+
+    Nothing about the assembly changes for a live block. The solve only ever calls
+    `oracle(points)`, so the whole difference is who answers, and the truth arrives through a
+    provider that the oracle keeps locked until the recovery is already frozen. What comes out is
+    a full 3072-dimensional gate direction, not a subspace projection.
+    """
+    client = open_live_oracle(model, layer, units, str(device), max_calls, work_dir, local_files_only)
+    try:
+        hidden = int(client.meta["hiddenSize"])
+        unit_count = len([piece for piece in units.split(",") if piece.strip()])
+        # The readers are drawn here and handed to the bridge, so the answer that crosses the bus
+        # is already `reader_count` wide. `stitch_recovery` then reads them as coordinates, which
+        # is what identity readers mean, and the arithmetic downstream is untouched.
+        reader_generator = torch.Generator(device=device).manual_seed(seed + 31)
+        projection = torch.randn(
+            reader_count, hidden, generator=reader_generator, device=device, dtype=DTYPE
+        )
+        projection = projection / projection.norm(dim=1, keepdim=True)
+        teacher = LiveTeacher(client, device, projection=projection)
+
+        def truth_gate_provider() -> torch.Tensor:
+            client.unlock_posthoc_truth("live-stitch")
+            gate_truth, _ = client.truth()
+            return torch.as_tensor(gate_truth, dtype=DTYPE, device=device)
+
+        report = stitch_recovery(
+            units=unit_count, input_dim=hidden, output_dim=reader_count,
+            subspace_dim=subspace_dim, core_dim=core_dim, base_scale=base_scale,
+            rank_cap=rank_cap, core_points=core_points, pencil_draws=pencil_draws,
+            seed=seed, tolerance=tolerance, span_tolerance=span_tolerance,
+            purity=purity, collinearity=collinearity, steps=steps, device=device,
+            teacher=teacher, truth_gate_provider=truth_gate_provider,
+            reader_count=reader_count, identity_readers=True,
+        )
+        report.update({
+            "model": model,
+            "layer": int(layer),
+            "unitList": units,
+            "blockDevice": client.meta.get("blockDevice"),
+            "solverOracleCalls": int(client.query_count),
+            "oracleEvalSeconds": round(teacher.eval_seconds, 3),
+            "pointsPerSecond": round(teacher.counter.points / max(teacher.eval_seconds, 1e-9), 1),
+            "truthUnlockQueryCount": client.truth_unlock_query_count,
+            "unlockedAfterAllSolverCalls": client.truth_unlock_query_count == int(client.query_count),
+        })
+        return report
     finally:
         client.close()
 
@@ -1446,6 +1546,10 @@ def stitch_recovery(
     collinearity: float,
     steps: list[float],
     device: torch.device,
+    teacher: Any = None,
+    truth_gate_provider: Any = None,
+    reader_count: int = 0,
+    identity_readers: bool = False,
 ) -> dict:
     """Full-dimension gates from subspace solves, by giving every subspace the same core.
 
@@ -1477,7 +1581,11 @@ def stitch_recovery(
     core_points_derived = core_points <= 0
     core_points = core_points if core_points > 0 else max(1, (3 * units + 1) // 2)
 
-    teacher = make_teacher(units, input_dim, output_dim, seed, device)
+    # The teacher is injected when the block is real. Everything below is unchanged by that:
+    # the solve only ever calls `oracle(points)`, so a synthetic block and a live one differ in
+    # who answers and in nothing else. The truth arrives the same way - through a provider that
+    # the live path only calls after every solver query is spent.
+    teacher = teacher if teacher is not None else make_teacher(units, input_dim, output_dim, seed, device)
     generator = torch.Generator(device=device).manual_seed(seed + 31)
     frame, _ = torch.linalg.qr(torch.randn(input_dim, input_dim, generator=generator, device=device, dtype=DTYPE))
     core = frame[:, :core_dim]
@@ -1493,8 +1601,18 @@ def stitch_recovery(
     blocks = [block for block in blocks if block.shape[1] > 0]
     covered_directions = core_dim + sum(int(block.shape[1]) for block in blocks)
 
-    readers = torch.randn(output_dim, output_dim, generator=generator, device=device, dtype=DTYPE)
-    readers = readers / readers.norm(dim=1, keepdim=True)
+    # One reader is one slice, and the slices are what the span SVD runs on. On the synthetic
+    # path `output_dim` is 8 and taking all of them costs nothing; on a live block it is 3072,
+    # which would build 3072 slices an anchor for a span whose rank is `2k`. The oracle charge is
+    # unchanged either way - it answers the whole vector per point regardless - so this bounds
+    # the linear algebra, not the bill.
+    reader_total = reader_count if reader_count > 0 else output_dim
+    if identity_readers:
+        # The bridge already applied them, so here they are coordinates.
+        readers = torch.eye(reader_total, device=device, dtype=DTYPE)
+    else:
+        readers = torch.randn(reader_total, output_dim, generator=generator, device=device, dtype=DTYPE)
+        readers = readers / readers.norm(dim=1, keepdim=True)
 
     # Anchors were a fixed 3, and that number - not the geometry, not the solver - was the per
     # block ceiling. Slices at one anchor see the same span through one down projection, so the
@@ -1670,7 +1788,8 @@ def stitch_recovery(
             continue
         deduplicated.append(vector)
 
-    truth = teacher.gate / teacher.gate.norm(dim=1, keepdim=True)
+    truth_raw = truth_gate_provider() if truth_gate_provider is not None else teacher.gate
+    truth = truth_raw / truth_raw.norm(dim=1, keepdim=True)
     if deduplicated:
         cosines = (torch.stack(deduplicated) @ truth.T).abs()
         # Per direction: is it a real unit. Per unit: was it covered. The first is precision and
@@ -2135,6 +2254,8 @@ def main() -> int:
                         help="solve one subspace of the real layer and score it post-hoc")
     parser.add_argument("--live-readers", type=int, default=8)
     parser.add_argument("--live-anchors", type=int, default=3)
+    parser.add_argument("--live-stitch", action="store_true",
+                        help="stitch full-dimension gates out of the real layer")
     parser.add_argument("--live-local-files-only", action="store_true")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--output-json", type=str, default=None)
@@ -2153,6 +2274,7 @@ def main() -> int:
         args.stitch, args.tile, args.oracle_recover, args.recover_sweep,
         args.lifted_sweep, args.base_point_sweep, args.project_dim,
         args.live_form_check or None, args.live_subspace_solve or None,
+        args.live_stitch or None,
     ]
     runs: list[dict] = []
     if args.sweep_units or not any(selected_modes):
@@ -2191,6 +2313,19 @@ def main() -> int:
             steps=list(args.steps), seed=args.seed, tolerance=args.rank_tolerance,
             span_tolerance=args.span_tolerance, purity=args.purity,
             collinearity=args.collinearity, pencil_draws=args.pencil_draws,
+            max_calls=args.live_max_calls, work_dir=work_dir,
+            local_files_only=args.live_local_files_only, device=device,
+        )
+    if args.live_stitch:
+        work_dir = Path(args.live_work_dir) if args.live_work_dir else Path("/tmp/cubic-live-check")
+        report["liveStitch"] = live_stitch(
+            model=args.live_model, layer=args.live_layer, units=args.live_units,
+            subspace_dim=args.subspace_dim, core_dim=args.core_dim,
+            base_scale=args.base_scale, reader_count=args.live_readers,
+            rank_cap=args.rank_cap, core_points=args.core_points,
+            pencil_draws=args.pencil_draws, steps=list(args.steps), seed=args.seed,
+            tolerance=args.rank_tolerance, span_tolerance=args.span_tolerance,
+            purity=args.purity, collinearity=args.collinearity,
             max_calls=args.live_max_calls, work_dir=work_dir,
             local_files_only=args.live_local_files_only, device=device,
         )
