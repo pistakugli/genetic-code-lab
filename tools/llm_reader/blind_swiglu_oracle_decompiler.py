@@ -1314,10 +1314,14 @@ def make_quadratic_atom_starts(
     pairs = list(zip(rows_index.tolist(), cols_index.tolist()))
     off_diagonal = rows_index != cols_index
     coeffs = None
+    # The same override the fits honour. Without it this path took the card even when a
+    # measurement had explicitly asked for the host, so an A/B of "host against card" was really
+    # "card against card" for this step - and the host column moved when it should not have.
+    forced_device = os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE", "").strip().lower()
     try:
         import torch
 
-        use_device = torch.cuda.is_available()
+        use_device = forced_device != "cpu" and torch.cuda.is_available()
     except ImportError:
         use_device = False
     if use_device:
