@@ -5023,10 +5023,51 @@ def solve_fixed_gate_start(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, float] | None:
     if gates.shape[0] == 0:
         return None
-    blocks = [silu_np(coords @ gate)[:, None] * coords for gate in gates]
-    design = np.column_stack(blocks + [np.ones(coords.shape[0], dtype=np.float64)])
-    coeffs = lstsq_preferring_device(design, targets)
+    # The design is `atoms * rank + 1` columns - 32000 by 2049 at a real block, which is 524 MB
+    # in float64. Building it on the host and then handing it to a solve on the card pays for it
+    # twice: once to build, once to cross the bus. Built on the card it is 0.53 s against 0.06 s,
+    # 8.5x, and the transfer disappears; the two designs differ by 7.11e-14 at that size.
+    #
+    # It is tried, not assumed. That much memory plus the solve's workspace does not always fit -
+    # measured, on a card already holding 5 GB of a live lane it raises - so a refusal falls back
+    # to the host build and records why.
+    design = None
+    coeffs = None
+    forced_device = os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE", "").strip().lower()
+    if forced_device != "cpu":
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                device_coords = torch.as_tensor(coords, device="cuda", dtype=torch.float64)
+                device_gates = torch.as_tensor(gates, device="cuda", dtype=torch.float64)
+                activation = torch.nn.functional.silu(device_coords @ device_gates.T)
+                device_design = torch.cat([
+                    (activation.unsqueeze(2) * device_coords.unsqueeze(1)).reshape(coords.shape[0], -1),
+                    torch.ones((coords.shape[0], 1), device="cuda", dtype=torch.float64),
+                ], dim=1)
+                solution = torch.linalg.lstsq(
+                    device_design,
+                    torch.as_tensor(targets, device="cuda", dtype=torch.float64).unsqueeze(1),
+                ).solution.squeeze(1)
+                if bool(torch.isfinite(solution).all()):
+                    coeffs = solution.cpu().numpy()
+                    design = device_design.cpu().numpy()
+                else:
+                    DEVICE_BATCH_FALLBACKS.append("fixed-gate design: non-finite solution")
+                del device_coords, device_gates, activation, device_design, solution
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
+        except RuntimeError as error:
+            DEVICE_BATCH_FALLBACKS.append(f"fixed-gate design: {type(error).__name__}: {error}")
+            coeffs = None
+            design = None
     if coeffs is None:
+        blocks = [silu_np(coords @ gate)[:, None] * coords for gate in gates]
+        design = np.column_stack(blocks + [np.ones(coords.shape[0], dtype=np.float64)])
+        coeffs = lstsq_preferring_device(design, targets)
+    if coeffs is None or design is None:
         return None
     rank = coords.shape[1]
     raw_up_values = coeffs[:-1].reshape(gates.shape[0], rank).astype(np.float64)
