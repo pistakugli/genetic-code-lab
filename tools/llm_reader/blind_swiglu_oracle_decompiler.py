@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import signal
 import socket
 import subprocess
 import sys
@@ -13674,9 +13675,43 @@ def apply_fit_env_overrides(args: argparse.Namespace) -> None:
         os.environ["GCL_BLIND_SWIGLU_ROBUST_SCALAR_CALIBRATION"] = "1"
 
 
+def die_with_parent() -> str:
+    """Ask the kernel to kill this process when its parent goes away.
+
+    `spawnSync` with a timeout kills the process it started and nothing below it. The lane spawns
+    the sweep, the sweep spawns this solver, so a lane that times out kills the middle one and
+    leaves the solver running - reparented to init, holding the card and the cores, invisible to
+    whoever reads the failed artifact. Measured after one such timeout: the solver was still
+    going two minutes later at 25 cores, with `ppid` 2121.
+
+    `PR_SET_PDEATHSIG` closes it at the kernel rather than by anyone remembering to clean up. It
+    is Linux-only and best effort: a platform without it simply keeps the old behaviour, and the
+    outcome is reported rather than assumed.
+    """
+    try:
+        import ctypes
+
+        PR_SET_PDEATHSIG = 1
+        libc = ctypes.CDLL("libc.so.6", use_errno=True)
+        if libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0) != 0:
+            return f"prctl failed: errno {ctypes.get_errno()}"
+    except (OSError, AttributeError, ImportError) as error:
+        return f"unavailable: {type(error).__name__}: {error}"
+    # The parent can already have died between the fork and this call, in which case the signal
+    # will never arrive and this process would outlive it anyway.
+    if os.getppid() == 1:
+        return "parent already gone"
+    return "armed"
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    parent_death = die_with_parent()
+    if parent_death != "armed":
+        # Not fatal, and not silent either: a run whose children can outlive it is a different
+        # run, and this is the only place that knows.
+        print(json.dumps({"type": "warning", "parentDeathSignal": parent_death}), file=sys.stderr, flush=True)
     if args.oracle_server:
         return oracle_server(args)
     if not args.output_json:
