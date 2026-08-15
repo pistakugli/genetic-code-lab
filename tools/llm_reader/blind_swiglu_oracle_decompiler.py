@@ -2435,6 +2435,20 @@ def fit_swiglu_sum_batched(
     best["forcedPolishCandidateCount"] = len(forced_polish_candidates)
     best["extraGateCandidateCount"] = int(extra_gate_candidate_count)
     best["randomInitScales"] = [float(value) for value in random_init_scales]
+    # Which of its own atoms the solver should trust, decided without the truth.
+    #
+    # The report already says how many atoms landed above cosine 0.99 against the source - 13 of 32
+    # on the live 32-unit lane, with a mean joint cosine of 0.635 - but only because it compares
+    # against weights after the fact. Anything that wants to act on "these atoms are right", such
+    # as silencing them so the next fit sees fewer atoms in a smaller subspace, needs a criterion
+    # available during the run.
+    #
+    # Agreement between independent solutions is that criterion. Measured on a synthetic 32-atom
+    # rank-64 block by `swiglu_slice_stitch_probe.py`: Spearman 0.8200 against the true cosines,
+    # and a 0.9 threshold selects 9 atoms of which all 9 are above 0.99, minimum 0.9927. The probe
+    # spent 511996 oracle points on four separate fits for that; here it costs nothing, because the
+    # top candidates are restarts already evaluated against the same data.
+    best["atomConsensus"] = atom_consensus_scores(best, top_candidates)
     best["bestScoreByStartKind"] = {key: float(value) for key, value in best_score_by_start_kind.items()}
     best["bestMetricsByStartKind"] = best_metrics_by_start_kind
     # Quantiles rather than the raw scores: a 2048-restart run would otherwise put 2048 floats in
@@ -2672,6 +2686,58 @@ def score_single_gate_blocks(
                 continue
             scored.append((index, float(scores_host[position])))
     return scored
+
+
+def greedy_gate_assignment(similarity: np.ndarray) -> list[int]:
+    """One-to-one row-to-column assignment, best pairs first.
+
+    Not Hungarian, which would need scipy this environment does not have. Greedy is enough here
+    because the scores it feeds are only compared against each other, and a wrong pairing shows up
+    as a low agreement rather than as a confident wrong answer.
+    """
+    remaining_columns = set(range(int(similarity.shape[1])))
+    assignment = [-1] * int(similarity.shape[0])
+    for row in np.argsort(-similarity.max(axis=1)):
+        row = int(row)
+        for column in np.argsort(-similarity[row]):
+            if int(column) in remaining_columns:
+                assignment[row] = int(column)
+                remaining_columns.discard(int(column))
+                break
+    return assignment
+
+
+def atom_consensus_scores(best: dict[str, Any], candidates: list[dict[str, Any]]) -> list[float] | None:
+    """Per-atom agreement between the selected fit and the other surviving restarts.
+
+    An atom the data determines comes back pointing the same way from an independent start; one
+    that is only a convenient piece of some decomposition does not. Gate rather than up, because
+    `silu` is not homogeneous so a gate carries no scale freedom and its direction is absolute.
+
+    Returns one score per atom of `best`, or `None` when there is nothing to compare against - an
+    empty list would read as "every atom scored zero", which is a different statement.
+    """
+    reference = np.asarray(best.get("gates"), dtype=np.float64)
+    if reference.ndim != 2 or reference.shape[0] == 0:
+        return None
+    others = [
+        np.asarray(candidate["gates"], dtype=np.float64)
+        for candidate in candidates
+        if candidate is not best and np.asarray(candidate.get("gates")).shape == reference.shape
+    ]
+    if not others:
+        return None
+    left = reference / np.linalg.norm(reference, axis=1, keepdims=True).clip(min=1e-12)
+    agreements = []
+    for other in others:
+        right = other / np.linalg.norm(other, axis=1, keepdims=True).clip(min=1e-12)
+        similarity = np.abs(left @ right.T)
+        assignment = greedy_gate_assignment(similarity)
+        agreements.append([
+            float(similarity[row, column]) if column >= 0 else 0.0
+            for row, column in enumerate(assignment)
+        ])
+    return [float(value) for value in np.median(np.asarray(agreements, dtype=np.float64), axis=0)]
 
 
 def orthonormal_span_basis(design: np.ndarray, tolerance: float = 1e-10):
@@ -11081,6 +11147,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 "selectedRandomRestartIndex": fit.get("randomRestartIndex"),
                 "bestScoreByStartKind": fit.get("bestScoreByStartKind", {}),
                 "rankScoreQuantilesByStartKind": fit.get("rankScoreQuantilesByStartKind", {}),
+                "atomConsensus": fit.get("atomConsensus"),
                 "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                 "fitMode": str(fit.get("fitMode", "unknown")),
                 "fitTrainMae": float(fit["mae"]),
@@ -13863,6 +13930,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "selectedRandomRestartIndex": fit.get("randomRestartIndex"),
                     "bestScoreByStartKind": fit.get("bestScoreByStartKind", {}),
                     "rankScoreQuantilesByStartKind": fit.get("rankScoreQuantilesByStartKind", {}),
+                    "atomConsensus": fit.get("atomConsensus"),
                     "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                     "fitRestartChunkSize": None if fit.get("restartChunkSize") is None else int(fit["restartChunkSize"]),
                     "fitMode": str(fit.get("fitMode", "unknown")),
