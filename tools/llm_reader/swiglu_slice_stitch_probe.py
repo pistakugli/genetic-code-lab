@@ -48,9 +48,18 @@ this direction accuracy" and does not answer "can the accuracy be reached oracle
 solver those directions would come from the solver's own first-pass fit, and nothing here has yet
 run that loop end to end.
 
-Run: `npm run probe:swiglu-slice-stitch` or `npm run probe:swiglu-slice-silenced`. Knobs:
+`SLICE_MODE=peel` avoids slicing altogether, because a gate found on a slice is only its
+projection and lifting it back by padding gives cosine sqrt(r/d) - measured over 400 draws at
+d=64: 0.4914 at r=16, 0.7083 at r=32, 0.7903 at r=40, 0.9276 at r=55, against the 0.99 silencing
+needs. So a slice-found atom cannot become the next round's silencing direction. Freezing can:
+a confident atom is known in full coordinates, its contribution subtracts outright, and the
+remainder is a smaller sum in the same rank.
+
+Run: `npm run probe:swiglu-slice-stitch`, `:swiglu-slice-silenced`, `:swiglu-slice-consensus` or
+`:swiglu-slice-peel`. Knobs:
 SLICE_MODE, SLICE_ATOMS, SLICE_RANK, SLICE_CORE, SLICE_BLOCK, SLICE_DROP, SLICE_DROP_JITTER,
-SLICE_RANK_USED, SLICE_RESTARTS, SLICE_STEPS, SLICE_SAMPLES_PER_PARAM, SLICE_SEED.
+SLICE_RANK_USED, SLICE_RESTARTS, SLICE_STEPS, SLICE_SAMPLES_PER_PARAM, SLICE_SEED, SLICE_RUNS,
+SLICE_ROUNDS, SLICE_CONSENSUS_THRESHOLD.
 """
 from __future__ import annotations
 
@@ -349,6 +358,93 @@ def consensus_ranking(oracle: SliceOracle, atoms: int, rank: int, runs: int, see
     }
 
 
+def peel(oracle: SliceOracle, atoms: int, rank: int, rounds: int, threshold: float,
+         runs: int, seed: int) -> dict:
+    """Freeze the atoms consensus vouches for, subtract them, and refit what is left.
+
+    Slicing is deliberately not used here, and the reason is arithmetic rather than taste. A gate
+    recovered on a rank-r slice of rank-d is only its projection, and lifting it back by padding
+    gives cosine sqrt(r/d) against the true gate - measured over 400 draws at d=64: 0.4914 at r=16,
+    0.7083 at r=32, 0.7903 at r=40, 0.9276 at r=55. Silencing needs 0.99. So an atom found on a
+    slice cannot become the next round's silencing direction, and any peeling built on slices
+    stalls after one step.
+
+    Freezing does not have that problem. A confident atom is known in full coordinates, so its
+    contribution can be subtracted outright and the remainder is a smaller SwiGLU sum in the same
+    rank. Whether a smaller sum is easier to identify is the open question this measures: the
+    scaling probe says the *fit error* at fixed rank barely moves with atom count, which is not the
+    same claim as identification, and the live run already recovers 15 of 32 atoms above 0.99.
+    """
+    frozen_gates: list[np.ndarray] = []
+    frozen_ups: list[np.ndarray] = []
+    frozen_scales: list[float] = []
+    round_reports: list[dict] = []
+    true_gate, _true_up = oracle.truth()
+    started = time.time()
+
+    params = atoms * (2 * rank + 1) + 1
+    rows = int(params * SAMPLES_PER_PARAM)
+    rng = np.random.default_rng(seed)
+    coords = rng.normal(size=(rows, rank)) * INPUT_SCALE
+    targets = oracle.evaluate(coords)
+
+    for round_index in range(rounds):
+        remaining = atoms - len(frozen_gates)
+        if remaining <= 0:
+            break
+        residual = targets.copy()
+        for gate, up, scale in zip(frozen_gates, frozen_ups, frozen_scales):
+            z = coords @ gate
+            residual -= scale * (z / (1.0 + np.exp(-z))) * (coords @ up)
+        solutions = []
+        for run_index in range(runs):
+            fit = bs.fit_swiglu_sum(
+                coords, residual, remaining, seed=seed + 733 * round_index + 4099 * run_index,
+                steps=STEPS, learning_rate=0.05, restart_override=RESTARTS, fit_mode="batched",
+            )
+            solutions.append(fit)
+        best = solutions[0]
+        reference = np.asarray(best["gates"], dtype=np.float64)
+        agreements = []
+        for other in solutions[1:]:
+            other_gates = np.asarray(other["gates"], dtype=np.float64)
+            order = match_by_core(reference, other_gates)
+            left = reference / np.linalg.norm(reference, axis=1, keepdims=True).clip(min=1e-12)
+            right = other_gates[order] / np.linalg.norm(other_gates[order], axis=1, keepdims=True).clip(min=1e-12)
+            agreements.append(np.abs(np.sum(left * right, axis=1)))
+        consensus = (np.median(np.stack(agreements), axis=0) if agreements
+                     else np.zeros(reference.shape[0]))
+        confident = np.flatnonzero(consensus >= threshold)
+        truth_cosines = paired_cosines(reference, true_gate)
+        round_reports.append({
+            "round": round_index,
+            "fittedAtoms": int(remaining),
+            "r2": float(best.get("r2", float("nan"))),
+            "confident": int(confident.size),
+            "confidentTruthMin": None if confident.size == 0 else float(np.min(truth_cosines[confident])),
+            "allTruthAbove099": int(np.sum(truth_cosines > 0.99)),
+        })
+        if confident.size == 0:
+            break
+        for index in confident:
+            frozen_gates.append(reference[index])
+            frozen_ups.append(np.asarray(best["ups"], dtype=np.float64)[index])
+            frozen_scales.append(float(np.asarray(best["scales"], dtype=np.float64)[index]))
+
+    frozen = np.asarray(frozen_gates) if frozen_gates else np.zeros((0, rank))
+    frozen_truth = paired_cosines(frozen, true_gate) if frozen.shape[0] else np.zeros(0)
+    return {
+        "atoms": atoms, "rank": rank, "rounds": len(round_reports), "threshold": threshold,
+        "oracleCalls": oracle.calls,
+        "seconds": round(time.time() - started, 1),
+        "frozenAtoms": int(frozen.shape[0]),
+        "frozenTruthMin": None if frozen_truth.size == 0 else float(np.min(frozen_truth)),
+        "frozenTruthMedian": None if frozen_truth.size == 0 else float(np.median(frozen_truth)),
+        "frozenAbove099": int(np.sum(frozen_truth > 0.99)) if frozen_truth.size else 0,
+        "roundReports": round_reports,
+    }
+
+
 def spearman(left: np.ndarray, right: np.ndarray) -> float:
     """Rank correlation without pulling in scipy, which this environment does not have."""
     def ranks(values: np.ndarray) -> np.ndarray:
@@ -374,7 +470,14 @@ def orthogonal_complement(directions: np.ndarray, rank: int) -> np.ndarray:
 if __name__ == "__main__":
     mode = os.environ.get("SLICE_MODE", "stitch").strip()
     oracle = SliceOracle(ATOMS, RANK, seed=SEED)
-    if mode == "consensus":
+    if mode == "peel":
+        print(json.dumps(peel(
+            oracle, ATOMS, RANK,
+            rounds=int(os.environ.get("SLICE_ROUNDS", "4")),
+            threshold=float(os.environ.get("SLICE_CONSENSUS_THRESHOLD", "0.9")),
+            runs=int(os.environ.get("SLICE_RUNS", "4")), seed=SEED,
+        )), flush=True)
+    elif mode == "consensus":
         print(json.dumps(consensus_ranking(
             oracle, ATOMS, RANK, runs=int(os.environ.get("SLICE_RUNS", "4")), seed=SEED,
         )), flush=True)
