@@ -590,7 +590,7 @@ if __name__ == "__main__":
         print(json.dumps(peel_and_silence(
             oracle, ATOMS, RANK,
             rounds=int(os.environ.get("SLICE_ROUNDS", "4")),
-            threshold=float(os.environ.get("SLICE_CONSENSUS_THRESHOLD", "0.9")),
+            threshold=float(os.environ.get("SLICE_CONSENSUS_THRESHOLD", "0.95")),
             runs=int(os.environ.get("SLICE_RUNS", "3")),
             ratio=float(os.environ.get("SLICE_TARGET_ATOMS_PER_DIM", "0.55")),
             seed=SEED,
