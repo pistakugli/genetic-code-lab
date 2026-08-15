@@ -1903,6 +1903,11 @@ def fit_swiglu_sum_batched(
     gate_candidate_pool: list[tuple[float, np.ndarray]] = []
     best_score_by_start_kind: dict[str, float] = {}
     best_metrics_by_start_kind: dict[str, dict[str, Any]] = {}
+    # Only the best score of each kind was kept, which cannot answer the question that decides
+    # whether to spend budget on more restarts: is the winner the tail of a spread, or is the whole
+    # population sitting at the same wall? Every score is collected so the artifact can be read for
+    # the shape of the distribution instead of guessed at.
+    rank_scores_by_start_kind: dict[str, list[float]] = {}
     selection_tail_weight = float(os.environ.get("GCL_BLIND_SWIGLU_SELECTION_TAIL_WEIGHT", "0.0") or "0.0")
     selection_tail_quantile = float(os.environ.get("GCL_BLIND_SWIGLU_SELECTION_TAIL_QUANTILE", "0.995") or "0.995")
     selection_worst_weight = float(os.environ.get("GCL_BLIND_SWIGLU_SELECTION_WORST_WEIGHT", "0.0") or "0.0")
@@ -2258,6 +2263,7 @@ def fit_swiglu_sum_batched(
                 if np.all(np.isfinite(gate)) and np.linalg.norm(gate) > 1e-9:
                     gate_candidate_pool.append((score, gate.copy()))
             rank_score = candidate_rank_score(candidate)
+            rank_scores_by_start_kind.setdefault(start_kind, []).append(float(rank_score))
             previous_kind_score = best_score_by_start_kind.get(start_kind)
             if previous_kind_score is None or rank_score < previous_kind_score:
                 best_score_by_start_kind[start_kind] = rank_score
@@ -2431,6 +2437,23 @@ def fit_swiglu_sum_batched(
     best["randomInitScales"] = [float(value) for value in random_init_scales]
     best["bestScoreByStartKind"] = {key: float(value) for key, value in best_score_by_start_kind.items()}
     best["bestMetricsByStartKind"] = best_metrics_by_start_kind
+    # Quantiles rather than the raw scores: a 2048-restart run would otherwise put 2048 floats in
+    # the report, and the decision only needs the shape. `bestOverHalf` is the best of the first
+    # half of the restarts in draw order, so the artifact says directly what doubling the count
+    # bought last time.
+    best["rankScoreQuantilesByStartKind"] = {
+        key: {
+            "count": len(values),
+            "min": float(np.min(values)),
+            "p05": float(np.quantile(values, 0.05)),
+            "p25": float(np.quantile(values, 0.25)),
+            "median": float(np.median(values)),
+            "max": float(np.max(values)),
+            "bestOverHalf": float(np.min(values[: max(1, len(values) // 2)])),
+        }
+        for key, values in rank_scores_by_start_kind.items()
+        if values
+    }
     best["restartChunkSize"] = chunk_size
     batched_mode = "batched-cuda" if chunk_size >= total_restart_count else "batched-cuda-chunked"
     suffixes = []
@@ -11057,6 +11080,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 "selectedStartKind": str(fit.get("startKind", "unknown")),
                 "selectedRandomRestartIndex": fit.get("randomRestartIndex"),
                 "bestScoreByStartKind": fit.get("bestScoreByStartKind", {}),
+                "rankScoreQuantilesByStartKind": fit.get("rankScoreQuantilesByStartKind", {}),
                 "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                 "fitMode": str(fit.get("fitMode", "unknown")),
                 "fitTrainMae": float(fit["mae"]),
