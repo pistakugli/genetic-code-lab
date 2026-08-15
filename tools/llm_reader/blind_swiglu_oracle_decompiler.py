@@ -2045,10 +2045,20 @@ def fit_swiglu_sum_batched(
             score_value += selection_worst_weight * float(np.max(residual))
         return score_value
 
+    # The pool was sized for polishing, which needs a handful. It is now also the sample the
+    # per-atom consensus is measured over, and a median over 11 others is a coarse one - the
+    # synthetic probe needed four full fits to reach Spearman 0.8200 and the live pool is the only
+    # place that comparison can come from for free. Raising it costs memory for the retained gates
+    # and nothing else: `polish_candidates` takes its own top-k off the front, so a longer tail
+    # does not change what gets polished.
+    consensus_pool = int(os.environ.get("GCL_BLIND_SWIGLU_CONSENSUS_POOL", "0") or "0")
+
     def remember_top_candidate(candidate: dict[str, Any]) -> None:
         top_candidates.append(dict(candidate))
         top_candidates.sort(key=candidate_rank_score)
         keep_count = max(4, min(12, atom_count if atom_count >= 8 else 4))
+        if consensus_pool > 0:
+            keep_count = max(keep_count, consensus_pool)
         del top_candidates[keep_count:]
 
     def rescore_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -2449,6 +2459,7 @@ def fit_swiglu_sum_batched(
     # spent 511996 oracle points on four separate fits for that; here it costs nothing, because the
     # top candidates are restarts already evaluated against the same data.
     best["atomConsensus"] = atom_consensus_scores(best, top_candidates)
+    best["atomConsensusPool"] = len(top_candidates)
     best["bestScoreByStartKind"] = {key: float(value) for key, value in best_score_by_start_kind.items()}
     best["bestMetricsByStartKind"] = best_metrics_by_start_kind
     # Quantiles rather than the raw scores: a 2048-restart run would otherwise put 2048 floats in
@@ -11148,6 +11159,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 "bestScoreByStartKind": fit.get("bestScoreByStartKind", {}),
                 "rankScoreQuantilesByStartKind": fit.get("rankScoreQuantilesByStartKind", {}),
                 "atomConsensus": fit.get("atomConsensus"),
+                "atomConsensusPool": fit.get("atomConsensusPool"),
                 "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                 "fitMode": str(fit.get("fitMode", "unknown")),
                 "fitTrainMae": float(fit["mae"]),
@@ -13931,6 +13943,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "bestScoreByStartKind": fit.get("bestScoreByStartKind", {}),
                     "rankScoreQuantilesByStartKind": fit.get("rankScoreQuantilesByStartKind", {}),
                     "atomConsensus": fit.get("atomConsensus"),
+                    "atomConsensusPool": fit.get("atomConsensusPool"),
                     "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                     "fitRestartChunkSize": None if fit.get("restartChunkSize") is None else int(fit["restartChunkSize"]),
                     "fitMode": str(fit.get("fitMode", "unknown")),
