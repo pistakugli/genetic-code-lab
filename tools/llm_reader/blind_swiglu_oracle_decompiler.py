@@ -13862,6 +13862,7 @@ def run_solver(args: argparse.Namespace) -> int:
                     "selectedStartKind": str(fit.get("startKind", "unknown")),
                     "selectedRandomRestartIndex": fit.get("randomRestartIndex"),
                     "bestScoreByStartKind": fit.get("bestScoreByStartKind", {}),
+                    "rankScoreQuantilesByStartKind": fit.get("rankScoreQuantilesByStartKind", {}),
                     "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                     "fitRestartChunkSize": None if fit.get("restartChunkSize") is None else int(fit["restartChunkSize"]),
                     "fitMode": str(fit.get("fitMode", "unknown")),
