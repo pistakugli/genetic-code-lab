@@ -2287,6 +2287,11 @@ def fit_swiglu_sum_batched(
             "batched SwiGLU restart selection produced no finite selection score "
             f"across {total_restart_count} restarts"
         )
+    # After the last chunk the run went quiet again for minutes on a live 32-unit lane: the
+    # chunk markers end and the next phase had no name. What happens here is the dictionary fit,
+    # a beam over the candidate pool - 4 wide, 24 branches, once per atom at 32 atoms - so it is
+    # marked at both ends, with the pool size that drives it.
+    emit_progress("fit-restarts-scored", restarts=int(total_restart_count), poolSize=len(gate_candidate_pool))
     forced_polish_candidates: list[dict[str, Any]] = []
     dictionary_rank_score: float | None = None
     if atom_count >= 8 and gate_candidate_pool:
@@ -2297,6 +2302,7 @@ def fit_swiglu_sum_batched(
             atom_count,
             seed + 424242,
         )
+        emit_progress("fit-dictionary-done", found=dictionary_fit is not None)
         if dictionary_fit is not None:
             dictionary_fit = rescore_candidate(dictionary_fit)
             dictionary_rank_score = candidate_rank_score(dictionary_fit)
