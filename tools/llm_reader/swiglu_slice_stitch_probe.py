@@ -462,7 +462,7 @@ def peel(oracle: SliceOracle, atoms: int, rank: int, rounds: int, threshold: flo
     frozen_ups: list[np.ndarray] = []
     frozen_scales: list[float] = []
     round_reports: list[dict] = []
-    true_gate, _true_up = oracle.truth()
+    round_references: list[tuple[np.ndarray, np.ndarray]] = []
     started = time.time()
 
     params = atoms * (2 * rank + 1) + 1
@@ -498,14 +498,12 @@ def peel(oracle: SliceOracle, atoms: int, rank: int, rounds: int, threshold: flo
         consensus = (np.median(np.stack(agreements), axis=0) if agreements
                      else np.zeros(reference.shape[0]))
         confident = np.flatnonzero(consensus >= threshold)
-        truth_cosines = paired_cosines(reference, true_gate)
+        round_references.append((reference, confident))
         round_reports.append({
             "round": round_index,
             "fittedAtoms": int(remaining),
             "r2": float(best.get("r2", float("nan"))),
             "confident": int(confident.size),
-            "confidentTruthMin": None if confident.size == 0 else float(np.min(truth_cosines[confident])),
-            "allTruthAbove099": int(np.sum(truth_cosines > 0.99)),
         })
         if confident.size == 0:
             break
@@ -514,6 +512,17 @@ def peel(oracle: SliceOracle, atoms: int, rank: int, rounds: int, threshold: flo
             frozen_ups.append(np.asarray(best["ups"], dtype=np.float64)[index])
             frozen_scales.append(float(np.asarray(best["scales"], dtype=np.float64)[index]))
 
+    # Every comparison against the truth happens here, after the last fit and the last selection.
+    # Scoring a round while later rounds still had work to do would unlock the post-hoc weights in
+    # the middle of the run: nothing downstream reads them, but "unlocked only after the solver has
+    # finished spending calls" is the invariant this whole rail rests on, and an invariant that
+    # holds because of what the code happens not to do is not one.
+    true_gate, _true_up = oracle.truth()
+    for report, (reference, confident) in zip(round_reports, round_references):
+        cosines = paired_cosines(reference, true_gate)
+        report["confidentTruthMin"] = (None if confident.size == 0
+                                       else float(np.min(cosines[confident])))
+        report["allTruthAbove099"] = int(np.sum(cosines > 0.99))
     frozen = np.asarray(frozen_gates) if frozen_gates else np.zeros((0, rank))
     frozen_truth = paired_cosines(frozen, true_gate) if frozen.shape[0] else np.zeros(0)
     return {
@@ -547,7 +556,7 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
     frozen_ups: list[np.ndarray] = []
     frozen_scales: list[float] = []
     round_reports: list[dict] = []
-    true_gate, _true_up = oracle.truth()
+    round_references: list[tuple[np.ndarray, np.ndarray]] = []
     started = time.time()
 
     params = atoms * (2 * rank + 1) + 1
@@ -620,7 +629,7 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
             consensus = (np.median(np.stack(agreements), axis=0) if agreements
                          else np.zeros(reference.shape[0]))
         confident = np.flatnonzero(consensus >= threshold)
-        truth_cosines = paired_cosines(reference, true_gate)
+        round_references.append((reference, confident))
         round_reports.append({
             "round": round_index,
             "fittedAtoms": int(remaining),
@@ -631,8 +640,6 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
             "residualScale": float(np.std(residual)),
             "r2": float(best.get("r2", float("nan"))),
             "confident": int(confident.size),
-            "confidentTruthMin": None if confident.size == 0 else float(np.min(truth_cosines[confident])),
-            "allTruthAbove099": int(np.sum(truth_cosines > 0.99)),
         })
         if confident.size == 0:
             break
@@ -658,6 +665,17 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
             frozen_ups = [np.asarray(row, dtype=np.float64) for row in solved_ups[:frozen_count]]
             frozen_scales = [float(value) for value in solved_scales[:frozen_count]]
 
+    # Every comparison against the truth happens here, after the last fit and the last selection.
+    # Scoring a round while later rounds still had work to do would unlock the post-hoc weights in
+    # the middle of the run: nothing downstream reads them, but "unlocked only after the solver has
+    # finished spending calls" is the invariant this whole rail rests on, and an invariant that
+    # holds because of what the code happens not to do is not one.
+    true_gate, _true_up = oracle.truth()
+    for report, (reference, confident) in zip(round_reports, round_references):
+        cosines = paired_cosines(reference, true_gate)
+        report["confidentTruthMin"] = (None if confident.size == 0
+                                       else float(np.min(cosines[confident])))
+        report["allTruthAbove099"] = int(np.sum(cosines > 0.99))
     frozen = np.asarray(frozen_gates) if frozen_gates else np.zeros((0, rank))
     frozen_truth = paired_cosines(frozen, true_gate) if frozen.shape[0] else np.zeros(0)
     return {
