@@ -2294,7 +2294,13 @@ def fit_swiglu_sum_batched(
     emit_progress("fit-restarts-scored", restarts=int(total_restart_count), poolSize=len(gate_candidate_pool))
     forced_polish_candidates: list[dict[str, Any]] = []
     dictionary_rank_score: float | None = None
-    if atom_count >= 8 and gate_candidate_pool:
+    # Same switch as the structured construction, for the same reason: the dictionary has been the
+    # worst of the three start kinds in both measured lanes while costing about 1100 s.
+    if (
+        atom_count >= 8
+        and gate_candidate_pool
+        and (os.environ.get("GCL_BLIND_SWIGLU_STRUCTURED_STARTS", "1").strip() or "1") != "0"
+    ):
         dictionary_fit = fit_swiglu_gate_dictionary(
             coords,
             targets,
@@ -5699,7 +5705,15 @@ def fit_swiglu_sum(
                     scales_start.copy(),
                     float(bias_start),
                 ))
-    if atom_count > 1:
+    # Whether the structured construction below is worth its share of the run is an open
+    # question, not a setting: across the 16-unit lane that passes and the 32-unit lane that does
+    # not, `selectedStartKind` was `random` both times, structured scored 0.026691 against
+    # 0.011684 and 0.031530 against 0.027283, and the dictionary was worst of the three at
+    # 0.082827 and 0.071397 - while the construction and the dictionary together took 1979 s of a
+    # 2800 s run. This switch exists so that comparison can be run rather than argued. It defaults
+    # to on, so nothing changes unless it is set.
+    structured_enabled = (os.environ.get("GCL_BLIND_SWIGLU_STRUCTURED_STARTS", "1").strip() or "1") != "0"
+    if atom_count > 1 and structured_enabled:
         residual = targets.astype(np.float64).copy()
         residual_bias = float(np.mean(residual))
         residual -= residual_bias
@@ -5743,26 +5757,27 @@ def fit_swiglu_sum(
     # next marker had not arrived 340 s later - a second unnamed stall immediately after the
     # first one was named. Each step reports now, so the next run says which.
     emit_progress("starts-greedy-done", starts=len(structured_starts))
-    gradient_starts = make_gradient_structured_starts(
-        coords,
-        targets,
-        gradient_coords,
-        gradient_targets,
-        gate_seed_directions,
-        atom_count,
-        seed + 2029,
-    )
-    emit_progress("starts-gradient-done", added=len(gradient_starts))
-    quadratic_multi_starts = make_quadratic_multi_structured_starts(
-        coords,
-        targets,
-        atom_count,
-        seed + 3037,
-    )
-    emit_progress("starts-quadratic-multi-done", added=len(quadratic_multi_starts))
-    structured_starts.extend(quadratic_multi_starts)
-    structured_starts.extend(gradient_starts)
-    if structured_starts and atom_count >= 4:
+    if structured_enabled:
+        gradient_starts = make_gradient_structured_starts(
+            coords,
+            targets,
+            gradient_coords,
+            gradient_targets,
+            gate_seed_directions,
+            atom_count,
+            seed + 2029,
+        )
+        emit_progress("starts-gradient-done", added=len(gradient_starts))
+        quadratic_multi_starts = make_quadratic_multi_structured_starts(
+            coords,
+            targets,
+            atom_count,
+            seed + 3037,
+        )
+        emit_progress("starts-quadratic-multi-done", added=len(quadratic_multi_starts))
+        structured_starts.extend(quadratic_multi_starts)
+        structured_starts.extend(gradient_starts)
+    if structured_starts and atom_count >= 4 and structured_enabled:
         structured_starts = expand_structured_start_variants(
             coords,
             targets,
