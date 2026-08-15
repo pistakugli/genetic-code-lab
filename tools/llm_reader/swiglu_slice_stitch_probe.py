@@ -296,6 +296,74 @@ def silenced_slice(oracle: SliceOracle, drop_directions: np.ndarray, slice_rank:
     }
 
 
+def consensus_ranking(oracle: SliceOracle, atoms: int, rank: int, runs: int, seed: int) -> dict:
+    """Can the solver tell which of its own atoms are trustworthy without the truth?
+
+    Silencing needs directions, and the live run has them - 13 of its 32 atoms sit above cosine
+    0.99 against the source - but it only knows which 13 because the report compares against
+    weights afterwards. A solver that has to pick them oracle-only needs a criterion of its own.
+
+    The candidate here is agreement between independent fits. A well-determined atom should come
+    back from separate runs pointing the same way; an atom that is only a convenient piece of some
+    decomposition should not. That is checkable against the truth once, here, and if it holds it is
+    a criterion the solver can apply blind.
+
+    Reports the rank correlation between consensus and truth, and how many of the atoms the
+    criterion would pick are actually good - which is the number that decides whether the bootstrap
+    is worth building.
+    """
+    solutions: list[np.ndarray] = []
+    fit_reports: list[dict] = []
+    for index in range(runs):
+        fitted = fit_on_slice(oracle, np.eye(rank), atoms, seed + 4099 * index)
+        solutions.append(fitted["gates"])
+        fit_reports.append({"run": index, "r2": fitted["r2"],
+                            "maeOverScale": fitted["mae"] / fitted["scale"]})
+
+    reference = solutions[0]
+    agreements = np.zeros((len(solutions) - 1, atoms))
+    for position, other in enumerate(solutions[1:]):
+        order = match_by_core(reference, other)
+        left = reference / np.linalg.norm(reference, axis=1, keepdims=True).clip(min=1e-12)
+        right = other[order] / np.linalg.norm(other[order], axis=1, keepdims=True).clip(min=1e-12)
+        agreements[position] = np.abs(np.sum(left * right, axis=1))
+    consensus = np.median(agreements, axis=0)
+
+    true_gate, _true_up = oracle.truth()
+    truth_cosines = paired_cosines(reference, true_gate)
+    order_by_consensus = np.argsort(-consensus)
+    picked = order_by_consensus[: int(np.sum(consensus >= 0.9))]
+    return {
+        "atoms": atoms, "rank": rank, "runs": runs,
+        "oracleCalls": oracle.calls,
+        "fits": fit_reports,
+        "spearman": float(spearman(consensus, truth_cosines)),
+        "truthCosineMedian": float(np.median(truth_cosines)),
+        "truthCosineAbove099": int(np.sum(truth_cosines > 0.99)),
+        "consensusAbove09": int(picked.size),
+        "pickedTruthCosineMin": None if picked.size == 0 else float(np.min(truth_cosines[picked])),
+        "pickedTruthCosineMedian": None if picked.size == 0 else float(np.median(truth_cosines[picked])),
+        "pickedAbove099": None if picked.size == 0 else int(np.sum(truth_cosines[picked] > 0.99)),
+        "top13TruthCosineMin": float(np.min(truth_cosines[order_by_consensus[:13]])),
+        "top13Above099": int(np.sum(truth_cosines[order_by_consensus[:13]] > 0.99)),
+    }
+
+
+def spearman(left: np.ndarray, right: np.ndarray) -> float:
+    """Rank correlation without pulling in scipy, which this environment does not have."""
+    def ranks(values: np.ndarray) -> np.ndarray:
+        order = np.argsort(values)
+        out = np.empty_like(order, dtype=np.float64)
+        out[order] = np.arange(values.size, dtype=np.float64)
+        return out
+
+    a, b = ranks(np.asarray(left)), ranks(np.asarray(right))
+    a = a - a.mean()
+    b = b - b.mean()
+    denominator = float(np.linalg.norm(a) * np.linalg.norm(b))
+    return 0.0 if denominator == 0.0 else float(np.dot(a, b) / denominator)
+
+
 def orthogonal_complement(directions: np.ndarray, rank: int) -> np.ndarray:
     """An orthonormal basis of everything orthogonal to `directions`."""
     left, singular, _ = np.linalg.svd(np.asarray(directions, dtype=np.float64).T, full_matrices=True)
@@ -306,7 +374,11 @@ def orthogonal_complement(directions: np.ndarray, rank: int) -> np.ndarray:
 if __name__ == "__main__":
     mode = os.environ.get("SLICE_MODE", "stitch").strip()
     oracle = SliceOracle(ATOMS, RANK, seed=SEED)
-    if mode == "silenced":
+    if mode == "consensus":
+        print(json.dumps(consensus_ranking(
+            oracle, ATOMS, RANK, runs=int(os.environ.get("SLICE_RUNS", "4")), seed=SEED,
+        )), flush=True)
+    elif mode == "silenced":
         drop = int(os.environ.get("SLICE_DROP", str(ATOMS // 2)))
         jitter = float(os.environ.get("SLICE_DROP_JITTER", "0.0"))
         gates, _ups = oracle.truth()
