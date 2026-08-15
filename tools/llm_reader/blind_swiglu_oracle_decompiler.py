@@ -2745,16 +2745,25 @@ def fit_swiglu_gate_dictionary(
                 if len(deduped) >= beam_width:
                     break
             beams = deduped
+            # Without this the whole beam is one silent stretch in the log - `exp32m` sat in it
+            # for over ten minutes and the only way to tell progress from a hang was `pmon`.
+            emit_progress(
+                "fit-dictionary-atom",
+                atom=int(_atom_index + 1),
+                of=int(atom_count),
+                beams=len(beams),
+                bestScore=float(beams[0][0]) if beams else None,
+            )
         complete_beams = [beam for beam in beams if len(beam[1]) == atom_count]
         if complete_beams:
             complete_beams.sort(key=lambda item: item[0])
             selected = complete_beams[0][1]
             full_blocks = [silu_np(coords @ candidates[index])[:, None] * coords for index in selected]
             full_design = np.column_stack(full_blocks + [np.ones(coords.shape[0], dtype=np.float64)])
-            try:
-                solved, *_ = np.linalg.lstsq(full_design, targets, rcond=None)
-            except np.linalg.LinAlgError:
-                solved = None
+            # The beam's own solves go through `lstsq_preferring_device`; this final one over the
+            # full `coords` was the one place left calling numpy directly, on the widest design of
+            # the whole phase. It falls back to the host inside the helper when the card refuses.
+            solved = lstsq_preferring_device(full_design, targets)
             if solved is not None and np.all(np.isfinite(solved)):
                 prediction = full_design @ solved
                 mae = float(np.mean(np.abs(prediction - targets)))
