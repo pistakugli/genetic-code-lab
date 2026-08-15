@@ -528,8 +528,8 @@ def peel(oracle: SliceOracle, atoms: int, rank: int, rounds: int, threshold: flo
     }
 
 
-def peel_and_silence(oracle: SliceOracle, atoms: int, rank: int, rounds: int, threshold: float,
-                     runs: int, ratio: float, seed: int) -> dict:
+def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: float,
+                     runs: int, ratio: float, seed: int, source: str = "within-fit") -> dict:
     """Peeling that silences what it has already frozen, and lifts what the slice found.
 
     The two halves fix each other's failure. Silencing needs directions accurate to about 0.99,
@@ -592,15 +592,27 @@ def peel_and_silence(oracle: SliceOracle, atoms: int, rank: int, rounds: int, th
 
         best = solutions[0]
         reference = np.asarray(best["gates"], dtype=np.float64)
-        agreements = []
-        for other in solutions[1:]:
-            other_gates = np.asarray(other["gates"], dtype=np.float64)
-            order = match_by_core(reference, other_gates)
-            left = reference / np.linalg.norm(reference, axis=1, keepdims=True).clip(min=1e-12)
-            right = other_gates[order] / np.linalg.norm(other_gates[order], axis=1, keepdims=True).clip(min=1e-12)
-            agreements.append(np.abs(np.sum(left * right, axis=1)))
-        consensus = (np.median(np.stack(agreements), axis=0) if agreements
-                     else np.zeros(reference.shape[0]))
+        # Which agreement to believe is not a style choice, it is the difference between the loop
+        # running and the loop stopping at round zero. Agreement across separate fits is what the
+        # synthetic block was measured with and it works there; on the real block three fits that
+        # each recover 12 atoms above 0.99 still produce no atom above 0.95, because separate fits
+        # settle into genuinely different decompositions. Agreement across the near-best restarts
+        # *within* one fit is the measure that was checked against the real block's own post-hoc
+        # cosines - Spearman 0.8402, and a 0.95 cut selecting six atoms all above 0.99 - and it
+        # costs one fit a round instead of three.
+        within_fit = best.get("atomConsensus")
+        if source == "within-fit" and within_fit:
+            consensus = np.asarray(within_fit, dtype=np.float64)
+        else:
+            agreements = []
+            for other in solutions[1:]:
+                other_gates = np.asarray(other["gates"], dtype=np.float64)
+                order = match_by_core(reference, other_gates)
+                left = reference / np.linalg.norm(reference, axis=1, keepdims=True).clip(min=1e-12)
+                right = other_gates[order] / np.linalg.norm(other_gates[order], axis=1, keepdims=True).clip(min=1e-12)
+                agreements.append(np.abs(np.sum(left * right, axis=1)))
+            consensus = (np.median(np.stack(agreements), axis=0) if agreements
+                         else np.zeros(reference.shape[0]))
         confident = np.flatnonzero(consensus >= threshold)
         truth_cosines = paired_cosines(reference, true_gate)
         round_reports.append({
@@ -608,6 +620,8 @@ def peel_and_silence(oracle: SliceOracle, atoms: int, rank: int, rounds: int, th
             "fittedAtoms": int(remaining),
             "sliceRank": int(slice_rank),
             "atomsPerDim": None if not slice_rank else round(remaining / slice_rank, 3),
+            "consensusSource": source if (source != "within-fit" or within_fit) else "across-fits",
+            "consensusMax": float(np.max(consensus)) if consensus.size else None,
             "r2": float(best.get("r2", float("nan"))),
             "confident": int(confident.size),
             "confidentTruthMin": None if confident.size == 0 else float(np.min(truth_cosines[confident])),
@@ -624,7 +638,7 @@ def peel_and_silence(oracle: SliceOracle, atoms: int, rank: int, rounds: int, th
     frozen_truth = paired_cosines(frozen, true_gate) if frozen.shape[0] else np.zeros(0)
     return {
         "atoms": atoms, "rank": rank, "rounds": len(round_reports), "threshold": threshold,
-        "targetAtomsPerDim": ratio,
+        "targetAtomsPerDim": ratio, "consensusSource": source,
         "oracleCalls": oracle.calls,
         "seconds": round(time.time() - started, 1),
         "frozenAtoms": int(frozen.shape[0]),
@@ -683,6 +697,7 @@ if __name__ == "__main__":
             runs=int(os.environ.get("SLICE_RUNS", "3")),
             ratio=float(os.environ.get("SLICE_TARGET_ATOMS_PER_DIM", "0.55")),
             seed=SEED,
+            source=os.environ.get("SLICE_CONSENSUS_SOURCE", "within-fit").strip(),
         )), flush=True)
     elif mode == "peel":
         print(json.dumps(peel(
