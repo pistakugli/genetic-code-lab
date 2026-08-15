@@ -2645,6 +2645,103 @@ def score_single_gate_blocks(
     return scored
 
 
+def orthonormal_span_basis(design: np.ndarray, tolerance: float = 1e-10):
+    """An orthonormal basis for the column space of `design`, on the card when there is one.
+
+    Reduced QR would be cheaper but its `Q` spans a superset of the column space when the design
+    is rank deficient, and over-projecting makes a residual look smaller than it is - the exact
+    direction that would silently flatter the beam's scores. SVD with a singular-value cutoff
+    spans the column space and nothing else, so the projection below is the real one.
+
+    Returns a torch tensor on whichever device did the work, or `None` if the factorisation
+    failed on both.
+    """
+    import torch
+
+    forced_device = os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE", "").strip().lower()
+    use_device = forced_device != "cpu" and torch.cuda.is_available()
+    tensor = torch.as_tensor(design, device="cuda" if use_device else "cpu", dtype=torch.float64)
+    try:
+        left, singular, _ = torch.linalg.svd(tensor, full_matrices=False)
+    except (RuntimeError, torch._C._LinAlgError) as error:
+        if not use_device:
+            return None
+        BASIS_EIGH_HOST_FALLBACKS.append(f"span-basis {type(error).__name__}: {error}")
+        tensor = tensor.cpu()
+        try:
+            left, singular, _ = torch.linalg.svd(tensor, full_matrices=False)
+        except (RuntimeError, torch._C._LinAlgError):
+            return None
+    if singular.numel() == 0:
+        return None
+    keep = singular > float(singular[0]) * tolerance
+    return left[:, keep].contiguous()
+
+
+def extend_beam_residuals(
+    xs: np.ndarray,
+    residual: np.ndarray,
+    base_design: np.ndarray,
+    candidates: np.ndarray,
+    indices: list[int],
+) -> list[tuple[int, float, np.ndarray]]:
+    """Exact residuals for `base_design` extended by one candidate block, without re-solving base.
+
+    The beam's residual is already the least-squares residual of `base_design`, so it is
+    orthogonal to that column space. Frisch-Waugh-Lovell then says the residual of the extended
+    design equals the residual of regressing it on the *part of the new block orthogonal to the
+    base* - the base coefficients change, but the residual does not care. So one factorisation of
+    the base serves every candidate at this beam position, instead of one full `atoms * rank + 1`
+    solve per candidate.
+
+    This is an identity, not an approximation: the returned score is the same sum of squares the
+    full solve returns, up to float64 rounding.
+    """
+    if not indices:
+        return []
+    import torch
+
+    basis = orthonormal_span_basis(base_design)
+    if basis is None:
+        return []
+    device = basis.device
+    device_xs = torch.as_tensor(xs, device=device, dtype=torch.float64)
+    device_residual = torch.as_tensor(residual, device=device, dtype=torch.float64)
+    extended: list[tuple[int, float, np.ndarray]] = []
+    for index in indices:
+        gate = torch.as_tensor(candidates[index], device=device, dtype=torch.float64)
+        block = torch.nn.functional.silu(device_xs @ gate).unsqueeze(1) * device_xs
+        # The scale the cutoff below is measured against. It has to come from before the
+        # projection: a block that lies entirely inside the base span leaves only rounding noise,
+        # and noise judged against its own largest value looks full rank. Scored that way a
+        # duplicate gate scored 5.198e-04 better than the truth instead of exactly equal to it.
+        block_scale = float(torch.linalg.norm(block))
+        block = block - basis @ (basis.T @ block)
+        # Projecting onto the block, rather than solving against it. `torch.linalg.lstsq` on CUDA
+        # is `gels`, which assumes full rank and returns quietly wrong coefficients when the block
+        # is deficient - and a block that has just had the base span removed is exactly where rank
+        # is lost. An orthonormal basis of what is left projects correctly either way, and at 64
+        # columns the factorisation costs nothing.
+        try:
+            block_left, block_singular, _ = torch.linalg.svd(block, full_matrices=False)
+        except (RuntimeError, torch._C._LinAlgError) as error:
+            DEVICE_BATCH_FALLBACKS.append(f"beam-extend {type(error).__name__}: {error}")
+            continue
+        if block_singular.numel() == 0 or not bool(torch.isfinite(block_singular).all()):
+            continue
+        block_basis = block_left[:, block_singular > block_scale * 1e-10]
+        if block_basis.shape[1] == 0:
+            extended.append((index, float(np.dot(residual, residual)), np.asarray(residual, dtype=np.float64)))
+            continue
+        new_residual = device_residual - block_basis @ (block_basis.T @ device_residual)
+        extended.append((
+            index,
+            float(torch.dot(new_residual, new_residual)),
+            new_residual.cpu().numpy(),
+        ))
+    return extended
+
+
 def fit_swiglu_gate_dictionary(
     coords: np.ndarray,
     targets: np.ndarray,
@@ -2681,19 +2778,6 @@ def fit_swiglu_gate_dictionary(
     if beam_width < 1 or beam_branch < 1 or beam_pool_limit < atom_count:
         raise RuntimeError("GCL_BLIND_SWIGLU_DICTIONARY_BEAM_* values must be positive and pool_limit >= atom_count")
 
-    def solve_sample_residual(selected_indices: list[int]) -> tuple[np.ndarray, float] | None:
-        design_blocks = [silu_np(xs @ candidates[index])[:, None] * xs for index in selected_indices]
-        # `atoms * rank + 1` columns wide, and the beam calls this thousands of times. Measured
-        # at these widths: 1.695 s against 0.090 s at 12000 by 257, 23.641 against 0.476 at 32000
-        # by 1025, residual norms matching to six decimals.
-        design = np.column_stack(design_blocks + [np.ones(xs.shape[0], dtype=np.float64)])
-        solved = lstsq_preferring_device(design, ys)
-        if solved is None:
-            return None
-        residual_value = ys - design @ solved
-        score_value = float(np.dot(residual_value, residual_value))
-        return residual_value, score_value
-
     if beam_width > 1:
         pool_count = min(len(candidates), beam_pool_limit)
         beams: list[tuple[float, list[int], np.ndarray]] = [
@@ -2724,13 +2808,15 @@ def fit_swiglu_gate_dictionary(
                 for index, score_value in score_single_gate_blocks(xs, residual, candidates, eligible):
                     local_choices.append((score_value, index))
                 local_choices.sort(key=lambda item: item[0])
-                for _candidate_score, index in local_choices[:beam_branch]:
-                    new_selected = selected_indices + [index]
-                    solved_residual = solve_sample_residual(new_selected)
-                    if solved_residual is None:
-                        continue
-                    new_residual, new_score = solved_residual
-                    next_beams.append((new_score, new_selected, new_residual))
+                branch_indices = [index for _candidate_score, index in local_choices[:beam_branch]]
+                base_design = np.column_stack(
+                    [silu_np(xs @ candidates[index])[:, None] * xs for index in selected_indices]
+                    + [np.ones(xs.shape[0], dtype=np.float64)]
+                )
+                for index, new_score, new_residual in extend_beam_residuals(
+                    xs, residual, base_design, candidates, branch_indices
+                ):
+                    next_beams.append((new_score, selected_indices + [index], new_residual))
             if not next_beams:
                 break
             next_beams.sort(key=lambda item: item[0])
