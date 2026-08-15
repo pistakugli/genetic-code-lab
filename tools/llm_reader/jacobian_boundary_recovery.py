@@ -50,6 +50,14 @@ import os
 for _pool in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
     os.environ.setdefault(_pool, str(min(8, os.cpu_count() or 8)))
 
+# Set before torch is imported anywhere, because the caching allocator reads it once at
+# initialisation. The 8192-unit run died asking for 1.38 GiB with 973 MiB free while 5.50 GiB
+# was already allocated by this process - fragmentation rather than exhaustion, which is the
+# case expandable segments exist for, and which the OOM message itself names. A caller that
+# sets it wins; this only fills in a default.
+os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 import json
 import sys
 import time
@@ -1870,7 +1878,17 @@ def recover_block(
             rank_wide = int(basis.shape[0])
             resident_operands = (gate_matrix.size + basis.size) * 8
             per_row = 12 * (units_wide + rank_wide) + 8 * int(samples_in.shape[1])
-            budget = max(64 << 20, (512 * 1024 * 1024) - resident_operands)
+            # Against what the card actually has, not against a constant. 512 MB was chosen on
+            # a machine where it fitted; the 8192-unit run died here with 973 MiB free while
+            # the oracle held the rest, so a fixed budget is a guess about the other tenant.
+            # `mem_get_info` is the tenant-aware number, and a quarter of what is free leaves
+            # room for the products, the copies and the allocator's own fragmentation.
+            try:
+                free_bytes, _total = torch_probe.cuda.mem_get_info()
+                ceiling = max(64 << 20, int(free_bytes) // 4)
+            except RuntimeError:
+                ceiling = 512 * 1024 * 1024
+            budget = max(64 << 20, min(ceiling, 512 * 1024 * 1024) - resident_operands)
             row_chunk = max(1, min(up_sample_count, budget // max(per_row, 1)))
             raw_parts: list[np.ndarray] = []
             coordinate_parts: list[np.ndarray] = []
