@@ -1604,6 +1604,7 @@ def fit_swiglu_atom(
     seed: int,
     steps: int,
     learning_rate: float,
+    restart_override: int | None = None,
 ) -> dict[str, Any]:
     import torch
 
@@ -1631,6 +1632,7 @@ def fit_swiglu_atom(
     target_scale = float(np.std(targets)) or 1.0
     target_variance = float(np.mean((targets - np.mean(targets)) ** 2))
     best: dict[str, Any] | None = None
+    top_candidates: list[dict[str, Any]] = []
     structured_starts: list[tuple[np.ndarray, np.ndarray, float, float]] = []
     if rank == 2:
         angles = np.linspace(0.0, math.pi, 24, endpoint=False)
@@ -1667,7 +1669,14 @@ def fit_swiglu_atom(
         (np.array([1.0, 1.0]), np.array([1.0, -1.0])),
         (np.array([1.0, -1.0]), np.array([1.0, 1.0])),
     ]
+    # Sixteen random restarts plus the structured ones was the whole budget regardless of what the
+    # caller asked for, because `fit_swiglu_sum` dropped its `restart_override` on the way into the
+    # single-atom branch. A peeling loop that asks for 128 restarts a round got 16 on the round
+    # where one atom was left, which is both a worse fit and - since consensus is agreement between
+    # restarts - a pool too small to say anything about it.
     restart_count = len(structured_starts) + 16
+    if restart_override is not None and restart_override > 0:
+        restart_count = max(restart_count, len(structured_starts) + int(restart_override))
 
     # The Adam phase is run for every restart at once, on the card, and that combination is the
     # whole point: measured at 12000 rows, 20 restarts, 300 steps, batching on the host is 5 to 8
@@ -1806,8 +1815,23 @@ def fit_swiglu_atom(
             }
             if best is None or candidate["mae"] < best["mae"]:
                 best = candidate
+            # The near-best restarts, kept for the same reason the sum fit keeps them: agreement
+            # between them is what says whether this atom is determined by the data or is just one
+            # convenient answer. Only the winner was kept here, so a one-atom fit could report no
+            # consensus at all, and a caller that needed one had to treat "not measured" the same
+            # as "measured and low".
+            top_candidates.append(candidate)
+            top_candidates.sort(key=lambda item: item["mae"])
+            del top_candidates[12:]
     assert best is not None
     best["restartCount"] = restart_count
+    # Deliberately unfiltered. Narrowing this pool to the restarts nearest the winner was tried and
+    # measured, and it fails in the one direction that matters: on a three-atom synthetic whose true
+    # cosines are 0.796, 0.820 and 0.9996 the narrowed pool reported 0.999, 0.9985 and 0.9999,
+    # because restarts that all fall into the same mediocre basin agree with each other perfectly.
+    # Consensus measures reproducibility, and reproducibility is only evidence of correctness when
+    # the pool had a chance to reproduce something else.
+    best["topCandidates"] = top_candidates
     return best
 
 
@@ -5697,16 +5721,38 @@ def fit_swiglu_sum(
     selection_cubic_weight_override: float | None = None,
 ) -> dict[str, Any]:
     if atom_count == 1:
-        single = fit_swiglu_atom(coords, targets, seed, steps, learning_rate)
+        single = fit_swiglu_atom(coords, targets, seed, steps, learning_rate, restart_override)
+        gates = np.expand_dims(single["gate"], axis=0)
+        ups = np.expand_dims(single["up"], axis=0)
+        scales = np.array([single["scale"]], dtype=np.float64)
+        # `mse`, `r2` and `atomConsensus` are reported by every other path out of this function and
+        # were missing here, so a caller reading them off a one-atom fit got None and, through
+        # `float(fit.get("r2", nan))`, a NaN. That is what ended the live peeling loop with one
+        # atom still unrecovered: the fit itself was fine at MAE 6.45e-09, the report simply could
+        # not say so, and "no consensus available" was indistinguishable from "consensus is zero".
+        prediction = (
+            scales[0] * silu_np(coords @ single["gate"]) * (coords @ single["up"])
+            + float(single["bias"])
+        )
+        residual = targets.astype(np.float64) - prediction
+        mse = float(np.mean(residual ** 2))
+        variance = float(np.mean((targets - np.mean(targets)) ** 2))
         return {
             "mae": single["mae"],
+            "mse": mse,
+            "r2": 1.0 - mse / variance if variance > 0.0 else None,
             "restart": single["restart"],
-            "gates": np.expand_dims(single["gate"], axis=0),
-            "ups": np.expand_dims(single["up"], axis=0),
-            "scales": np.array([single["scale"]], dtype=np.float64),
+            "gates": gates,
+            "ups": ups,
+            "scales": scales,
             "bias": single["bias"],
             "restartCount": int(single.get("restartCount", 1)),
             "restartChunkSize": None,
+            "atomConsensus": atom_consensus_scores(
+                {"gates": gates},
+                [{"gates": np.expand_dims(candidate["gate"], axis=0)}
+                 for candidate in single.get("topCandidates", [])],
+            ),
             "fitMode": "single-atom",
         }
 
@@ -5784,6 +5830,7 @@ def fit_swiglu_sum(
     if restart_override is not None:
         restart_count = max(1, restart_override)
     best: dict[str, Any] | None = None
+    top_candidates: list[dict[str, Any]] = []
     structured_starts: list[tuple[np.ndarray, np.ndarray, np.ndarray, float]] = []
     if warm_starts:
         for gates_start, ups_start, scales_start, bias_start in warm_starts:
@@ -6065,10 +6112,19 @@ def fit_swiglu_sum(
                 }
             if best is None or candidate["score"] < best["score"]:
                 best = candidate
+            # The same near-best pool the batched path keeps, for the same measurement. Without it
+            # this path reported no consensus at all, so an atom count between 2 and 3 - which is
+            # where every fit lands once peeling has taken the rest away - could not be told apart
+            # from an atom count whose restarts disagreed completely.
+            top_candidates.append(candidate)
+            top_candidates.sort(key=lambda item: float(item["score"]))
+            del top_candidates[12:]
     assert best is not None
     best["restartCount"] = total_restart_count
     best["randomRestartCount"] = restart_count
     best["structuredStartCount"] = structured_start_count
+    best["atomConsensus"] = atom_consensus_scores(best, top_candidates)
+    best["atomConsensusPool"] = len(top_candidates)
     best["bestScoreByStartKind"] = {key: float(value) for key, value in best_score_by_start_kind.items()}
     best["bestMetricsByStartKind"] = best_metrics_by_start_kind
     best["fitMode"] = "sequential+structured-starts" if structured_start_count else "sequential"
