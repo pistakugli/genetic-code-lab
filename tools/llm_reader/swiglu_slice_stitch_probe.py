@@ -64,11 +64,20 @@ subtracting at all - fit the remainder there at a chosen atoms-per-dimension, an
 slice found into a full-rank refit of the residual, which gives back the components the projection
 lost while keeping the identification the slice bought.
 
+`SLICE_LIVE=1` swaps the synthetic block for the real one - the live 32-unit lane's own
+`OracleClient` subprocess, same model, layer and unit list - and every mode above then runs
+against it unchanged. Coordinates stay the recovered active subspace rather than the model's 3072
+hidden dimensions, exactly as the live solver works, and the post-hoc truth is projected into that
+subspace before scoring, because the recovered atoms live there and charging them for directions
+the basis never claimed would not be a fair comparison.
+
 Run: `npm run probe:swiglu-slice-stitch`, `:swiglu-slice-silenced`, `:swiglu-slice-consensus`,
 `:swiglu-slice-peel` or `:swiglu-slice-peel-silence`. Knobs:
 SLICE_MODE, SLICE_ATOMS, SLICE_RANK, SLICE_CORE, SLICE_BLOCK, SLICE_DROP, SLICE_DROP_JITTER,
 SLICE_RANK_USED, SLICE_RESTARTS, SLICE_STEPS, SLICE_SAMPLES_PER_PARAM, SLICE_SEED, SLICE_RUNS,
-SLICE_ROUNDS, SLICE_CONSENSUS_THRESHOLD, SLICE_TARGET_ATOMS_PER_DIM.
+SLICE_ROUNDS, SLICE_CONSENSUS_THRESHOLD, SLICE_TARGET_ATOMS_PER_DIM, and for the live block
+SLICE_LIVE, SLICE_MODEL, SLICE_LAYER, SLICE_UNITS, SLICE_MAX_ORACLE_CALLS, SLICE_PROBE_POINTS,
+SLICE_GRADIENT_STEP.
 """
 from __future__ import annotations
 
@@ -119,6 +128,71 @@ class SliceOracle:
     def truth(self) -> tuple[np.ndarray, np.ndarray]:
         """Post-hoc only. Nothing above this line reads it, and the fits never see it."""
         return self._gate, self._up
+
+
+class LiveSliceOracle:
+    """The same surface as `SliceOracle`, backed by a real LLaMA block instead of random weights.
+
+    Everything measured in this file so far has been a synthetic sum, which answers whether a
+    mechanism works and says nothing about whether the block it is aimed at behaves that way. This
+    presents the live 32-unit lane's own oracle - the same `OracleClient` subprocess the benchmark
+    spawns, the same model, layer and unit list - through `evaluate` and `truth`, so every mode
+    here runs against it unchanged.
+
+    Coordinates are the recovered active subspace, not the model's 3072 hidden dimensions, exactly
+    as the live solver works: the basis comes from forward-coordinate gradient witnesses, a point
+    in probe coordinates is sent as `coords @ basis`, and the post-hoc truth is projected back
+    with `gate @ basis.T`. The projection is what makes the comparison fair - the recovered atoms
+    live in the subspace, so scoring them against unprojected weights would charge them for
+    directions the basis never claimed.
+    """
+
+    def __init__(self, model: str, layer: int, units: str, active_rank: int,
+                 max_oracle_calls: int, probe_points: int, step: float, seed: int) -> None:
+        import argparse
+        import tempfile
+
+        self._work_dir = Path(tempfile.mkdtemp(prefix="slice-live-"))
+        args = argparse.Namespace(
+            max_oracle_calls=max_oracle_calls, oracle_read_fd=-1, oracle_write_fd=-1,
+            model=model, layer=layer, unit=int(units.split(",")[0]), units=units,
+            device="cuda", oracle_batch_size=2048, output_channel=-1,
+            oracle_output_mode="scalar", oracle_quantization_step=0.0, local_files_only=False,
+            require_opaque_oracle=False,
+        )
+        self._client = bs.OracleClient(args, self._work_dir)
+        rng = np.random.default_rng(seed)
+        hidden = int(self._client.meta["hiddenSize"])
+        gradients = [
+            bs.estimate_forward_coordinate_gradient(
+                self._client, rng.normal(size=hidden) * INPUT_SCALE, step,
+            )
+            for _ in range(probe_points)
+        ]
+        self.basis, _eigenvalues, self.energy_ratio = bs.recover_basis(
+            np.vstack(gradients), active_rank, "raw",
+        )
+        self.rank = int(self.basis.shape[0])
+        self._truth: tuple[np.ndarray, np.ndarray] | None = None
+
+    @property
+    def calls(self) -> int:
+        return int(self._client.query_count)
+
+    def evaluate(self, points: np.ndarray) -> np.ndarray:
+        points = np.asarray(points, dtype=np.float64)
+        return np.asarray(self._client.eval(points @ self.basis), dtype=np.float64)
+
+    def truth(self) -> tuple[np.ndarray, np.ndarray]:
+        """Post-hoc only, and unlocked once - the client refuses a second unlock."""
+        if self._truth is None:
+            self._client.unlock_posthoc_truth("slice-probe")
+            gate, up = self._client.truth()
+            self._truth = (gate @ self.basis.T, up @ self.basis.T)
+        return self._truth
+
+    def close(self) -> None:
+        self._client.close()
 
 
 def slice_bases(rank: int, core: int, block: int) -> tuple[np.ndarray, list[np.ndarray]]:
@@ -585,7 +659,22 @@ def orthogonal_complement(directions: np.ndarray, rank: int) -> np.ndarray:
 
 if __name__ == "__main__":
     mode = os.environ.get("SLICE_MODE", "stitch").strip()
-    oracle = SliceOracle(ATOMS, RANK, seed=SEED)
+    if os.environ.get("SLICE_LIVE", "0").strip() == "1":
+        oracle = LiveSliceOracle(
+            model=os.environ.get("SLICE_MODEL", "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit"),
+            layer=int(os.environ.get("SLICE_LAYER", "1")),
+            units=os.environ.get("SLICE_UNITS", ""),
+            active_rank=RANK,
+            max_oracle_calls=int(os.environ.get("SLICE_MAX_ORACLE_CALLS", "4000000")),
+            probe_points=int(os.environ.get("SLICE_PROBE_POINTS", "65")),
+            step=float(os.environ.get("SLICE_GRADIENT_STEP", "0.04")),
+            seed=SEED,
+        )
+        print(json.dumps({"liveBasis": {"rank": oracle.rank,
+                                        "energyRatio": float(oracle.energy_ratio),
+                                        "callsForBasis": oracle.calls}}), flush=True)
+    else:
+        oracle = SliceOracle(ATOMS, RANK, seed=SEED)
     if mode == "peel-silence":
         print(json.dumps(peel_and_silence(
             oracle, ATOMS, RANK,
