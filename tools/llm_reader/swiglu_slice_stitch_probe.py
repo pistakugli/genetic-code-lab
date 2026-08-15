@@ -670,7 +670,7 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
     # the middle of the run: nothing downstream reads them, but "unlocked only after the solver has
     # finished spending calls" is the invariant this whole rail rests on, and an invariant that
     # holds because of what the code happens not to do is not one.
-    true_gate, _true_up = oracle.truth()
+    true_gate, true_up = oracle.truth()
     for report, (reference, confident) in zip(round_reports, round_references):
         cosines = paired_cosines(reference, true_gate)
         report["confidentTruthMin"] = (None if confident.size == 0
@@ -678,6 +678,25 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
         report["allTruthAbove099"] = int(np.sum(cosines > 0.99))
     frozen = np.asarray(frozen_gates) if frozen_gates else np.zeros((0, rank))
     frozen_truth = paired_cosines(frozen, true_gate) if frozen.shape[0] else np.zeros(0)
+    # The gate alone is not what the lane's gate checks. Its threshold is on the joint minimum of
+    # the gate and up cosines of a paired atom, so a recovery that nails every gate direction and
+    # gets the ups wrong would pass this report and fail the lane. The pairing is taken from the
+    # gates - they are what the loop selects on - and the up of each matched source is scored
+    # against the up the loop ended up with for that atom.
+    frozen_up = np.asarray(frozen_ups) if frozen_ups else np.zeros((0, rank))
+    if frozen.shape[0]:
+        left = frozen / np.linalg.norm(frozen, axis=1, keepdims=True).clip(min=1e-12)
+        right = true_gate / np.linalg.norm(true_gate, axis=1, keepdims=True).clip(min=1e-12)
+        assignment = bs.greedy_gate_assignment(np.abs(left @ right.T))
+        up_left = frozen_up / np.linalg.norm(frozen_up, axis=1, keepdims=True).clip(min=1e-12)
+        up_right = true_up / np.linalg.norm(true_up, axis=1, keepdims=True).clip(min=1e-12)
+        up_truth = np.array([
+            abs(float(up_left[row] @ up_right[column])) for row, column in enumerate(assignment)
+        ])
+        joint = np.minimum(frozen_truth, up_truth)
+    else:
+        up_truth = np.zeros(0)
+        joint = np.zeros(0)
     return {
         "atoms": atoms, "rank": rank, "rounds": len(round_reports), "threshold": threshold,
         "targetAtomsPerDim": ratio, "consensusSource": source,
@@ -687,6 +706,10 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
         "frozenTruthMin": None if frozen_truth.size == 0 else float(np.min(frozen_truth)),
         "frozenTruthMedian": None if frozen_truth.size == 0 else float(np.median(frozen_truth)),
         "frozenAbove099": int(np.sum(frozen_truth > 0.99)) if frozen_truth.size else 0,
+        "frozenUpTruthMin": None if up_truth.size == 0 else float(np.min(up_truth)),
+        "frozenUpTruthMedian": None if up_truth.size == 0 else float(np.median(up_truth)),
+        "frozenJointMin": None if joint.size == 0 else float(np.min(joint)),
+        "frozenJointAbove099": int(np.sum(joint > 0.99)) if joint.size else 0,
         "roundReports": round_reports,
     }
 
