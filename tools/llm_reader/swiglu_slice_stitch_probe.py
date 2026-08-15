@@ -560,6 +560,12 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
         remaining = atoms - len(frozen_gates)
         if remaining <= 0:
             break
+        # The frozen gates are re-fitted for their linear part every round rather than subtracted
+        # with whatever `up` and `scale` the round that found them happened to produce. Carrying
+        # those forward carries their error too, and on the real block that error is what stopped
+        # the loop: the highest consensus a round reached fell 0.9967, 0.9944, 0.8396 while the
+        # fit's R2 slid 0.991187, 0.982359, 0.980943. Given fixed gates the rest is a linear solve,
+        # so the leftover can be made least-squares optimal at no risk to the identification.
         residual = targets.copy()
         for gate, up, scale in zip(frozen_gates, frozen_ups, frozen_scales):
             z = coords @ gate
@@ -622,6 +628,7 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
             "atomsPerDim": None if not slice_rank else round(remaining / slice_rank, 3),
             "consensusSource": source if (source != "within-fit" or within_fit) else "across-fits",
             "consensusMax": float(np.max(consensus)) if consensus.size else None,
+            "residualScale": float(np.std(residual)),
             "r2": float(best.get("r2", float("nan"))),
             "confident": int(confident.size),
             "confidentTruthMin": None if confident.size == 0 else float(np.min(truth_cosines[confident])),
@@ -633,6 +640,23 @@ def peel_and_silence(oracle, atoms: int, rank: int, rounds: int, threshold: floa
             frozen_gates.append(reference[index])
             frozen_ups.append(np.asarray(best["ups"], dtype=np.float64)[index])
             frozen_scales.append(float(np.asarray(best["scales"], dtype=np.float64)[index]))
+
+        # The linear part of every frozen atom, re-solved against the whole target with the round's
+        # other atoms present. Carrying `up` and `scale` forward from the round that discovered a
+        # gate carries its error into every later residual, and on the real block that is what
+        # stopped the loop - the best consensus a round reached fell 0.9967, 0.9944, 0.8396 while
+        # the fit's R2 slid 0.991187, 0.982359, 0.980943. Solving the frozen gates alone against
+        # the target instead is worse, not better, and was measured that way: two gates against
+        # fourteen unknown atoms take the least-squares-best explanation of signal that is not
+        # theirs, and a synthetic round that had frozen two atoms then froze none. Solving all the
+        # gates together and keeping only the frozen rows leaves nothing to steal.
+        combined = np.vstack([np.stack(frozen_gates), np.delete(reference, confident, axis=0)])
+        solved = bs.solve_fixed_gate_start(coords, targets, combined)
+        if solved is not None:
+            _gates, solved_ups, solved_scales, _bias, _mae = solved
+            frozen_count = len(frozen_gates)
+            frozen_ups = [np.asarray(row, dtype=np.float64) for row in solved_ups[:frozen_count]]
+            frozen_scales = [float(value) for value in solved_scales[:frozen_count]]
 
     frozen = np.asarray(frozen_gates) if frozen_gates else np.zeros((0, rank))
     frozen_truth = paired_cosines(frozen, true_gate) if frozen.shape[0] else np.zeros(0)
