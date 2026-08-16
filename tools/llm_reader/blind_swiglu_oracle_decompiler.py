@@ -6236,6 +6236,7 @@ def peel_and_silence_refine(
     round_log: list[dict[str, Any]] = []
 
     for round_index in range(rounds):
+        _PROGRESS_HOOK["peelRound"] = round_index
         remaining = atom_count - len(frozen_gates)
         if remaining <= 0:
             break
@@ -6333,11 +6334,13 @@ def peel_and_silence_refine(
         )
 
         candidate = _assemble_peeled_block(coords, targets, frozen_gates, current, atom_count)
+        _PROGRESS_HOOK.pop("peelRound", None)
         if candidate is not None:
             round_log[-1]["assembledMse"] = candidate["mse"]
             if best_block is None or candidate["mse"] < best_block["mse"]:
                 best_block = candidate
 
+    _PROGRESS_HOOK.pop("peelRound", None)
     if best_block is None:
         return fit
 
@@ -9986,6 +9989,13 @@ _PROGRESS_HOOK: dict[str, Any] = {}
 def emit_progress(phase: str, **fields: Any) -> None:
     hook = _PROGRESS_HOOK.get("args")
     if hook is not None:
+        # The peel loop calls the same fit the initial pass does, so its inner phases arrive with
+        # the same names and a reader watching the log sees `fit-greedy-atom` again half an hour
+        # after the dictionary finished, with nothing saying why. The round number rides along
+        # while a peel round is open and is absent otherwise.
+        round_index = _PROGRESS_HOOK.get("peelRound")
+        if round_index is not None:
+            fields = {**fields, "peelRound": int(round_index)}
         log_progress(hook, phase, **fields)
 
 
