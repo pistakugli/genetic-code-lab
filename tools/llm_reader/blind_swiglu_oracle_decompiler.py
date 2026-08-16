@@ -6160,11 +6160,15 @@ def _assemble_peeled_block(coords, targets, frozen_gates, leftover_fit, atom_cou
     if leftover > 0:
         gates.extend(np.asarray(leftover_fit["gates"], dtype=np.float64)[:leftover])
     if len(gates) < atom_count:
-        return None
+        return {"failed": f"only {len(gates)} gates for a block of {atom_count}"}
     assembled = np.stack(gates[:atom_count])
+    if not np.all(np.isfinite(assembled)):
+        return {"failed": "a frozen gate is not finite"}
     solved = solve_fixed_gate_start(coords, targets, assembled)
     if solved is None:
-        return None
+        # Silence here cost a live round: the log said `assembledMse: null` and nothing about
+        # whether the solve refused the design or the block came out non-finite.
+        return {"failed": f"fixed-gate solve returned nothing for {atom_count} gates"}
     _g, ups, scales, bias, _mae = solved
     prediction = np.zeros(coords.shape[0], dtype=np.float64)
     for index in range(atom_count):
@@ -6172,7 +6176,7 @@ def _assemble_peeled_block(coords, targets, frozen_gates, leftover_fit, atom_cou
         prediction += float(scales[index]) * silu_np(inner) * (coords @ ups[index])
     prediction += float(bias)
     if not np.all(np.isfinite(prediction)):
-        return None
+        return {"failed": "assembled block predicts non-finite values"}
     residual = targets.astype(np.float64) - prediction
     return {
         "gates": assembled,
@@ -6335,10 +6339,15 @@ def peel_and_silence_refine(
 
         candidate = _assemble_peeled_block(coords, targets, frozen_gates, current, atom_count)
         _PROGRESS_HOOK.pop("peelRound", None)
-        if candidate is not None:
-            round_log[-1]["assembledMse"] = candidate["mse"]
-            if best_block is None or candidate["mse"] < best_block["mse"]:
-                best_block = candidate
+        if candidate.get("failed"):
+            # A round whose block will not assemble has nothing to hand the next one, and its
+            # freezes are already in `frozen_gates` where they would poison it. Stop here and
+            # keep the best assembly that did work.
+            round_log[-1]["assembleFailed"] = candidate["failed"]
+            break
+        round_log[-1]["assembledMse"] = candidate["mse"]
+        if best_block is None or candidate["mse"] < best_block["mse"]:
+            best_block = candidate
 
     _PROGRESS_HOOK.pop("peelRound", None)
     if best_block is None:
