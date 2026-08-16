@@ -366,6 +366,13 @@ for (const testCase of cases) {
     GCL_BLIND_SWIGLU_FIT_STEPS: envValue('GCL_LAYER_EXPANSION_FIT_STEPS', defaultFitSteps),
     GCL_BLIND_SWIGLU_FIT_RESTARTS: envValue('GCL_LAYER_EXPANSION_FIT_RESTARTS', defaultFitRestarts),
     GCL_BLIND_SWIGLU_FIT_RESTART_CHUNK_SIZE: envValue('GCL_LAYER_EXPANSION_FIT_RESTART_CHUNK_SIZE', '128'),
+    // Freeze what the restart consensus vouches for, silence it, and refit the rest in the
+    // orthogonal complement. Measured against this lane's own block at 32 of 32 atoms and a
+    // minimum joint cosine of 0.99587, where a single fit reports 0.18922. Off unless a run
+    // asks for rounds, so the published artifacts keep meaning what they meant.
+    GCL_BLIND_SWIGLU_PEEL_ROUNDS: envValue('GCL_LAYER_EXPANSION_PEEL_ROUNDS', '0'),
+    GCL_BLIND_SWIGLU_PEEL_THRESHOLD: envValue('GCL_LAYER_EXPANSION_PEEL_THRESHOLD', '0.95'),
+    GCL_BLIND_SWIGLU_PEEL_ATOMS_PER_DIM: envValue('GCL_LAYER_EXPANSION_PEEL_ATOMS_PER_DIM', '0.55'),
     GCL_BLIND_SWIGLU_FIT_MODE: envValue('GCL_LAYER_EXPANSION_FIT_MODE', 'batched'),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_COUNT', defaultFitGradientCount),
     GCL_BLIND_SWIGLU_FIT_GRADIENT_MODE: envValue('GCL_LAYER_EXPANSION_FIT_GRADIENT_MODE', 'forward'),

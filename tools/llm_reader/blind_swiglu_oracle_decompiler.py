@@ -5753,6 +5753,9 @@ def fit_swiglu_sum(
                 [{"gates": np.expand_dims(candidate["gate"], axis=0)}
                  for candidate in single.get("topCandidates", [])],
             ),
+            # Reported here too, or a caller that gates on pool size sees `None` from the one path
+            # whose pool is smallest and treats "not stated" as "large enough".
+            "atomConsensusPool": len(single.get("topCandidates", [])),
             "fitMode": "single-atom",
         }
 
@@ -6143,6 +6146,45 @@ def orthogonal_complement(directions: np.ndarray, rank: int) -> np.ndarray:
     return left[:, kept:rank]
 
 
+def _assemble_peeled_block(coords, targets, frozen_gates, leftover_fit, atom_count):
+    """One candidate block from the frozen atoms plus whatever the last fit still holds.
+
+    Returned with its own mean squared error so the caller can compare rounds against each other
+    rather than only against the starting fit. A late round that freezes two atoms out of a
+    two-atom residual can raise R2 while putting a gate at cosine 0.7156 against the source, and
+    the only signal available without weights is whether the assembled block explains the data
+    better than the assembly one round earlier did.
+    """
+    gates = [np.asarray(gate, dtype=np.float64) for gate in frozen_gates]
+    leftover = atom_count - len(gates)
+    if leftover > 0:
+        gates.extend(np.asarray(leftover_fit["gates"], dtype=np.float64)[:leftover])
+    if len(gates) < atom_count:
+        return None
+    assembled = np.stack(gates[:atom_count])
+    solved = solve_fixed_gate_start(coords, targets, assembled)
+    if solved is None:
+        return None
+    _g, ups, scales, bias, _mae = solved
+    prediction = np.zeros(coords.shape[0], dtype=np.float64)
+    for index in range(atom_count):
+        inner = coords @ assembled[index]
+        prediction += float(scales[index]) * silu_np(inner) * (coords @ ups[index])
+    prediction += float(bias)
+    if not np.all(np.isfinite(prediction)):
+        return None
+    residual = targets.astype(np.float64) - prediction
+    return {
+        "gates": assembled,
+        "ups": np.asarray(ups, dtype=np.float64),
+        "scales": np.asarray(scales, dtype=np.float64),
+        "bias": float(bias),
+        "residual": residual,
+        "mse": float(np.mean(residual ** 2)),
+        "frozen": len(frozen_gates),
+    }
+
+
 def peel_and_silence_refine(
     oracle: Any,
     basis: np.ndarray,
@@ -6190,6 +6232,7 @@ def peel_and_silence_refine(
     frozen_ups: list[np.ndarray] = []
     frozen_scales: list[float] = []
     current = fit
+    best_block: dict[str, Any] | None = None
     round_log: list[dict[str, Any]] = []
 
     for round_index in range(rounds):
@@ -6198,6 +6241,21 @@ def peel_and_silence_refine(
             break
         consensus = current.get("atomConsensus")
         if not consensus:
+            break
+        # Consensus is agreement between the surviving restarts, so it means nothing when there
+        # are barely any to disagree. A late round fitting two atoms reported 0.9998 and froze a
+        # gate at cosine 0.7156 against the source, which took the assembled block's minimum from
+        # 0.99862 to 0.71560 while its R2 still improved - exactly the shape of failure the lane's
+        # paired-atom threshold exists to catch. The floor is the pool's own, `max(4, ...)` in
+        # `remember_top_candidate`, not a new number.
+        pool = current.get("atomConsensusPool")
+        if pool is not None and int(pool) < 4:
+            round_log.append({
+                "round": int(round_index),
+                "fittedAtoms": int(remaining),
+                "confident": 0,
+                "stopped": f"consensus pool of {int(pool)} is too small to disagree",
+            })
             break
         gates_now = np.asarray(current["gates"], dtype=np.float64)
         ups_now = np.asarray(current["ups"], dtype=np.float64)
@@ -6274,53 +6332,36 @@ def peel_and_silence_refine(
             restart_chunk_size=args.fit_restart_chunk_size, warm_starts=warm_starts,
         )
 
-    if not frozen_gates:
+        candidate = _assemble_peeled_block(coords, targets, frozen_gates, current, atom_count)
+        if candidate is not None:
+            round_log[-1]["assembledMse"] = candidate["mse"]
+            if best_block is None or candidate["mse"] < best_block["mse"]:
+                best_block = candidate
+
+    if best_block is None:
         return fit
 
-    # Whatever the loop did not freeze stays as the last round left it, so the returned fit always
-    # has `atom_count` atoms and every downstream stage - validation, pairing, the release gate -
-    # sees the shape it expects.
-    gates = [np.asarray(gate, dtype=np.float64) for gate in frozen_gates]
-    ups = [np.asarray(up, dtype=np.float64) for up in frozen_ups]
-    scales = list(frozen_scales)
-    leftover = atom_count - len(gates)
-    if leftover > 0:
-        gates.extend(np.asarray(current["gates"], dtype=np.float64)[:leftover])
-        ups.extend(np.asarray(current["ups"], dtype=np.float64)[:leftover])
-        scales.extend(float(value) for value in np.asarray(current["scales"], dtype=np.float64)[:leftover])
-
-    assembled_gates = np.stack(gates[:atom_count])
-    solved = solve_fixed_gate_start(coords, targets, assembled_gates)
-    if solved is None:
-        return fit
-    _g, final_ups, final_scales, final_bias, final_mae = solved
-    prediction = np.zeros(coords.shape[0], dtype=np.float64)
-    for index in range(atom_count):
-        inner = coords @ assembled_gates[index]
-        prediction += float(final_scales[index]) * silu_np(inner) * (coords @ final_ups[index])
-    prediction += float(final_bias)
-    residual = targets.astype(np.float64) - prediction
-    mse = float(np.mean(residual ** 2))
+    # The best round, not the last. Freezing is monotone in count but not in quality, so the
+    # assembly that explains the data best is the one to keep - measured per round above.
     variance = float(np.mean((targets - np.mean(targets)) ** 2))
-    # A refinement that made the fit worse is not a refinement. The lane keeps whichever of the two
-    # explains the block better, so a round that goes wrong costs oracle calls and nothing else.
-    if not np.all(np.isfinite(prediction)) or mse >= float(fit.get("mse", float("inf"))):
+    if best_block["mse"] >= float(fit.get("mse", float("inf"))):
         rejected = dict(fit)
         rejected["peelRounds"] = round_log
         rejected["peelAccepted"] = False
         return rejected
 
+    residual = best_block["residual"]
     refined = dict(fit)
     refined.update({
-        "gates": assembled_gates,
-        "ups": np.asarray(final_ups, dtype=np.float64),
-        "scales": np.asarray(final_scales, dtype=np.float64),
-        "bias": float(final_bias),
+        "gates": best_block["gates"],
+        "ups": best_block["ups"],
+        "scales": best_block["scales"],
+        "bias": best_block["bias"],
         "mae": float(np.mean(np.abs(residual))),
-        "mse": mse,
-        "r2": 1.0 - mse / variance if variance > 0.0 else None,
+        "mse": best_block["mse"],
+        "r2": 1.0 - best_block["mse"] / variance if variance > 0.0 else None,
         "peelRounds": round_log,
-        "peelFrozenAtoms": len(frozen_gates),
+        "peelFrozenAtoms": int(best_block["frozen"]),
         "peelAccepted": True,
         "fitMode": str(fit.get("fitMode", "unknown")) + "+peel-silence",
     })
@@ -11131,6 +11172,20 @@ def run_solver(args: argparse.Namespace) -> int:
                         cubic_directions=cubic_gate_directions,
                         cubic_targets=cubic_scores,
                     )
+                fit = peel_and_silence_refine(
+                    oracle,
+                    basis,
+                    train_coords,
+                    train_targets,
+                    fit,
+                    args.atom_count,
+                    args.seed + 17,
+                    args.fit_steps,
+                    args.fit_learning_rate,
+                    args.fit_restarts if args.fit_restarts > 0 else None,
+                    args.input_scale,
+                    args,
+                )
                 log_progress(
                     args,
                     "initial-fit-complete",
@@ -11412,6 +11467,9 @@ def run_solver(args: argparse.Namespace) -> int:
                 "rankScoreQuantilesByStartKind": fit.get("rankScoreQuantilesByStartKind", {}),
                 "atomConsensus": fit.get("atomConsensus"),
                 "atomConsensusPool": fit.get("atomConsensusPool"),
+                "peelRounds": fit.get("peelRounds"),
+                "peelFrozenAtoms": fit.get("peelFrozenAtoms"),
+                "peelAccepted": fit.get("peelAccepted"),
                 "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                 "fitMode": str(fit.get("fitMode", "unknown")),
                 "fitTrainMae": float(fit["mae"]),
@@ -14196,6 +14254,9 @@ def run_solver(args: argparse.Namespace) -> int:
                     "rankScoreQuantilesByStartKind": fit.get("rankScoreQuantilesByStartKind", {}),
                     "atomConsensus": fit.get("atomConsensus"),
                     "atomConsensusPool": fit.get("atomConsensusPool"),
+                    "peelRounds": fit.get("peelRounds"),
+                    "peelFrozenAtoms": fit.get("peelFrozenAtoms"),
+                    "peelAccepted": fit.get("peelAccepted"),
                     "bestMetricsByStartKind": fit.get("bestMetricsByStartKind", {}),
                     "fitRestartChunkSize": None if fit.get("restartChunkSize") is None else int(fit["restartChunkSize"]),
                     "fitMode": str(fit.get("fitMode", "unknown")),
