@@ -311,7 +311,7 @@ def oracle_server(args: argparse.Namespace) -> int:
     del gate_weight, up_weight, down_weight, mlp, layers, model
     gc.collect()
     if compute_device.startswith("cuda"):
-        torch.cuda.empty_cache()
+        _release_device_cache(torch)
 
     oracle_query_count = 0
     for line in sys.stdin:
@@ -1340,10 +1340,10 @@ def make_quadratic_atom_starts(
             gram += 1e-8 * torch.eye(gram.shape[0], device="cuda", dtype=torch.float64)
             coeffs = torch.linalg.solve(gram, feature_matrix.T @ device_ys).cpu().numpy()
             del device_xs, device_ys, feature_matrix, gram
-            torch.cuda.empty_cache()
+            _release_device_cache(torch)
         except (torch.OutOfMemoryError, RuntimeError):
             coeffs = None
-            torch.cuda.empty_cache()
+            _release_device_cache(torch)
     if coeffs is None:
         columns = [
             (2.0 if left != right else 1.0) * (xs[:, left] * xs[:, right])
@@ -1768,7 +1768,7 @@ def fit_swiglu_atom(
     adam_biases = torch.cat(adam_bias_parts)
     del batch_x, batch_y
     if str(batch_device).startswith("cuda"):
-        torch.cuda.empty_cache()
+        _release_device_cache(torch)
 
     for restart in range(restart_count):
         gate = torch.nn.Parameter(adam_gates[restart].clone())
@@ -2316,7 +2316,7 @@ def fit_swiglu_sum_batched(
             gate_candidate_pool.sort(key=lambda item: item[0])
             gate_candidate_pool = gate_candidate_pool[:2048]
         del gates, ups, scales, bias, optimizer, gates_np, ups_np
-        torch.cuda.empty_cache()
+        _release_device_cache(torch)
     if best is None:
         raise RuntimeError("batched SwiGLU fit did not produce a finite candidate")
     if not math.isfinite(candidate_rank_score(best)):
@@ -2630,14 +2630,14 @@ def batch_gate_candidate_mae(
             # one and calls it a measurement.
             DEVICE_BATCH_FALLBACKS.append(f"{type(error).__name__}: {error}")
             del blocks, design
-            torch.cuda.empty_cache()
+            _release_device_cache(torch)
             scores.extend(float(host_scorer(gate)) for gate in block_gates)
             continue
         prediction = (design @ solution).squeeze(2)
         finite = torch.isfinite(solution).all(dim=1).squeeze(-1).cpu().numpy()
         mae = (prediction - device_targets.unsqueeze(0)).abs().mean(dim=1).cpu().numpy()
         del blocks, design, solution, prediction, activation
-        torch.cuda.empty_cache()
+        _release_device_cache(torch)
         for position in range(count):
             scores.append(float(mae[position]) if bool(finite[position]) else float("inf"))
     return scores
@@ -2707,7 +2707,7 @@ def score_single_gate_blocks(
         except RuntimeError as error:
             DEVICE_BATCH_FALLBACKS.append(f"{type(error).__name__}: {error}")
             del blocks
-            torch.cuda.empty_cache()
+            _release_device_cache(torch)
             continue
         prediction = (blocks @ solution).squeeze(2)
         finite = torch.isfinite(solution).all(dim=1).squeeze(-1)
@@ -2715,7 +2715,7 @@ def score_single_gate_blocks(
         finite_host = finite.cpu().numpy()
         scores_host = scores.cpu().numpy()
         del blocks, targets, solution, prediction
-        torch.cuda.empty_cache()
+        _release_device_cache(torch)
         for position, index in enumerate(block_indices):
             if not bool(finite_host[position]):
                 continue
@@ -5229,11 +5229,11 @@ def lstsq_preferring_device(design: np.ndarray, targets: np.ndarray) -> np.ndarr
                 if bool(torch.isfinite(solution).all()):
                     answer = solution.cpu().numpy()
                     del device_design, device_targets, solution
-                    torch.cuda.empty_cache()
+                    _release_device_cache(torch)
                     return answer
                 DEVICE_BATCH_FALLBACKS.append("lstsq: non-finite solution on device")
                 del device_design, device_targets, solution
-                torch.cuda.empty_cache()
+                _release_device_cache(torch)
         except ImportError:
             pass
         except RuntimeError as error:
@@ -5287,7 +5287,7 @@ def solve_fixed_gate_start(
                 else:
                     DEVICE_BATCH_FALLBACKS.append("fixed-gate design: non-finite solution")
                 del device_coords, device_gates, activation, device_design, solution
-                torch.cuda.empty_cache()
+                _release_device_cache(torch)
         except ImportError:
             pass
         except RuntimeError as error:
@@ -5695,6 +5695,80 @@ def expand_structured_start_variants(
     return [(gates, ups, scales, bias) for _mae, gates, ups, scales, bias in scored[:max_starts]]
 
 
+_FIT_DEVICE_RESERVED = False
+
+
+def _reserve_fit_device_memory(device: Any) -> None:
+    """Take the run's share of a shared card once, instead of losing it between phases.
+
+    A solve is a sawtooth: it holds several GiB inside a fit and drops to a fraction of that
+    between them. On a machine where something else also wants the GPU that trough is an opening,
+    and the 32-unit lane lost four runs through it - the last one 81 minutes in, needing 470 MiB
+    while another process held 4.74 GiB it had taken minutes earlier. Nothing was wrong with the
+    solve; it simply did not own what it was about to need.
+
+    Allocating the block and dropping the reference hands it to Torch's caching allocator, which
+    keeps the segment and carves later tensors out of it rather than returning it to the driver.
+    `expandable_segments` defeats this by design, so a run that sets this should not set that.
+
+    Off unless `GCL_BLIND_SWIGLU_FIT_DEVICE_RESERVE_MIB` asks for it, because on an idle card the
+    reservation buys nothing and costs a real ceiling.
+    """
+    global _FIT_DEVICE_RESERVED
+    if _FIT_DEVICE_RESERVED or getattr(device, "type", None) != "cuda":
+        return
+    _FIT_DEVICE_RESERVED = True
+    megabytes = int(os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE_RESERVE_MIB", "0") or "0")
+    if megabytes <= 0:
+        return
+    import torch
+
+    try:
+        block = torch.empty(megabytes * 1024 * 1024, dtype=torch.uint8, device=device)
+    except (RuntimeError, torch.cuda.OutOfMemoryError):
+        # Nothing to hold means nothing to lose - the solve gets the same card it would have got
+        # anyway, and failing here would turn a contended card into a failed run.
+        print(
+            f"[reserve] could not reserve {megabytes} MiB on {device}; continuing unreserved",
+            file=sys.stderr,
+            flush=True,
+        )
+        return
+    del block
+    print(f"[reserve] holding {megabytes} MiB on {device}", file=sys.stderr, flush=True)
+
+
+def _release_device_cache(torch_module: Any) -> None:
+    """`empty_cache`, unless this run is holding the card on purpose.
+
+    Ten call sites hand the allocator's cache back to the driver between phases. On a card this
+    process owns that is free housekeeping. On a shared one it is the whole problem: the solve
+    drops to a fraction of its peak, something else loads a model into the gap, and the next
+    phase has nowhere to go. Four runs died that way, the longest 81 minutes in.
+
+    With a reservation in effect the cache is the reservation, so releasing it defeats the thing
+    that was asked for. Fragmentation inside the held arena is the trade, and
+    `expandable_segments` is the answer to that, not giving the memory away.
+    """
+    if int(os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE_RESERVE_MIB", "0") or "0") > 0:
+        return
+    torch_module.cuda.empty_cache()
+
+
+def _reserve_solver_device_memory() -> None:
+    """The same reservation, resolved the way the solver resolves its own fit device."""
+    if int(os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE_RESERVE_MIB", "0") or "0") <= 0:
+        return
+    requested = os.environ.get("GCL_BLIND_SWIGLU_FIT_DEVICE", "").strip().lower()
+    if requested == "cpu":
+        return
+    import torch
+
+    if not torch.cuda.is_available():
+        return
+    _reserve_fit_device_memory(torch.device("cuda"))
+
+
 def fit_swiglu_sum(
     coords: np.ndarray,
     targets: np.ndarray,
@@ -5778,6 +5852,7 @@ def fit_swiglu_sum(
         fit_device = torch.device(requested_device)
     else:
         fit_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    _reserve_fit_device_memory(fit_device)
     x = torch.tensor(coords, dtype=fit_dtype, device=fit_device)
     y = torch.tensor(targets, dtype=fit_dtype, device=fit_device)
     has_gradient_witness = (
@@ -6275,6 +6350,39 @@ def peel_and_silence_refine(
         })
         if confident.size == 0:
             break
+        # Taking every atom that cleared the threshold is what a saturated round does. On the live
+        # 32-unit block round 1 returned 26 of 26 remaining atoms as confident, which is not a
+        # discrimination between them - the threshold simply stopped separating anything.
+        #
+        # The atoms go in one at a time, in consensus order, and the prefix whose assembled block
+        # explains the data best is the one kept. No new threshold: the score is the same mean
+        # squared error the round is already judged by, and it needs no weights. The leftover
+        # atoms in each trial come from this round's fit rather than the refit that follows the
+        # freeze, so the score ranks prefixes against each other, not against the next round.
+        ordered = confident[np.argsort(-np.asarray(consensus, dtype=np.float64)[confident])]
+        best_prefix, best_prefix_mse = 0, float("inf")
+        for take in range(1, int(ordered.size) + 1):
+            trial_gates = [gates_now[i] for i in ordered[:take]]
+            # The free slots are filled from the atoms this trial did not take. Handing the whole
+            # fit over instead fills them from the front of the same list the trial just drew
+            # from, which scores every prefix on a block holding its own atoms twice.
+            trial = _assemble_peeled_block(
+                coords,
+                targets,
+                frozen_gates + trial_gates,
+                {"gates": np.delete(gates_now, ordered[:take], axis=0)},
+                atom_count,
+            )
+            if trial.get("failed"):
+                break
+            if trial["mse"] < best_prefix_mse:
+                best_prefix, best_prefix_mse = take, trial["mse"]
+        round_log[-1]["frozenThisRound"] = int(best_prefix)
+        round_log[-1]["confidentOffered"] = int(ordered.size)
+        if best_prefix == 0:
+            round_log[-1]["stopped"] = "no prefix of the confident atoms improved the block"
+            break
+        confident = ordered[:best_prefix]
         for index in confident:
             frozen_gates.append(gates_now[index])
             frozen_ups.append(ups_now[index])
@@ -6294,6 +6402,20 @@ def peel_and_silence_refine(
 
         remaining = atom_count - len(frozen_gates)
         if remaining <= 0:
+            # A round that freezes the whole remainder has produced a complete block, and leaving
+            # through the loop's exit without scoring it threw that block away: on the live 32-unit
+            # lane round 1 froze the last 26 atoms and the run kept round 0's six-atom assembly,
+            # because only rounds that leave something to refit ever reached the scoring below.
+            # Nothing here is accepted on count - the assembly still has to explain the data better
+            # than the rounds before it and better than the starting fit.
+            complete = _assemble_peeled_block(coords, targets, frozen_gates, current, atom_count)
+            if complete.get("failed"):
+                round_log[-1]["assembleFailed"] = complete["failed"]
+                break
+            round_log[-1]["assembledMse"] = complete["mse"]
+            round_log[-1]["assembledAllRemaining"] = True
+            if best_block is None or complete["mse"] < best_block["mse"]:
+                best_block = complete
             break
         residual = targets.astype(np.float64).copy()
         for gate, up, scale in zip(frozen_gates, frozen_ups, frozen_scales):
@@ -6314,8 +6436,30 @@ def peel_and_silence_refine(
                     dtype=np.float64,
                 )
             except OracleBudgetExceeded:
-                # The budget is the lane's, not this routine's to overspend. Stopping here keeps
-                # every atom frozen so far instead of losing the round's work to an exception.
+                # The budget is the lane's, not this routine's to overspend. Stopping is right;
+                # stopping without scoring was not. This round has already frozen atoms, and
+                # leaving straight through the exception left them in `frozen_gates` where no
+                # assembly ever saw them - the run then returned an earlier round's block and the
+                # spent budget bought nothing. Assembling costs no oracle calls, so the block this
+                # round did produce is scored on the way out.
+                # The leftovers come from this round's fit with the freezes taken out. Passing
+                # `current` whole would fill the block's free slots from the front of the same
+                # gate list the freezes were drawn from, so a frozen atom would appear twice and
+                # the block would be scored on a duplicate it does not contain.
+                exhausted = _assemble_peeled_block(
+                    coords,
+                    targets,
+                    frozen_gates,
+                    {"gates": np.delete(gates_now, confident, axis=0)},
+                    atom_count,
+                )
+                if exhausted.get("failed"):
+                    round_log[-1]["assembleFailed"] = exhausted["failed"]
+                else:
+                    round_log[-1]["assembledMse"] = exhausted["mse"]
+                    if best_block is None or exhausted["mse"] < best_block["mse"]:
+                        best_block = exhausted
+                round_log[-1]["stopped"] = "oracle budget exhausted during the peel slice"
                 break
             on_slice = fit_swiglu_sum(
                 slice_coords, slice_targets, remaining, seed + 977 * (round_index + 1),
@@ -10722,6 +10866,10 @@ def calibrate_input_scale(
 
 
 def run_solver(args: argparse.Namespace) -> int:
+    # Before any fitting, because the point of the reservation is to own the card while it is
+    # still free. Doing it at the first fit is too late: the greedy and dictionary stages resolve
+    # their own devices and run first, and the trough this covers opens between them.
+    _reserve_solver_device_memory()
     if args.recovery_path == "asymptotic-cold-start":
         if args.fit_snapshot_input:
             raise RuntimeError("asymptotic cold start forbids --fit-snapshot-input")

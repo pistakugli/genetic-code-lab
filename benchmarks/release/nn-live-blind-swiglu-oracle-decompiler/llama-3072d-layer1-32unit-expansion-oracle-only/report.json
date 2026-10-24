@@ -12,7 +12,7 @@
     "minPairedAtomCountAboveThreshold": null,
     "minSourceCancellationFraction": null,
     "minimumSourcePairCorrelation": null,
-    "pairedAtomThreshold": 0.99,
+    "pairedAtomThreshold": null,
     "maxRawOracleCallsPerCase": null,
     "totalRawOracleCalls": 0,
     "maxUnitCount": null,
@@ -71,8 +71,8 @@
       "pass": false,
       "failures": [
         "missing report.json",
-        "process killed by SIGTERM",
-        "stderr tail: {\"type\": \"progress\", \"phase\": \"oracle-ready\", \"dimension\": 3072, \"unitCount\": 32, \"layer\": 1} | {\"type\": \"progress\", \"phase\": \"basis-recovered\", \"activeRank\": 64, \"gradientWitnessCount\": 65, \"energyRatio\": 0.999999999999999} | {\"type\": \"progress\", \"phase\": \"train-sampled\", \"trainCount\": 32000, \"rawOracleCalls\": 231745}"
+        "process exit 1",
+        "stderr tail: [reserve] holding 4200 MiB on cuda | Traceback (most recent call last): | torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 1000.00 MiB. GPU 0 has a total capacity of 7.65 GiB of which 577.94 MiB is free. Including non-PyTorch memory, this process has 4.05 GiB memory in use. Process 2531178 has 2.57 GiB memory in use. Of the allocated memory 3.78 GiB is allocated by PyTorch, and 46.25 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
       ]
     }
   ],
