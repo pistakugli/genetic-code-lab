@@ -1,6 +1,6 @@
 # Real GPT-2 GELU FFN Structure Benchmark
 
-Generated: 2026-06-11T20:28:14.826Z
+Generated: 2026-10-24T17:10:23.392Z
 
 ## Claim Scope
 
