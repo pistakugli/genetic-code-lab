@@ -1,0 +1,99 @@
+{
+  "summary": {
+    "pass": true,
+    "casesPassedAtConfiguredThresholds": true,
+    "thresholdsMeetLaneRelease": true,
+    "laneReleaseThresholds": {
+      "minR2": 0.995,
+      "maxMae": 0.015,
+      "maxWorstError": 0.12,
+      "minSubspaceCosine": 0.98
+    },
+    "relaxedThresholdCases": [],
+    "caseCount": 1,
+    "passedCases": 1,
+    "failedCases": 0,
+    "maxExpandedUnitCount": 4,
+    "minR2": 0.9999989656096891,
+    "maxMae": 0.0003507732790537803,
+    "maxWorstError": 0.002729982480284221,
+    "minSubspacePrincipalCosine": 0.9999992930409601,
+    "minPairedAtomJointCosine": 0.999999896454588,
+    "minPairedAtomCountAboveThreshold": 0,
+    "pairedAtomThreshold": null,
+    "minSourceCancellationFraction": 0.3893537121368381,
+    "minimumSourcePairCorrelation": -0.021986979484849047,
+    "totalRawOracleCalls": 72017,
+    "accessInvariant": true,
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "cases": [
+    {
+      "case": {
+        "family": "llama",
+        "layer": 1,
+        "unitCount": 4,
+        "units": [
+          0,
+          17,
+          123,
+          456
+        ],
+        "activeRank": 8,
+        "minR2": 0.995,
+        "maxMae": 0.015,
+        "maxWorstError": 0.12,
+        "minSubspaceCosine": 0.98
+      },
+      "sweepVariant": "llama-3072d-layer1-4unit-expansion-oracle-only",
+      "sweepReportPath": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-4unit-expansion-oracle-only/report.json",
+      "sweepReportSha256": "562a8c7fff853c6554a547e604089477b148e349a5cab8469ff5ffb17393a36f",
+      "citedSweepReportCopy": "cited-sweep-report-llama-3072d-layer1-4unit-expansion-oracle-only.json",
+      "pass": true,
+      "failures": [],
+      "sweepSummary": {
+        "pass": true,
+        "caseCount": 1,
+        "passedCases": 1,
+        "failedCases": 0,
+        "minR2": 0.9999989656096891,
+        "maxMae": 0.0003507732790537803,
+        "maxWorstError": 0.002729982480284221,
+        "minSubspacePrincipalCosine": 0.9999992930409601,
+        "minPairedAtomJointCosine": 0.999999896454588,
+        "minPairedAtomCountAboveThreshold": null,
+        "minSourceCancellationFraction": 0.3893537121368381,
+        "minimumSourcePairCorrelation": -0.021986979484849047,
+        "pairedAtomThreshold": null,
+        "maxRawOracleCallsPerCase": 72017,
+        "totalRawOracleCalls": 72017,
+        "maxUnitCount": 4,
+        "maxAtomCount": 4,
+        "accessInvariant": true
+      }
+    }
+  ],
+  "config": {
+    "caseSpec": "llama:1:4:-",
+    "randomCount": 0,
+    "randomSeed": null,
+    "randomFamily": null,
+    "randomUnitCount": null,
+    "randomLayers": null,
+    "defaultVariant": "llama-layer1-4unit-expansion-oracle-only",
+    "gradientMode": "forward-coordinate",
+    "outputChannel": -1,
+    "methodKnobs": {}
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "delegatedSweepReportsEnforceInvariant": true
+  }
+}

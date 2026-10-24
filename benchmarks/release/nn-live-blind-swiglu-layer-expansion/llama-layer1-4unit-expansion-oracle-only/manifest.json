@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-24T18:25:50.620Z",
+  "lane": "nn-live-blind-swiglu-layer-expansion",
+  "variant": "llama-layer1-4unit-expansion-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-layer-expansion.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.4"
+  },
+  "env": {
+    "GCL_LAYER_EXPANSION_CASES": "llama:1:4:-"
+  },
+  "git": {
+    "commit": "cae9312845dac04582177cdb7bfde683ec2c057e",
+    "statusShort": "?? benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer1-4unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-4unit-expansion-oracle-only/\n?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units0-17-123-456-4atom-forward-coordinate-oracle-only/",
+    "uncommittedDiffSha256": null
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer1-4unit-expansion-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer1-4unit-expansion-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-layer-expansion/llama-layer1-4unit-expansion-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "casesPassedAtConfiguredThresholds": true,
+    "thresholdsMeetLaneRelease": true,
+    "laneReleaseThresholds": {
+      "minR2": 0.995,
+      "maxMae": 0.015,
+      "maxWorstError": 0.12,
+      "minSubspaceCosine": 0.98
+    },
+    "relaxedThresholdCases": [],
+    "caseCount": 1,
+    "passedCases": 1,
+    "failedCases": 0,
+    "maxExpandedUnitCount": 4,
+    "minR2": 0.9999989656096891,
+    "maxMae": 0.0003507732790537803,
+    "maxWorstError": 0.002729982480284221,
+    "minSubspacePrincipalCosine": 0.9999992930409601,
+    "minPairedAtomJointCosine": 0.999999896454588,
+    "minPairedAtomCountAboveThreshold": 0,
+    "pairedAtomThreshold": null,
+    "minSourceCancellationFraction": 0.3893537121368381,
+    "minimumSourcePairCorrelation": -0.021986979484849047,
+    "totalRawOracleCalls": 72017,
+    "accessInvariant": true,
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "notes": [
+    "Runs configured real-model multi-unit SwiGLU layer expansion through the oracle-only sweep runner.",
+    "This gate is intended to push beyond selected 8-unit blocks while preserving solver access invariants.",
+    "A caseSpec may relax the quality bars for smoke or exploration runs. When it does, thresholdsMeetLaneRelease is false, relaxedThresholdCases lists what was loosened, and the artifact is marked generated rather than pass."
+  ]
+}
