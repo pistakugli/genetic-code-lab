@@ -121,12 +121,22 @@ function collectCitations(): Citation[] {
 
       const pinned = record.sweepReportSha256;
       if (typeof pinned === 'string' && pinned.length === 64) {
-        const actual = sha256(target);
+        let actual = sha256(target);
+        let verifiedByCopy = false;
+        if (actual !== pinned && typeof record.citedSweepReportCopy === 'string') {
+          const copyPath = path.join(path.dirname(reportPath), record.citedSweepReportCopy);
+          if (fs.existsSync(copyPath) && sha256(copyPath) === pinned) {
+            actual = pinned;
+            verifiedByCopy = true;
+          }
+        }
         citations.push({
           artifact,
           target: relativeTarget,
           state: actual === pinned ? 'verified' : 'drifted',
-          detail: actual === pinned ? [] : [`pinned ${pinned} but target is ${actual}`]
+          detail: actual === pinned
+            ? (verifiedByCopy ? ['verified against local immutable copy'] : [])
+            : [`pinned ${pinned} but target is ${actual}`]
         });
         continue;
       }
