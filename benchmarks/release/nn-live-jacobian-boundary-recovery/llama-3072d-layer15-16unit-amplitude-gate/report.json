@@ -54,51 +54,54 @@
     "amplitudeCalls": 4096,
     "phaseSeconds": {
       "basis": {
-        "wall": 5.703,
-        "solverCpu": 10.363,
-        "coresHeld": 1.8
+        "wall": 3.514,
+        "solverCpu": 8.439,
+        "coresHeld": 2.4
       },
       "lineScan": {
-        "wall": 2.285,
-        "solverCpu": 1.709,
+        "wall": 1.322,
+        "solverCpu": 0.955,
         "coresHeld": 0.7
       },
       "clustering": {
-        "wall": 0.052,
-        "solverCpu": 0.052,
-        "coresHeld": 1.0
-      },
-      "normCalibration": {
-        "wall": 1.154,
-        "solverCpu": 0.881,
+        "wall": 0.042,
+        "solverCpu": 0.035,
         "coresHeld": 0.8
       },
+      "normCalibration": {
+        "wall": 0.599,
+        "solverCpu": 0.529,
+        "coresHeld": 0.9
+      },
       "signDecision": {
-        "wall": 0.09,
-        "solverCpu": 0.117,
-        "coresHeld": 1.3
+        "wall": 0.057,
+        "solverCpu": 0.068,
+        "coresHeld": 1.2
       },
       "upSolve": {
-        "wall": 0.356,
-        "solverCpu": 0.456,
-        "coresHeld": 1.3
+        "wall": 0.052,
+        "solverCpu": 0.134,
+        "coresHeld": 2.6
       },
       "reconstruction": {
-        "wall": 0.616,
-        "solverCpu": 1.026,
-        "coresHeld": 1.7
+        "wall": 0.316,
+        "solverCpu": 0.803,
+        "coresHeld": 2.5
       }
     },
     "lineScanBreakdown": {
-      "buildPoints": 0.52,
-      "oracleWait": 1.393,
-      "postProcess": 0.172
+      "buildPoints": 0.335,
+      "oracleWait": 0.807,
+      "postProcess": 0.119
     },
     "amplitudeSweeps": 16,
     "amplitudeSweepsAllowed": 48,
     "crossingsPerLine": 6.041666666666667,
     "resolvableSlotsPerLine": 133,
     "duplicatesDropped": 0,
+    "clustersWithoutEstimate": 0,
+    "clustersBelowAlignment": 0,
+    "clustersUnsolved": 0,
     "clustersSkippedAsSmall": 2,
     "rejectedByResidual": 0,
     "upSolveCalls": 8000,
@@ -123,8 +126,10 @@
     ],
     "notes": [
       "basis energy in rank 32: 0.999820790194",
-      "output mixing inverted",
+      "up-solve products chunked at 8000 rows: 16 unit columns, 32 basis columns",
+      "output mixing pseudo-inverted",
       "up directions solved jointly by conjugate gradient",
+      "joint up solve: 38 of 200 iterations, residual 8.445e-25 of initial",
       "identifiability verdict: recovered"
     ]
   },
@@ -143,10 +148,10 @@
     "perUnitGateCosineMin": 0.9998291539519459,
     "perUnitGateCosineMedian": 0.9999723734304065,
     "unitsWithUpAbove099": 16,
-    "perUnitUpCosineMin": 0.9997906563267547,
+    "perUnitUpCosineMin": 0.9997906563267562,
     "unitsFullyRecovered": 16,
     "unitsWithJointAbove099": 16,
-    "perUnitJointCosineMin": 0.9997906563267547,
+    "perUnitJointCosineMin": 0.9997906563267562,
     "unitsWithOutputAbove099": 16,
     "perUnitOutputCosineMin": 0.99775929111444,
     "outputCosineMedian": 0.9996786460041398,

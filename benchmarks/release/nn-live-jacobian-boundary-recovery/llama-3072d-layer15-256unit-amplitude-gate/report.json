@@ -19,8 +19,8 @@
   },
   "reconstruction": {
     "points": 4000,
-    "rSquared": 0.999356856920334,
-    "relativeResidual": 0.025239539440931005
+    "rSquared": 0.9993568569253526,
+    "relativeResidual": 0.025239539342456405
   },
   "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
   "layer": 15,
@@ -294,51 +294,54 @@
     "amplitudeCalls": 1081344,
     "phaseSeconds": {
       "basis": {
-        "wall": 20.188,
-        "solverCpu": 18.452,
-        "coresHeld": 0.9
+        "wall": 10.56,
+        "solverCpu": 12.373,
+        "coresHeld": 1.2
       },
       "lineScan": {
-        "wall": 24.614,
-        "solverCpu": 18.962,
-        "coresHeld": 0.8
+        "wall": 19.271,
+        "solverCpu": 14.357,
+        "coresHeld": 0.7
       },
       "clustering": {
-        "wall": 0.614,
-        "solverCpu": 0.605,
+        "wall": 0.56,
+        "solverCpu": 0.558,
         "coresHeld": 1.0
       },
       "normCalibration": {
-        "wall": 13.883,
-        "solverCpu": 9.442,
-        "coresHeld": 0.7
+        "wall": 7.685,
+        "solverCpu": 6.216,
+        "coresHeld": 0.8
       },
       "signDecision": {
-        "wall": 6.612,
-        "solverCpu": 6.644,
+        "wall": 7.669,
+        "solverCpu": 7.746,
         "coresHeld": 1.0
       },
       "upSolve": {
-        "wall": 13.224,
-        "solverCpu": 15.101,
-        "coresHeld": 1.1
+        "wall": 4.771,
+        "solverCpu": 5.767,
+        "coresHeld": 1.2
       },
       "reconstruction": {
-        "wall": 0.6,
-        "solverCpu": 1.716,
-        "coresHeld": 2.9
+        "wall": 0.34,
+        "solverCpu": 1.489,
+        "coresHeld": 4.4
       }
     },
     "lineScanBreakdown": {
-      "buildPoints": 7.12,
-      "oracleWait": 14.563,
-      "postProcess": 1.413
+      "buildPoints": 6.657,
+      "oracleWait": 10.443,
+      "postProcess": 1.391
     },
     "amplitudeSweeps": 264,
     "amplitudeSweepsAllowed": 768,
     "crossingsPerLine": 42.453125,
     "resolvableSlotsPerLine": 133,
     "duplicatesDropped": 0,
+    "clustersWithoutEstimate": 0,
+    "clustersBelowAlignment": 0,
+    "clustersUnsolved": 0,
     "clustersSkippedAsSmall": 1318,
     "rejectedByResidual": 0,
     "upSolveCalls": 120000,
@@ -363,8 +366,10 @@
     ],
     "notes": [
       "basis energy in rank 512: 0.999872155454",
-      "output mixing inverted",
+      "up-solve products chunked at 15328 rows: 256 unit columns, 512 basis columns",
+      "output mixing pseudo-inverted",
       "up directions solved jointly by conjugate gradient",
+      "joint up solve: 90 of 200 iterations, residual 5.130e-25 of initial",
       "identifiability verdict: recovered"
     ]
   },
@@ -383,7 +388,7 @@
     "perUnitGateCosineMin": 0.9990947602304862,
     "perUnitGateCosineMedian": 0.999978979052882,
     "unitsWithUpAbove099": 256,
-    "perUnitUpCosineMin": 0.999103824415936,
+    "perUnitUpCosineMin": 0.9991038243900744,
     "unitsFullyRecovered": 256,
     "unitsWithJointAbove099": 256,
     "perUnitJointCosineMin": 0.9990947602304862,
