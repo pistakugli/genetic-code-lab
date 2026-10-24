@@ -1,0 +1,417 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-24T18:51:44.531Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "llama-3072d-layer1-units0-17-123-456-789-1024-2048-4096-8atom-forward-coordinate-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-blind-swiglu-oracle-decompiler-sweep.ts"
+    ],
+    "npmLifecycleEvent": "npx",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.4"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "llama-3072d-layer1-8unit-expansion-oracle-only",
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "16",
+    "GCL_BLIND_SWIGLU_BACKFIT_CYCLES": "0",
+    "GCL_BLIND_SWIGLU_BASIS_MOMENT": "centered",
+    "GCL_BLIND_SWIGLU_COUNTEREXAMPLE_COUNT": "0",
+    "GCL_BLIND_SWIGLU_COUNTEREXAMPLE_JITTER_COUNT": "0",
+    "GCL_BLIND_SWIGLU_COUNTEREXAMPLE_JITTER_SCALE": "0.025",
+    "GCL_BLIND_SWIGLU_COUNTEREXAMPLE_REPEAT": "4",
+    "GCL_BLIND_SWIGLU_CUBIC_DIRECTION_COUNT": "0",
+    "GCL_BLIND_SWIGLU_CUBIC_HOLDOUT_COUNT": "0",
+    "GCL_BLIND_SWIGLU_CUBIC_STEP": "0.35",
+    "GCL_BLIND_SWIGLU_CUBIC_STEPS": "",
+    "GCL_BLIND_SWIGLU_DISABLE_ADAPTIVE_RESCUE": "0",
+    "GCL_BLIND_SWIGLU_EXPECTED_DIMENSION": "3072",
+    "GCL_BLIND_SWIGLU_FAMILY_LABEL": "LLaMA-family",
+    "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP": "0.04",
+    "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEPS": "",
+    "GCL_BLIND_SWIGLU_FIT_CUBIC_WEIGHT": "0",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_COUNT": "256",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_MODE": "forward",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_STEP": "0.04",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_STEPS": "",
+    "GCL_BLIND_SWIGLU_FIT_GRADIENT_WEIGHT": "0.2",
+    "GCL_BLIND_SWIGLU_FIT_MODE": "batched",
+    "GCL_BLIND_SWIGLU_FIT_RESTART_CHUNK_SIZE": "128",
+    "GCL_BLIND_SWIGLU_FIT_RESTARTS": "768",
+    "GCL_BLIND_SWIGLU_FIT_SELECTION_COUNT": "0",
+    "GCL_BLIND_SWIGLU_FIT_SELECTION_SCALE": "0",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "3200",
+    "GCL_BLIND_SWIGLU_GRADIENT_MODE": "forward-coordinate",
+    "GCL_BLIND_SWIGLU_INPUT_SCALE": "0.65",
+    "GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE": "8192",
+    "GCL_BLIND_SWIGLU_LAYER_COUNT": "28",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "180000",
+    "GCL_BLIND_SWIGLU_MODEL": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "GCL_BLIND_SWIGLU_MODEL_LABEL": "llama-3072d",
+    "GCL_BLIND_SWIGLU_ORACLE_QUANTIZATION_STEP": "0",
+    "GCL_BLIND_SWIGLU_OUTPUT_CHANNEL": "-1",
+    "GCL_BLIND_SWIGLU_PEEL_ATOMS_PER_DIM": "0.55",
+    "GCL_BLIND_SWIGLU_PEEL_ROUNDS": "0",
+    "GCL_BLIND_SWIGLU_PEEL_THRESHOLD": "0.95",
+    "GCL_BLIND_SWIGLU_POLISH_TOP_K": "1",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "17",
+    "GCL_BLIND_SWIGLU_PROGRESS": "1",
+    "GCL_BLIND_SWIGLU_RESCUE_GRADIENT_TARGET": "0",
+    "GCL_BLIND_SWIGLU_RESCUE_RESTARTS": "0",
+    "GCL_BLIND_SWIGLU_RESCUE_STEPS": "0",
+    "GCL_BLIND_SWIGLU_RESCUE_TRAIN_TARGET": "0",
+    "GCL_BLIND_SWIGLU_ROBUST_SCALAR_CALIBRATION": "0",
+    "GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_LR": "0.01",
+    "GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_STEPS": "900",
+    "GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_TAIL_FRACTION": "0.20",
+    "GCL_BLIND_SWIGLU_SCALAR_CALIBRATION_TAIL_WEIGHT": "1.0",
+    "GCL_BLIND_SWIGLU_SELECTION_CUBIC_WEIGHT": "0",
+    "GCL_BLIND_SWIGLU_SELECTION_TAIL_QUANTILE": "0.995",
+    "GCL_BLIND_SWIGLU_SELECTION_TAIL_WEIGHT": "0",
+    "GCL_BLIND_SWIGLU_SELECTION_WORST_WEIGHT": "0",
+    "GCL_BLIND_SWIGLU_SWEEP_CASES": "1:0+17+123+456+789+1024+2048+4096:0.995:0.015:0.999:0.12",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.015",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_SOURCE_PAIR_CORRELATION": "1",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR": "0.12",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SOURCE_CANCELLATION_FRACTION": "0",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.999",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "llama-3072d-layer1-8unit-expansion-oracle-only",
+    "GCL_BLIND_SWIGLU_TAIL_POLISH_FRACTION": "0.125",
+    "GCL_BLIND_SWIGLU_TAIL_POLISH_LOSS": "topk",
+    "GCL_BLIND_SWIGLU_TAIL_POLISH_LR": "0.006",
+    "GCL_BLIND_SWIGLU_TAIL_POLISH_STEPS": "420",
+    "GCL_BLIND_SWIGLU_TAIL_POLISH_WEIGHT": "0.35",
+    "GCL_BLIND_SWIGLU_TAIL_PROBE_COUNT": "0",
+    "GCL_BLIND_SWIGLU_TAIL_PROBE_REPEAT": "4",
+    "GCL_BLIND_SWIGLU_TAIL_PROBE_SCALE": "0",
+    "GCL_BLIND_SWIGLU_TIMEOUT_MS": "1800000",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "14400",
+    "GCL_BLIND_SWIGLU_TRAIN_SAMPLING_MODE": "gaussian",
+    "GCL_BLIND_SWIGLU_TRAIN_SCALE_MIXTURE": "",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "3072",
+    "GCL_BLIND_SWIGLU_VALIDATION_SCALE": "0.65",
+    "GCL_LAYER_EXPANSION_CASES": "llama:1:8:-:0.995:0.015:0.999:0.12",
+    "GCL_LAYER_EXPANSION_PROGRESS": "1",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "5f7559b3ba6384ed456e02d98fbd5988c3f42fbe",
+    "statusShort": "?? benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units0-17-123-456-789-1024-2048-4096-8atom-forward-coordinate-oracle-only/",
+    "uncommittedDiffSha256": null
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units0-17-123-456-789-1024-2048-4096-8atom-forward-coordinate-oracle-only/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units0-17-123-456-789-1024-2048-4096-8atom-forward-coordinate-oracle-only/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-units0-17-123-456-789-1024-2048-4096-8atom-forward-coordinate-oracle-only/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "modelType": "llama",
+    "dimension": 3072,
+    "layer": 1,
+    "unit": 0,
+    "units": [
+      0,
+      17,
+      123,
+      456,
+      789,
+      1024,
+      2048,
+      4096
+    ],
+    "unitCount": 8,
+    "oracleMode": "selected-unit-sum",
+    "outputChannel": null,
+    "activeRank": 16,
+    "atomCount": 8,
+    "rawOracleCalls": 74065,
+    "metrics": {
+      "mae": 0.0012646223141371737,
+      "mse": 0.0000032133094684552216,
+      "r2": 0.9999932523395926,
+      "worstError": 0.010350319334377467
+    },
+    "sourceAlignment": {
+      "gateMaxAbsCosine": 0.9999994995872948,
+      "upMaxAbsCosine": 0.9999991223616864,
+      "subspaceMinPrincipalCosine": 0.9999791660156062,
+      "subspaceCosines": [
+        0.9999999936883669,
+        0.999999987265446,
+        0.999999963765808,
+        0.9999999421845778,
+        0.9999999360074401,
+        0.9999999086793849,
+        0.9999998692983739,
+        0.999999844419414,
+        0.9999998000948328,
+        0.9999997468790767,
+        0.9999996895893792,
+        0.9999995887190495,
+        0.9999994264112965,
+        0.9999986912286455,
+        0.9999973557788252,
+        0.9999791660156062
+      ],
+      "projectedSourceMae": 0.001206276328159924,
+      "projectedSourceR2": 0.9999937517605384,
+      "projectedSourceWorstError": 0.01021548006654982,
+      "pairedAtomAssignmentMethod": "hungarian-max-joint-signed-cosine",
+      "pairedAtomMinJointCosine": 0.9999995673189114,
+      "pairedAtomMeanJointCosine": 0.99999970603071,
+      "pairedAtomCountAbove095": 8,
+      "pairedAtomCountAbove099": 8,
+      "pairedAtoms": [
+        {
+          "recoveredAtom": 0,
+          "sourceIndex": 3,
+          "sourceUnit": 456,
+          "gateCosine": 0.9999997716029703,
+          "upCosine": 0.9999998132391694,
+          "jointMinCosine": 0.9999997716029703
+        },
+        {
+          "recoveredAtom": 1,
+          "sourceIndex": 5,
+          "sourceUnit": 1024,
+          "gateCosine": 0.9999998710168977,
+          "upCosine": 0.9999997080457736,
+          "jointMinCosine": 0.9999997080457736
+        },
+        {
+          "recoveredAtom": 2,
+          "sourceIndex": 2,
+          "sourceUnit": 123,
+          "gateCosine": 0.9999998920876998,
+          "upCosine": 0.999999715851965,
+          "jointMinCosine": 0.999999715851965
+        },
+        {
+          "recoveredAtom": 3,
+          "sourceIndex": 7,
+          "sourceUnit": 4096,
+          "gateCosine": 0.9999996441868847,
+          "upCosine": 0.9999997879319081,
+          "jointMinCosine": 0.9999996441868847
+        },
+        {
+          "recoveredAtom": 4,
+          "sourceIndex": 1,
+          "sourceUnit": 17,
+          "gateCosine": 0.9999998172723242,
+          "upCosine": 0.9999999101518201,
+          "jointMinCosine": 0.9999998172723242
+        },
+        {
+          "recoveredAtom": 5,
+          "sourceIndex": 4,
+          "sourceUnit": 789,
+          "gateCosine": 0.9999997756425023,
+          "upCosine": 0.9999995673189114,
+          "jointMinCosine": 0.9999995673189114
+        },
+        {
+          "recoveredAtom": 6,
+          "sourceIndex": 6,
+          "sourceUnit": 2048,
+          "gateCosine": 0.9999998432308747,
+          "upCosine": 0.9999998396266986,
+          "jointMinCosine": 0.9999998396266986
+        },
+        {
+          "recoveredAtom": 7,
+          "sourceIndex": 0,
+          "sourceUnit": 0,
+          "gateCosine": 0.9999995843401523,
+          "upCosine": 0.999999661894634,
+          "jointMinCosine": 0.9999995843401523
+        }
+      ],
+      "sourceCancellation": {
+        "meanGrossContribution": 1.1030316351118417,
+        "meanNetContribution": 0.509192772650044,
+        "cancellationFraction": 0.5383697471211562,
+        "perSourceContribution": [
+          {
+            "sourceIndex": 0,
+            "sourceUnit": 0,
+            "meanAbsContribution": 0.13641795240880636,
+            "shareOfGross": 0.12367546683733535
+          },
+          {
+            "sourceIndex": 1,
+            "sourceUnit": 17,
+            "meanAbsContribution": 0.14719640940790235,
+            "shareOfGross": 0.13344713308515163
+          },
+          {
+            "sourceIndex": 2,
+            "sourceUnit": 123,
+            "meanAbsContribution": 0.12970835001862954,
+            "shareOfGross": 0.11759259289555897
+          },
+          {
+            "sourceIndex": 3,
+            "sourceUnit": 456,
+            "meanAbsContribution": 0.1295430887121982,
+            "shareOfGross": 0.11744276826571995
+          },
+          {
+            "sourceIndex": 4,
+            "sourceUnit": 789,
+            "meanAbsContribution": 0.13847309608033684,
+            "shareOfGross": 0.12553864428946898
+          },
+          {
+            "sourceIndex": 5,
+            "sourceUnit": 1024,
+            "meanAbsContribution": 0.14258016818171707,
+            "shareOfGross": 0.1292620842803481
+          },
+          {
+            "sourceIndex": 6,
+            "sourceUnit": 2048,
+            "meanAbsContribution": 0.1412669609267295,
+            "shareOfGross": 0.12807154067925328
+          },
+          {
+            "sourceIndex": 7,
+            "sourceUnit": 4096,
+            "meanAbsContribution": 0.1378456093755218,
+            "shareOfGross": 0.12496976966716368
+          }
+        ],
+        "minSourceMeanAbsContribution": 0.1295430887121982,
+        "maxSourceMeanAbsContribution": 0.14719640940790235,
+        "sourceAmplitudeRatio": 1.1362737361845987,
+        "negativePairCount": 15,
+        "pairCountAtOrBelowMinus050": 0,
+        "minimumPairCorrelation": -0.032797557951469575,
+        "mostNegativePairs": [
+          {
+            "sourceIndices": [
+              2,
+              4
+            ],
+            "sourceUnits": [
+              123,
+              789
+            ],
+            "contributionCorrelation": -0.032797557951469575,
+            "meanAbsContributionLeft": 0.12970835001862954,
+            "meanAbsContributionRight": 0.13847309608033684
+          },
+          {
+            "sourceIndices": [
+              0,
+              3
+            ],
+            "sourceUnits": [
+              0,
+              456
+            ],
+            "contributionCorrelation": -0.027301853923389168,
+            "meanAbsContributionLeft": 0.13641795240880636,
+            "meanAbsContributionRight": 0.1295430887121982
+          },
+          {
+            "sourceIndices": [
+              3,
+              6
+            ],
+            "sourceUnits": [
+              456,
+              2048
+            ],
+            "contributionCorrelation": -0.016343546404523977,
+            "meanAbsContributionLeft": 0.1295430887121982,
+            "meanAbsContributionRight": 0.1412669609267295
+          },
+          {
+            "sourceIndices": [
+              0,
+              5
+            ],
+            "sourceUnits": [
+              0,
+              1024
+            ],
+            "contributionCorrelation": -0.016121539049904567,
+            "meanAbsContributionLeft": 0.13641795240880636,
+            "meanAbsContributionRight": 0.14258016818171707
+          },
+          {
+            "sourceIndices": [
+              2,
+              7
+            ],
+            "sourceUnits": [
+              123,
+              4096
+            ],
+            "contributionCorrelation": -0.01603508080394154,
+            "meanAbsContributionLeft": 0.12970835001862954,
+            "meanAbsContributionRight": 0.1378456093755218
+          },
+          {
+            "sourceIndices": [
+              1,
+              4
+            ],
+            "sourceUnits": [
+              17,
+              789
+            ],
+            "contributionCorrelation": -0.013778166924725983,
+            "meanAbsContributionLeft": 0.14719640940790235,
+            "meanAbsContributionRight": 0.13847309608033684
+          },
+          {
+            "sourceIndices": [
+              1,
+              3
+            ],
+            "sourceUnits": [
+              17,
+              456
+            ],
+            "contributionCorrelation": -0.013421401851394265,
+            "meanAbsContributionLeft": 0.14719640940790235,
+            "meanAbsContributionRight": 0.1295430887121982
+          },
+          {
+            "sourceIndices": [
+              1,
+              7
+            ],
+            "sourceUnits": [
+              17,
+              4096
+            ],
+            "contributionCorrelation": -0.009311411467272835,
+            "meanAbsContributionLeft": 0.14719640940790235,
+            "meanAbsContributionRight": 0.1378456093755218
+          }
+        ]
+      },
+      "unpairedAtomDiagnostic": {
+        "threshold": 0.99,
+        "unpairedAtomCount": 0,
+        "atoms": [],
+        "confusedSubspace": null
+      }
+    },
+    "selectedGradientEnergyRatio": 0.9999999999999982,
+    "pairedAtomThreshold": null,
+    "pairedAtomGate": true
+  },
+  "notes": [
+    "Per-case report for the blind 4096D SwiGLU oracle-only sweep.",
+    "The solver process receives only f(x) batch outputs. Source weights are requested only after recovery for post-hoc witness alignment."
+  ]
+}
