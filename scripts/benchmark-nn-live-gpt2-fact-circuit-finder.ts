@@ -15,6 +15,8 @@ const output = resolveBenchmarkOutput(
 function resolveGclPython(): string {
   if (process.env.GCL_PYTHON) return process.env.GCL_PYTHON;
   if (process.env.GCL_LLM_READER_PYTHON) return process.env.GCL_LLM_READER_PYTHON;
+  const gpuPython = path.join(repoRoot, '.gcl-python-gpu', 'bin', 'python');
+  if (fs.existsSync(gpuPython)) return gpuPython;
   const projectPython = path.join(repoRoot, '.gcl-python', 'bin', 'python');
   if (fs.existsSync(projectPython)) return projectPython;
   return 'python3';
@@ -63,7 +65,7 @@ const args = [
   '--strict-rescue-pair-candidate-count', envValue('GCL_LIVE_GPT2_STRICT_RESCUE_PAIR_CANDIDATE_COUNT', '12'),
   '--strict-rescue-max-combo-size', envValue('GCL_LIVE_GPT2_STRICT_RESCUE_MAX_COMBO_SIZE', '2'),
   '--strict-rescue-max-attempts', envValue('GCL_LIVE_GPT2_STRICT_RESCUE_MAX_ATTEMPTS', '72'),
-  '--device', envValue('GCL_LIVE_GPT2_DEVICE', 'cpu'),
+  '--device', envValue('GCL_LIVE_GPT2_DEVICE', fs.existsSync(path.join(repoRoot, '.gcl-python-gpu', 'bin', 'python')) ? 'cuda' : 'cpu'),
   '--local-files-only',
   '--output-json', output.jsonOutputPath,
   '--output-md', output.markdownOutputPath
