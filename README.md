@@ -176,6 +176,17 @@ npm run benchmark:nn-live-gpt2-combined-circuit-finder
 npm run benchmark:nn-live-gpt2-ordered-residual-path-circuit-finder
 ```
 
+The existing instrumented reader also supports multi-layer SwiGLU analysis on
+Qwen2, LLaMA, and Mistral adapters. It reports gate/value channel computations
+and full-model logit changes from selected-channel ablations; this path uses
+the real model weights and hooks and is not black-box:
+
+```bash
+npx ts-node src/cli/index.ts explain-llm --model Qwen/Qwen2.5-0.5B-Instruct \
+  --prompt '<exact model-formatted prompt>' --layers all --top-neurons 12 \
+  --device cuda --json --output /path/to/reader.json
+```
+
 GPU-accelerated live GPT-2 instrumentation on machines with NVIDIA CUDA:
 
 ```bash

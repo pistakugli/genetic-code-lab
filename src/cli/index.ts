@@ -1453,17 +1453,18 @@ program
 
 program
   .command('explain-llm')
-  .description('Read a live GPT-2/LLM forward pass and explain hooked MLP neuron reactions')
+  .description('Explain hooked GPT-2 MLP neurons or instrumented SwiGLU gate/value channels')
   .requiredOption('--prompt <text>', 'Prompt to run through the live model')
   .option('--model <id-or-path>', 'HuggingFace causal LM id or local model path', 'gpt2')
   .option('--layer <number>', 'Transformer block index to inspect', '0')
+  .option('--layers <indexes|all>', 'For SwiGLU models, scan comma-separated layer indexes or every layer')
   .option('--token-index <number>', 'Prompt token index to explain; negative indexes are supported', '-1')
-  .option('--top-neurons <number>', 'Number of top MLP source neurons to report', '12')
+  .option('--top-neurons <number>', 'Number of top MLP neurons or SwiGLU channels to report', '12')
   .option('--top-logits <number>', 'Number of next-token logits to report', '8')
   .option('--ablation-mode <selected-token|all-tokens|none>', 'Run real causal neuron ablations for reported neurons', 'selected-token')
   .option('--negative-controls', 'Run negative-control ablations against reported neurons', true)
   .option('--no-negative-controls', 'Disable negative-control ablations')
-  .option('--control-count <number>', 'Number of random and off-prompt control neurons per negative-control family', '50')
+  .option('--control-count <number>', 'GPT-2 controls per family; SwiGLU uses one active and one inactive control per selected layer', '50')
   .option('--control-prompt <text>', 'Different real prompt used to select off-prompt top neurons', 'The weather in Berlin is')
   .option('--control-seed <number>', 'Deterministic seed for random negative-control neuron selection', '1337')
   .option('--device <cpu|cuda|auto>', 'Runtime device', 'cpu')
@@ -1489,6 +1490,7 @@ program
       '--device', options.device,
       '--format', options.json ? 'json' : 'text'
     ];
+    if (options.layers) args.push('--layers', String(options.layers));
     if (!options.allowDownload) args.push('--local-files-only');
     if (options.output) args.push('--output', options.output);
 
@@ -1498,7 +1500,7 @@ program
       return;
     }
 
-    const pythonCommand = resolveGclPython(repoRoot);
+    const pythonCommand = resolveGclPython(repoRoot, options.device);
     const result = spawnSync(pythonCommand, args, {
       cwd: repoRoot,
       stdio: 'inherit',
@@ -1506,6 +1508,187 @@ program
     });
     if (result.error) {
       console.error(chalk.red(`Failed to start live LLM reader: ${result.error.message}`));
+      process.exitCode = 1;
+      return;
+    }
+    process.exitCode = result.status ?? 1;
+  });
+
+program
+  .command('decompile')
+  .description('Investigate and reconstruct an LLM as an oracle-only behavioral model')
+  .requiredOption('--blackbox', 'Restrict reconstruction to the isolated token-id/logit oracle')
+  .requiredOption('--model <id-or-path>', 'HuggingFace causal LM id or local model path')
+  .requiredOption('--prompt <text>', 'Exact prompt to investigate')
+  .option('--prompt-format <format>', 'Prompt encoding: auto, raw, or chat-template', 'auto')
+  .option('--query-budget <number>', 'Maximum unique oracle calls for this persistent session', '512')
+  .option('--max-new-tokens <number>', 'Maximum generated tokens per response', '8')
+  .option('--probes-per-token <number>', 'Context deletion probes per generated token', '4')
+  .option('--explanation-probes <number>', 'Sufficient-context oracle queries per token', '4')
+  .option('--interaction-probes <number>', 'Pairwise interaction queries per token', '1')
+  .option('--branch-probes <number>', 'Alternative token branches per token', '1')
+  .option('--branch-width <number>', 'Beam width for alternative continuations', '2')
+  .option('--response-probes <number>', 'Full response counterfactuals from measured prompt units', '1')
+  .option('--formulation-probes <number>', 'Additional measured prompt wrappers (0-2 currently available)', '1')
+  .option('--top-logits <number>', 'Top candidates retained in the executable reconstruction', '10')
+  .option('--device <cpu|cuda|auto>', 'Oracle runtime device', 'cpu')
+  .option('--session-dir <directory>', 'Persistent checkpoint and artifact directory')
+  .option('--resume', 'Resume a prior interrupted session from --session-dir')
+  .option('--output-json <file>', 'Write the complete evidence report')
+  .option('--output-md <file>', 'Write the evidence-backed explanation')
+  .option('--allow-download', 'Allow tokenizer/model downloads if not cached')
+  .action((options) => {
+    const repoRoot = path.resolve(__dirname, '..', '..');
+    const scriptPath = path.join(repoRoot, 'tools', 'llm-reader-blackbox-behavior.py');
+    const args = [
+      scriptPath,
+      '--mode', 'decompile',
+      '--model', options.model,
+      '--prompt', options.prompt,
+      '--prompt-format', options.promptFormat,
+      '--query-budget', String(positiveInt(options.queryBudget, 512, 'query-budget')),
+      '--max-new-tokens', String(positiveInt(options.maxNewTokens, 8, 'max-new-tokens')),
+      '--probes-per-token', String(nonNegativeInt(options.probesPerToken, 4, 'probes-per-token')),
+      '--explanation-probes', String(nonNegativeInt(options.explanationProbes, 4, 'explanation-probes')),
+      '--interaction-probes', String(nonNegativeInt(options.interactionProbes, 1, 'interaction-probes')),
+      '--branch-probes', String(nonNegativeInt(options.branchProbes, 1, 'branch-probes')),
+      '--branch-width', String(positiveInt(options.branchWidth, 2, 'branch-width')),
+      '--response-probes', String(nonNegativeInt(options.responseProbes, 1, 'response-probes')),
+      '--formulation-probes', String(nonNegativeInt(options.formulationProbes, 1, 'formulation-probes')),
+      '--top-logits', String(positiveInt(options.topLogits, 10, 'top-logits')),
+      '--device', options.device
+    ];
+    if (options.sessionDir) args.push('--session-dir', options.sessionDir);
+    if (options.resume) args.push('--resume');
+    if (options.outputJson) args.push('--output-json', options.outputJson);
+    if (options.outputMd) args.push('--output-md', options.outputMd);
+    if (!options.allowDownload) args.push('--local-files-only');
+    if (!fs.pathExistsSync(scriptPath)) {
+      console.error(chalk.red(`Missing black-box decompilation engine: ${scriptPath}`));
+      process.exitCode = 1;
+      return;
+    }
+    const result = spawnSync(resolveGclPython(repoRoot, options.device), args, {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: process.env
+    });
+    if (result.error) {
+      console.error(chalk.red(`Failed to start black-box decompiler: ${result.error.message}`));
+      process.exitCode = 1;
+      return;
+    }
+    process.exitCode = result.status ?? 1;
+  });
+
+program
+  .command('predict-blackbox')
+  .description('Execute a saved black-box behavioral reconstruction without an oracle')
+  .requiredOption('--reconstruction <file>', 'Executable reconstruction JSON')
+  .requiredOption('--prompt <text>', 'Prompt to predict for')
+  .option('--model <id-or-path>', 'Tokenizer model id or local path', 'gpt2')
+  .option('--prompt-format <format>', 'Override the reconstruction prompt encoding')
+  .option('--max-new-tokens <number>', 'Maximum predicted tokens', '32')
+  .option('--prediction-beam-width <number>', 'Retain the top reconstruction response routes', '1')
+  .option('--allow-download', 'Allow tokenizer downloads if not cached')
+  .action((options) => {
+    const repoRoot = path.resolve(__dirname, '..', '..');
+    const scriptPath = path.join(repoRoot, 'tools', 'llm-reader-blackbox-behavior.py');
+    const args = [
+      scriptPath,
+      '--mode', 'predict',
+      '--model', options.model,
+      '--reconstruction', options.reconstruction,
+      '--prompt', options.prompt,
+      '--max-new-tokens', String(positiveInt(options.maxNewTokens, 32, 'max-new-tokens')),
+      '--prediction-beam-width', String(positiveInt(options.predictionBeamWidth, 1, 'prediction-beam-width'))
+    ];
+    if (options.promptFormat) args.push('--prompt-format', options.promptFormat);
+    if (!options.allowDownload) args.push('--local-files-only');
+    const result = spawnSync(resolveGclPython(repoRoot, 'cpu'), args, {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: process.env
+    });
+    if (result.error) {
+      console.error(chalk.red(`Failed to start reconstruction executor: ${result.error.message}`));
+      process.exitCode = 1;
+      return;
+    }
+    process.exitCode = result.status ?? 1;
+  });
+
+program
+  .command('explain-llm-blackbox')
+  .description('Trace black-box decisions, alternative continuations, and response counterfactuals')
+  .requiredOption('--prompt <text>', 'Exact prompt to query')
+  .option('--target-token <text>', 'Single next-token candidate to inspect in decision mode')
+  .option('--contrast-token <text>', 'Single-token competitor; repeat to compare multiple candidates', (value, previous: string[]) => [...previous, value], [])
+  .option('--trace', 'Generate and inspect a greedy response one token at a time')
+  .option('--model <id-or-path>', 'HuggingFace causal LM id or local model path', 'gpt2')
+  .option('--max-probes <number>', 'Maximum whitespace-delimited prompt-span deletion queries', '24')
+  .option('--max-new-tokens <number>', 'Maximum generated tokens in trace mode', '32')
+  .option('--probes-per-token <number>', 'Editable text units to intervene on per generated token', '4')
+  .option('--explanation-probes <number>', 'Oracle queries per token for sufficient-context search', '8')
+  .option('--interaction-probes <number>', 'Pairwise unit-deletion queries per generated token', '2')
+  .option('--branch-probes <number>', 'Alternative-token continuations to trace per generated token', '1')
+  .option('--branch-width <number>', 'Beam width for each forced-token continuation', '3')
+  .option('--response-probes <number>', 'Full response regenerations for measured prompt-unit deletions', '2')
+  .option('--top-logits <number>', 'Number of next-token candidates to include', '10')
+  .option('--device <cpu|cuda|auto>', 'Runtime device', 'cpu')
+  .option('--output-json <file>', 'Write the complete evidence report to a JSON file')
+  .option('--output-md <file>', 'Write a concise evidence report to a Markdown file')
+  .option('--allow-download', 'Allow HuggingFace downloads if the model is not already cached')
+  .action((options) => {
+    const repoRoot = path.resolve(__dirname, '..', '..');
+    const scriptPath = path.join(repoRoot, 'tools', 'llm-reader-blackbox-behavior.py');
+    if (!options.trace && !options.targetToken) {
+      console.error(chalk.red('--target-token is required unless --trace is selected.'));
+      process.exitCode = 1;
+      return;
+    }
+    const args = [
+      scriptPath,
+      '--mode', options.trace ? 'trace' : 'decision',
+      '--model', options.model,
+      '--prompt', options.prompt,
+      '--top-logits', String(positiveInt(options.topLogits, 10, 'top-logits')),
+      '--device', options.device
+    ];
+    if (options.trace) {
+      args.push(
+        '--max-new-tokens', String(positiveInt(options.maxNewTokens, 32, 'max-new-tokens')),
+        '--probes-per-token', String(nonNegativeInt(options.probesPerToken, 4, 'probes-per-token')),
+        '--explanation-probes', String(nonNegativeInt(options.explanationProbes, 8, 'explanation-probes')),
+        '--interaction-probes', String(nonNegativeInt(options.interactionProbes, 2, 'interaction-probes')),
+        '--branch-probes', String(nonNegativeInt(options.branchProbes, 1, 'branch-probes')),
+        '--branch-width', String(positiveInt(options.branchWidth, 3, 'branch-width')),
+        '--response-probes', String(nonNegativeInt(options.responseProbes, 2, 'response-probes'))
+      );
+    } else {
+      args.push(
+        '--target-token', options.targetToken,
+        '--max-probes', String(nonNegativeInt(options.maxProbes, 24, 'max-probes'))
+      );
+      for (const token of options.contrastToken as string[]) args.push('--contrast-token', token);
+    }
+    if (!options.allowDownload) args.push('--local-files-only');
+    if (options.outputJson) args.push('--output-json', options.outputJson);
+    if (options.outputMd) args.push('--output-md', options.outputMd);
+
+    if (!fs.pathExistsSync(scriptPath)) {
+      console.error(chalk.red(`Missing black-box LLM reader: ${scriptPath}`));
+      process.exitCode = 1;
+      return;
+    }
+
+    const result = spawnSync(resolveGclPython(repoRoot, options.device), args, {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: process.env
+    });
+    if (result.error) {
+      console.error(chalk.red(`Failed to start black-box LLM reader: ${result.error.message}`));
       process.exitCode = 1;
       return;
     }
@@ -1720,9 +1903,11 @@ function integerOption(value: unknown, fallback: number, name: string): number {
   return parsed;
 }
 
-function resolveGclPython(repoRoot: string): string {
+function resolveGclPython(repoRoot: string, device: string = 'cpu'): string {
   if (process.env.GCL_PYTHON) return process.env.GCL_PYTHON;
   if (process.env.GCL_LLM_READER_PYTHON) return process.env.GCL_LLM_READER_PYTHON;
+  const gpuPython = path.join(repoRoot, '.gcl-python-gpu', 'bin', 'python');
+  if (device !== 'cpu' && fs.pathExistsSync(gpuPython)) return gpuPython;
   const projectPython = path.join(repoRoot, '.gcl-python', 'bin', 'python');
   if (fs.pathExistsSync(projectPython)) return projectPython;
   return 'python3';

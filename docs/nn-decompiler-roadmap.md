@@ -106,6 +106,421 @@ Current output-only artifact:
 benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/report.json
 ```
 
+The same reader now exposes `explain-llm-blackbox` for an arbitrary prompt
+and selected next-token target. It records bounded whitespace-delimited-span deletion
+counterfactuals, target-vs-competitor logit-margin changes, output-distribution
+shifts, exact edited prompts, and oracle-query counts. These are measured
+prompt-to-output effects, not recovered internal reasoning or a unique causal
+mechanism.
+
+Run it with:
+
+```sh
+npm run llm:read:blackbox -- --model <local-or-HF-id> --prompt '<exact model-formatted prompt>' --target-token <token>
+```
+
+Repeat
+`--contrast-token <token>` for explicit competitors; target and competitor
+arguments must each match one token in the model tokenizer, with whitespace
+included when it is part of that token. `--max-probes` bounds oracle calls
+spent on prompt-span deletion.
+
+The same existing command also supports `--trace`, which greedily generates a
+bounded response and tests selected prompt-text-unit and generated-prefix-unit
+deletions at each next-token decision:
+
+```sh
+npm run llm:read:blackbox -- --trace --model <local-or-HF-id> \
+  --prompt '<exact model-formatted prompt>' --max-new-tokens 32 \
+  --probes-per-token 4 --explanation-probes 8 --interaction-probes 2 \
+  --branch-probes 1 \
+  --response-probes 2 \
+  --top-logits 10 --device auto \
+  --output-json /path/to/trace.json --output-md /path/to/trace.md
+```
+
+In this mode, the parent reader owns tokenization and the model worker accepts
+token-ID sequences and returns next-token logits only. The report accounts for
+the baseline and intervention oracle calls and stores the greedy path,
+per-step candidates, and exact token-ID deletion interventions. A verified
+Qwen2.5-0.5B-Instruct smoke run generated `The solution to 17 + 25 is 42.`
+in 16 tokens, stopped on EOS, included generated-prefix interventions, and
+accounted for 48 oracle calls. This is one prompt-specific behavior trace, not
+a black-box explanation of the model's internal reasoning or a structural
+recovery result. The current worker recomputes logits from each complete token
+sequence; runtime scales with the number and length of probes.
+
+`--response-probes` (default `2`) selects up to that many prompt tokens from the
+already measured next-token deletion effects and regenerates a full greedy
+response for each selected deletion. The report stores the exact counterfactual
+input token IDs, full alternative response, shared output-prefix length, first
+divergent token, and additional oracle-call count. On the same Qwen prompt, the
+measured deletion of token `7` changed `The solution to 17 + 25 is 42.` to
+`1 + 25 equals 26.` at the first generated token. Deleting a newline-prefixed
+token changed the first token formatting but retained the answer. The run used
+76 total oracle calls, with exact accounting. These are
+prompt-specific response effects, not proof of semantic necessity or the
+model's internal reasoning.
+
+`--interaction-probes` (default `2`) measures bounded pairs of already-probed
+prompt/generated-prefix units, prioritizing units with the largest absolute
+single-deletion margin changes. The report stores each joint
+deletion and the residual between its observed target-vs-competitor margin and
+the margin predicted from the two individual deletion effects. This exposes
+non-additivity in these measured edits; it does not identify a hidden circuit
+or semantic reasoning step. Each selected pair adds one oracle query per
+generation step.
+
+`--branch-probes` (default `1`) selects non-greedy next-token candidates at
+each non-EOS decision and forces each candidate once. `--branch-width`
+(default `3`) bounds the number of continuations retained while the oracle
+expands their next-token distributions. The beam is ranked by cumulative
+token log-probability, stops expanding EOS paths, and cannot exceed the
+remaining `--max-new-tokens` budget. Reports include every retained
+continuation, its cumulative and mean token log-probability, first divergence,
+and measured branch query count. This tests how local token interventions
+change later observable output; it does not recover the model's hidden
+reasoning. Query cost depends on the number of live beams at each step and is
+bounded by the generation budget, beam width, and branch-probe count.
+
+The pre-beam Qwen2.5-0.5B-Instruct greedy-branch pilot used the saved
+chat-formatted arithmetic prompt and a 16-token greedy response. It measured 15
+non-EOS alternative branches with 115 branch continuation queries and 131 total
+oracle queries; worker and reader counts matched. Forcing `1` instead of the
+greedy `4` in the answer continuation changed the result to
+`The solution to 17 + 25 is 19.` Forcing `plus` instead of `+` preserved the
+answer and changed its wording. This verifies downstream behavioral effects of
+specific token choices, not a reconstruction of hidden reasoning or a complete
+model decompilation.
+
+An expanded pre-beam trace queried three alternatives per decision: 45 branches, 366
+branch continuation queries, and 382 total oracle calls with exact accounting.
+At the decision for the first answer digit, forcing `1`, `2`, or `3` led to
+answers `19`, `27`, and `32`. The public npm CLI was also smoke-tested with two
+branches and produced reconciled JSON/Markdown output. These runs predate beam
+expansion and do not verify `--branch-width`.
+
+The beam implementation is covered by synthetic oracle tests for width-two
+ranking, EOS termination, and exact query counts. A fresh Qwen beam run has not
+yet been recorded; the historical greedy-branch artifacts are not evidence for
+the new beam behavior.
+
+### Integrated Black-Box Decompiler: Current Evidence
+
+The public `gcl decompile --blackbox --model <id> --prompt <text>` command runs
+the existing process-separated token-ID/logit oracle, records a persistent
+query log and checkpoint, builds an executable behavior reconstruction, emits
+the measured dependency/interaction graph and explanation, and validates on
+held-out prompt formulations and input interventions. `gcl predict-blackbox`
+executes the saved reconstruction without starting an oracle; it still loads
+the selected tokenizer to encode and decode prompts.
+
+Prompt encoding defaults to `--prompt-format auto`: tokenizers with a chat
+template receive the prompt as a user message plus the template's generation
+prefix; other tokenizers retain raw-text encoding. The selected format is
+stored in the reconstruction and reused by `predict-blackbox`. Use
+`--prompt-format raw` to opt out or `--prompt-format chat-template` to require
+a template explicitly.
+
+The report keeps the measurements separate: token and rollout fidelity,
+full-response exact match, paired counterfactual effect, individually
+held-out dependencies, held-out pair next-token outcome, and held-out additive
+interaction residual. Validation cases include oracle context/query-ID
+provenance. A metric is `null` when the required independent intervention is
+unavailable. Full-response match is scored only when the oracle generation
+ends at the tokenizer's configured EOS; a max-token-capped response is marked
+incomplete instead of counting an identical truncated prefix as a complete
+match. The implementation uses measured local deletion effects plus
+nearest-observation voting. Unmeasured pair residuals use a similarity kernel
+over single-deletion effect signatures, token overlap, and prompt position, and
+are calibrated independently for each decision-frontier margin against a
+zero-residual baseline. A residual is applied only when that margin's
+leave-one-pair-out MAE improves by the existing minimum 10%; rejected
+alternatives receive the anchor residual so their additive margin is unchanged.
+If none pass, all residuals are zeroed. The artifact records accepted/rejected
+margin counts and the application policy. It does not recover hidden
+activations or uniquely identify internal reasoning.
+
+The factorial validation split keeps two tests distinct: one pair with unseen
+singleton interventions for dependency generalization, and (when enough
+singleton dependency holdout, and (when enough distinct input units remain) a
+disjoint pair whose component singleton interventions are measured in training
+while its joint deletion is held out. The selector requires at least three
+remaining trainable units and rejects ambiguous duplicate-token contexts. The
+held-out-case builder validates the reserved pair specifically rather than
+substituting a default endpoint pair. If no second pair qualifies, the central
+pair remains the dependency holdout and no interaction holdout is claimed. A
+synthetic regression checks training-only component query IDs and a
+validation-only joint query ID; this protocol change alone does not establish
+improved Qwen response fidelity.
+
+On a fresh matched-prompt Qwen run (77 unique queries, budget 96), the selected
+held-out interaction pair had training-only singleton evidence and a
+validation-only joint query, but its oracle next token `785` was predicted as
+`4498`. Token/rollout fidelity was `0.5`; full-response match remained `0.0`
+because the held-out counterfactual still diverged at EOS. This run validates
+the evidence split and exposes a predictive failure, not an improvement over
+the frozen run: its earlier interaction case used a different token pair.
+Residual-margin scoring now requires reconstructed scores for both compared
+tokens in all four contexts and reports unsupported residuals as unavailable,
+not as an extreme sentinel error.
+
+A separate role-swap trial measured the same central joint counterfactual:
+the model's first-token match fell from `1/2` to `0/2` (prediction changed
+from `[16, 18]` to `[23, 16]`, oracle `[16, 151645]`). That assignment was not
+retained; the overall metrics from its different holdout split are not paired.
+
+The historical exact-response values below predate explicit completion
+tracking. They compare the token sequences captured within each configured
+limit and must not be interpreted as EOS-confirmed full-response fidelity.
+
+The same public operation also completed a local GPT-2 (`GPT2LMHeadModel`)
+run with 9/20 unique queries and matching accounting. Its held-out token and
+full-response fidelity were both `0.0`; this verifies the GPT-2 oracle route,
+not a useful generalization result. No equivalent integrated-decompiler run
+has yet verified LLaMA or Mistral compatibility.
+
+A fresh Qwen2.5-0.5B-Instruct CLI run on `Solve 6 + 7 and reply with the
+result.` generated ` 13\nTo solve the equation` in eight tokens, used 69 unique
+oracle queries within a budget of 100, and reconciled both session and worker
+query accounting. The saved reconstruction reproduced that exact prompt's
+eight-token output through `predict-blackbox` with `oracleAccess = false`.
+However, held-out validation measured token fidelity `0.2917`, rollout token
+fidelity `0.25`, full-response exact match `0.0`, paired counterfactual
+effect accuracy `1.0`, dependency accuracy `1.0` over two interventions,
+held-out pair next-token accuracy `1.0` over two pairs, interaction residual
+sign accuracy `0.0` over one pair, and residual MAE `1.0`. In that additive
+test, the oracle's interaction residual was `+0.875` and the reconstruction
+predicted `-0.125`. The paired counterfactual response was also `100` from the
+oracle versus `13` from the reconstruction. Thus exact-context execution,
+query accounting, and measured local effects are verified, but this run does
+not verify response generalization or the requested complete black-box
+decompilation capability.
+
+With the same Qwen model and the complete default probe settings on
+`What is 9 - 4? Reply with only the result.`, EOS arrived after two tokens,
+so the decompiler used remaining safe budget to expand pairwise probes from
+one to five per generated token while reserving an unseen pair for validation.
+It used 51 unique queries within budget 512, with both accounting checks
+matching. Three held-out responses were EOS-complete; token, rollout, and
+full-response fidelity were `1.0`, and held-out pair next-token accuracy was
+`1.0`. Dependency accuracy was `1.0` over two cases that both measured no
+dependency. The unseen interaction residual sign accuracy was `0.0` and its
+mean absolute error was `2.6875`. This is evidence for correct output and
+next-token behavior on this prompt, but also direct evidence that the measured
+interaction magnitude did not generalize.
+
+On the distinct comparison prompt `Compare 7 and 12. Which number is larger?
+Reply with only the number.`, the oracle and oracle-free reconstruction both
+generated `12` followed by EOS. The run used 58 unique queries within budget
+512 and 109 logical calls, with session and worker accounting matching.
+Held-out token fidelity was `0.875`, rollout fidelity `0.75`, and
+full-response fidelity `2/3`. The held-out formulation and counterfactual
+responses matched, but the held-out interaction case was oracle `7` versus
+reconstruction `12`; interaction next-token accuracy was `0.5` over two cases
+and interaction residual sign accuracy was `0.0`. This is a second concrete
+failure of causal generalization despite a correct baseline response.
+After adding a cross-pair residual kernel with leave-one-pair-out gating, this
+prompt's unmeasured interaction estimate was rejected: the gate measured
+kernel MAE `0.4711` versus zero-residual MAE `0.4968` on training pairs, so it
+kept the additive prediction. Held-out residual MAE returned to `0.75` from
+the ungated kernel's `0.81745`, but the answer remained `12` instead of `7`.
+This improves calibration behavior without solving the causal failure.
+
+A fresh 2026-11-03 run of that comparison prompt used a 120-query budget and
+the process-separated token-ID-to-logits Qwen oracle. Adaptive context probing
+expanded from 4 to 12 probes per generated-token decision while reserving two
+editable input units; pair probing expanded from 1 to 15 per decision. The run
+used 92 unique oracle queries, with both session and worker accounting
+matching. The access report records weights, hooks, and activations as unused
+by the solver and marks post-hoc witness access separately. On three
+EOS-complete held-out responses, token and rollout fidelity were `0.875`, full
+response exact match was `2/3`, and explanation evidence coverage was `1.0`.
+Held-out interaction next-token accuracy was `1.0` over two cases, but
+dependency reconstruction accuracy was `0.0` over two cases; interaction
+residual sign accuracy remained `0.0` over one measured residual (MAE `1.25`).
+Replaying the saved executable predictor without oracle access showed that both
+held-out singleton predictions used generic similarity-weighted observation
+voting (confidence `0.430` and `0.419`), while the baseline used an exact
+observed-context lookup. The failed dependency score therefore did not come
+from an intervention-effect model; the new validation output records prediction
+methods, confidence, evidence IDs, and intervention-model coverage separately.
+The saved reconstruction reproduced the baseline `12` response through the
+oracle-free prediction command using an exact observed context. The result
+demonstrates the expanded query allocation and successful held-out interaction
+outputs on this prompt, while the dependency and residual metrics still fail
+to establish causal generalization. The report and executable reconstruction
+are retained as session artifacts.
+
+On 2026-11-03, the same Qwen model was rerun for `What is 9 - 4? Reply with
+only the result.` using the tokenizer's chat template (`--prompt-format auto`).
+The oracle generated `5` followed by its end-of-turn token in two tokens,
+including on the held-out formulation; that case had exact-response match and
+the reported token prediction fidelity was `1.0`. The run used 8 unique
+queries with matching session/worker accounting, and `predict-blackbox`
+reproduced `5` with `oracleAccess = false`. This is a verified single-prompt
+improvement over the earlier raw-text run, not evidence of broad
+generalization.
+
+For `Compare 8 and 13. Which number is larger? Reply with only the number.`,
+a fresh isolated Qwen2.5-0.5B-Instruct run used 77 unique oracle queries from
+the 96-query budget (140 logical calls); session and worker accounting
+matched. The report's dependency method aggregation now includes assessments
+from every validation case: both held-out dependency predictions used
+`calibrated_local_intervention_transfer`, yielding intervention-model coverage
+`1.0` and dependency accuracy `1.0` over two cases. Interaction accuracy was
+`1.0` over two cases, but interaction residual sign accuracy remained `0.0`
+over one measurement (MAE `1.0`). Token and rollout fidelity were `0.8333`;
+only one oracle response was EOS-complete and full-response exact match was
+`0.0`. Thus the corrected aggregate is supported by a fresh report, but the
+prompt still does not establish full-response or interaction-residual
+generalization.
+
+The next implementation adds calibrated pair-interaction prediction when
+exactly two editable spans are both represented by local single-intervention
+transfer. The executable artifact stores the estimated effect of each span,
+uses those signatures to compare against measured training pairs, and includes
+the tokenizer EOS token in the leave-one-pair-out decision frontier. It also
+normalizes serialized pair-residual token IDs before adding scores. The fresh
+77-query Qwen run exercised this path on the held-out counterfactual, but it
+did not improve the response: oracle `[16, 151645]`, reconstruction
+`[16, 18]`. Token and rollout fidelity remained `0.8333`, dependency accuracy
+was `1.0/2`, interaction accuracy `1.0/2`, residual-sign accuracy `0.0/1`,
+and complete-response exact match `0.0/1`. This is a verified path execution
+and a negative response-generalization result, not a successful decompilation
+gate.
+
+A paired follow-up applies individually calibrated frontier margins instead
+of rejecting the entire residual when any one alternative fails calibration;
+the per-margin 10% leave-one-pair-out threshold is unchanged. On the same
+prompt, 96-query budget, two-token cap, holdout pair, and 77 unique oracle
+queries, the held-out interaction prediction improved from `[4498, 1249]` to
+`[785, 1249]` against oracle `[785, 1372]`. Token and rollout fidelity
+increased from `0.5` to `0.6667`, and interaction next-token accuracy from
+`0.5` to `1.0`; interaction residual MAE remained `0.75` and sign accuracy
+remained `0.0`. The held-out counterfactual still predicted `[16, 18]` against
+`[16, 151645]`, and full-response exact match remained `0.0`. Session and
+worker counts both matched at 77; component evidence `q000004` and `q000005`
+was training-only, while joint validation query `q000076` remained
+independent. The saved reconstruction generated `[16, 18]` offline with
+`oracleAccess = false`. This is a paired predictive improvement on one prompt,
+not successful general-purpose decompilation or broad generalization.
+
+Held-out counterfactual dependency validation now compares baseline and edited
+oracle decisions at every generated token, using the same actual counterfactual
+prefix for both contexts. Per-token records preserve prediction methods,
+confidence, and separate baseline/counterfactual oracle query IDs. A synthetic
+two-token regression verifies a case with no first-token dependency and a
+dependency only at token two. The Markdown explanation exports this per-token
+comparison and its oracle provenance. A fresh isolated Qwen2.5-0.5B-Instruct
+run used 77 unique queries within budget 96 (142 logical calls), with both
+worker and session accounting matching. Across its two held-out autoregressive
+dependency positions, accuracy was `0.5`: the first position had no oracle
+dependency and was predicted correctly; at prefix `[16]`, the oracle
+counterfactual predicted EOS `151645` while the baseline predicted `18`, but
+the reconstruction predicted `18` for both. Token and rollout fidelity were
+`0.8333`, while full-response exact match remained `0.0`. This is direct
+evidence that the new metric detects the later-token miss; it does not resolve
+the existing Qwen counterfactual-response failure or establish broad
+generalization.
+
+To test whether more observed formulations improve this result, two new
+Qwen2.5-0.5B-Instruct runs used the same prompt and eight-token limit. With one
+training wrapper, the run used 77 unique oracle queries and 108 logical calls;
+with both available wrappers, it used 85 unique queries and 116 logical calls.
+Worker and session accounting matched in both runs. Token fidelity rose from
+`0.2917` in the earlier run to `0.4583`, but rollout fidelity fell from `0.25`
+to `0.125`. Adding the second training wrapper did not change those scores.
+On the held-out wrapper, the reconstruction predicted ` 13\nTo solve the
+equation` while the oracle generated ` The sum of 6 and 7`: token accuracy was
+`0.0` over eight tokens and exact-response match was false. This is direct
+evidence that the added wrapper traces enter the artifact but the current
+nearest-observation predictor does not generalize across these prompt
+formulations. The report now records query-linked formulation contrasts: the
+first training wrapper diverged from the baseline after three generated
+tokens, with a pairwise-margin shift of `-1.125`; the second diverged at the
+first token, with a shift of `-3.1875`. These are whole-prompt contrasts, not
+isolated token causes. The option rejects counts above the two currently
+implemented training wrappers; it does not silently report unexecuted probes.
+
+The reconstruction now also builds prompt-formulation experts by separating
+the exact investigated prompt text from each wrapper's prefix and suffix. This
+uses the original prompt surface rather than requiring identical tokenizer
+boundaries: Qwen merged the baseline prompt's final punctuation with wrapper
+newlines, which had silently excluded both wrapper paths from the first expert
+prototype. A character n-gram kernel selects and combines compatible measured
+experts at each matching generated prefix. The independent held-out report
+records the selected expert and its oracle query IDs.
+
+`predict-blackbox --prediction-beam-width N` preserves the top executable
+response routes instead of forcing a single greedy continuation. Validation
+separately measures two-route response coverage; this set metric does not
+replace top-response fidelity. On the `6 + 7` held-out wrapper, the top
+two-route candidate was exactly the oracle's ` The sum of 6 and 7`, and the
+public prediction command reproduced it with `oracleAccess = false`. The
+single-route held-out response remained wrong, and aggregate two-route
+coverage was only `1/3` across the three validation cases.
+
+A second Qwen prompt, `What is 9 - 4? Reply with only the result.`, was tested
+with a 140-query budget. The held-out oracle generated ` 5.Human: What is`;
+the reconstruction's two-route coverage was `0/3`. Increasing measured
+branch exploration to three probes at width three used 148 unique oracle
+queries (298 logical calls, with worker/session accounting matching) but still
+did not include that held-out response among the two validation candidates.
+A separate public prediction with beam width four returned ` The result of
+9 - 4`, not the measured held-out output. These runs show a useful alternative
+route can be preserved when it was measured, but do not establish prompt
+generalization; the second input remains a counterexample.
+
+The existing trace also runs a budgeted minimal-sufficient-context search for
+every greedy next-token decision. It removes whitespace-aware text units while
+preserving the target argmax, protects special tokens and chat headers, rotates
+input probes across unmeasured units, and records exact retained token IDs plus
+single-unit deletion witnesses when the budget permits. A fresh
+Qwen2.5-0.5B-Instruct run on the chat-formatted addition prompt generated
+`The solution to 17 + 25 is 42.` in 16 tokens. It used 192 oracle queries:
+16 baseline decisions, 32 bounded context-unit interventions, 114
+sufficient-context queries, and 30 full-response counterfactual queries.
+Deleting the measured `25` unit changed the response to
+`The equation 17 + 0 equals 17.`; deleting the measured `explain` unit retained
+the original response. Accounting matched the oracle worker. Eight of the 16
+decisions reached one-minimality among editable text units; the other eight
+were explicitly budget-limited. No global minimum or hidden reasoning chain is
+established. The report's access contract states token-ID-to-logits-only solver
+access and marks weights, hooks, and activations unused. This is measured,
+prompt-specific behavior evidence; it does not claim complete LLM
+decompilation.
+
+The existing instrumented `explain-llm` command also routes Qwen2, LLaMA, and
+Mistral models through their registered SwiGLU adapters. `--layers all` scans
+every MLP layer in one hooked forward pass, reconstructs the measured
+SiLU-gate/value products and down-projection outputs from captured tensors,
+selects the highest-contribution channels, then performs full-model
+single-channel causal ablations and one amplitude-matched active plus one
+inactive control per selected layer:
+
+```sh
+npx ts-node src/cli/index.ts explain-llm --model Qwen/Qwen2.5-0.5B-Instruct \
+  --prompt '<exact model-formatted prompt>' --layers all --top-neurons 12 \
+  --top-logits 8 --device cuda --json --output /path/to/reader.json
+```
+
+The command name is historical; the `--model` value determines architecture
+routing. A verified Qwen2.5-0.5B-Instruct run scanned all 24 layers. The
+captured SwiGLU products and down projections matched the measured module
+outputs in all 24 layers (maximum absolute errors `9.54e-7` and `3.06e-4`).
+For the prompt `Solve 17 + 25 and explain briefly in one sentence.`, four
+high-scoring channels were causally ablated in layer 23; the largest measured
+selected-unit effect on the top candidate logits was `3.608`, versus `0.0925`
+for the maximum active amplitude-matched control and `0` for the inactive
+control. The run accounted for 7 full-model forward passes: 1 baseline, 4
+unit ablations, and 2 control ablations. The text report was also checked for
+the same prompt and all-layer operator-validation summary. This is concrete
+instrumented evidence about one model decision, not black-box decompilation or
+a full account of the model's reasoning. Attention pathways, interactions
+among multiple units, alternative prompts, and semantic generalization remain
+outside this command's current report.
+
 Current output-only result:
 
 - pass `true`;
@@ -2597,20 +3012,24 @@ isolation bound `(n^2-n+2)/4 = 14.5` says solutions stop being isolated, so the 
 where the geometry does rather than where its own conditioning gives out - which also makes that
 bound a prediction that held rather than a correction after the fact.
 
-Scope, and it is narrower than the table looks. The span `W` here is built analytically from the
-true gates and ups, not measured from an oracle. What is verified is the extraction step, not the
-whole chain. Joining it to a measured span - `W` from third derivatives at several base points,
-which is where the rank was shown to be available - is the remaining work, and until that runs
-this is recovery from a span rather than recovery from an oracle. Reproduce with
-`--recover-sweep`.
+Scope is still synthetic, but the measured span is now connected to extraction. The new
+`recover_gates_from_measured_oracle` boundary accepts an oracle callable plus the public input and
+response dimensions; it has no teacher, weight, or unit-count argument. It measures the lifted
+span from oracle evaluations at multiple base points, reports the count implied by `rank / 2`,
+and then runs the overcomplete minor-nullspace extraction. That implied count equals the total
+only when the measured span is complete; rank alone cannot reveal silent or unobserved units. In
+the CPU gate at `n=8`, response width `m=8`, and `k=10`, the measured span rank is 20, the
+span-implied count is 10, all ten gates match post-hoc truth above cosine 0.99, and the run spends
+8640 oracle points. A locked wrapper refuses truth and count access during recovery; truth is
+unlocked only for the test's post-hoc score.
+Reproduce with `--oracle-recover 10 --input-dim 8 --reach-width 8 --base-count 3 --readers 8`.
 
-What this changes and what it does not. The units behind a too-narrow answer are separable in
-what the oracle can be made to show - that is the necessary condition, and it is now measured
-rather than assumed against. It is not a recovery: the pencil still needs `2k <= n`, and nothing
-here has recovered `k > n` units. The refusal in the solver stays correct for what the solver
-does. What is retracted is only the wider reading that a layer wider than its answer cannot be
-read at all; the wall that a whole-layer method has to beat is the input dimension, not the
-response width. Reproduce with `--base-point-sweep`.
+This verifies the measured-span-to-extraction chain on a small synthetic oracle, not on a live
+model or a whole layer. The harness still constructs the synthetic teacher and uses its weights
+only after recovery for scoring. The real-model blind SwiGLU route remains a separate integration
+gate: it must pass the same callable-only recovery without giving the solver unit-count metadata.
+The response-width result above remains a measured separability condition, not evidence that a
+live layer has been recovered. Reproduce that condition with `--base-point-sweep`.
 
 ## Direction 2: 3D / General-ND Hyperplane Stitching
 
@@ -2764,3 +3183,99 @@ Boundary:
 
 - Do not call this "exact deep reverse engineering" unless hidden activations
   or strict identifiability assumptions are part of the gate.
+
+## Real Qwen full-module oracle pilot (2026-11-01)
+
+The first Qwen2.5-0.5B layer-0 full-MLP activation/oracle pilot is recorded in
+[the research report](./research/2026-11-01-qwen2.5-0.5b-swiglu-oracle-recovery.md).
+The target is the real `model.layers.0.mlp` SwiGLU module (896 input/output,
+4864 intermediate units), not a synthetic teacher. Four disjoint natural
+activation partitions contain 175 token samples total; a separate opaque
+oracle set contains 32 generated probes. The artifact verifier independently
+replayed each saved token sequence against the local model, with recorded
+maximum input/output deltas of `0.0`.
+
+The first full-dimension adaptive-distillation attempt queried the real oracle
+73,728 times at 896 inputs/outputs and selected a 256-component student. It
+remains a preserved baseline, not a reconstruction. A follow-up implemented
+function-preserving width continuation with streamed down-projection fitting,
+and ran against a separate expanded capture. The solver still receives no
+teacher weights, hooks, component identities, or hidden-unit count; the
+selected 2,048-component student is a validation-selected surrogate width, not
+an estimate of Qwen's 4,864 hidden components.
+
+The follow-up used 1,111 natural recovery observations and 73,728 oracle
+points. Independent post-hoc evaluation on 549 prompt-disjoint natural vectors
+measured NMSE `0.3567`; on 537 distributional vectors, NMSE was `0.3443`.
+Structural comparison found zero gate matches at absolute cosine `0.99`
+(median absolute gate cosine `0.1371`). This is a partial functional fit, not
+hidden-structure recovery.
+
+The RSS measurement was corrected to `/proc/self/status:VmHWM` after the
+legacy `ru_maxrss * 1024` value disagreed sharply with same-process VmHWM
+measurements. In the final race-clean run, parent VmHWM was
+`3,098,435,584` bytes; a 50-ms monitor measured combined parent/oracle-child
+PSS peaking at `3,793,379,328` bytes (`3.53 GiB`) across 457 samples, below
+the 4-GiB host budget. The oracle child's VmHWM was `3,710,382,080` bytes.
+Solver-sampled whole-device use peaked at `5,063,376,896` bytes. A separate
+1-second GPU sampler recorded 79 samples, mean utilization `39.90%`, and
+maximum `99%`. Functional, distributional, and structural success gates
+remain blocked. See the [research
+report](./research/2026-11-01-qwen2.5-0.5b-swiglu-oracle-recovery.md), [solver
+report](../benchmarks/release/real-qwen2.5-0.5b-layer0-swiglu/adaptive-swiglu-split-continuation-natural75-final-tree-verified/distillation-report.json),
+[independent evaluation](../benchmarks/release/real-qwen2.5-0.5b-layer0-swiglu/adaptive-swiglu-split-continuation-natural75-final-tree-verified/evaluation-report.json),
+and [raw GPU samples](../benchmarks/release/real-qwen2.5-0.5b-layer0-swiglu/adaptive-swiglu-split-continuation-natural75-final-tree-verified/gpu-utilization-samples.csv).
+
+### Amplitude-polarity experiment (2026-11-01)
+
+The opaque Qwen SwiGLU oracle was queried at 12 amplitudes and both signs for
+96 provenance-tracked directions (2,304 points total). Independent replay
+matched to maximum per-sample relative L2 error `7.04e-7`. None of the
+directions met the predeclared 1% response-stability criterion by amplitude
+512; asymptotic-limit median relative error ranged from `0.47%` to `1.37%`
+across direction sets and signs. The exact limiting responses obey
+`P(-u)=N(u)`, so polarity is not an independent limiting-response family.
+Post-hoc component signatures were calculated only by the independent
+weight-reading evaluator and cannot be treated as oracle-only recovery. No
+reconstruction algorithm was justified or run. The next candidate is adaptive
+activation-boundary localization along oracle-only lines, gated first on exact
+synthetic component identifiability. See the [measured experiment and limits](./research/2026-11-01-qwen2.5-0.5b-swiglu-oracle-recovery.md#amplitude-polarity-trajectory-experiment),
+[probe report](../benchmarks/release/real-qwen2.5-0.5b-layer0-swiglu/amplitude-polarity-response/probe-report.json),
+and [post-hoc report](../benchmarks/release/real-qwen2.5-0.5b-layer0-swiglu/amplitude-polarity-response/evaluation-report.json).
+
+An optional central-difference oracle-JVP loss was added to this continuation
+solver and kept disabled by default. Synthetic exact-SwiGLU validation improved
+in two small cases at weight `0.05`, but three full-width Qwen runs failed to
+beat the output-only baseline. The best JVP run measured natural functional /
+distributional NMSE `0.4052` / `0.3919` versus `0.3567` / `0.3443` without
+JVP; the lower-weight run scored `0.4204` / `0.4092`. All three JVP runs had
+zero gates matched at cosine `0.99`. The 0.01-weight run used 73,728 oracle
+points, selected a 1,024-component student, took 60.36 s, and had sampled
+parent-plus-oracle PSS peak `4,104,059,904` bytes (`3.82 GiB`); its separate
+GPU sampler recorded 153 samples at mean utilization `41.60%`, maximum `99%`.
+These are negative recovery results, not evidence that the derivative
+formulation is structurally identifiable or that JVP caused the baseline gap.
+See the [JVP research results](./research/2026-11-01-qwen2.5-0.5b-swiglu-oracle-recovery.md#oracle-jvp-supervision-pilot),
+[low-weight solver and evaluation reports](../benchmarks/release/real-qwen2.5-0.5b-layer0-swiglu/adaptive-swiglu-jvp-natural75-weight001-fraction025/),
+and [raw GPU samples](../benchmarks/release/real-qwen2.5-0.5b-layer0-swiglu/adaptive-swiglu-jvp-natural75-weight001-fraction025/gpu-utilization-samples.csv).
+
+### SwiGLU hidden-structure observability screen (2026-11-01)
+
+Three equal-budget synthetic query organizations—coordinate erasure,
+complementary coordinate blocks, and sparse/dense/correlated activation
+environments—were evaluated on 21 exact SwiGLU teachers, with 32,256 raw
+oracle points and 84 hashed observation files. None met the preregistered
+two-of-three-seed improvement threshold for both median and P95 post-projection
+component-signature cosine. Those signatures are post-hoc evaluator diagnostics,
+not oracle-only solver inputs. No recovery solver or real-Qwen query was
+justified. The study also verifies exact permutation/scaling, duplicate-gate
+GL(2), and zero-output-column equivalences; generic full-rank identifiability
+remains unproven.
+
+Next gate: use synthetic output observations to estimate reachable output-span
+rank, validate rank-1/rank-3 controls and sample/noise failure modes, and report
+the distinction between `rank(D)` and hidden component count. Do not query Qwen
+until an oracle-only structural signal or recovery result—not just a
+teacher-weight-dependent signature diagnostic—passes synthetic controls. See
+the [full hypotheses, derivations, measurements, and scope limits](./research/2026-11-01-qwen2.5-0.5b-swiglu-oracle-recovery.md#synthetic-hidden-structure-observability-study-2026-11-01)
+and the [raw synthetic observations and evaluator report](../benchmarks/research/swiglu-hidden-structure-observability/).

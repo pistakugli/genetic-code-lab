@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-real-qwen-activation-verification",
+  "status": "verified",
+  "captureReportSha256": "997ba2f55bf8378a2f72eca4dbbb31f1d54149391986220f10146a3a6d610d99",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "module": "model.layers.0.mlp",
+  "verificationMode": "independent_posthoc_white_box_replay",
+  "groundTruthWeightsReadByVerifier": true,
+  "groundTruthWeightsProvidedToRecoverySolver": false,
+  "tolerance": 1e-05,
+  "artifactIntegrity": {
+    "distributional_analysis": {
+      "sha256": "3ee281917671b0e66237a096224f3ec03908a3a2513328c0f9dac610e95eb302",
+      "samples": 38
+    },
+    "functional_evaluation": {
+      "sha256": "5282eee0cb0d9ba7d2281c921efae812c3bf2427d7d6069787e52a81773f994c",
+      "samples": 56
+    },
+    "generated_oracle_probes": {
+      "sha256": "a66fc79a6049c40e34294067745d87872fa1c9d24926d26f7578521ef4811c46",
+      "samples": 32
+    },
+    "recovery_observations": {
+      "sha256": "5eed4aa7a990edcd3e4ac7458760a33ce8cbf6f723ab718c408bb595a322618d",
+      "samples": 42
+    },
+    "structural_evaluation": {
+      "sha256": "730e1f213c5da6bce14e13b328aa5cb5de6564de38469e7dbfbc15fd2db1e7a3",
+      "samples": 39
+    }
+  },
+  "naturalDatasetReplays": {
+    "recovery_observations": {
+      "samples": 42,
+      "prompts": {
+        "recovery-01": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        },
+        "recovery-02": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        },
+        "recovery-03": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        }
+      },
+      "maxInputAbsDelta": 0.0,
+      "maxOutputAbsDelta": 0.0
+    },
+    "functional_evaluation": {
+      "samples": 56,
+      "prompts": {
+        "functional-01": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        },
+        "functional-02": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        },
+        "functional-03": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        }
+      },
+      "maxInputAbsDelta": 0.0,
+      "maxOutputAbsDelta": 0.0
+    },
+    "structural_evaluation": {
+      "samples": 39,
+      "prompts": {
+        "structural-01": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        },
+        "structural-02": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        },
+        "structural-03": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        }
+      },
+      "maxInputAbsDelta": 0.0,
+      "maxOutputAbsDelta": 0.0
+    },
+    "distributional_analysis": {
+      "samples": 38,
+      "prompts": {
+        "distribution-01": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        },
+        "distribution-02": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        },
+        "distribution-03": {
+          "inputMaxAbsDelta": 0.0,
+          "outputMaxAbsDelta": 0.0
+        }
+      },
+      "maxInputAbsDelta": 0.0,
+      "maxOutputAbsDelta": 0.0
+    }
+  },
+  "generatedOracleProbeMaxAbsDelta": 0.0,
+  "verificationSeconds": 2.7657529660500586
+}

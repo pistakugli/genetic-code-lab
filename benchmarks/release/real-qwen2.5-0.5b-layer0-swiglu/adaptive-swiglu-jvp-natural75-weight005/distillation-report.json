@@ -1,0 +1,569 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-oracle-only-swiglu-split-continuation",
+  "algorithm": "function-preserving-unit-splitting-with-streamed-variable-projection-and-oracle-jvp-supervision",
+  "solverAccess": "oracle-only",
+  "weightsUsedBySolver": false,
+  "hooksUsedBySolver": false,
+  "hiddenUnitCountProvidedToSolver": false,
+  "teacherComponentIdentitiesProvidedToSolver": false,
+  "teacherComponentCountInferred": false,
+  "inputDim": 896,
+  "outputDim": 896,
+  "publicActivationFamily": "silu-swiglu",
+  "biases": false,
+  "candidateWidthPolicy": "geometric-function-preserving-splitting-selected-by-held-out-oracle-nmse",
+  "trainingConfig": {
+    "stepsPerStage": 1000,
+    "batchSize": 128,
+    "learningRate": 0.001,
+    "splitPerturbation": 0.06,
+    "projectionRidge": 1e-06,
+    "projectionInterval": 250,
+    "projectionBatchSize": 512,
+    "targetNaturalTrainingBatchFraction": 0.75,
+    "directionalDerivativeWeight": 0.05,
+    "directionalDifferenceStep": 0.02
+  },
+  "probeDistribution": {
+    "sampler": "natural-mean-preserving-shrinkage-covariance-gaussian",
+    "naturalRecoverySamples": 1111,
+    "empiricalCovarianceRankBound": 896,
+    "isotropicShrinkage": 0.15,
+    "radialShellMultipliers": [
+      0.45,
+      0.75,
+      1.0,
+      1.4
+    ]
+  },
+  "selectedCandidateComponents": 256,
+  "studentWidthSelectedByMeasurements": true,
+  "selectionScore": 0.7356906012194219,
+  "selectionScoreMetric": "functional_nmse_plus_weighted_directional_derivative_nmse",
+  "selectedCandidateValidationNormalizedMse": 0.690168284086966,
+  "selectedCandidateValidationDirectionalDerivativeNormalizedMse": 0.9104463426491176,
+  "candidateStages": [
+    {
+      "candidateComponents": 1,
+      "validation": {
+        "relativeError": 0.8968763767939381,
+        "normalizedMse": 0.9994201765155826,
+        "meanSquaredError": 0.014449108506306582,
+        "cosineSimilarityMean": 0.5629507624568942
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 1.003039861112288,
+        "normalizedMse": 1.0063540652015064,
+        "meanSquaredError": 5.7968799255687436e-05,
+        "cosineSimilarityMean": 0.03866779108707382
+      },
+      "selectionScore": 1.0497378797756578,
+      "validationShellNormalizedMse": [
+        1.1291189801663373,
+        1.010971214388112,
+        0.9995798403485973,
+        1.0143828106278368
+      ],
+      "trainingObservations": 33879,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 2,
+      "validation": {
+        "relativeError": 0.8832860582504805,
+        "normalizedMse": 0.9693613368958783,
+        "meanSquaredError": 0.014014533094038025,
+        "cosineSimilarityMean": 0.58417878008701
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 1.003977313519302,
+        "normalizedMse": 1.008236044049422,
+        "meanSquaredError": 5.80772064831342e-05,
+        "cosineSimilarityMean": 0.044999705085750186
+      },
+      "selectionScore": 1.0197731390983495,
+      "validationShellNormalizedMse": [
+        1.0456437285413995,
+        0.9496680065110702,
+        0.9585544472302299,
+        0.9934068357772159
+      ],
+      "trainingObservations": 33879,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 4,
+      "validation": {
+        "relativeError": 0.8714374301972587,
+        "normalizedMse": 0.9435292377625789,
+        "meanSquaredError": 0.013641065745576011,
+        "cosineSimilarityMean": 0.5996865179032944
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 1.0042019551948056,
+        "normalizedMse": 1.0086872836743814,
+        "meanSquaredError": 5.810319914331215e-05,
+        "cosineSimilarityMean": 0.06193824084684843
+      },
+      "selectionScore": 0.993963601946298,
+      "validationShellNormalizedMse": [
+        0.9888980153281454,
+        0.9112975570835259,
+        0.9285078381290692,
+        0.9712259940014508
+      ],
+      "trainingObservations": 33879,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 8,
+      "validation": {
+        "relativeError": 0.8635154734639737,
+        "normalizedMse": 0.9264525711864254,
+        "meanSquaredError": 0.013394179987130437,
+        "cosineSimilarityMean": 0.615191780696251
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 1.0056059479071133,
+        "normalizedMse": 1.0115097828498605,
+        "meanSquaredError": 5.826578296322242e-05,
+        "cosineSimilarityMean": 0.07880065908775338
+      },
+      "selectionScore": 0.9770280603289184,
+      "validationShellNormalizedMse": [
+        0.8614351534291135,
+        0.8691440960823746,
+        0.9065814075911177,
+        0.9629271688949906
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 16,
+      "validation": {
+        "relativeError": 0.847702527669601,
+        "normalizedMse": 0.89283231139737,
+        "meanSquaredError": 0.012908115373750376,
+        "cosineSimilarityMean": 0.6371194305983494
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 1.0026590371539483,
+        "normalizedMse": 1.0055900457434217,
+        "meanSquaredError": 5.792478960528246e-05,
+        "cosineSimilarityMean": 0.11852966992847778
+      },
+      "selectionScore": 0.943111813684541,
+      "validationShellNormalizedMse": [
+        0.7940444268742765,
+        0.8165781501274483,
+        0.8668300915126684,
+        0.9343729811632672
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 32,
+      "validation": {
+        "relativeError": 0.8263271686110106,
+        "normalizedMse": 0.8483733288949286,
+        "meanSquaredError": 0.012265350021046147,
+        "cosineSimilarityMean": 0.6659912071497829
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 0.9941908697463648,
+        "normalizedMse": 0.9886759307860654,
+        "meanSquaredError": 5.695048943752363e-05,
+        "cosineSimilarityMean": 0.1822998545579162
+      },
+      "selectionScore": 0.8978071254342318,
+      "validationShellNormalizedMse": [
+        0.6977468824155272,
+        0.7447129211492645,
+        0.8078528555463702,
+        0.8992158954586853
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 64,
+      "validation": {
+        "relativeError": 0.7930954652577709,
+        "normalizedMse": 0.7815088060202379,
+        "meanSquaredError": 0.011298656763354285,
+        "cosineSimilarityMean": 0.7045086366079197
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 0.978611083130905,
+        "normalizedMse": 0.9579319985013907,
+        "meanSquaredError": 5.5179553242632914e-05,
+        "cosineSimilarityMean": 0.2643974501575177
+      },
+      "selectionScore": 0.8294054059453074,
+      "validationShellNormalizedMse": [
+        0.56800693597351,
+        0.6445755704360102,
+        0.7276876917668409,
+        0.8420095477824232
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 128,
+      "validation": {
+        "relativeError": 0.7608219289457387,
+        "normalizedMse": 0.7191988527215218,
+        "meanSquaredError": 0.010397811155679077,
+        "cosineSimilarityMean": 0.7379158254865495
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 0.9600650761694958,
+        "normalizedMse": 0.9219678229705801,
+        "meanSquaredError": 5.3107916485917056e-05,
+        "cosineSimilarityMean": 0.3354359587887782
+      },
+      "selectionScore": 0.7652972438700508,
+      "validationShellNormalizedMse": [
+        0.44956479177017644,
+        0.5481644139779739,
+        0.6515170295039845,
+        0.7894871543166495
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 256,
+      "validation": {
+        "relativeError": 0.7453084200079224,
+        "normalizedMse": 0.690168284086966,
+        "meanSquaredError": 0.009978101962231612,
+        "cosineSimilarityMean": 0.7549801272376727
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 0.95404743343493,
+        "normalizedMse": 0.9104463426491176,
+        "meanSquaredError": 5.2444247104555264e-05,
+        "cosineSimilarityMean": 0.3750984042375115
+      },
+      "selectionScore": 0.7356906012194219,
+      "validationShellNormalizedMse": [
+        0.3706439557179649,
+        0.4875271284593897,
+        0.6058149456701372,
+        0.7712636379629811
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 512,
+      "validation": {
+        "relativeError": 0.7459478583943034,
+        "normalizedMse": 0.6913530537679382,
+        "meanSquaredError": 0.009995230759585928,
+        "cosineSimilarityMean": 0.7620790511002306
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 0.9626483343780422,
+        "normalizedMse": 0.926935996929077,
+        "meanSquaredError": 5.339409715415908e-05,
+        "cosineSimilarityMean": 0.39608422382101865
+      },
+      "selectionScore": 0.737699853614392,
+      "validationShellNormalizedMse": [
+        0.31979251465487085,
+        0.45440611588672825,
+        0.5918859215170529,
+        0.7838681765461386
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 1024,
+      "validation": {
+        "relativeError": 0.7528946970951821,
+        "normalizedMse": 0.7042898331780892,
+        "meanSquaredError": 0.01018226413534899,
+        "cosineSimilarityMean": 0.7689639472253065
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 0.9749567866557493,
+        "normalizedMse": 0.9507912012321922,
+        "meanSquaredError": 5.476822341574853e-05,
+        "cosineSimilarityMean": 0.4267584238773558
+      },
+      "selectionScore": 0.7518293932396989,
+      "validationShellNormalizedMse": [
+        0.27774441568946134,
+        0.42810952880427416,
+        0.5828363422756727,
+        0.8114148057398031
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 2048,
+      "validation": {
+        "relativeError": 0.7731037753142587,
+        "normalizedMse": 0.7426061315365763,
+        "meanSquaredError": 0.010736221685487726,
+        "cosineSimilarityMean": 0.7715187242945203
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 1.0108008271965576,
+        "normalizedMse": 1.021987532781632,
+        "meanSquaredError": 5.886933056485558e-05,
+        "cosineSimilarityMean": 0.4399157878442677
+      },
+      "selectionScore": 0.7937055081756579,
+      "validationShellNormalizedMse": [
+        0.2557082846812324,
+        0.42818686200458134,
+        0.5955968335511213,
+        0.8660749770664294
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 4096,
+      "validation": {
+        "relativeError": 0.9393064755416856,
+        "normalizedMse": 1.09621963157903,
+        "meanSquaredError": 0.015848585785662162,
+        "cosineSimilarityMean": 0.7485418281269864
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 1.2465793272731958,
+        "normalizedMse": 1.554369484220419,
+        "meanSquaredError": 8.953601492323461e-05,
+        "cosineSimilarityMean": 0.4134460351182059
+      },
+      "selectionScore": 1.173938105790051,
+      "validationShellNormalizedMse": [
+        0.2636733724952695,
+        0.4926632669523465,
+        0.7301139976619464,
+        1.3485267677681811
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 8192,
+      "validation": {
+        "relativeError": 0.7797348058076229,
+        "normalizedMse": 0.7553996582556531,
+        "meanSquaredError": 0.010921183986715984,
+        "cosineSimilarityMean": 0.7703195964093895
+      },
+      "directionalDerivativeValidation": {
+        "relativeError": 1.0338486325315526,
+        "normalizedMse": 1.0691246327576442,
+        "meanSquaredError": 6.158455891289986e-05,
+        "cosineSimilarityMean": 0.42354338989120344
+      },
+      "selectionScore": 0.8088558898935354,
+      "validationShellNormalizedMse": [
+        0.26310781706910386,
+        0.4352432995642067,
+        0.6043158486117182,
+        0.8814080982619126
+      ],
+      "trainingObservations": 66647,
+      "maximumEffectiveProjectionRidge": 0.001
+    }
+  ],
+  "adaptiveQueryRounds": [
+    {
+      "afterCandidateComponents": 4,
+      "selectedShell": 0,
+      "oraclePoints": 32768,
+      "validationNormalizedMseByShell": [
+        0.9888980153281454,
+        0.9112975570835259,
+        0.9285078381290692,
+        0.9712259940014508
+      ]
+    }
+  ],
+  "queryAccounting": {
+    "oraclePoints": 73728,
+    "oracleQueryBudget": 73728,
+    "reusedRecoveryObservations": 1111,
+    "initialGeneratedTrainingQueries": 32768,
+    "validationQueries": 8192,
+    "adaptiveQueries": 32768,
+    "directionalDerivativePairs": 16384,
+    "directionalDerivativeProbePointsReusedForOutputTraining": 32768,
+    "directionalDerivativeQueriesAreSubsetOfTrainingQueries": true
+  },
+  "validation": {
+    "relativeError": 0.7453084200079224,
+    "normalizedMse": 0.690168284086966,
+    "meanSquaredError": 0.009978101962231612,
+    "cosineSimilarityMean": 0.7549801272376727
+  },
+  "directionalDerivativeValidation": {
+    "relativeError": 0.95404743343493,
+    "normalizedMse": 0.9104463426491176,
+    "meanSquaredError": 5.2444247104555264e-05,
+    "cosineSimilarityMean": 0.3750984042375115
+  },
+  "trainingSeconds": 57.227279328973964,
+  "performance": {
+    "device": "cuda",
+    "cudaDeviceName": "NVIDIA GeForce RTX 3070",
+    "peakAllocatedVramBytes": 1508773888,
+    "solverProcessPeakRssBytes": 3362889728,
+    "rssMeasurementSource": "/proc/self/status:VmHWM",
+    "torchVersion": "2.10.0+cu128",
+    "torchCudaVersion": "12.8",
+    "projectionBatchSize": 512,
+    "projectionInterval": 250,
+    "peakWholeDeviceUsedBytesDuringOracleAndTraining": 5086707712,
+    "minimumWholeDeviceFreeBytesDuringOracleAndTraining": 3127377920,
+    "wholeDeviceMemoryMonitorSamples": 622,
+    "sampledHostRssPeakBytes": 3367354368,
+    "hostRssMonitorSamples": 622,
+    "procVmHwmBytes": 3362889728,
+    "oracleProcessPeakRssBytes": 3711549440,
+    "sampledOracleProcessRssPeakBytes": 1157976064,
+    "sampledParentAndOraclePssPeakBytes": 4044776448,
+    "processTreePssMonitorSamples": 581,
+    "processTreeMemoryMeasurementSource": "/proc/<pid>/smaps_rollup:Pss plus /proc/<pid>/status:VmRSS,VmHWM"
+  },
+  "oracleMetadataKeys": [
+    "hiddenSize",
+    "oracleOutputMode",
+    "oracleOwnsWeights",
+    "oracleQuantizationStep",
+    "oracleResponseWidth",
+    "protocolCapabilities",
+    "solverAccess",
+    "type"
+  ],
+  "opaqueOracleStderrTail": "",
+  "sourceCaptureReportSha256": "85b20f0d8cd80bce408caa51f432e2cd406666750e993f2bae49eb3a6cdd20ee",
+  "artifacts": {
+    "reconstruction.npz": {
+      "sha256": "92fff2d3561b821c4228c3273d1932c73d186ac86a1a955107eae2e9958c39fa",
+      "arrays": {
+        "gate": [
+          256,
+          896
+        ],
+        "up": [
+          256,
+          896
+        ],
+        "down": [
+          896,
+          256
+        ]
+      }
+    },
+    "distillation-training-observations.npz": {
+      "sha256": "c3f4f9ae168ae6abe6fa07957a0ee11899504ea0a5e3da67d455ef6e543cc941",
+      "arrays": {
+        "inputs": [
+          66647,
+          896
+        ],
+        "outputs": [
+          66647,
+          896
+        ],
+        "provenance": [
+          66647
+        ],
+        "natural_token_ids": [
+          66647
+        ],
+        "natural_token_positions": [
+          66647
+        ],
+        "natural_prompt_ids": [
+          66647
+        ],
+        "natural_prompt_sha256": [
+          66647
+        ]
+      }
+    },
+    "distillation-validation-probes.npz": {
+      "sha256": "1c1ccbbc343b721eb21e939f7521835d162d652304ae1f17662162f0b265790e",
+      "arrays": {
+        "inputs": [
+          8192,
+          896
+        ],
+        "outputs": [
+          8192,
+          896
+        ],
+        "shells": [
+          8192
+        ],
+        "provenance": [
+          8192
+        ]
+      }
+    },
+    "component-strength.npz": {
+      "sha256": "d398d085c54a9f8baefd4dcdb934dbf4684e1feea794d52214792e57dce2f585",
+      "arrays": {
+        "rms": [
+          256
+        ]
+      }
+    },
+    "distillation-directional-derivatives.npz": {
+      "sha256": "50c787c4d5ae200c38b1f09da88e552eb7aa0449608df5ed11d42b9efcc738f9",
+      "arrays": {
+        "trainingDirections": [
+          16384,
+          896
+        ],
+        "trainingPlusRowIndices": [
+          16384
+        ],
+        "trainingMinusRowIndices": [
+          16384
+        ],
+        "validationDirections": [
+          4096,
+          896
+        ],
+        "validationPlusRowIndices": [
+          4096
+        ],
+        "validationMinusRowIndices": [
+          4096
+        ],
+        "finiteDifferenceStep": [
+          1
+        ],
+        "provenance": [
+          1
+        ]
+      }
+    }
+  },
+  "teacherArchitectureKnownToSolver": {
+    "inputDim": 896,
+    "outputDim": 896,
+    "activationFamily": "silu-swiglu",
+    "hiddenComponents": "not provided"
+  },
+  "targetModel": "Qwen/Qwen2.5-0.5B-Instruct",
+  "targetModule": "model.layers.0.mlp",
+  "captureNaturalRecoveryProvenancePreserved": true
+}

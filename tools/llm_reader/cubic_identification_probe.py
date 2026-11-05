@@ -284,22 +284,128 @@ This is a measurement harness against a synthetic teacher, in the idiom of
 from __future__ import annotations
 
 import argparse
+import gc
+import hashlib
 import json
 import math
+import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from itertools import combinations_with_replacement
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import torch
+import numpy as np
 
 
 # The whole probe is a cancellation measurement: a third derivative is a difference of
 # differences of differences, and in single precision the stencil's numerator loses every digit
 # the signal has. Double everywhere, on the card.
 DTYPE = torch.float64
+OracleCallable = Callable[[torch.Tensor], torch.Tensor]
+
+
+def _proc_status_memory_bytes(pid: int | str, field: str) -> int | None:
+    status_path = Path(f"/proc/{pid}/status")
+    if not status_path.is_file():
+        return None
+    try:
+        lines = status_path.read_text(encoding="ascii").splitlines()
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+    for line in lines:
+        if line.startswith(f"{field}:"):
+            fields = line.split()
+            if len(fields) != 3 or fields[2] != "kB":
+                raise RuntimeError(f"unexpected {field} format: {line!r}")
+            return int(fields[1]) * 1024
+    return None
+
+
+def _proc_smaps_pss_bytes(pid: int | str) -> int | None:
+    smaps_path = Path(f"/proc/{pid}/smaps_rollup")
+    if not smaps_path.is_file():
+        return None
+    try:
+        lines = smaps_path.read_text(encoding="ascii").splitlines()
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+    for line in lines:
+        if line.startswith("Pss:"):
+            fields = line.split()
+            if len(fields) != 3 or fields[2] != "kB":
+                raise RuntimeError(f"unexpected Pss format: {line!r}")
+            return int(fields[1]) * 1024
+    return None
+
+
+def _proc_vm_hwm_bytes() -> int | None:
+    return _proc_status_memory_bytes("self", "VmHWM")
+
+
+class OracleQueryBudgetExceeded(RuntimeError):
+    def __init__(
+        self,
+        *,
+        requested_points: int,
+        spent_points: int,
+        max_oracle_points: int,
+    ) -> None:
+        self.requested_points = requested_points
+        self.spent_points = spent_points
+        self.max_oracle_points = max_oracle_points
+        super().__init__(
+            "oracle query budget exceeded: "
+            f"spent={spent_points}, requested={requested_points}, budget={max_oracle_points}"
+        )
+
+
+class OracleWorkspaceLimitExceeded(RuntimeError):
+    def __init__(
+        self,
+        *,
+        input_dim: int,
+        direction_count: int,
+        coefficient_count: int,
+        minimum_workspace_bytes: int,
+        max_workspace_bytes: int,
+    ) -> None:
+        self.input_dim = input_dim
+        self.direction_count = direction_count
+        self.coefficient_count = coefficient_count
+        self.minimum_workspace_bytes = minimum_workspace_bytes
+        self.max_workspace_bytes = max_workspace_bytes
+        super().__init__(
+            "measured cubic recovery requires at least "
+            f"{minimum_workspace_bytes} workspace bytes at input_dim={input_dim} "
+            f"(directions={direction_count}, cubic_coefficients={coefficient_count}); "
+            f"configured limit is {max_workspace_bytes}"
+        )
+
+
+def estimate_measured_cubic_workspace(
+    input_dim: int,
+    direction_multiple: float,
+) -> dict[str, int]:
+    if input_dim <= 0:
+        raise ValueError("input_dim must be positive")
+    if not math.isfinite(direction_multiple) or direction_multiple <= 0.0:
+        raise ValueError("direction_multiple must be finite and positive")
+    coefficient_count = math.comb(input_dim + 2, 3)
+    direction_count = int(math.ceil(direction_multiple * coefficient_count))
+    element_size = torch.empty((), dtype=DTYPE).element_size()
+    direction_tensor_bytes = direction_count * input_dim * element_size
+    cubic_design_bytes = direction_count * coefficient_count * element_size
+    return {
+        "coefficientCount": coefficient_count,
+        "directionCount": direction_count,
+        "directionTensorBytes": direction_tensor_bytes,
+        "cubicDesignBytes": cubic_design_bytes,
+        "minimumWorkspaceBytes": direction_tensor_bytes + cubic_design_bytes,
+    }
 
 
 @dataclass
@@ -385,6 +491,8 @@ def open_live_oracle(
     max_calls: int,
     work_dir: Path,
     local_files_only: bool,
+    oracle_output_mode: str = "selected-unit-ffn-vector",
+    opaque_eval_only: bool = False,
 ) -> Any:
     """Start the real block behind the same protocol the lanes use, and refuse a host answer."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -398,16 +506,2559 @@ def open_live_oracle(
         model=model,
         layer=int(layer),
         unit=0,
-        units=units,
+        units=None if oracle_output_mode == "full-mlp-vector" else units,
         device=device,
         oracle_batch_size=2048,
         output_channel=-1,
-        oracle_output_mode="selected-unit-ffn-vector",
+        oracle_output_mode=oracle_output_mode,
         oracle_quantization_step=0.0,
         local_files_only=bool(local_files_only),
-        require_opaque_oracle=False,
+        require_opaque_oracle=bool(opaque_eval_only),
+        oracle_ready_mode="opaque" if opaque_eval_only else "full",
+        oracle_eval_only=bool(opaque_eval_only),
     )
     return live.OracleClient(arguments, work_dir)
+
+
+def _load_extra_prompts(
+    source_path: Path,
+    existing_ids: set[str],
+    required_prefix: str,
+) -> tuple[list[tuple[str, str]], bytes]:
+    source_bytes = source_path.read_bytes()
+    prompt_data = json.loads(source_bytes)
+    if not isinstance(prompt_data, list):
+        raise ValueError("extra recovery prompts must be a JSON array")
+    extra_prompts: list[tuple[str, str]] = []
+    for index, item in enumerate(prompt_data):
+        if not isinstance(item, dict) or set(item) != {"promptId", "text"}:
+            raise ValueError(
+                f"extra recovery prompt {index} must contain exactly promptId and text"
+            )
+        prompt_id, prompt = item["promptId"], item["text"]
+        if (
+            not isinstance(prompt_id, str)
+            or not prompt_id.startswith(required_prefix)
+            or prompt_id in existing_ids
+            or not isinstance(prompt, str)
+            or not prompt.strip()
+        ):
+            raise ValueError(f"invalid or duplicate extra prompt at index {index}")
+        existing_ids.add(prompt_id)
+        extra_prompts.append((prompt_id, prompt))
+    if not extra_prompts:
+        raise ValueError("extra prompt file must contain at least one prompt")
+    return extra_prompts, source_bytes
+
+
+def capture_qwen_real_activations(
+    model: str,
+    layer: int,
+    output_dir: Path,
+    device: torch.device,
+    local_files_only: bool,
+    seed: int,
+    oracle_query_budget: int,
+    extra_recovery_prompts_file: Path | None = None,
+    extra_functional_prompts_file: Path | None = None,
+    extra_distributional_prompts_file: Path | None = None,
+) -> dict[str, Any]:
+    """Capture provenance-separated Qwen activations and smoke-test its opaque full-MLP oracle."""
+    if device.type != "cuda" or not torch.cuda.is_available():
+        raise RuntimeError("real Qwen activation capture requires an available CUDA device")
+    if layer < 0:
+        raise ValueError("layer must be non-negative")
+    if oracle_query_budget <= 0:
+        raise ValueError("oracle_query_budget must be positive")
+    output_dir = output_dir.resolve()
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise FileExistsError(f"refusing to overwrite existing pilot artifacts: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    prompt_splits = {
+        "recovery_observations": [
+            ("recovery-01", "Explain why leaves change color during autumn."),
+            ("recovery-02", "Write a short Python function that checks whether an integer is prime."),
+            ("recovery-03", "Objasni razliku između memorije i skladišta podataka."),
+        ],
+        "functional_evaluation": [
+            ("functional-01", "A train leaves at 09:20 and travels for 95 minutes. When does it arrive?"),
+            ("functional-02", "Summarize how a hash table resolves collisions in two sentences."),
+            ("functional-03", "Napiši tri koraka za bezbedno čuvanje rezervne kopije."),
+        ],
+        "structural_evaluation": [
+            ("structural-01", "What is the geometric meaning of a matrix's null space?"),
+            ("structural-02", "Give a concise example of recursion using a tree traversal."),
+            ("structural-03", "Kako se razlikuju korelacija i uzročnost?"),
+        ],
+        "distributional_analysis": [
+            ("distribution-01", "Describe the water cycle from evaporation to precipitation."),
+            ("distribution-02", "Compare a compiler with an interpreter for a beginner."),
+            ("distribution-03", "Predloži jednostavan plan za organizovanje radnog dana."),
+        ],
+    }
+    prompt_sources: dict[str, dict[str, Any]] = {}
+    for split_name, source_file, required_prefix in (
+        (
+            "recovery_observations",
+            extra_recovery_prompts_file,
+            "recovery-extra-",
+        ),
+        (
+            "functional_evaluation",
+            extra_functional_prompts_file,
+            "functional-extra-",
+        ),
+        (
+            "distributional_analysis",
+            extra_distributional_prompts_file,
+            "distribution-extra-",
+        ),
+    ):
+        if source_file is None:
+            continue
+        existing_ids = {
+            prompt_id
+            for prompts in prompt_splits.values()
+            for prompt_id, _ in prompts
+        }
+        extra_prompts, source_bytes = _load_extra_prompts(
+            source_file.resolve(), existing_ids, required_prefix
+        )
+        prompt_splits[split_name].extend(extra_prompts)
+        copied_name = f"additional-{split_name.replace('_', '-')}-prompts.json"
+        copied_path = output_dir / copied_name
+        copied_path.write_bytes(source_bytes)
+        prompt_sources[split_name] = {
+            "file": copied_name,
+            "sha256": hashlib.sha256(source_bytes).hexdigest(),
+            "promptCount": len(extra_prompts),
+        }
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from tools.llm_reader.adapters.registry import create_adapter
+
+    adapter = create_adapter("qwen2-swiglu")
+    load_started = time.perf_counter()
+    tokenizer, model_instance = adapter.load_model_and_tokenizer(
+        model, local_files_only=local_files_only, device=str(device)
+    )
+    load_seconds = time.perf_counter() - load_started
+    mlp_modules = adapter.mlp_modules(model_instance, [layer])
+    mlp_view = mlp_modules[layer]
+    mlp = mlp_view._mlp
+    input_dim = int(mlp.gate_proj.in_features)
+    intermediate_dim = int(mlp.gate_proj.out_features)
+    output_dim = int(mlp.down_proj.out_features)
+    if input_dim != output_dim:
+        raise RuntimeError(
+            f"Qwen pilot expects a square residual-stream MLP, got {input_dim}->{output_dim}"
+        )
+    torch.cuda.synchronize(device)
+    torch.cuda.reset_peak_memory_stats(device)
+    capture_started = time.perf_counter()
+
+    dataset_records: dict[str, dict[str, Any]] = {}
+    split_summaries: dict[str, dict[str, Any]] = {}
+    for split_name, prompts in prompt_splits.items():
+        input_rows: list[np.ndarray] = []
+        output_rows: list[np.ndarray] = []
+        token_rows: list[np.ndarray] = []
+        position_rows: list[np.ndarray] = []
+        prompt_id_rows: list[np.ndarray] = []
+        prompt_hash_rows: list[np.ndarray] = []
+        prompt_records: list[dict[str, Any]] = []
+        split_max_direct_delta = 0.0
+        split_started = time.perf_counter()
+        for prompt_id, prompt in prompts:
+            encoded = tokenizer(
+                prompt, return_tensors="pt", truncation=True, max_length=128
+            )
+            encoded = {name: value.to(device) for name, value in encoded.items()}
+            captured: dict[str, torch.Tensor] = {}
+
+            def capture_input(_module: Any, inputs: tuple[torch.Tensor, ...]) -> None:
+                captured["input"] = inputs[0].detach()
+
+            def capture_output(
+                _module: Any, _inputs: tuple[torch.Tensor, ...], output: torch.Tensor
+            ) -> None:
+                captured["output"] = output.detach()
+
+            pre_handle = mlp.register_forward_pre_hook(capture_input)
+            post_handle = mlp.register_forward_hook(capture_output)
+            try:
+                with torch.inference_mode():
+                    model_instance(**encoded)
+            finally:
+                pre_handle.remove()
+                post_handle.remove()
+            if "input" not in captured or "output" not in captured:
+                raise RuntimeError(f"Qwen MLP hooks did not capture prompt {prompt_id}")
+            hidden = captured["input"]
+            observed_output = captured["output"]
+            with torch.inference_mode():
+                direct_output = mlp(hidden)
+            direct_delta = float((direct_output - observed_output).abs().max().item())
+            split_max_direct_delta = max(split_max_direct_delta, direct_delta)
+            hidden_rows = hidden[0].float().cpu().numpy()
+            output_values = observed_output[0].float().cpu().numpy()
+            token_ids = encoded["input_ids"][0].detach().cpu().numpy().astype(np.int64)
+            sequence_length = int(hidden_rows.shape[0])
+            if sequence_length != len(token_ids) or output_values.shape != hidden_rows.shape:
+                raise RuntimeError(f"captured activation shape mismatch for prompt {prompt_id}")
+            input_rows.append(hidden_rows)
+            output_rows.append(output_values)
+            token_rows.append(token_ids)
+            position_rows.append(np.arange(sequence_length, dtype=np.int32))
+            prompt_id_rows.append(np.full(sequence_length, prompt_id))
+            prompt_digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+            prompt_hash_rows.append(np.full(sequence_length, prompt_digest))
+            prompt_records.append({
+                "promptId": prompt_id,
+                "promptSha256": prompt_digest,
+                "tokenCount": sequence_length,
+            })
+
+        dataset_path = output_dir / f"{split_name}.npz"
+        inputs_array = np.concatenate(input_rows, axis=0).astype(np.float32, copy=False)
+        outputs_array = np.concatenate(output_rows, axis=0).astype(np.float32, copy=False)
+        np.savez_compressed(
+            dataset_path,
+            inputs=inputs_array,
+            outputs=outputs_array,
+            token_ids=np.concatenate(token_rows),
+            token_positions=np.concatenate(position_rows),
+            prompt_ids=np.concatenate(prompt_id_rows),
+            prompt_sha256=np.concatenate(prompt_hash_rows),
+        )
+        dataset_records[split_name] = {
+            "file": dataset_path.name,
+            "sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest(),
+            "samples": int(inputs_array.shape[0]),
+            "inputShape": list(inputs_array.shape),
+            "outputShape": list(outputs_array.shape),
+            "activationProvenance": "natural_observed_model_inference",
+            "accessMode": "instrumented_capture",
+            "prompts": prompt_records,
+        }
+        split_summaries[split_name] = {
+            "inputRms": float(np.sqrt(np.mean(np.square(inputs_array)))),
+            "inputMean": float(np.mean(inputs_array)),
+            "inputStd": float(np.std(inputs_array)),
+            "inputAbsQuantiles": np.quantile(
+                np.abs(inputs_array), [0.5, 0.9, 0.99, 1.0]
+            ).tolist(),
+            "directReplayMaxAbsDelta": split_max_direct_delta,
+            "captureSeconds": time.perf_counter() - split_started,
+        }
+
+    torch.cuda.synchronize(device)
+    capture_seconds = time.perf_counter() - capture_started
+    probe_generator = torch.Generator(device="cpu").manual_seed(seed)
+    generated_probes = (
+        torch.randn((32, input_dim), generator=probe_generator, dtype=torch.float32)
+        / math.sqrt(input_dim)
+    )
+    with torch.inference_mode():
+        direct_probe_outputs = mlp(generated_probes.to(device)).float().cpu().numpy()
+
+    del mlp_modules, mlp_view, mlp, model_instance, tokenizer, adapter
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    oracle_started = time.perf_counter()
+    client = open_live_oracle(
+        model=model,
+        layer=layer,
+        units="",
+        device=str(device),
+        max_calls=oracle_query_budget,
+        work_dir=output_dir / "oracle-work",
+        local_files_only=local_files_only,
+        oracle_output_mode="full-mlp-vector",
+        opaque_eval_only=True,
+    )
+    try:
+        expected_metadata = {
+            "hiddenSize": input_dim,
+            "oracleResponseWidth": output_dim,
+            "oracleOutputMode": "full-mlp-vector",
+        }
+        for key, expected in expected_metadata.items():
+            if client.meta.get(key) != expected:
+                raise RuntimeError(
+                    f"full-module oracle metadata mismatch for {key}: "
+                    f"{client.meta.get(key)!r} != {expected!r}"
+                )
+        forbidden = {
+            "model", "modelType", "layer", "unit", "units", "unitCount",
+            "intermediateSize", "device", "blockDevice", "outputChannel",
+        }
+        exposed = sorted(forbidden.intersection(client.meta))
+        if exposed:
+            raise RuntimeError(f"opaque full-module oracle exposed {exposed}")
+        oracle_probe_outputs = client.eval(
+            generated_probes.numpy(), stage="generated-full-module-smoke-probes"
+        ).astype(np.float32)
+        oracle_query_count = int(client.query_count)
+        oracle_stderr = client.stderr_tail()
+    finally:
+        client.close()
+    torch.cuda.synchronize(device)
+    oracle_seconds = time.perf_counter() - oracle_started
+    probe_delta = float(np.max(np.abs(oracle_probe_outputs - direct_probe_outputs)))
+    probe_path = output_dir / "generated_oracle_probes.npz"
+    np.savez_compressed(
+        probe_path,
+        inputs=generated_probes.numpy(),
+        outputs=oracle_probe_outputs,
+        provenance=np.full(
+            len(generated_probes), "generated_oracle_probe", dtype="<U32"
+        ),
+    )
+    dataset_records["generated_oracle_probes"] = {
+        "file": probe_path.name,
+        "sha256": hashlib.sha256(probe_path.read_bytes()).hexdigest(),
+        "samples": int(len(generated_probes)),
+        "inputShape": list(generated_probes.shape),
+        "outputShape": list(oracle_probe_outputs.shape),
+        "activationProvenance": "deliberately_generated_oracle_probes",
+        "accessMode": "opaque_eval_only_oracle",
+        "distribution": "iid_standard_normal_scaled_to_unit_expected_l2",
+    }
+    if oracle_query_count != len(generated_probes):
+        raise RuntimeError(
+            f"oracle query count {oracle_query_count} does not match probe count "
+            f"{len(generated_probes)}"
+        )
+
+    workspace = estimate_measured_cubic_workspace(input_dim, 3.0)
+    report = {
+        "schemaVersion": 1,
+        "kind": "gcl-real-qwen-activation-capture",
+        "model": model,
+        "requestedModel": model,
+        "module": f"model.layers.{layer}.mlp",
+        "architecture": {
+            "modelType": "qwen2",
+            "inputDim": input_dim,
+            "outputDim": output_dim,
+            "intermediateDim": intermediate_dim,
+            "activation": "silu",
+        },
+        "accessMode": {
+            "activationCapture": "instrumented",
+            "fullModuleOracle": "opaque_eval_only",
+            "solverReceivedWeights": False,
+            "solverReceivedHooks": False,
+            "solverReceivedHiddenUnitCount": False,
+            "postHocGroundTruthUsed": False,
+        },
+        "datasets": dataset_records,
+        "additionalPromptSources": prompt_sources,
+        "activationDistribution": split_summaries,
+        "oracleSmoke": {
+            "queryCount": oracle_query_count,
+            "queryBudget": oracle_query_budget,
+            "unitCountExposedToOracleClient": False,
+            "maxAbsDeltaAgainstIndependentDirectMlp": probe_delta,
+            "elapsedSeconds": oracle_seconds,
+            "oracleStderrTail": oracle_stderr[-1000:],
+        },
+        "recovery": {
+            "status": "blocked_before_oracle_queries_by_workspace_guard",
+            "reconstructionProduced": False,
+            "functionalRecovery": "not_evaluated_no_reconstruction",
+            "structuralRecovery": "not_evaluated_no_reconstruction",
+            "distributionalGeneralization": "not_evaluated_no_reconstruction",
+            "measuredCubicWorkspaceEstimate": workspace,
+            "directionMultiple": 3.0,
+            "workspaceBytesAtFourGiBLimit": 4 * 1024**3,
+            "oracleCallsSpentByRecoverySolver": 0,
+        },
+        "performance": {
+            "device": str(device),
+            "cudaDeviceName": torch.cuda.get_device_name(device),
+            "cudaTotalMemoryBytes": int(torch.cuda.get_device_properties(device).total_memory),
+            "cudaPeakAllocatedBytesDuringActivationCapture": int(
+                torch.cuda.max_memory_allocated(device)
+            ),
+            "modelLoadSeconds": load_seconds,
+            "activationCaptureSeconds": capture_seconds,
+            "activationSamplesPerSecond": (
+                sum(int(record["samples"]) for name, record in dataset_records.items()
+                    if name != "generated_oracle_probes") / capture_seconds
+            ),
+            "fullModuleOracleProbesPerSecond": (
+                oracle_query_count / oracle_seconds if oracle_seconds > 0 else None
+            ),
+            "torchVersion": torch.__version__,
+            "torchCudaVersion": torch.version.cuda,
+        },
+    }
+    report_path = output_dir / "capture-report.json"
+    report_path.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    return report
+
+
+def validate_qwen_real_activation_artifacts(
+    output_dir: Path,
+) -> tuple[dict[str, Any], dict[str, dict[str, np.ndarray]]]:
+    """Validate capture hashes, shapes, token provenance, and disjoint prompt splits."""
+    output_dir = output_dir.resolve()
+    report_path = output_dir / "capture-report.json"
+    if not report_path.is_file():
+        raise FileNotFoundError(f"capture report not found: {report_path}")
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    if report.get("schemaVersion") != 1 or report.get("kind") != "gcl-real-qwen-activation-capture":
+        raise ValueError("unsupported real-Qwen activation capture schema")
+    architecture = report.get("architecture", {})
+    input_dim = int(architecture.get("inputDim", 0))
+    output_dim = int(architecture.get("outputDim", 0))
+    if architecture.get("modelType") != "qwen2" or input_dim <= 0 or output_dim <= 0:
+        raise ValueError("capture report has invalid Qwen architecture dimensions")
+    access = report.get("accessMode", {})
+    expected_access = {
+        "activationCapture": "instrumented",
+        "fullModuleOracle": "opaque_eval_only",
+        "solverReceivedWeights": False,
+        "solverReceivedHooks": False,
+        "solverReceivedHiddenUnitCount": False,
+        "postHocGroundTruthUsed": False,
+    }
+    if any(access.get(key) != value for key, value in expected_access.items()):
+        raise ValueError("capture report violates the declared solver/oracle access boundary")
+
+    natural_splits = (
+        "recovery_observations",
+        "functional_evaluation",
+        "structural_evaluation",
+        "distributional_analysis",
+    )
+    expected_splits = {*natural_splits, "generated_oracle_probes"}
+    records = report.get("datasets", {})
+    if set(records) != expected_splits:
+        raise ValueError(f"capture datasets must be exactly {sorted(expected_splits)}")
+    loaded: dict[str, dict[str, np.ndarray]] = {}
+    seen_prompt_ids: set[str] = set()
+    seen_prompt_hashes: set[str] = set()
+
+    for split_name in sorted(expected_splits):
+        record = records[split_name]
+        filename = record.get("file")
+        if not isinstance(filename, str) or Path(filename).name != filename:
+            raise ValueError(f"invalid artifact filename for {split_name}")
+        artifact_path = output_dir / filename
+        if artifact_path.resolve().parent != output_dir or not artifact_path.is_file():
+            raise FileNotFoundError(f"dataset artifact not found: {artifact_path}")
+        digest = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+        if digest != record.get("sha256"):
+            raise ValueError(f"SHA-256 mismatch for {split_name}")
+        with np.load(artifact_path, allow_pickle=False) as archive:
+            arrays = {key: archive[key] for key in archive.files}
+        required = (
+            {"inputs", "outputs", "token_ids", "token_positions", "prompt_ids", "prompt_sha256"}
+            if split_name in natural_splits
+            else {"inputs", "outputs", "provenance"}
+        )
+        if set(arrays) != required:
+            raise ValueError(f"unexpected array keys in {split_name}: {sorted(arrays)}")
+        inputs = arrays["inputs"]
+        outputs = arrays["outputs"]
+        samples = int(record.get("samples", -1))
+        if inputs.shape != (samples, input_dim) or outputs.shape != (samples, output_dim):
+            raise ValueError(f"activation shape mismatch in {split_name}")
+        if record.get("inputShape") != list(inputs.shape) or record.get("outputShape") != list(outputs.shape):
+            raise ValueError(f"manifest shape mismatch in {split_name}")
+        if not np.isfinite(inputs).all() or not np.isfinite(outputs).all():
+            raise ValueError(f"non-finite activation value in {split_name}")
+
+        if split_name in natural_splits:
+            if record.get("activationProvenance") != "natural_observed_model_inference":
+                raise ValueError(f"natural-activation provenance mismatch in {split_name}")
+            if record.get("accessMode") != "instrumented_capture":
+                raise ValueError(f"natural-activation access mode mismatch in {split_name}")
+            token_ids = arrays["token_ids"]
+            token_positions = arrays["token_positions"]
+            prompt_ids = arrays["prompt_ids"].astype(str)
+            prompt_hashes = arrays["prompt_sha256"].astype(str)
+            if any(len(arrays[key]) != samples for key in ("token_ids", "token_positions", "prompt_ids", "prompt_sha256")):
+                raise ValueError(f"token provenance length mismatch in {split_name}")
+            manifest_prompts = record.get("prompts", [])
+            manifest_by_id = {item["promptId"]: item for item in manifest_prompts}
+            actual_prompt_ids = set(prompt_ids.tolist())
+            if len(manifest_by_id) != len(manifest_prompts) or actual_prompt_ids != set(manifest_by_id):
+                raise ValueError(f"prompt manifest mismatch in {split_name}")
+            for prompt_id, prompt_record in manifest_by_id.items():
+                prompt_hash = prompt_record.get("promptSha256")
+                if prompt_id in seen_prompt_ids or prompt_hash in seen_prompt_hashes:
+                    raise ValueError("natural-activation prompt splits are not disjoint")
+                seen_prompt_ids.add(prompt_id)
+                seen_prompt_hashes.add(prompt_hash)
+                mask = prompt_ids == prompt_id
+                positions = token_positions[mask]
+                if len(positions) != int(prompt_record.get("tokenCount", -1)):
+                    raise ValueError(f"token count mismatch for {prompt_id}")
+                if not np.array_equal(positions, np.arange(len(positions), dtype=positions.dtype)):
+                    raise ValueError(f"token positions are not contiguous for {prompt_id}")
+                if not np.all(prompt_hashes[mask] == prompt_hash):
+                    raise ValueError(f"prompt hash mismatch for {prompt_id}")
+        else:
+            if record.get("activationProvenance") != "deliberately_generated_oracle_probes":
+                raise ValueError("generated probe provenance mismatch")
+            if record.get("accessMode") != "opaque_eval_only_oracle":
+                raise ValueError("generated probe access mode mismatch")
+            if not np.all(arrays["provenance"].astype(str) == "generated_oracle_probe"):
+                raise ValueError("generated probes contain non-generated provenance")
+        loaded[split_name] = arrays
+
+    prompt_sources = report.get("additionalPromptSources", {})
+    if not isinstance(prompt_sources, dict):
+        raise ValueError("additional prompt sources must be a mapping")
+    required_prefixes = {
+        "recovery_observations": "recovery-extra-",
+        "functional_evaluation": "functional-extra-",
+        "distributional_analysis": "distribution-extra-",
+    }
+    for split_name, source in prompt_sources.items():
+        if split_name not in required_prefixes or not isinstance(source, dict):
+            raise ValueError(f"invalid additional prompt source for {split_name!r}")
+        filename = source.get("file")
+        if not isinstance(filename, str) or Path(filename).name != filename:
+            raise ValueError(f"invalid additional prompt source filename for {split_name}")
+        source_path = output_dir / filename
+        if source_path.resolve().parent != output_dir or not source_path.is_file():
+            raise FileNotFoundError(f"additional prompt source not found: {source_path}")
+        source_bytes = source_path.read_bytes()
+        if hashlib.sha256(source_bytes).hexdigest() != source.get("sha256"):
+            raise ValueError(f"additional prompt source SHA-256 mismatch for {split_name}")
+        source_rows = json.loads(source_bytes)
+        if not isinstance(source_rows, list) or len(source_rows) != source.get("promptCount"):
+            raise ValueError(f"additional prompt count mismatch for {split_name}")
+        manifest_prompts = {
+            item["promptId"]: item
+            for item in records[split_name].get("prompts", [])
+        }
+        for item in source_rows:
+            if (
+                not isinstance(item, dict)
+                or set(item) != {"promptId", "text"}
+                or not isinstance(item["promptId"], str)
+                or not item["promptId"].startswith(required_prefixes[split_name])
+                or not isinstance(item["text"], str)
+                or item["promptId"] not in manifest_prompts
+            ):
+                raise ValueError(f"additional prompt manifest mismatch for {split_name}")
+            expected_hash = hashlib.sha256(item["text"].encode("utf-8")).hexdigest()
+            if manifest_prompts[item["promptId"]].get("promptSha256") != expected_hash:
+                raise ValueError(f"additional prompt hash mismatch for {item['promptId']}")
+
+    oracle_smoke = report.get("oracleSmoke", {})
+    generated_count = int(records["generated_oracle_probes"]["samples"])
+    if (
+        oracle_smoke.get("queryCount") != generated_count
+        or oracle_smoke.get("queryCount", 0) > oracle_smoke.get("queryBudget", -1)
+        or oracle_smoke.get("unitCountExposedToOracleClient") is not False
+        or not math.isfinite(float(oracle_smoke.get("maxAbsDeltaAgainstIndependentDirectMlp", float("nan"))))
+        or float(oracle_smoke["maxAbsDeltaAgainstIndependentDirectMlp"]) > 1e-5
+    ):
+        raise ValueError("oracle smoke result or query-budget record is invalid")
+    recovery = report.get("recovery", {})
+    if (
+        recovery.get("reconstructionProduced") is not False
+        or recovery.get("oracleCallsSpentByRecoverySolver") != 0
+        or recovery.get("status") != "blocked_before_oracle_queries_by_workspace_guard"
+    ):
+        raise ValueError("capture report does not accurately describe the blocked recovery attempt")
+    return report, loaded
+
+
+def verify_qwen_real_activation_capture(
+    model: str,
+    output_dir: Path,
+    device: torch.device,
+    local_files_only: bool,
+    tolerance: float = 1e-5,
+) -> dict[str, Any]:
+    """Independently replay saved token sequences against the real Qwen module."""
+    if device.type != "cuda" or not torch.cuda.is_available():
+        raise RuntimeError("real Qwen artifact verification requires an available CUDA device")
+    started = time.perf_counter()
+    report, datasets = validate_qwen_real_activation_artifacts(output_dir)
+    if report.get("model") != model:
+        raise ValueError(
+            f"verification model {model!r} does not match capture model {report.get('model')!r}"
+        )
+    module = report.get("module", "")
+    try:
+        layer = int(module.split(".")[2])
+    except (IndexError, ValueError) as error:
+        raise ValueError(f"invalid module identity in capture report: {module!r}") from error
+    if module != f"model.layers.{layer}.mlp":
+        raise ValueError(f"unsupported module identity in capture report: {module!r}")
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from tools.llm_reader.adapters.registry import create_adapter
+
+    adapter = create_adapter("qwen2-swiglu")
+    tokenizer, model_instance = adapter.load_model_and_tokenizer(
+        model, local_files_only=local_files_only, device=str(device)
+    )
+    del tokenizer
+    mlp = adapter.mlp_modules(model_instance, [layer])[layer]._mlp
+    natural_splits = (
+        "recovery_observations",
+        "functional_evaluation",
+        "structural_evaluation",
+        "distributional_analysis",
+    )
+    replay_results: dict[str, dict[str, Any]] = {}
+    try:
+        for split_name in natural_splits:
+            arrays = datasets[split_name]
+            prompt_ids = arrays["prompt_ids"].astype(str)
+            prompt_results: dict[str, dict[str, float]] = {}
+            for prompt_id in dict.fromkeys(prompt_ids.tolist()):
+                mask = prompt_ids == prompt_id
+                token_ids = arrays["token_ids"][mask].astype(np.int64, copy=False)
+                expected_inputs = arrays["inputs"][mask]
+                expected_outputs = arrays["outputs"][mask]
+                input_ids = torch.as_tensor(token_ids, dtype=torch.long, device=device).unsqueeze(0)
+                attention_mask = torch.ones_like(input_ids)
+                captured: dict[str, torch.Tensor] = {}
+
+                def capture_input(_module: Any, inputs: tuple[torch.Tensor, ...]) -> None:
+                    captured["input"] = inputs[0].detach()
+
+                def capture_output(
+                    _module: Any, _inputs: tuple[torch.Tensor, ...], output: torch.Tensor
+                ) -> None:
+                    captured["output"] = output.detach()
+
+                pre_handle = mlp.register_forward_pre_hook(capture_input)
+                post_handle = mlp.register_forward_hook(capture_output)
+                try:
+                    with torch.inference_mode():
+                        model_instance(input_ids=input_ids, attention_mask=attention_mask)
+                finally:
+                    pre_handle.remove()
+                    post_handle.remove()
+                if "input" not in captured or "output" not in captured:
+                    raise RuntimeError(f"independent replay did not capture {prompt_id}")
+                replay_input = captured["input"][0].float().cpu().numpy()
+                replay_output = captured["output"][0].float().cpu().numpy()
+                if replay_input.shape != expected_inputs.shape or replay_output.shape != expected_outputs.shape:
+                    raise ValueError(f"independent replay shape mismatch for {prompt_id}")
+                input_delta = float(np.max(np.abs(replay_input - expected_inputs)))
+                output_delta = float(np.max(np.abs(replay_output - expected_outputs)))
+                if input_delta > tolerance or output_delta > tolerance:
+                    raise ValueError(
+                        f"independent replay exceeded tolerance for {prompt_id}: "
+                        f"input={input_delta}, output={output_delta}, tolerance={tolerance}"
+                    )
+                prompt_results[prompt_id] = {
+                    "inputMaxAbsDelta": input_delta,
+                    "outputMaxAbsDelta": output_delta,
+                }
+            replay_results[split_name] = {
+                "samples": int(arrays["inputs"].shape[0]),
+                "prompts": prompt_results,
+                "maxInputAbsDelta": max(
+                    values["inputMaxAbsDelta"] for values in prompt_results.values()
+                ),
+                "maxOutputAbsDelta": max(
+                    values["outputMaxAbsDelta"] for values in prompt_results.values()
+                ),
+            }
+
+        generated = datasets["generated_oracle_probes"]
+        with torch.inference_mode():
+            expected_generated = mlp(torch.as_tensor(generated["inputs"], device=device)).float().cpu().numpy()
+        generated_delta = float(np.max(np.abs(expected_generated - generated["outputs"])))
+        if generated_delta > tolerance:
+            raise ValueError(
+                f"independent oracle-probe replay exceeded tolerance: "
+                f"{generated_delta} > {tolerance}"
+            )
+    finally:
+        del mlp, model_instance, adapter
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    verification = {
+        "schemaVersion": 1,
+        "kind": "gcl-real-qwen-activation-verification",
+        "status": "verified",
+        "captureReportSha256": hashlib.sha256(
+            (Path(output_dir).resolve() / "capture-report.json").read_bytes()
+        ).hexdigest(),
+        "model": model,
+        "module": module,
+        "verificationMode": "independent_posthoc_white_box_replay",
+        "groundTruthWeightsReadByVerifier": True,
+        "groundTruthWeightsProvidedToRecoverySolver": False,
+        "tolerance": tolerance,
+        "artifactIntegrity": {
+            split_name: {
+                "sha256": report["datasets"][split_name]["sha256"],
+                "samples": report["datasets"][split_name]["samples"],
+            }
+            for split_name in sorted(report["datasets"])
+        },
+        "naturalDatasetReplays": replay_results,
+        "generatedOracleProbeMaxAbsDelta": generated_delta,
+        "verificationSeconds": time.perf_counter() - started,
+    }
+    verification_path = Path(output_dir).resolve() / "verification-report.json"
+    verification_path.write_text(
+        json.dumps(verification, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    return verification
+
+
+class _SwiGLUDistillationStudent(torch.nn.Module):
+    def __init__(
+        self,
+        input_dim: int,
+        output_dim: int,
+        components: int,
+        generator: torch.Generator,
+        device: torch.device,
+        gate: torch.Tensor | None = None,
+        up: torch.Tensor | None = None,
+        down: torch.Tensor | None = None,
+    ) -> None:
+        super().__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.components = components
+        if gate is None:
+            gate = torch.randn(
+                components, input_dim, generator=generator, dtype=torch.float32
+            ) * (0.5 / math.sqrt(input_dim))
+        if up is None:
+            up = torch.randn(
+                components, input_dim, generator=generator, dtype=torch.float32
+            ) * (0.5 / math.sqrt(input_dim))
+        if down is None:
+            down = torch.randn(
+                output_dim, components, generator=generator, dtype=torch.float32
+            ) * (0.3 / math.sqrt(components))
+        self.gate = torch.nn.Parameter(gate.to(device=device, dtype=torch.float32))
+        self.up = torch.nn.Parameter(up.to(device=device, dtype=torch.float32))
+        self.down = torch.nn.Parameter(down.to(device=device, dtype=torch.float32))
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        gate_projection = torch.nn.functional.linear(inputs, self.gate)
+        up_projection = torch.nn.functional.linear(inputs, self.up)
+        return torch.nn.functional.linear(
+            torch.nn.functional.silu(gate_projection) * up_projection,
+            self.down,
+        )
+
+    def grow(self, components: int, generator: torch.Generator) -> None:
+        if components <= self.components:
+            raise ValueError("student growth must increase the candidate component count")
+        additional = components - self.components
+        device = self.gate.device
+        new_gate = torch.randn(
+            additional, self.input_dim, generator=generator, dtype=torch.float32
+        ) * (0.5 / math.sqrt(self.input_dim))
+        new_up = torch.randn(
+            additional, self.input_dim, generator=generator, dtype=torch.float32
+        ) * (0.5 / math.sqrt(self.input_dim))
+        new_down = torch.randn(
+            self.output_dim, additional, generator=generator, dtype=torch.float32
+        ) * (0.3 / math.sqrt(components))
+        self.gate = torch.nn.Parameter(torch.cat([self.gate.detach(), new_gate.to(device)], dim=0))
+        self.up = torch.nn.Parameter(torch.cat([self.up.detach(), new_up.to(device)], dim=0))
+        self.down = torch.nn.Parameter(torch.cat([self.down.detach(), new_down.to(device)], dim=1))
+        self.components = components
+
+
+def _swiglu_candidate_widths(max_components: int) -> list[int]:
+    if max_components <= 0:
+        raise ValueError("max_components must be positive")
+    widths = [1]
+    while widths[-1] < max_components:
+        widths.append(min(max_components, widths[-1] * 2))
+    return widths
+
+
+def _functional_metrics(
+    reference: np.ndarray,
+    predicted: np.ndarray,
+    inputs: np.ndarray | None = None,
+) -> dict[str, Any]:
+    reference = np.asarray(reference, dtype=np.float64)
+    predicted = np.asarray(predicted, dtype=np.float64)
+    if reference.shape != predicted.shape or reference.ndim != 2:
+        raise ValueError("functional metrics require matching 2D reference and prediction arrays")
+    residual = predicted - reference
+    mse = float(np.mean(np.square(residual)))
+    reference_variance = float(np.mean(np.square(reference - reference.mean(axis=0, keepdims=True))))
+    reference_energy = float(np.mean(np.square(reference)))
+    sample_cosine = np.sum(reference * predicted, axis=1) / np.maximum(
+        np.linalg.norm(reference, axis=1) * np.linalg.norm(predicted, axis=1), 1e-30
+    )
+    result: dict[str, Any] = {
+        "samples": int(reference.shape[0]),
+        "relativeError": float(np.linalg.norm(residual) / max(np.linalg.norm(reference), 1e-30)),
+        "normalizedMse": mse / max(reference_variance, 1e-30),
+        "meanSquaredError": mse,
+        "referenceRms": math.sqrt(reference_energy),
+        "cosineSimilarityMean": float(np.mean(sample_cosine)),
+        "cosineSimilarityMedian": float(np.median(sample_cosine)),
+    }
+    if inputs is not None and len(inputs) == len(reference):
+        norms = np.linalg.norm(np.asarray(inputs, dtype=np.float64), axis=1)
+        quantile_edges = np.quantile(norms, [0.0, 0.25, 0.5, 0.75, 1.0])
+        density_rows = []
+        for index in range(4):
+            mask = (
+                (norms >= quantile_edges[index])
+                & (norms <= quantile_edges[index + 1])
+                if index == 3
+                else (norms >= quantile_edges[index])
+                & (norms < quantile_edges[index + 1])
+            )
+            if mask.any():
+                density_rows.append({
+                    "inputNormLow": float(quantile_edges[index]),
+                    "inputNormHigh": float(quantile_edges[index + 1]),
+                    "metrics": _functional_metrics(reference[mask], predicted[mask]),
+                })
+        result["inputDensityQuartiles"] = density_rows
+    return result
+
+
+def recover_swiglu_by_adaptive_oracle_distillation(
+    oracle: Callable[[np.ndarray], np.ndarray],
+    input_dim: int,
+    output_dim: int,
+    recovery_inputs: np.ndarray,
+    recovery_outputs: np.ndarray,
+    *,
+    max_components: int,
+    oracle_query_budget: int,
+    initial_train_queries: int,
+    validation_queries: int,
+    adaptive_batch_queries: int,
+    steps_per_stage: int,
+    batch_size: int,
+    learning_rate: float,
+    seed: int,
+    device: torch.device,
+    recovery_metadata: dict[str, np.ndarray] | None = None,
+) -> dict[str, Any]:
+    """Fit an adaptive-width SwiGLU student from oracle observations only.
+
+    Candidate width is selected by held-out prediction, not copied from the teacher.
+    Oracle inputs cover radial shells calibrated from recovery observations; additional
+    batches target the shell with the largest normalized validation residual.
+    """
+    if min(input_dim, output_dim, max_components, oracle_query_budget, batch_size) <= 0:
+        raise ValueError("dimensions, component cap, query budget, and batch size must be positive")
+    if initial_train_queries < 4 or validation_queries < 4 or adaptive_batch_queries < 0:
+        raise ValueError("oracle sample counts must be non-negative and initial/validation counts >= 4")
+    if steps_per_stage <= 0:
+        raise ValueError("steps_per_stage must be positive")
+    if not math.isfinite(learning_rate) or learning_rate <= 0:
+        raise ValueError("learning_rate must be finite and positive")
+    if recovery_inputs.ndim != 2 or recovery_inputs.shape[1] != input_dim:
+        raise ValueError("recovery_inputs have the wrong shape")
+    if recovery_outputs.shape != (recovery_inputs.shape[0], output_dim):
+        raise ValueError("recovery_outputs have the wrong shape")
+    if recovery_metadata is not None and any(
+        values.shape[0] != recovery_inputs.shape[0]
+        for values in recovery_metadata.values()
+    ):
+        raise ValueError("recovery metadata must have one row per natural observation")
+    if not np.isfinite(recovery_inputs).all() or not np.isfinite(recovery_outputs).all():
+        raise ValueError("recovery observations must be finite")
+    if device.type != "cuda" or not torch.cuda.is_available():
+        raise RuntimeError("adaptive Qwen SwiGLU distillation requires an available CUDA device")
+    initial_queries = initial_train_queries + validation_queries
+    if initial_queries > oracle_query_budget:
+        raise OracleQueryBudgetExceeded(
+            requested_points=initial_queries,
+            spent_points=0,
+            max_oracle_points=oracle_query_budget,
+        )
+
+    import resource
+
+    query_count = 0
+    rng = np.random.default_rng(seed)
+    rms_by_coordinate = np.sqrt(np.mean(np.square(recovery_inputs.astype(np.float64)), axis=0))
+    global_rms = float(np.sqrt(np.mean(np.square(recovery_inputs.astype(np.float64)))))
+    if not math.isfinite(global_rms) or global_rms <= 0:
+        raise ValueError("recovery observations do not define a positive activation scale")
+    rms_by_coordinate = np.maximum(rms_by_coordinate, global_rms * 0.05)
+    shell_multipliers = np.asarray([0.45, 0.75, 1.0, 1.4], dtype=np.float64)
+
+    def draw_shell(shell_index: int, count: int) -> np.ndarray:
+        return (
+            rng.normal(size=(count, input_dim))
+            * rms_by_coordinate[None, :]
+            * shell_multipliers[shell_index]
+        ).astype(np.float32)
+
+    def query(points: np.ndarray, stage: str) -> np.ndarray:
+        nonlocal query_count
+        requested = int(points.shape[0])
+        if query_count + requested > oracle_query_budget:
+            raise OracleQueryBudgetExceeded(
+                requested_points=requested,
+                spent_points=query_count,
+                max_oracle_points=oracle_query_budget,
+            )
+        answers: list[np.ndarray] = []
+        for start in range(0, requested, 2048):
+            stop = min(start + 2048, requested)
+            values = np.asarray(oracle(points[start:stop]), dtype=np.float32)
+            expected_shape = (stop - start, output_dim)
+            if values.shape != expected_shape:
+                raise ValueError(
+                    f"oracle output shape {values.shape} does not match {expected_shape} at {stage}"
+                )
+            if not np.isfinite(values).all():
+                raise ValueError(f"oracle returned non-finite values at {stage}")
+            query_count += stop - start
+            answers.append(values)
+        return np.concatenate(answers, axis=0)
+
+    per_shell_train = [initial_train_queries // 4] * 4
+    for index in range(initial_train_queries % 4):
+        per_shell_train[index] += 1
+    train_generated_inputs = np.concatenate([
+        draw_shell(index, count) for index, count in enumerate(per_shell_train)
+    ])
+    train_generated_targets = query(train_generated_inputs, "initial-radial-shell-training")
+    per_shell_validation = [validation_queries // 4] * 4
+    for index in range(validation_queries % 4):
+        per_shell_validation[index] += 1
+    validation_inputs = np.concatenate([
+        draw_shell(index, count) for index, count in enumerate(per_shell_validation)
+    ])
+    validation_shells = np.concatenate([
+        np.full(count, index, dtype=np.int16)
+        for index, count in enumerate(per_shell_validation)
+    ])
+    validation_targets = query(validation_inputs, "radial-shell-validation")
+
+    train_inputs = np.concatenate([
+        recovery_inputs.astype(np.float32, copy=False),
+        train_generated_inputs,
+    ])
+    train_targets = np.concatenate([
+        recovery_outputs.astype(np.float32, copy=False),
+        train_generated_targets,
+    ])
+    generator = torch.Generator(device="cpu").manual_seed(seed + 501)
+    student: _SwiGLUDistillationStudent | None = None
+    stage_results: list[dict[str, Any]] = []
+    selected_state: dict[str, torch.Tensor] | None = None
+    selected_score = float("inf")
+    selected_stage = -1
+    adaptive_queries: list[dict[str, Any]] = []
+    torch.cuda.reset_peak_memory_stats(device)
+    train_started = time.perf_counter()
+    widths = _swiglu_candidate_widths(max_components)
+    for stage_index, width in enumerate(widths):
+        x_train = torch.from_numpy(train_inputs)
+        y_train = torch.from_numpy(train_targets)
+        target_energy = float(
+            np.einsum("ij,ij->", train_targets, train_targets, dtype=np.float64)
+            / train_targets.size
+        )
+        training_loss_scale = torch.tensor(
+            max(target_energy, 1e-8),
+            dtype=torch.float32,
+            device=device,
+        )
+        student = _SwiGLUDistillationStudent(
+            input_dim, output_dim, width, generator, device
+        )
+        with torch.no_grad():
+            calibration_count = min(512, int(x_train.shape[0]))
+            calibration_inputs = x_train[:calibration_count].to(device)
+            calibration_targets = y_train[:calibration_count].to(device)
+            initial_output_rms = student(calibration_inputs).square().mean().sqrt()
+            target_output_rms = calibration_targets.square().mean().sqrt()
+            if (
+                not torch.isfinite(initial_output_rms)
+                or not torch.isfinite(target_output_rms)
+                or float(initial_output_rms) <= 1e-12
+                or float(target_output_rms) <= 1e-12
+            ):
+                raise RuntimeError(f"invalid student output scale at candidate width {width}")
+            output_scale = target_output_rms / initial_output_rms
+            student.down.mul_(output_scale)
+        del calibration_inputs, calibration_targets
+        optimizer = torch.optim.AdamW(
+            student.parameters(), lr=learning_rate, weight_decay=1e-6
+        )
+        for _step in range(steps_per_stage):
+            indices = torch.randint(
+                x_train.shape[0], (min(batch_size, x_train.shape[0]),), generator=generator
+            )
+            batch_x = x_train[indices].to(device, non_blocking=True)
+            batch_y = y_train[indices].to(device, non_blocking=True)
+            prediction = student(batch_x)
+            loss = (prediction - batch_y).square().mean() / training_loss_scale
+            if not torch.isfinite(loss):
+                raise RuntimeError(f"non-finite distillation loss at candidate width {width}")
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(student.parameters(), max_norm=10.0)
+            optimizer.step()
+
+        with torch.inference_mode():
+            x_validation = torch.as_tensor(validation_inputs, dtype=torch.float32, device=device)
+            y_validation = torch.as_tensor(validation_targets, dtype=torch.float32, device=device)
+            validation_prediction = student(x_validation)
+            residual = validation_prediction - y_validation
+            normalized_mse = float(
+                (residual.square().mean() / y_validation.var(unbiased=False).clamp_min(1e-12)).item()
+            )
+            per_shell_error = []
+            for shell_index in range(4):
+                mask = torch.as_tensor(
+                    validation_shells == shell_index, device=device, dtype=torch.bool
+                )
+                if mask.any():
+                    shell_residual = residual[mask]
+                    shell_target = y_validation[mask]
+                    per_shell_error.append(
+                        float(
+                            (
+                                shell_residual.square().mean()
+                                / shell_target.var(unbiased=False).clamp_min(1e-12)
+                            ).item()
+                        )
+                    )
+                else:
+                    per_shell_error.append(None)
+        # BIC's sample count is the training set that estimated the parameters, not
+        # the held-out set used to compare predictive error.
+        observations = max(train_targets.size, 2)
+        parameter_count = width * (2 * input_dim + output_dim)
+        bic_penalty = parameter_count * math.log(observations) / observations
+        bic_proxy_score = math.log(max(normalized_mse, 1e-12)) + bic_penalty
+        selection_score = normalized_mse
+        candidate = {
+            "candidateComponents": width,
+            "effectiveParameterCount": parameter_count,
+            "validationNormalizedMse": normalized_mse,
+            "validationShellNormalizedMse": per_shell_error,
+            "bicProxyPenalty": bic_penalty,
+            "bicProxyScore": bic_proxy_score,
+            "selectionScore": selection_score,
+            "initialOutputScale": float(output_scale.item()),
+            "initialOutputRms": float(initial_output_rms.item()),
+            "trainingTargetOutputRms": float(target_output_rms.item()),
+            "trainingObservationCount": int(train_inputs.shape[0]),
+        }
+        stage_results.append(candidate)
+        if selection_score < selected_score:
+            selected_score = selection_score
+            selected_stage = stage_index
+            selected_state = {
+                name: value.detach().cpu().clone()
+                for name, value in student.state_dict().items()
+            }
+
+        if (
+            adaptive_batch_queries > 0
+            and stage_index in {2, 4, 6, 8}
+            and query_count + adaptive_batch_queries <= oracle_query_budget
+        ):
+            valid_errors = [
+                (value, shell)
+                for shell, value in enumerate(per_shell_error)
+                if value is not None
+            ]
+            selected_shell = max(valid_errors)[1] if valid_errors else 0
+            active_inputs = draw_shell(selected_shell, adaptive_batch_queries)
+            active_targets = query(active_inputs, f"adaptive-residual-shell-{selected_shell}")
+            train_inputs = np.concatenate([train_inputs, active_inputs])
+            train_targets = np.concatenate([train_targets, active_targets])
+            adaptive_queries.append({
+                "afterCandidateComponents": width,
+                "selectedShell": selected_shell,
+                "selectedShellMultiplier": float(shell_multipliers[selected_shell]),
+                "validationNormalizedMseByShell": per_shell_error,
+                "oraclePoints": adaptive_batch_queries,
+            })
+        del x_train, y_train
+
+    if student is None or selected_state is None:
+        raise RuntimeError("adaptive distillation produced no candidate model")
+    stage_selected_width = widths[selected_stage]
+    selected_student = _SwiGLUDistillationStudent(
+        input_dim, output_dim, stage_selected_width, generator, device
+    )
+    selected_student.load_state_dict(selected_state)
+    student = selected_student.eval()
+    with torch.inference_mode():
+        predicted_validation = student(
+            torch.as_tensor(validation_inputs, dtype=torch.float32, device=device)
+        ).float().cpu().numpy()
+        validation_coordinates = torch.nn.functional.linear(
+            torch.as_tensor(validation_inputs, dtype=torch.float32, device=device),
+            student.gate,
+        )
+        validation_up = torch.nn.functional.linear(
+            torch.as_tensor(validation_inputs, dtype=torch.float32, device=device),
+            student.up,
+        )
+        component_strength = (
+            torch.nn.functional.silu(validation_coordinates)
+            * validation_up
+        ).square().mean(dim=0).sqrt() * student.down.norm(dim=0)
+    selected_component_count = student.components
+
+    training_seconds = time.perf_counter() - train_started
+    torch.cuda.synchronize(device)
+    peak_vram = int(torch.cuda.max_memory_allocated(device))
+    max_rss = _proc_vm_hwm_bytes()
+    return {
+        "schemaVersion": 1,
+        "kind": "gcl-oracle-only-adaptive-swiglu-distillation",
+        "solverAccess": "oracle-only",
+        "weightsUsedBySolver": False,
+        "hooksUsedBySolver": False,
+        "hiddenUnitCountProvidedToSolver": False,
+        "teacherComponentIdentitiesProvidedToSolver": False,
+        "inputDim": input_dim,
+        "outputDim": output_dim,
+        "publicActivationFamily": "silu-swiglu",
+        "biases": False,
+        "candidateWidthPolicy": "geometric-growth-selected-by-held-out-normalized-MSE",
+        "studentOptimizer": {
+            "name": "AdamW",
+            "learningRate": learning_rate,
+            "weightDecay": 1e-6,
+        },
+        "initializationCalibration": "match_student_output_RMS_to_measured_training_output_RMS",
+        "maxCandidateComponents": max_components,
+        "selectedCandidateComponents": selected_component_count,
+        "studentWidthSelectedByMeasurements": True,
+        "teacherComponentCountInferred": False,
+        "selectionScore": selected_score,
+        "selectedCandidateValidationNormalizedMse": stage_results[selected_stage]["validationNormalizedMse"],
+        "componentStrengthRms": component_strength.detach().cpu().numpy().astype(np.float32),
+        "candidateStages": stage_results,
+        "adaptiveQueryRounds": adaptive_queries,
+        "queryAccounting": {
+            "oraclePoints": query_count,
+            "oracleQueryBudget": oracle_query_budget,
+            "reusedRecoveryObservations": int(recovery_inputs.shape[0]),
+            "initialGeneratedTrainingQueries": int(initial_train_queries),
+            "validationQueries": int(validation_queries),
+            "adaptiveQueries": int(sum(item["oraclePoints"] for item in adaptive_queries)),
+        },
+        "validation": _functional_metrics(validation_targets, predicted_validation, validation_inputs),
+        "trainingSeconds": training_seconds,
+        "performance": {
+            "device": str(device),
+            "cudaDeviceName": torch.cuda.get_device_name(device),
+            "peakAllocatedVramBytes": peak_vram,
+            "solverProcessPeakRssBytes": max_rss,
+            "rssMeasurementSource": "/proc/self/status:VmHWM",
+            "torchVersion": torch.__version__,
+            "torchCudaVersion": torch.version.cuda,
+        },
+        "trainingData": {
+            "inputs": train_inputs.astype(np.float32, copy=False),
+            "outputs": train_targets.astype(np.float32, copy=False),
+            "provenance": np.concatenate([
+                np.full(recovery_inputs.shape[0], "natural_observed_model_inference", dtype="<U48"),
+                np.full(initial_train_queries, "generated_radial_shell_oracle_probe", dtype="<U48"),
+                np.full(
+                    sum(item["oraclePoints"] for item in adaptive_queries),
+                    "adaptive_residual_shell_oracle_probe",
+                    dtype="<U48",
+                ),
+            ]),
+            **{
+                f"natural_{name}": np.concatenate([
+                    values,
+                    np.full(
+                        (initial_train_queries + sum(
+                            item["oraclePoints"] for item in adaptive_queries
+                        ), *values.shape[1:]),
+                        -1 if np.issubdtype(values.dtype, np.number) else "",
+                        dtype=values.dtype,
+                    ),
+                ])
+                for name, values in (recovery_metadata or {}).items()
+            },
+        },
+        "validationData": {
+            "inputs": validation_inputs.astype(np.float32, copy=False),
+            "outputs": validation_targets.astype(np.float32, copy=False),
+            "shells": validation_shells,
+            "provenance": np.full(
+                validation_queries, "generated_radial_shell_validation_probe", dtype="<U48"
+            ),
+        },
+        "reconstruction": {
+            "gate": student.gate.detach().cpu().numpy().astype(np.float32),
+            "up": student.up.detach().cpu().numpy().astype(np.float32),
+            "down": student.down.detach().cpu().numpy().astype(np.float32),
+        },
+    }
+
+
+def run_qwen_oracle_distillation(
+    capture_dir: Path,
+    output_dir: Path,
+    model: str,
+    layer: int,
+    device: torch.device,
+    local_files_only: bool,
+    seed: int,
+    max_components: int,
+    oracle_query_budget: int,
+    initial_train_queries: int,
+    validation_queries: int,
+    adaptive_batch_queries: int,
+    steps_per_stage: int,
+    batch_size: int,
+    learning_rate: float,
+) -> dict[str, Any]:
+    """Run the adaptive-width solver through the opaque real-module oracle."""
+    capture_report, datasets = validate_qwen_real_activation_artifacts(capture_dir)
+    if capture_report.get("architecture", {}).get("modelType") != "qwen2":
+        raise ValueError("the adaptive SwiGLU route currently requires a Qwen2 capture")
+    captured_model = capture_report.get("requestedModel", capture_report.get("model"))
+    if captured_model != model or capture_report.get("module") != f"model.layers.{layer}.mlp":
+        raise ValueError(
+            "capture model/module must match the requested oracle target: "
+            f"capture=({captured_model!r}, {capture_report.get('module')!r}) "
+            f"requested=({model!r}, 'model.layers.{layer}.mlp')"
+        )
+    output_dir = output_dir.resolve()
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise FileExistsError(f"refusing to overwrite distillation artifacts: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    recovery = datasets["recovery_observations"]
+    memory_samples: list[tuple[int, int]] = []
+    monitor_stop = threading.Event()
+
+    def monitor_device_memory() -> None:
+        while not monitor_stop.is_set():
+            free_bytes, total_bytes = torch.cuda.mem_get_info(device)
+            memory_samples.append((int(total_bytes - free_bytes), int(total_bytes)))
+            monitor_stop.wait(0.05)
+
+    memory_monitor = threading.Thread(target=monitor_device_memory, daemon=True)
+    memory_monitor.start()
+    client = None
+    try:
+        client = open_live_oracle(
+            model=model,
+            layer=layer,
+            units="",
+            device=str(device),
+            max_calls=oracle_query_budget,
+            work_dir=output_dir / "oracle-work",
+            local_files_only=local_files_only,
+            oracle_output_mode="full-mlp-vector",
+            opaque_eval_only=True,
+        )
+        expected = {
+            "hiddenSize": int(capture_report["architecture"]["inputDim"]),
+            "oracleResponseWidth": int(capture_report["architecture"]["outputDim"]),
+            "oracleOutputMode": "full-mlp-vector",
+        }
+        for key, value in expected.items():
+            if client.meta.get(key) != value:
+                raise RuntimeError(
+                    f"opaque oracle metadata mismatch for {key}: "
+                    f"{client.meta.get(key)!r} != {value!r}"
+                )
+        forbidden = {
+            "model", "modelType", "layer", "unit", "units", "unitCount",
+            "intermediateSize", "device", "blockDevice", "outputChannel",
+        }
+        exposed = sorted(forbidden.intersection(client.meta))
+        if exposed:
+            raise RuntimeError(f"opaque oracle exposed forbidden solver metadata: {exposed}")
+        solver = recover_swiglu_by_adaptive_oracle_distillation(
+            oracle=lambda points: client.eval(points, stage="adaptive-swiglu-distillation"),
+            input_dim=expected["hiddenSize"],
+            output_dim=expected["oracleResponseWidth"],
+            recovery_inputs=recovery["inputs"],
+            recovery_outputs=recovery["outputs"],
+            max_components=max_components,
+            oracle_query_budget=oracle_query_budget,
+            initial_train_queries=initial_train_queries,
+            validation_queries=validation_queries,
+            adaptive_batch_queries=adaptive_batch_queries,
+            steps_per_stage=steps_per_stage,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            seed=seed,
+            device=device,
+            recovery_metadata={
+                key: recovery[key]
+                for key in ("token_ids", "token_positions", "prompt_ids", "prompt_sha256")
+            },
+        )
+        if int(solver["queryAccounting"]["oraclePoints"]) != client.query_count:
+            raise RuntimeError(
+                "distillation and opaque-oracle query counters disagree: "
+                f"{solver['queryAccounting']['oraclePoints']} != {client.query_count}"
+            )
+        oracle_stderr = client.stderr_tail()[-1000:]
+    finally:
+        if client is not None:
+            client.close()
+        monitor_stop.set()
+        memory_monitor.join()
+
+    if not memory_samples:
+        raise RuntimeError("CUDA memory monitor produced no samples")
+    training = solver.pop("trainingData")
+    validation = solver.pop("validationData")
+    reconstruction = solver.pop("reconstruction")
+    component_strength = solver.pop("componentStrengthRms")
+    artifact_arrays = {
+        "reconstruction.npz": reconstruction,
+        "distillation-training-observations.npz": training,
+        "distillation-validation-probes.npz": validation,
+        "component-strength.npz": {"rms": component_strength},
+    }
+    artifact_records: dict[str, dict[str, Any]] = {}
+    for filename, arrays in artifact_arrays.items():
+        path = output_dir / filename
+        np.savez_compressed(path, **arrays)
+        artifact_records[filename] = {
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "arrays": {
+                name: list(value.shape) for name, value in arrays.items()
+            },
+        }
+    solver["oracleMetadataKeys"] = sorted(client.meta)
+    solver["opaqueOracleStderrTail"] = oracle_stderr
+    solver["sourceCaptureReportSha256"] = hashlib.sha256(
+        (Path(capture_dir).resolve() / "capture-report.json").read_bytes()
+    ).hexdigest()
+    solver["artifacts"] = artifact_records
+    solver["teacherArchitectureKnownToSolver"] = {
+        "inputDim": solver["inputDim"],
+        "outputDim": solver["outputDim"],
+        "activationFamily": "silu-swiglu",
+        "hiddenComponents": "not provided",
+    }
+    solver["targetModel"] = model
+    solver["targetModule"] = f"model.layers.{layer}.mlp"
+    solver["captureNaturalRecoveryProvenancePreserved"] = True
+    solver["performance"]["peakWholeDeviceUsedBytesDuringOracleAndTraining"] = max(
+        used for used, _ in memory_samples
+    )
+    solver["performance"]["minimumWholeDeviceFreeBytesDuringOracleAndTraining"] = min(
+        total - used for used, total in memory_samples
+    )
+    solver["performance"]["wholeDeviceMemoryMonitorSamples"] = len(memory_samples)
+    report_path = output_dir / "distillation-report.json"
+    report_path.write_text(
+        json.dumps(solver, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    return solver
+
+
+def run_qwen_oracle_split_continuation(
+    capture_dir: Path,
+    output_dir: Path,
+    model: str,
+    layer: int,
+    device: torch.device,
+    local_files_only: bool,
+    seed: int,
+    max_components: int,
+    query_budget: int,
+    training_queries: int,
+    validation_queries: int,
+    adaptive_batch_queries: int,
+    steps_per_stage: int,
+    batch_size: int,
+    learning_rate: float,
+    projection_interval: int,
+    projection_batch_size: int,
+    split_perturbation: float,
+    projection_ridge: float,
+    natural_training_batch_fraction: float,
+    directional_derivative_weight: float,
+    directional_difference_step: float,
+    directional_derivative_query_fraction: float,
+) -> dict[str, Any]:
+    """Run function-preserving SwiGLU continuation against the opaque live oracle."""
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from tools.llm_reader.swiglu_split_continuation import recover_by_split_continuation
+
+    capture_report, datasets = validate_qwen_real_activation_artifacts(capture_dir)
+    if capture_report.get("architecture", {}).get("modelType") != "qwen2":
+        raise ValueError("the split-continuation route currently requires a Qwen2 capture")
+    captured_model = capture_report.get("requestedModel", capture_report.get("model"))
+    if captured_model != model or capture_report.get("module") != f"model.layers.{layer}.mlp":
+        raise ValueError("capture model/module does not match the requested oracle target")
+    output_dir = output_dir.resolve()
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise FileExistsError(f"refusing to overwrite continuation artifacts: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    recovery = datasets["recovery_observations"]
+    memory_samples: list[tuple[int, int]] = []
+    host_rss_samples: list[int] = []
+    oracle_rss_samples: list[int] = []
+    oracle_hwm_samples: list[int] = []
+    process_tree_pss_samples: list[int] = []
+    import resource
+
+    statm_path = Path("/proc/self/statm")
+    page_size = resource.getpagesize()
+    monitor_stop = threading.Event()
+    client = None
+
+    def monitor_device_memory() -> None:
+        while not monitor_stop.is_set():
+            free_bytes, total_bytes = torch.cuda.mem_get_info(device)
+            memory_samples.append((int(total_bytes - free_bytes), int(total_bytes)))
+            if statm_path.is_file():
+                resident_pages = int(statm_path.read_text(encoding="ascii").split()[1])
+                host_rss_samples.append(resident_pages * page_size)
+            parent_pss = _proc_smaps_pss_bytes("self")
+            oracle_process = (
+                None
+                if client is None
+                else getattr(client, "process", None)
+            )
+            oracle_pid = None if oracle_process is None else oracle_process.pid
+            if oracle_pid is not None:
+                oracle_rss = _proc_status_memory_bytes(oracle_pid, "VmRSS")
+                oracle_hwm = _proc_status_memory_bytes(oracle_pid, "VmHWM")
+                oracle_pss = _proc_smaps_pss_bytes(oracle_pid)
+                if oracle_rss is not None:
+                    oracle_rss_samples.append(oracle_rss)
+                if oracle_hwm is not None:
+                    oracle_hwm_samples.append(oracle_hwm)
+                if parent_pss is not None and oracle_pss is not None:
+                    process_tree_pss_samples.append(parent_pss + oracle_pss)
+            monitor_stop.wait(0.05)
+
+    memory_monitor = threading.Thread(target=monitor_device_memory, daemon=True)
+    memory_monitor.start()
+    oracle_query_points = 0
+    try:
+        client = open_live_oracle(
+            model=model,
+            layer=layer,
+            units="",
+            device=str(device),
+            max_calls=query_budget,
+            work_dir=output_dir / "oracle-work",
+            local_files_only=local_files_only,
+            oracle_output_mode="full-mlp-vector",
+            opaque_eval_only=True,
+        )
+        input_dim = int(capture_report["architecture"]["inputDim"])
+        output_dim = int(capture_report["architecture"]["outputDim"])
+        expected = {
+            "hiddenSize": input_dim,
+            "oracleResponseWidth": output_dim,
+            "oracleOutputMode": "full-mlp-vector",
+        }
+        for key, value in expected.items():
+            if client.meta.get(key) != value:
+                raise RuntimeError(
+                    f"opaque oracle metadata mismatch for {key}: "
+                    f"{client.meta.get(key)!r} != {value!r}"
+                )
+        forbidden = {
+            "model", "modelType", "layer", "unit", "units", "unitCount",
+            "intermediateSize", "device", "blockDevice", "outputChannel",
+        }
+        exposed = sorted(forbidden.intersection(client.meta))
+        if exposed:
+            raise RuntimeError(f"opaque oracle exposed forbidden solver metadata: {exposed}")
+
+        def counted_oracle(points: np.ndarray) -> np.ndarray:
+            nonlocal oracle_query_points
+            result = client.eval(points, stage="swiglu-split-continuation")
+            oracle_query_points += len(points)
+            return result
+
+        try:
+            solver = recover_by_split_continuation(
+                oracle=counted_oracle,
+                input_dim=input_dim,
+                output_dim=output_dim,
+                recovery_inputs=recovery["inputs"],
+                recovery_outputs=recovery["outputs"],
+                max_components=max_components,
+                query_budget=query_budget,
+                training_queries=training_queries,
+                validation_queries=validation_queries,
+                adaptive_batch_queries=adaptive_batch_queries,
+                steps_per_stage=steps_per_stage,
+                batch_size=batch_size,
+                learning_rate=learning_rate,
+                projection_interval=projection_interval,
+                projection_batch_size=projection_batch_size,
+                split_perturbation=split_perturbation,
+                projection_ridge=projection_ridge,
+                seed=seed,
+                device=device,
+                natural_training_batch_fraction=natural_training_batch_fraction,
+                directional_derivative_weight=directional_derivative_weight,
+                directional_difference_step=directional_difference_step,
+                directional_derivative_query_fraction=(
+                    directional_derivative_query_fraction
+                ),
+                recovery_metadata={
+                    key: recovery[key]
+                    for key in ("token_ids", "token_positions", "prompt_ids", "prompt_sha256")
+                },
+            )
+        except Exception as error:
+            (output_dir / "solver-failure-report.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "kind": "gcl-oracle-only-swiglu-split-continuation-failure",
+                        "status": "failed",
+                        "errorType": type(error).__name__,
+                        "error": str(error),
+                        "solverAccess": "oracle-only",
+                        "weightsUsedBySolver": False,
+                        "hooksUsedBySolver": False,
+                        "hiddenUnitCountProvidedToSolver": False,
+                        "inputDim": input_dim,
+                        "outputDim": output_dim,
+                        "queryAccounting": {
+                            "oraclePointsSuccessfullyReturned": oracle_query_points,
+                            "opaqueOracleReportedQueries": client.query_count,
+                            "configuredBudget": query_budget,
+                        },
+                        "trainingConfig": {
+                            "maxComponents": max_components,
+                            "trainingQueries": training_queries,
+                            "validationQueries": validation_queries,
+                            "adaptiveBatchQueries": adaptive_batch_queries,
+                            "stepsPerStage": steps_per_stage,
+                            "batchSize": batch_size,
+                            "learningRate": learning_rate,
+                            "splitPerturbation": split_perturbation,
+                            "projectionRidge": projection_ridge,
+                            "naturalTrainingBatchFraction": natural_training_batch_fraction,
+                            "directionalDerivativeWeight": directional_derivative_weight,
+                            "directionalDifferenceStep": directional_difference_step,
+                            "directionalDerivativeQueryFraction": (
+                                directional_derivative_query_fraction
+                            ),
+                        },
+                    },
+                    indent=2,
+                    allow_nan=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            raise
+        if solver["queryAccounting"]["oraclePoints"] != client.query_count:
+            raise RuntimeError(
+                "continuation and opaque-oracle query counters disagree: "
+                f"{solver['queryAccounting']['oraclePoints']} != {client.query_count}"
+            )
+        oracle_meta = client.meta.copy()
+        oracle_stderr = client.stderr_tail()[-1000:]
+    finally:
+        if client is not None:
+            client.close()
+        monitor_stop.set()
+        memory_monitor.join()
+
+    if not memory_samples:
+        raise RuntimeError("CUDA memory monitor produced no samples")
+    training = solver.pop("trainingData")
+    validation = solver.pop("validationData")
+    reconstruction = solver.pop("reconstruction")
+    component_strength = solver.pop("componentStrengthRms")
+    directional_derivative_data = solver.pop("directionalDerivativeData")
+    artifact_arrays = {
+        "reconstruction.npz": reconstruction,
+        "distillation-training-observations.npz": training,
+        "distillation-validation-probes.npz": validation,
+        "component-strength.npz": {"rms": component_strength},
+    }
+    if directional_derivative_data is not None:
+        artifact_arrays["distillation-directional-derivatives.npz"] = (
+            directional_derivative_data
+        )
+    artifact_records: dict[str, dict[str, Any]] = {}
+    for filename, arrays in artifact_arrays.items():
+        path = output_dir / filename
+        np.savez_compressed(path, **arrays)
+        artifact_records[filename] = {
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "arrays": {name: list(value.shape) for name, value in arrays.items()},
+        }
+    solver["oracleMetadataKeys"] = sorted(oracle_meta)
+    solver["opaqueOracleStderrTail"] = oracle_stderr
+    solver["sourceCaptureReportSha256"] = hashlib.sha256(
+        (Path(capture_dir).resolve() / "capture-report.json").read_bytes()
+    ).hexdigest()
+    solver["artifacts"] = artifact_records
+    solver["teacherArchitectureKnownToSolver"] = {
+        "inputDim": input_dim,
+        "outputDim": output_dim,
+        "activationFamily": "silu-swiglu",
+        "hiddenComponents": "not provided",
+    }
+    solver["targetModel"] = model
+    solver["targetModule"] = f"model.layers.{layer}.mlp"
+    solver["captureNaturalRecoveryProvenancePreserved"] = True
+    solver["performance"]["peakWholeDeviceUsedBytesDuringOracleAndTraining"] = max(
+        used for used, _ in memory_samples
+    )
+    solver["performance"]["minimumWholeDeviceFreeBytesDuringOracleAndTraining"] = min(
+        total - used for used, total in memory_samples
+    )
+    solver["performance"]["wholeDeviceMemoryMonitorSamples"] = len(memory_samples)
+    solver["performance"]["sampledHostRssPeakBytes"] = (
+        max(host_rss_samples) if host_rss_samples else None
+    )
+    solver["performance"]["hostRssMonitorSamples"] = len(host_rss_samples)
+    vm_hwm = _proc_vm_hwm_bytes()
+    solver["performance"]["procVmHwmBytes"] = vm_hwm
+    solver["performance"]["solverProcessPeakRssBytes"] = vm_hwm
+    solver["performance"]["rssMeasurementSource"] = "/proc/self/status:VmHWM"
+    solver["performance"]["oracleProcessPeakRssBytes"] = (
+        max(oracle_hwm_samples) if oracle_hwm_samples else None
+    )
+    solver["performance"]["sampledOracleProcessRssPeakBytes"] = (
+        max(oracle_rss_samples) if oracle_rss_samples else None
+    )
+    solver["performance"]["sampledParentAndOraclePssPeakBytes"] = (
+        max(process_tree_pss_samples) if process_tree_pss_samples else None
+    )
+    solver["performance"]["processTreePssMonitorSamples"] = len(process_tree_pss_samples)
+    solver["performance"]["processTreeMemoryMeasurementSource"] = (
+        "/proc/<pid>/smaps_rollup:Pss plus /proc/<pid>/status:VmRSS,VmHWM"
+    )
+    (output_dir / "distillation-report.json").write_text(
+        json.dumps(solver, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    return solver
+
+
+def evaluate_qwen_oracle_distillation(
+    capture_dir: Path,
+    distillation_dir: Path,
+    model: str,
+    layer: int,
+    device: torch.device,
+    local_files_only: bool,
+) -> dict[str, Any]:
+    """Post-hoc white-box functional and structural evaluation after solver artifacts freeze."""
+    target_replay_absolute_tolerance = 2e-5
+    if device.type != "cuda" or not torch.cuda.is_available():
+        raise RuntimeError("Qwen student evaluation requires an available CUDA device")
+    started = time.perf_counter()
+    capture_report, datasets = validate_qwen_real_activation_artifacts(capture_dir)
+    distillation_dir = distillation_dir.resolve()
+    report_path = distillation_dir / "distillation-report.json"
+    reconstruction_path = distillation_dir / "reconstruction.npz"
+    if not report_path.is_file() or not reconstruction_path.is_file():
+        raise FileNotFoundError("distillation report or reconstruction artifact is missing")
+    evaluation_path = distillation_dir / "evaluation-report.json"
+    if evaluation_path.exists():
+        raise FileExistsError(f"refusing to overwrite post-hoc evaluation: {evaluation_path}")
+    solver_report = json.loads(report_path.read_text(encoding="utf-8"))
+    if solver_report.get("solverAccess") != "oracle-only" or solver_report.get(
+        "hiddenUnitCountProvidedToSolver"
+    ) is not False:
+        raise ValueError("solver report violates the oracle-only/no-hidden-count contract")
+    with np.load(reconstruction_path, allow_pickle=False) as archive:
+        student = {key: archive[key] for key in archive.files}
+    gate_student = student["gate"].astype(np.float32, copy=False)
+    up_student = student["up"].astype(np.float32, copy=False)
+    down_student = student["down"].astype(np.float32, copy=False)
+    candidate_count = int(gate_student.shape[0])
+    input_dim = int(capture_report["architecture"]["inputDim"])
+    output_dim = int(capture_report["architecture"]["outputDim"])
+    if (
+        gate_student.shape != (candidate_count, input_dim)
+        or up_student.shape != gate_student.shape
+        or down_student.shape != (output_dim, candidate_count)
+        or candidate_count != solver_report.get("selectedCandidateComponents")
+    ):
+        raise ValueError("student reconstruction dimensions disagree with its report")
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from tools.llm_reader.adapters.registry import create_adapter
+
+    adapter = create_adapter("qwen2-swiglu")
+    tokenizer, model_instance = adapter.load_model_and_tokenizer(
+        model, local_files_only=local_files_only, device=str(device)
+    )
+    del tokenizer
+    mlp = adapter.mlp_modules(model_instance, [layer])[layer]._mlp
+    if (
+        int(mlp.gate_proj.in_features) != input_dim
+        or int(mlp.down_proj.out_features) != output_dim
+    ):
+        raise ValueError("post-hoc evaluator loaded a target with incompatible dimensions")
+
+    student_module = _SwiGLUDistillationStudent(
+        input_dim,
+        output_dim,
+        candidate_count,
+        torch.Generator(device="cpu").manual_seed(0),
+        device,
+        gate=torch.from_numpy(gate_student),
+        up=torch.from_numpy(up_student),
+        down=torch.from_numpy(down_student),
+    ).eval()
+
+    def run_student(inputs: np.ndarray) -> np.ndarray:
+        chunks = []
+        with torch.inference_mode():
+            for start in range(0, len(inputs), 256):
+                block = torch.as_tensor(
+                    inputs[start:start + 256], dtype=torch.float32, device=device
+                )
+                chunks.append(student_module(block).float().cpu().numpy())
+        return np.concatenate(chunks, axis=0) if chunks else np.zeros((0, output_dim), np.float32)
+
+    def run_target(inputs: np.ndarray) -> np.ndarray:
+        chunks = []
+        with torch.inference_mode():
+            for start in range(0, len(inputs), 256):
+                block = torch.as_tensor(
+                    inputs[start:start + 256], dtype=torch.float32, device=device
+                )
+                chunks.append(mlp(block).float().cpu().numpy())
+        return np.concatenate(chunks, axis=0) if chunks else np.zeros((0, output_dim), np.float32)
+
+    functional_results: dict[str, Any] = {}
+    for split_name in (
+        "recovery_observations",
+        "functional_evaluation",
+        "structural_evaluation",
+        "distributional_analysis",
+    ):
+        arrays = datasets[split_name]
+        prediction = run_student(arrays["inputs"])
+        independent_target = run_target(arrays["inputs"])
+        target_delta = float(np.max(np.abs(independent_target - arrays["outputs"])))
+        if target_delta > target_replay_absolute_tolerance:
+            raise RuntimeError(
+                f"post-hoc target replay disagrees with capture in {split_name}: {target_delta}"
+            )
+        functional_results[split_name] = _functional_metrics(
+            independent_target, prediction, arrays["inputs"]
+        )
+        functional_results[split_name]["independentTargetReplayMaxAbsDelta"] = target_delta
+
+    validation_path = distillation_dir / "distillation-validation-probes.npz"
+    with np.load(validation_path, allow_pickle=False) as archive:
+        validation = {key: archive[key] for key in archive.files}
+    validation_target = run_target(validation["inputs"])
+    validation_prediction = run_student(validation["inputs"])
+    validation_target_delta = float(np.max(np.abs(validation_target - validation["outputs"])))
+    if validation_target_delta > target_replay_absolute_tolerance:
+        raise RuntimeError(
+            f"post-hoc target replay disagrees with solver validation labels: {validation_target_delta}"
+        )
+    generated_validation_metrics = _functional_metrics(
+        validation_target, validation_prediction, validation["inputs"]
+    )
+    generated_validation_metrics["independentTargetReplayMaxAbsDelta"] = validation_target_delta
+
+    gate_truth = mlp.gate_proj.weight.detach().float()
+    up_truth = mlp.up_proj.weight.detach().float()
+    down_truth = mlp.down_proj.weight.detach().float()
+    gate_candidate = torch.as_tensor(gate_student, device=device)
+    gate_truth_norm = torch.nn.functional.normalize(gate_truth, dim=1)
+    gate_candidate_norm = torch.nn.functional.normalize(gate_candidate, dim=1)
+    try:
+        from scipy.optimize import linear_sum_assignment
+    except ImportError as error:
+        raise RuntimeError("post-hoc structural matching requires the installed scipy package") from error
+
+    if min(candidate_count, int(gate_truth.shape[0])) <= 512:
+        similarity = (gate_candidate_norm @ gate_truth_norm.T).abs().cpu().numpy()
+        candidate_indices, truth_indices = linear_sum_assignment(-similarity)
+        matching_method = "exact_hungarian_max_abs_gate_cosine"
+        matched_cosines = similarity[candidate_indices, truth_indices]
+    else:
+        top_candidates: list[tuple[float, int, int, float]] = []
+        top_k = min(16, int(gate_truth.shape[0]))
+        for start in range(0, candidate_count, 32):
+            scores = gate_candidate_norm[start:start + 32] @ gate_truth_norm.T
+            values, indices = scores.abs().topk(top_k, dim=1)
+            signed_values = scores.gather(1, indices)
+            for local_index in range(values.shape[0]):
+                for rank_index in range(top_k):
+                    top_candidates.append((
+                        float(values[local_index, rank_index].item()),
+                        start + local_index,
+                        int(indices[local_index, rank_index].item()),
+                        float(signed_values[local_index, rank_index].item()),
+                    ))
+        used_candidate: set[int] = set()
+        used_truth: set[int] = set()
+        accepted: list[tuple[int, int, float]] = []
+        for cosine, candidate_index, truth_index, signed in sorted(top_candidates, reverse=True):
+            if candidate_index in used_candidate or truth_index in used_truth:
+                continue
+            used_candidate.add(candidate_index)
+            used_truth.add(truth_index)
+            accepted.append((candidate_index, truth_index, signed))
+        candidate_indices = np.asarray([item[0] for item in accepted], dtype=np.int64)
+        truth_indices = np.asarray([item[1] for item in accepted], dtype=np.int64)
+        matched_cosines = np.asarray([abs(item[2]) for item in accepted], dtype=np.float64)
+        matching_method = "greedy_one_to_one_from_top16_gate_cosines"
+
+    candidate_index_t = torch.as_tensor(candidate_indices, device=device, dtype=torch.long)
+    truth_index_t = torch.as_tensor(truth_indices, device=device, dtype=torch.long)
+    signed_gate_cosines = (
+        gate_candidate_norm[candidate_index_t] * gate_truth_norm[truth_index_t]
+    ).sum(dim=1).cpu().numpy()
+    up_candidate = torch.as_tensor(up_student, device=device)
+    down_candidate = torch.as_tensor(down_student, device=device)
+    matched_up_cosines: list[float] = []
+    matched_down_cosines: list[float] = []
+    matched_up_scaled_errors: list[float] = []
+    matched_down_scaled_errors: list[float | None] = []
+    matched_gate_norm_relative_errors: list[float] = []
+    for candidate_index, truth_index in zip(candidate_indices, truth_indices):
+        student_up = up_candidate[candidate_index]
+        true_up = up_truth[truth_index]
+        student_down = down_candidate[:, candidate_index]
+        true_down = down_truth[:, truth_index]
+        student_up_norm = student_up.norm().clamp_min(1e-30)
+        true_up_norm = true_up.norm().clamp_min(1e-30)
+        student_down_norm = student_down.norm().clamp_min(1e-30)
+        true_down_norm = true_down.norm().clamp_min(1e-30)
+        matched_up_cosines.append(float(torch.dot(student_up, true_up).abs() / (student_up_norm * true_up_norm)))
+        matched_down_cosines.append(float(torch.dot(student_down, true_down).abs() / (student_down_norm * true_down_norm)))
+        # U -> cU and D -> D/c is a genuine reciprocal scale symmetry.
+        scale = torch.dot(student_up, true_up) / student_up.square().sum().clamp_min(1e-30)
+        matched_up_scaled_errors.append(
+            float((scale * student_up - true_up).norm() / true_up_norm)
+        )
+        matched_down_scaled_errors.append(
+            float((student_down / scale - true_down).norm() / true_down_norm)
+            if abs(float(scale.item())) > 1e-20 else None
+        )
+        candidate_gate_norm = gate_candidate[candidate_index].norm().clamp_min(1e-30)
+        truth_gate_norm = gate_truth[truth_index].norm().clamp_min(1e-30)
+        matched_gate_norm_relative_errors.append(
+            float((candidate_gate_norm - truth_gate_norm).abs() / truth_gate_norm)
+        )
+    structural = {
+        "teacherComponentsObservedPosthoc": int(gate_truth.shape[0]),
+        "studentCandidateComponents": candidate_count,
+        "oneToOneMatches": int(len(candidate_indices)),
+        "matchingMethod": matching_method,
+        "gateAbsCosineMedian": float(np.median(matched_cosines)) if len(matched_cosines) else None,
+        "gateSignedCosineMedian": float(np.median(signed_gate_cosines)) if len(signed_gate_cosines) else None,
+        "gateCorrectOrientationCountAtCosine0.99": int(
+            np.sum(signed_gate_cosines >= 0.99)
+        ),
+        "gateMatchedCountAtAbsCosine0.99": int(np.sum(np.asarray(matched_cosines) >= 0.99)),
+        "gateNormRelativeErrorMedian": float(np.median(matched_gate_norm_relative_errors)) if matched_gate_norm_relative_errors else None,
+        "upAbsCosineMedian": float(np.median(matched_up_cosines)) if matched_up_cosines else None,
+        "downAbsCosineMedian": float(np.median(matched_down_cosines)) if matched_down_cosines else None,
+        "upScaleAlignedRelativeErrorMedian": float(np.median(matched_up_scaled_errors)) if matched_up_scaled_errors else None,
+        "downReciprocalScaleAlignedRelativeErrorMedian": (
+            float(np.median([value for value in matched_down_scaled_errors if value is not None]))
+            if any(value is not None for value in matched_down_scaled_errors) else None
+        ),
+        "downReciprocalScaleAlignmentUndefinedCount": sum(
+            value is None for value in matched_down_scaled_errors
+        ),
+        "legitimateSymmetries": [
+            "permutation of hidden component rows/columns",
+            "nonzero reciprocal scaling of up-projection row and matching down-projection column",
+        ],
+        "gateScaleSymmetry": False,
+        "completeStructuralRecovery": bool(
+            candidate_count == int(gate_truth.shape[0])
+            and len(candidate_indices) == int(gate_truth.shape[0])
+            and np.sum(signed_gate_cosines >= 0.99) == int(gate_truth.shape[0])
+        ),
+    }
+    result = {
+        "schemaVersion": 1,
+        "kind": "gcl-qwen-swiglu-distillation-evaluation",
+        "status": "evaluated_posthoc",
+        "verificationMode": "independent_posthoc_white_box_evaluator",
+        "model": model,
+        "module": f"model.layers.{layer}.mlp",
+        "groundTruthWeightsReadByEvaluator": True,
+        "groundTruthWeightsUsedBySolver": False,
+        "targetReplayAbsoluteTolerance": target_replay_absolute_tolerance,
+        "solverReportSha256": hashlib.sha256(report_path.read_bytes()).hexdigest(),
+        "functional": functional_results,
+        "generatedOracleValidation": generated_validation_metrics,
+        "structural": structural,
+        "identifiability": {
+            "finiteOracleObservations": int(
+                solver_report["queryAccounting"]["oraclePoints"]
+                + solver_report["queryAccounting"]["reusedRecoveryObservations"]
+            ),
+            "teacherComponentsWereHiddenFromSolver": True,
+            "teacherParametersWereHiddenFromSolver": True,
+            "functionalFitDoesNotProveStructuralIdentifiability": True,
+            "countEstimateIsStudentModelSelectionNotTeacherCountProof": True,
+            "identifiedByModelFamily": [
+                "input dimension",
+                "output dimension",
+                "SwiGLU activation family",
+                "bias-free Qwen2 feed-forward form",
+            ],
+            "unresolved": [
+                "global uniqueness of the 4864-component finite-sample factorization",
+                "whether omitted or weak student components are functionally redundant on the sampled domain",
+            ],
+        },
+        "evaluationSeconds": time.perf_counter() - started,
+    }
+    evaluation_path.write_text(
+        json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    del student_module, mlp, model_instance, adapter
+    gc.collect()
+    torch.cuda.empty_cache()
+    return result
+
+
+def _nvidia_smi_memory_bytes(device_index: int) -> int:
+    completed = subprocess.run(
+        [
+            "nvidia-smi",
+            "--query-gpu=memory.used",
+            "--format=csv,noheader,nounits",
+            f"--id={device_index}",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    rows = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    if len(rows) != 1:
+        raise RuntimeError(
+            f"expected one nvidia-smi memory row for GPU {device_index}, got {rows!r}"
+        )
+    try:
+        return int(rows[0]) * 1024**2
+    except ValueError as error:
+        raise RuntimeError(f"invalid nvidia-smi memory value: {rows[0]!r}") from error
+
+
+def _component_signature_summary(gram: torch.Tensor) -> dict[str, Any]:
+    norms = gram.diagonal().clamp_min(0.0).sqrt()
+    active = norms > 1e-20
+    active_count = int(active.sum().item())
+    gram.div_(norms[:, None].clamp_min(1e-20))
+    gram.div_(norms[None, :].clamp_min(1e-20))
+    gram.abs_()
+    gram.fill_diagonal_(0.0)
+    nearest = gram.max(dim=1).values[active]
+    if active_count:
+        nearest_cpu = nearest.float().cpu().numpy()
+        return {
+            "activeComponents": active_count,
+            "inactiveComponents": int(len(norms) - active_count),
+            "nearestOtherComponentAbsoluteCosineMedian": float(
+                np.median(nearest_cpu)
+            ),
+            "nearestOtherComponentAbsoluteCosineP95": float(
+                np.quantile(nearest_cpu, 0.95)
+            ),
+            "componentsWithNearestCosineAtLeast0.99": int(
+                np.sum(nearest_cpu >= 0.99)
+            ),
+        }
+    return {
+        "activeComponents": 0,
+        "inactiveComponents": int(len(norms)),
+        "nearestOtherComponentAbsoluteCosineMedian": None,
+        "nearestOtherComponentAbsoluteCosineP95": None,
+        "componentsWithNearestCosineAtLeast0.99": 0,
+    }
+
+
+def run_qwen_amplitude_response(
+    capture_dir: Path,
+    output_dir: Path,
+    model: str,
+    layer: int,
+    device: torch.device,
+    local_files_only: bool,
+    seed: int,
+    max_oracle_points: int,
+) -> dict[str, Any]:
+    """Measure exact positive/negative amplitude trajectories using only the opaque oracle."""
+    if device.type != "cuda" or not torch.cuda.is_available():
+        raise RuntimeError("Qwen amplitude probing requires an available CUDA device")
+    if max_oracle_points <= 0:
+        raise ValueError("max_oracle_points must be positive")
+    capture_report, datasets = validate_qwen_real_activation_artifacts(capture_dir)
+    output_dir = output_dir.resolve()
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise FileExistsError(f"refusing to overwrite existing amplitude artifacts: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from tools.llm_reader.swiglu_amplitude_response import (
+        DEFAULT_AMPLITUDES,
+        amplitude_inputs,
+        analyze_amplitude_outputs,
+        make_amplitude_directions,
+    )
+
+    capture_digest = hashlib.sha256(
+        (Path(capture_dir).resolve() / "capture-report.json").read_bytes()
+    ).hexdigest()
+    natural = datasets["recovery_observations"]
+    directions = make_amplitude_directions(
+        natural["inputs"],
+        prompt_ids=natural["prompt_ids"],
+        prompt_sha256=natural["prompt_sha256"],
+        token_positions=natural["token_positions"],
+        natural_count=32,
+        combination_count=32,
+        independent_count=32,
+        seed=seed,
+    )
+    amplitudes = DEFAULT_AMPLITUDES.copy()
+    exact_inputs = amplitude_inputs(directions["directions"], amplitudes)
+    direction_count, amplitude_count, polarity_count, input_dim = exact_inputs.shape
+    output_dim = int(capture_report["architecture"]["outputDim"])
+    requested_points = int(direction_count * amplitude_count * polarity_count)
+    if requested_points > max_oracle_points:
+        raise ValueError(
+            f"amplitude design needs {requested_points} oracle points, "
+            f"budget is {max_oracle_points}"
+        )
+    if input_dim != int(capture_report["architecture"]["inputDim"]):
+        raise ValueError("amplitude direction width disagrees with the verified capture")
+
+    device_index = int(device.index if device.index is not None else torch.cuda.current_device())
+    stop_sampling = threading.Event()
+    memory_samples: list[dict[str, int | None]] = []
+    sampling_errors: list[Exception] = []
+    oracle_pid: int | None = None
+
+    def sample_resources() -> None:
+        try:
+            while not stop_sampling.is_set():
+                gpu_used = _nvidia_smi_memory_bytes(device_index)
+                memory_samples.append({
+                    "gpuUsedBytes": gpu_used,
+                    "parentPssBytes": _proc_smaps_pss_bytes("self"),
+                    "oraclePssBytes": (
+                        _proc_smaps_pss_bytes(oracle_pid)
+                        if oracle_pid is not None
+                        else None
+                    ),
+                })
+                stop_sampling.wait(0.1)
+        except Exception as error:
+            sampling_errors.append(error)
+            stop_sampling.set()
+
+    started = time.perf_counter()
+    memory_thread = threading.Thread(
+        target=sample_resources,
+        name="qwen-amplitude-resource-sampler",
+        daemon=True,
+    )
+    memory_thread.start()
+    client = None
+    oracle_outputs_flat: list[np.ndarray] = []
+    oracle_requests = 0
+    try:
+        client = open_live_oracle(
+            model=model,
+            layer=layer,
+            units="",
+            device=str(device),
+            max_calls=max_oracle_points,
+            work_dir=output_dir / "oracle-work",
+            local_files_only=local_files_only,
+            oracle_output_mode="full-mlp-vector",
+            opaque_eval_only=True,
+        )
+        if client.meta.get("hiddenSize") != input_dim or client.meta.get(
+            "oracleResponseWidth"
+        ) != output_dim:
+            raise RuntimeError("opaque amplitude oracle dimensions disagree with the capture")
+        forbidden = {
+            "model", "modelType", "layer", "unit", "units", "unitCount",
+            "intermediateSize", "device", "blockDevice", "outputChannel",
+        }
+        exposed = sorted(forbidden.intersection(client.meta))
+        if exposed:
+            raise RuntimeError(f"opaque amplitude oracle exposed {exposed}")
+        if client.meta.get("protocolCapabilities", {}).get("truth") is not False:
+            raise RuntimeError("amplitude solver oracle unexpectedly exposes truth capability")
+        if client.process is not None:
+            oracle_pid = int(client.process.pid)
+
+        flat_inputs = exact_inputs.reshape(-1, input_dim)
+        for start_index in range(0, len(flat_inputs), 256):
+            batch = flat_inputs[start_index:start_index + 256]
+            oracle_outputs_flat.append(
+                client.eval(batch, stage="amplitude-polarity-trajectories").astype(
+                    np.float32, copy=False
+                )
+            )
+            oracle_requests += 1
+        oracle_points = int(client.query_count)
+        oracle_stderr = client.stderr_tail()
+        if oracle_points != requested_points:
+            raise RuntimeError(
+                f"opaque oracle used {oracle_points} points, expected {requested_points}"
+            )
+        outputs = np.concatenate(oracle_outputs_flat, axis=0).reshape(
+            direction_count, amplitude_count, polarity_count, output_dim
+        )
+        analysis = analyze_amplitude_outputs(outputs, amplitudes)
+        raw_path = output_dir / "amplitude-responses.npz"
+        np.savez_compressed(
+            raw_path,
+            directions=directions["directions"],
+            direction_ids=directions["direction_ids"],
+            direction_kinds=directions["direction_kinds"],
+            source_natural_indices=directions["source_natural_indices"],
+            source_coefficients=directions["source_coefficients"],
+            source_prompt_ids=directions["source_prompt_ids"],
+            source_prompt_sha256=directions["source_prompt_sha256"],
+            source_token_positions=directions["source_token_positions"],
+            amplitudes=amplitudes,
+            polarities=np.asarray([1.0, -1.0], dtype=np.float32),
+            exact_inputs=exact_inputs,
+            oracle_outputs=outputs,
+            normalized_responses=analysis["normalized_responses"],
+            consecutive_relative_changes=analysis["consecutive_relative_changes"],
+            consecutive_cosines=analysis["consecutive_cosines"],
+            consecutive_cosine_defined=analysis["consecutive_cosine_defined"],
+            log2_amplitude_slopes=analysis["log2_amplitude_slopes"],
+            even_responses=analysis["even_responses"],
+            odd_responses=analysis["odd_responses"],
+            stable_at_final_two_steps=analysis["stable_at_final_two_steps"],
+        )
+        raw_sha256 = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+        result = {
+            "schemaVersion": 1,
+            "kind": "gcl-qwen-swiglu-amplitude-polarity-probe",
+            "status": "captured",
+            "model": model,
+            "module": f"model.layers.{layer}.mlp",
+            "architecture": {
+                "inputDim": input_dim,
+                "outputDim": output_dim,
+                "activation": "silu",
+            },
+            "solverAccess": "oracle-only",
+            "teacherParametersUsedBySolver": False,
+            "hiddenUnitCountProvidedToSolver": False,
+            "accessMode": {
+                "fullModuleOracle": "opaque_eval_only",
+                "capturedNaturalActivationVectorsUsedOnlyAsDirections": True,
+                "oracleTruthCapability": False,
+            },
+            "captureReportSha256": capture_digest,
+            "directionDesign": {
+                "count": direction_count,
+                "naturalObserved": int(
+                    np.sum(directions["direction_kinds"] == "natural_observed")
+                ),
+                "naturalCombinations": int(
+                    np.sum(directions["direction_kinds"] == "natural_combination")
+                ),
+                "independentGaussian": int(
+                    np.sum(directions["direction_kinds"] == "independent_gaussian")
+                ),
+                "seed": int(seed),
+                "provenanceStoredPerDirection": True,
+            },
+            "amplitudes": amplitudes.tolist(),
+            "polarityOrder": [1.0, -1.0],
+            "queryAccounting": {
+                "oraclePoints": oracle_points,
+                "oracleQueryBudget": int(max_oracle_points),
+                "requestedPoints": requested_points,
+                "evalRequests": oracle_requests,
+                "pointsPerDirection": int(amplitude_count * polarity_count),
+                "rawArtifact": raw_path.name,
+                "rawArtifactSha256": raw_sha256,
+            },
+            "responseAnalysis": {
+                "stabilityRelativeChangeThreshold": 0.01,
+                "stableBothPolaritiesAtFinalTwoSteps": int(
+                    np.sum(analysis["stable_at_final_two_steps"])
+                ),
+                "stableFraction": float(
+                    np.mean(analysis["stable_at_final_two_steps"])
+                ),
+                "medianFinalTwoStepRelativeChangeByPolarity": np.median(
+                    analysis["consecutive_relative_changes"][:, -2:, :], axis=(0, 1)
+                ).tolist(),
+                "p95FinalTwoStepRelativeChangeByPolarity": np.quantile(
+                    analysis["consecutive_relative_changes"][:, -2:, :],
+                    0.95,
+                    axis=(0, 1),
+                ).tolist(),
+                "maximumFinalTwoStepRelativeChangeByPolarity": np.max(
+                    analysis["consecutive_relative_changes"][:, -2:, :], axis=(0, 1)
+                ).tolist(),
+            },
+            "performance": {
+                "runtimeSeconds": time.perf_counter() - started,
+                "parentVmHwmBytes": _proc_vm_hwm_bytes(),
+                "oracleVmHwmBytes": (
+                    _proc_status_memory_bytes(oracle_pid, "VmHWM")
+                    if oracle_pid is not None
+                    else None
+                ),
+                "sampledPeakCombinedPssBytes": max(
+                    (
+                        int(sample["parentPssBytes"] or 0)
+                        + int(sample["oraclePssBytes"] or 0)
+                        for sample in memory_samples
+                    ),
+                    default=None,
+                ),
+                "sampledPeakDeviceWideVramBytes": max(
+                    (int(sample["gpuUsedBytes"]) for sample in memory_samples),
+                    default=None,
+                ),
+                "resourceSampleCount": len(memory_samples),
+                "resourceSampleIntervalSeconds": 0.1,
+                "vramScope": (
+                    "nvidia-smi device-wide usage; includes concurrent GPU processes"
+                ),
+                "parentPssMeasurementSource": "/proc/self/smaps_rollup:Pss",
+                "oraclePssMeasurementSource": "/proc/<pid>/smaps_rollup:Pss",
+                "processHighWaterMarkSource": "/proc/<pid>/status:VmHWM",
+                "oracleStderrTail": oracle_stderr[-1000:],
+            },
+            "interpretation": {
+                "functionalRecovery": "not_measured_no_reconstruction",
+                "structuralRecovery": "not_measured_no_reconstruction",
+                "distributionalGeneralization": "not_measured_no_reconstruction",
+            },
+        }
+    finally:
+        if client is not None:
+            client.close()
+        stop_sampling.set()
+        memory_thread.join()
+    if sampling_errors:
+        raise RuntimeError("Qwen amplitude resource sampling failed") from sampling_errors[0]
+    report_path = output_dir / "probe-report.json"
+    report_path.write_text(
+        json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    return result
+
+
+def evaluate_qwen_amplitude_response(
+    capture_dir: Path,
+    output_dir: Path,
+    model: str,
+    layer: int,
+    device: torch.device,
+    local_files_only: bool,
+) -> dict[str, Any]:
+    """Use a separate white-box reload only to evaluate frozen oracle measurements."""
+    if device.type != "cuda" or not torch.cuda.is_available():
+        raise RuntimeError("Qwen amplitude evaluation requires an available CUDA device")
+    started = time.perf_counter()
+    capture_report, _ = validate_qwen_real_activation_artifacts(capture_dir)
+    output_dir = output_dir.resolve()
+    report_path = output_dir / "probe-report.json"
+    raw_path = output_dir / "amplitude-responses.npz"
+    evaluation_path = output_dir / "evaluation-report.json"
+    if not report_path.is_file() or not raw_path.is_file():
+        raise FileNotFoundError("Qwen amplitude probe report or raw responses are missing")
+    if evaluation_path.exists():
+        raise FileExistsError(f"refusing to overwrite amplitude evaluation: {evaluation_path}")
+    solver_report = json.loads(report_path.read_text(encoding="utf-8"))
+    if (
+        solver_report.get("status") != "captured"
+        or solver_report.get("solverAccess") != "oracle-only"
+        or solver_report.get("teacherParametersUsedBySolver") is not False
+        or solver_report.get("hiddenUnitCountProvidedToSolver") is not False
+    ):
+        raise ValueError("amplitude probe report violates its oracle-only contract")
+    if hashlib.sha256(raw_path.read_bytes()).hexdigest() != solver_report[
+        "queryAccounting"
+    ].get("rawArtifactSha256"):
+        raise ValueError("raw amplitude response SHA-256 mismatch")
+    if hashlib.sha256(
+        (Path(capture_dir).resolve() / "capture-report.json").read_bytes()
+    ).hexdigest() != solver_report.get("captureReportSha256"):
+        raise ValueError("activation-capture report changed after the amplitude probe")
+    with np.load(raw_path, allow_pickle=False) as archive:
+        raw = {key: archive[key] for key in archive.files}
+    directions = raw["directions"].astype(np.float32, copy=False)
+    amplitudes = raw["amplitudes"].astype(np.float32, copy=False)
+    exact_inputs = raw["exact_inputs"].astype(np.float32, copy=False)
+    oracle_outputs = raw["oracle_outputs"].astype(np.float32, copy=False)
+    if exact_inputs.ndim != 4 or exact_inputs.shape[:3] != oracle_outputs.shape[:3]:
+        raise ValueError("raw amplitude inputs and outputs have inconsistent dimensions")
+    expected_points = int(np.prod(exact_inputs.shape[:3]))
+    if expected_points != solver_report["queryAccounting"].get("oraclePoints"):
+        raise ValueError("raw amplitude query count disagrees with the solver report")
+    if not np.isfinite(exact_inputs).all() or not np.isfinite(oracle_outputs).all():
+        raise ValueError("raw amplitude observations contain non-finite values")
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from tools.llm_reader.adapters.registry import create_adapter
+    from tools.llm_reader.swiglu_amplitude_response import (
+        analyze_amplitude_outputs,
+        asymptotic_swiglu_responses,
+    )
+
+    adapter = create_adapter("qwen2-swiglu")
+    tokenizer, model_instance = adapter.load_model_and_tokenizer(
+        model, local_files_only=local_files_only, device=str(device)
+    )
+    del tokenizer
+    mlp = adapter.mlp_modules(model_instance, [layer])[layer]._mlp
+    input_dim = int(mlp.gate_proj.in_features)
+    output_dim = int(mlp.down_proj.out_features)
+    if exact_inputs.shape[-1] != input_dim or oracle_outputs.shape[-1] != output_dim:
+        raise ValueError("amplitude artifacts do not match the independently loaded Qwen module")
+    if any(
+        getattr(projection, "bias", None) is not None
+        for projection in (mlp.gate_proj, mlp.up_proj, mlp.down_proj)
+    ):
+        raise ValueError("asymptotic evaluator expects the bias-free Qwen SwiGLU module")
+    torch.cuda.reset_peak_memory_stats(device)
+
+    def replay(inputs: np.ndarray) -> np.ndarray:
+        rows = inputs.reshape(-1, input_dim)
+        chunks: list[np.ndarray] = []
+        with torch.inference_mode():
+            for start_index in range(0, len(rows), 128):
+                block = torch.as_tensor(
+                    rows[start_index:start_index + 128],
+                    dtype=torch.float32,
+                    device=device,
+                )
+                chunks.append(mlp(block).float().cpu().numpy())
+        return np.concatenate(chunks, axis=0).reshape(
+            *inputs.shape[:-1], output_dim
+        )
+
+    target_outputs = replay(exact_inputs)
+    max_abs_delta = float(np.max(np.abs(target_outputs - oracle_outputs)))
+    replay_delta = (
+        target_outputs.astype(np.float64) - oracle_outputs.astype(np.float64)
+    ).reshape(-1, output_dim)
+    oracle_rows = oracle_outputs.astype(np.float64).reshape(-1, output_dim)
+    replay_relative_by_row = np.linalg.norm(replay_delta, axis=1) / np.maximum(
+        np.linalg.norm(oracle_rows, axis=1), 1e-30
+    )
+    max_relative_l2_delta = float(np.max(replay_relative_by_row))
+    target_replay_relative_tolerance = 5e-6
+    if max_relative_l2_delta > target_replay_relative_tolerance:
+        raise RuntimeError(
+            "post-hoc module replay relative L2 error "
+            f"{max_relative_l2_delta} exceeds {target_replay_relative_tolerance}; "
+            f"max absolute delta was {max_abs_delta}"
+        )
+    flat_inputs = exact_inputs.reshape(-1, input_dim)
+    replay_metrics = _functional_metrics(
+        target_outputs.reshape(-1, output_dim),
+        oracle_outputs.reshape(-1, output_dim),
+        flat_inputs,
+    )
+
+    gate = mlp.gate_proj.weight.detach().float().cpu().numpy()
+    up = mlp.up_proj.weight.detach().float().cpu().numpy()
+    down = mlp.down_proj.weight.detach().float().cpu().numpy()
+    positive_limit, negative_limit = asymptotic_swiglu_responses(
+        gate, up, down, directions
+    )
+    reversed_positive, reversed_negative = asymptotic_swiglu_responses(
+        gate, up, down, -directions
+    )
+    polarity_identity_error = max(
+        float(np.max(np.abs(positive_limit - reversed_negative))),
+        float(np.max(np.abs(negative_limit - reversed_positive))),
+    )
+    if polarity_identity_error > 1e-10:
+        raise RuntimeError("exact asymptotic polarity-reversal identity failed")
+    analysis = analyze_amplitude_outputs(oracle_outputs, amplitudes)
+    limits = np.stack([positive_limit, negative_limit], axis=1)
+    final_normalized = analysis["normalized_responses"][:, -1]
+    limit_norms = np.linalg.norm(limits, axis=-1)
+    limit_errors = np.linalg.norm(final_normalized - limits, axis=-1) / np.maximum(
+        limit_norms, 1e-30
+    )
+
+    gate_t = mlp.gate_proj.weight.detach().float()
+    up_t = mlp.up_proj.weight.detach().float()
+    down_t = mlp.down_proj.weight.detach().float()
+    down_gram = down_t.T @ down_t
+    signature_results: dict[str, Any] = {}
+    direction_kinds = raw["direction_kinds"].astype(str)
+    for kind in (
+        "natural_observed",
+        "natural_combination",
+        "independent_gaussian",
+    ):
+        selected = np.flatnonzero(direction_kinds == kind)
+        direction_tensor = torch.as_tensor(
+            directions[selected], dtype=torch.float32, device=device
+        )
+        gate_values = direction_tensor @ gate_t.T
+        up_values = direction_tensor @ up_t.T
+        signatures: dict[str, Any] = {}
+        for polarity_name, coefficients in (
+            ("positive", gate_values.clamp_min(0.0) * up_values),
+            ("negative", gate_values.clamp_max(0.0) * up_values),
+        ):
+            coefficient_rows = coefficients.T.contiguous()
+            activation_gram = coefficient_rows @ coefficient_rows.T
+            projected_gram = activation_gram * down_gram
+            signatures[polarity_name] = {
+                "beforeOutputProjection": _component_signature_summary(
+                    activation_gram
+                ),
+                "afterOutputProjection": _component_signature_summary(
+                    projected_gram
+                ),
+            }
+        signature_results[kind] = signatures
+        del direction_tensor, gate_values, up_values, signatures
+    del down_gram, gate_t, up_t
+
+    stable = analysis["stable_at_final_two_steps"]
+    stability_by_kind: dict[str, Any] = {}
+    asymptotic_error_by_kind: dict[str, Any] = {}
+    for kind in (
+        "natural_observed",
+        "natural_combination",
+        "independent_gaussian",
+    ):
+        selected = direction_kinds == kind
+        stability_by_kind[kind] = {
+            "directions": int(np.sum(selected)),
+            "stableBothPolaritiesAtFinalTwoSteps": int(np.sum(stable[selected])),
+            "stableFraction": float(np.mean(stable[selected])),
+        }
+        kind_errors = limit_errors[selected]
+        asymptotic_error_by_kind[kind] = {
+            "positiveMedianRelativeError": float(np.median(kind_errors[:, 0])),
+            "positiveP95RelativeError": float(np.quantile(kind_errors[:, 0], 0.95)),
+            "negativeMedianRelativeError": float(np.median(kind_errors[:, 1])),
+            "negativeP95RelativeError": float(np.quantile(kind_errors[:, 1], 0.95)),
+            "nearZeroAsymptoticComponents": int(np.sum(limit_norms[selected] <= 1e-20)),
+        }
+
+    result = {
+        "schemaVersion": 1,
+        "kind": "gcl-qwen-swiglu-amplitude-polarity-evaluation",
+        "status": "evaluated_posthoc",
+        "verificationMode": "independent_posthoc_white_box_evaluator",
+        "model": model,
+        "module": f"model.layers.{layer}.mlp",
+        "groundTruthWeightsReadByEvaluator": True,
+        "groundTruthWeightsUsedBySolver": False,
+        "solverReportSha256": hashlib.sha256(report_path.read_bytes()).hexdigest(),
+        "rawArtifactSha256": hashlib.sha256(raw_path.read_bytes()).hexdigest(),
+        "captureReportSha256": solver_report["captureReportSha256"],
+        "independentOracleReplay": {
+            "maxAbsoluteDelta": max_abs_delta,
+            "maxPerSampleRelativeL2Delta": max_relative_l2_delta,
+            "relativeL2Tolerance": target_replay_relative_tolerance,
+            "absoluteDeltaIsInformationalAtLargeAmplitudes": True,
+            "metrics": replay_metrics,
+        },
+        "responseStability": {
+            "criterion": (
+                "relative L2 change of f(±t u)/t² at each of the final two "
+                "amplitude transitions is <= 1% for both polarities"
+            ),
+            "byDirectionKind": stability_by_kind,
+            "overallStableDirectionFraction": float(np.mean(stable)),
+            "byPolarityFinalTwoStepP95RelativeChange": np.quantile(
+                analysis["consecutive_relative_changes"][:, -2:, :],
+                0.95,
+                axis=(0, 1),
+            ).tolist(),
+        },
+        "asymptoticResponse": {
+            "formula": (
+                "P(u)=D sum_i max(g_i·u,0)(v_i·u); "
+                "N(u)=D sum_i min(g_i·u,0)(v_i·u)"
+            ),
+            "exactPolarityReversalIdentityMaxAbsoluteError": polarity_identity_error,
+            "positiveNegativeLimitsAreDirectionReversals": True,
+            "finalAmplitudeRelativeErrorByDirectionKind": asymptotic_error_by_kind,
+        },
+        "posthocComponentSignatureAnalysis": {
+            "teacherComponentCountReadOnlyAfterProbe": int(gate.shape[0]),
+            "teacherWeightsUsedOnlyByEvaluator": True,
+            "signatureDefinition": (
+                "per-component asymptotic response across directions, measured "
+                "before and after its down-projection column"
+            ),
+            "cosinesAreAbsoluteAndCompareNearestOtherComponent": True,
+            "byDirectionKindAndPolarity": signature_results,
+            "isSolverRecoveryEvidence": False,
+        },
+        "conclusion": {
+            "structuralRecoveryAlgorithmImplemented": False,
+            "recoveryJustifiedByMeasurements": False,
+            "reason": (
+                "this evaluator reports measured convergence and post-hoc "
+                "component signatures; it does not invert their summed oracle "
+                "responses into an oracle-only structure"
+            ),
+        },
+        "performance": {
+            "evaluationSeconds": time.perf_counter() - started,
+            "peakHostVmHwmBytes": _proc_vm_hwm_bytes(),
+            "peakCudaAllocatorBytes": int(torch.cuda.max_memory_allocated(device)),
+            "cudaDeviceWideUsedBytesAfterEvaluation": _nvidia_smi_memory_bytes(
+                int(device.index if device.index is not None else torch.cuda.current_device())
+            ),
+        },
+    }
+    evaluation_path.write_text(
+        json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    del mlp, model_instance, adapter
+    gc.collect()
+    torch.cuda.empty_cache()
+    return result
 
 
 def live_form_check(
@@ -1278,7 +3929,7 @@ def lifted_reach(
 
 
 def measure_cubic_forms_at(
-    teacher: Teacher,
+    teacher: OracleCallable,
     base_point: torch.Tensor,
     directions: torch.Tensor,
     steps: list[float],
@@ -1333,7 +3984,7 @@ def measure_cubic_forms_at(
 
 
 def measured_lifted_span_by_slices(
-    teacher: Teacher,
+    teacher: OracleCallable,
     base_point: torch.Tensor,
     readers: torch.Tensor,
     anchors: torch.Tensor,
@@ -1386,7 +4037,7 @@ def measured_lifted_span_by_slices(
 
 
 def measured_lifted_span(
-    teacher: Teacher,
+    teacher: OracleCallable,
     base_points: torch.Tensor,
     readers: torch.Tensor,
     input_dim: int,
@@ -1965,6 +4616,148 @@ def foobi_gates(
     return torch.stack(kept), nullity
 
 
+def recover_gates_from_measured_oracle(
+    oracle: OracleCallable,
+    input_dim: int,
+    output_dim: int,
+    base_point_count: int,
+    reader_count: int,
+    base_scale: float,
+    seed: int,
+    tolerance: float,
+    span_tolerance: float,
+    purity: float,
+    collinearity: float,
+    steps: list[float],
+    direction_multiple: float,
+    device: torch.device,
+    max_oracle_points: int | None = None,
+    max_workspace_bytes: int | None = None,
+    measured_base_points: torch.Tensor | None = None,
+) -> dict[str, Any]:
+    """Recover gates from an oracle under explicit query and workspace limits."""
+    if min(input_dim, output_dim, base_point_count, reader_count) <= 0:
+        raise ValueError("input_dim, output_dim, base_point_count, and reader_count must be positive")
+    if not steps or any(not math.isfinite(step) or step <= 0.0 for step in steps):
+        raise ValueError("steps must contain only finite positive values")
+    if not math.isfinite(base_scale):
+        raise ValueError("base_scale must be finite")
+    if not math.isfinite(direction_multiple) or direction_multiple <= 0.0:
+        raise ValueError("direction_multiple must be finite and positive")
+    if max_oracle_points is not None and max_oracle_points < 0:
+        raise ValueError("max_oracle_points must be non-negative")
+    if max_workspace_bytes is not None and max_workspace_bytes <= 0:
+        raise ValueError("max_workspace_bytes must be positive")
+
+    workspace = estimate_measured_cubic_workspace(input_dim, direction_multiple)
+    coefficient_count = workspace["coefficientCount"]
+    direction_count = workspace["directionCount"]
+    minimum_workspace_bytes = workspace["minimumWorkspaceBytes"]
+    if max_workspace_bytes is not None and minimum_workspace_bytes > max_workspace_bytes:
+        raise OracleWorkspaceLimitExceeded(
+            input_dim=input_dim,
+            direction_count=direction_count,
+            coefficient_count=coefficient_count,
+            minimum_workspace_bytes=minimum_workspace_bytes,
+            max_workspace_bytes=max_workspace_bytes,
+        )
+    initial_oracle_points = (
+        base_point_count * direction_count * len(steps) * 4
+    )
+    if (
+        max_oracle_points is not None
+        and initial_oracle_points > max_oracle_points
+    ):
+        raise OracleQueryBudgetExceeded(
+            requested_points=initial_oracle_points,
+            spent_points=0,
+            max_oracle_points=max_oracle_points,
+        )
+
+    if measured_base_points is not None:
+        if measured_base_points.ndim != 2 or tuple(measured_base_points.shape) != (
+            base_point_count,
+            input_dim,
+        ):
+            raise ValueError(
+                "measured_base_points must have shape "
+                f"({base_point_count}, {input_dim})"
+            )
+        if not torch.isfinite(measured_base_points).all().item():
+            raise ValueError("measured_base_points must contain only finite values")
+
+    generator = torch.Generator(device=device).manual_seed(seed + 23)
+    if measured_base_points is None:
+        base_points = torch.randn(
+            base_point_count, input_dim, generator=generator, device=device, dtype=DTYPE
+        )
+        base_points = base_points / base_points.norm(dim=1, keepdim=True) * base_scale
+    else:
+        base_points = measured_base_points.to(device=device, dtype=DTYPE)
+    readers = torch.randn(
+        reader_count, output_dim, generator=generator, device=device, dtype=DTYPE
+    )
+    readers = readers / readers.norm(dim=1, keepdim=True)
+
+    oracle_calls_points = 0
+
+    def checked_oracle(points: torch.Tensor) -> torch.Tensor:
+        nonlocal oracle_calls_points
+        if points.ndim != 2 or points.shape[1] != input_dim:
+            raise ValueError(
+                f"oracle input shape {tuple(points.shape)} does not match input dimension {input_dim}"
+            )
+        requested_points = int(points.shape[0])
+        if (
+            max_oracle_points is not None
+            and oracle_calls_points + requested_points > max_oracle_points
+        ):
+            raise OracleQueryBudgetExceeded(
+                requested_points=requested_points,
+                spent_points=oracle_calls_points,
+                max_oracle_points=max_oracle_points,
+            )
+        oracle_calls_points += requested_points
+        values = oracle(points)
+        if not isinstance(values, torch.Tensor):
+            raise TypeError("oracle must return a torch.Tensor")
+        expected_shape = (int(points.shape[0]), output_dim)
+        if tuple(values.shape) != expected_shape:
+            raise ValueError(
+                f"oracle output shape {tuple(values.shape)} does not match expected {expected_shape}"
+            )
+        return values
+
+    span_basis, span_rank = measured_lifted_span(
+        checked_oracle,
+        base_points,
+        readers,
+        input_dim,
+        steps,
+        direction_multiple,
+        span_tolerance,
+    )
+    gates, nullity = foobi_gates(
+        span_basis, input_dim, tolerance, purity, collinearity, seed + 3
+    )
+    span_implied_unit_count = (
+        span_rank // 2 if span_rank > 0 and span_rank % 2 == 0 else None
+    )
+    return {
+        "gates": gates,
+        "measuredSpanRank": span_rank,
+        "spanImpliedUnitCount": span_implied_unit_count,
+        "spanRankIsEven": span_rank > 0 and span_rank % 2 == 0,
+        "nullity": nullity,
+        "gatesMatchSpanRank": (
+            span_implied_unit_count is not None
+            and int(gates.shape[0]) == span_implied_unit_count
+        ),
+        "gatesReturned": int(gates.shape[0]),
+        "oracleCallsPoints": oracle_calls_points,
+    }
+
+
 def overcomplete_recovery(
     units: int,
     input_dim: int,
@@ -2020,19 +4813,31 @@ def oracle_recovery(
     direction_multiple: float,
     device: torch.device,
 ) -> dict:
-    """Oracle to gates, with nothing read off the weights and every point charged."""
-    teacher = make_teacher(units, input_dim, output_dim, seed, device)
-    generator = torch.Generator(device=device).manual_seed(seed + 23)
-    base_points = torch.randn(base_point_count, input_dim, generator=generator, device=device, dtype=DTYPE)
-    base_points = base_points / base_points.norm(dim=1, keepdim=True) * base_scale
-    readers = torch.randn(reader_count, output_dim, generator=generator, device=device, dtype=DTYPE)
-    readers = readers / readers.norm(dim=1, keepdim=True)
+    """Run oracle-only recovery, then score against synthetic truth post hoc."""
+    synthetic_teacher = make_teacher(units, input_dim, output_dim, seed, device)
 
-    span_basis, span_rank = measured_lifted_span(
-        teacher, base_points, readers, input_dim, steps, direction_multiple, span_tolerance
+    def eval_only(points: torch.Tensor) -> torch.Tensor:
+        return synthetic_teacher(points)
+
+    recovery = recover_gates_from_measured_oracle(
+        oracle=eval_only,
+        input_dim=input_dim,
+        output_dim=output_dim,
+        base_point_count=base_point_count,
+        reader_count=reader_count,
+        base_scale=base_scale,
+        seed=seed,
+        tolerance=tolerance,
+        span_tolerance=span_tolerance,
+        purity=purity,
+        collinearity=collinearity,
+        steps=steps,
+        direction_multiple=direction_multiple,
+        device=device,
     )
-    gates, nullity = foobi_gates(span_basis, input_dim, tolerance, purity, collinearity, seed + 3)
-    truth = teacher.gate / teacher.gate.norm(dim=1, keepdim=True)
+    gates = recovery["gates"]
+    span_rank = int(recovery["measuredSpanRank"])
+    truth = synthetic_teacher.gate / synthetic_teacher.gate.norm(dim=1, keepdim=True)
     best = (
         (gates @ truth.T).abs().max(dim=0).values
         if gates.shape[0] > 0
@@ -2048,18 +4853,21 @@ def oracle_recovery(
         "readers": reader_count,
         "measuredSpanRank": span_rank,
         "spanRankIsTwoK": span_rank == 2 * units,
+        "spanRankIsEven": recovery["spanRankIsEven"],
+        "spanImpliedUnitCount": recovery["spanImpliedUnitCount"],
+        "unitCountInferenceMatchesTruth": recovery["spanImpliedUnitCount"] == units,
         "spanTolerance": span_tolerance,
-        "nullity": nullity,
+        "nullity": recovery["nullity"],
         # A check that needs no truth. The span's rank is `2k` when the units are separable, so
         # a healthy run returns exactly `spanRank / 2` distinct rank-1 directions. A run that has
         # gone past the geometry returns some other number, and says so without being told.
-        "gatesMatchSpanRank": int(gates.shape[0]) == span_rank // 2,
-        "gatesReturned": int(gates.shape[0]),
+        "gatesMatchSpanRank": recovery["gatesMatchSpanRank"],
+        "gatesReturned": recovery["gatesReturned"],
         "gatesAbove0.99": int((best >= 0.99).sum()),
         "gatesAbove0.999": int((best >= 0.999).sum()),
         "medianCosine": float(best.median()),
-        "oracleCallsPoints": teacher.counter.points,
-        "device": str(span_basis.device),
+        "oracleCallsPoints": recovery["oracleCallsPoints"],
+        "device": str(gates.device),
     }
 
 
@@ -2277,6 +5085,114 @@ def main() -> int:
     parser.add_argument("--live-stitch", action="store_true",
                         help="stitch full-dimension gates out of the real layer")
     parser.add_argument("--live-local-files-only", action="store_true")
+    parser.add_argument(
+        "--capture-real-activations",
+        action="store_true",
+        help="capture provenance-separated real Qwen MLP activation datasets and smoke-test its opaque full-module oracle",
+    )
+    parser.add_argument(
+        "--capture-output-dir",
+        type=str,
+        default=None,
+        help="new, empty directory for activation-capture datasets and report",
+    )
+    parser.add_argument(
+        "--capture-extra-recovery-prompts-file",
+        type=str,
+        default=None,
+        help="JSON array of {promptId, text} records added only to recovery observations",
+    )
+    parser.add_argument(
+        "--capture-extra-functional-prompts-file",
+        type=str,
+        default=None,
+        help="JSON array of {promptId, text} records added only to functional evaluation",
+    )
+    parser.add_argument(
+        "--capture-extra-distributional-prompts-file",
+        type=str,
+        default=None,
+        help="JSON array of {promptId, text} records added only to distributional analysis",
+    )
+    parser.add_argument(
+        "--verify-real-activation-capture",
+        action="store_true",
+        help="independently replay captured token sequences against the real Qwen MLP and verify artifact integrity",
+    )
+    parser.add_argument(
+        "--recover-real-swiglu-distillation",
+        action="store_true",
+        help="fit an adaptive-width SwiGLU student from the opaque full-module oracle and saved natural recovery activations",
+    )
+    parser.add_argument(
+        "--evaluate-real-swiglu-distillation",
+        action="store_true",
+        help="run a separate post-hoc Qwen reload to measure natural/generalization and structural recovery",
+    )
+    parser.add_argument(
+        "--recover-real-swiglu-continuation",
+        action="store_true",
+        help="fit the exact SwiGLU function using function-preserving width splits and a streamed output-projection solve",
+    )
+    parser.add_argument(
+        "--probe-real-swiglu-amplitude-response",
+        action="store_true",
+        help="measure positive/negative amplitude trajectories through the opaque real Qwen SwiGLU oracle",
+    )
+    parser.add_argument(
+        "--evaluate-real-swiglu-amplitude-response",
+        action="store_true",
+        help="independently replay frozen Qwen amplitude measurements and analyze asymptotic component signatures post hoc",
+    )
+    parser.add_argument(
+        "--distillation-output-dir",
+        type=str,
+        default=None,
+        help="new, empty directory for solver artifacts or the post-hoc evaluation report",
+    )
+    parser.add_argument("--distillation-max-components", type=int, default=8192)
+    parser.add_argument("--distillation-query-budget", type=int, default=73728)
+    parser.add_argument("--distillation-initial-train-queries", type=int, default=32768)
+    parser.add_argument("--distillation-validation-queries", type=int, default=8192)
+    parser.add_argument("--distillation-adaptive-batch-queries", type=int, default=8192)
+    parser.add_argument("--distillation-steps-per-stage", type=int, default=1000)
+    parser.add_argument("--distillation-batch-size", type=int, default=128)
+    parser.add_argument("--distillation-learning-rate", type=float, default=0.003)
+    parser.add_argument("--continuation-max-components", type=int, default=8192)
+    parser.add_argument("--continuation-query-budget", type=int, default=73728)
+    parser.add_argument("--continuation-training-queries", type=int, default=32768)
+    parser.add_argument("--continuation-validation-queries", type=int, default=8192)
+    parser.add_argument("--continuation-adaptive-batch-queries", type=int, default=8192)
+    parser.add_argument("--continuation-steps-per-stage", type=int, default=1000)
+    parser.add_argument("--continuation-batch-size", type=int, default=128)
+    parser.add_argument("--continuation-learning-rate", type=float, default=0.001)
+    parser.add_argument("--continuation-projection-interval", type=int, default=250)
+    parser.add_argument("--continuation-projection-batch-size", type=int, default=512)
+    parser.add_argument("--continuation-split-perturbation", type=float, default=0.06)
+    parser.add_argument("--continuation-projection-ridge", type=float, default=1e-6)
+    parser.add_argument(
+        "--continuation-natural-training-batch-fraction",
+        type=float,
+        default=0.5,
+    )
+    parser.add_argument(
+        "--continuation-directional-derivative-weight",
+        type=float,
+        default=0.0,
+        help="enable oracle finite-difference JVP supervision and weight its normalized loss",
+    )
+    parser.add_argument(
+        "--continuation-directional-difference-step",
+        type=float,
+        default=0.02,
+        help="unit-direction step for paired central-difference oracle queries",
+    )
+    parser.add_argument(
+        "--continuation-directional-derivative-query-fraction",
+        type=float,
+        default=0.25,
+        help="fraction of training/validation oracle points paired for JVP supervision",
+    )
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--output-json", type=str, default=None)
     args = parser.parse_args()
@@ -2294,8 +5210,27 @@ def main() -> int:
         args.stitch, args.tile, args.oracle_recover, args.recover_sweep,
         args.lifted_sweep, args.base_point_sweep, args.project_dim,
         args.live_form_check or None, args.live_subspace_solve or None,
-        args.live_stitch or None,
+        args.live_stitch or None, args.capture_real_activations or None,
+        args.verify_real_activation_capture or None,
+        args.recover_real_swiglu_distillation or None,
+        args.recover_real_swiglu_continuation or None,
+        args.evaluate_real_swiglu_distillation or None,
+        args.probe_real_swiglu_amplitude_response or None,
+        args.evaluate_real_swiglu_amplitude_response or None,
     ]
+    if args.capture_real_activations and args.verify_real_activation_capture:
+        parser.error("capture and independent verification must run as separate invocations")
+    if args.recover_real_swiglu_distillation and args.evaluate_real_swiglu_distillation:
+        parser.error("solver and post-hoc evaluation must run as separate invocations")
+    if args.recover_real_swiglu_continuation and (
+        args.recover_real_swiglu_distillation or args.evaluate_real_swiglu_distillation
+    ):
+        parser.error("continuation recovery must run separately from other solver/evaluator modes")
+    if (
+        args.probe_real_swiglu_amplitude_response
+        and args.evaluate_real_swiglu_amplitude_response
+    ):
+        parser.error("amplitude probing and post-hoc evaluation must run separately")
     runs: list[dict] = []
     if args.sweep_units or not any(selected_modes):
         unit_list = args.sweep_units if args.sweep_units else [args.units]
@@ -2314,6 +5249,150 @@ def main() -> int:
             for count in unit_list
         ]
     report = {"runs": runs}
+    if args.capture_real_activations:
+        if not args.capture_output_dir:
+            parser.error("--capture-real-activations requires --capture-output-dir")
+        report["realActivationCapture"] = capture_qwen_real_activations(
+            model=args.live_model,
+            layer=args.live_layer,
+            output_dir=Path(args.capture_output_dir),
+            device=device,
+            local_files_only=args.live_local_files_only,
+            seed=args.seed,
+            oracle_query_budget=args.live_max_calls,
+            extra_recovery_prompts_file=(
+                Path(args.capture_extra_recovery_prompts_file)
+                if args.capture_extra_recovery_prompts_file
+                else None
+            ),
+            extra_functional_prompts_file=(
+                Path(args.capture_extra_functional_prompts_file)
+                if args.capture_extra_functional_prompts_file
+                else None
+            ),
+            extra_distributional_prompts_file=(
+                Path(args.capture_extra_distributional_prompts_file)
+                if args.capture_extra_distributional_prompts_file
+                else None
+            ),
+        )
+    if args.verify_real_activation_capture:
+        if not args.capture_output_dir:
+            parser.error("--verify-real-activation-capture requires --capture-output-dir")
+        report["realActivationVerification"] = verify_qwen_real_activation_capture(
+            model=args.live_model,
+            output_dir=Path(args.capture_output_dir),
+            device=device,
+            local_files_only=args.live_local_files_only,
+        )
+    if args.recover_real_swiglu_distillation:
+        if not args.capture_output_dir or not args.distillation_output_dir:
+            parser.error(
+                "--recover-real-swiglu-distillation requires both --capture-output-dir "
+                "and --distillation-output-dir"
+            )
+        report["realSwiGLUDistillation"] = run_qwen_oracle_distillation(
+            capture_dir=Path(args.capture_output_dir),
+            output_dir=Path(args.distillation_output_dir),
+            model=args.live_model,
+            layer=args.live_layer,
+            device=device,
+            local_files_only=args.live_local_files_only,
+            seed=args.seed,
+            max_components=args.distillation_max_components,
+            oracle_query_budget=args.distillation_query_budget,
+            initial_train_queries=args.distillation_initial_train_queries,
+            validation_queries=args.distillation_validation_queries,
+            adaptive_batch_queries=args.distillation_adaptive_batch_queries,
+            steps_per_stage=args.distillation_steps_per_stage,
+            batch_size=args.distillation_batch_size,
+            learning_rate=args.distillation_learning_rate,
+        )
+    if args.recover_real_swiglu_continuation:
+        if not args.capture_output_dir or not args.distillation_output_dir:
+            parser.error(
+                "--recover-real-swiglu-continuation requires both --capture-output-dir "
+                "and --distillation-output-dir"
+            )
+        report["realSwiGLUSplitContinuation"] = run_qwen_oracle_split_continuation(
+            capture_dir=Path(args.capture_output_dir),
+            output_dir=Path(args.distillation_output_dir),
+            model=args.live_model,
+            layer=args.live_layer,
+            device=device,
+            local_files_only=args.live_local_files_only,
+            seed=args.seed,
+            max_components=args.continuation_max_components,
+            query_budget=args.continuation_query_budget,
+            training_queries=args.continuation_training_queries,
+            validation_queries=args.continuation_validation_queries,
+            adaptive_batch_queries=args.continuation_adaptive_batch_queries,
+            steps_per_stage=args.continuation_steps_per_stage,
+            batch_size=args.continuation_batch_size,
+            learning_rate=args.continuation_learning_rate,
+            projection_interval=args.continuation_projection_interval,
+            projection_batch_size=args.continuation_projection_batch_size,
+            split_perturbation=args.continuation_split_perturbation,
+            projection_ridge=args.continuation_projection_ridge,
+            natural_training_batch_fraction=(
+                args.continuation_natural_training_batch_fraction
+            ),
+            directional_derivative_weight=(
+                args.continuation_directional_derivative_weight
+            ),
+            directional_difference_step=(
+                args.continuation_directional_difference_step
+            ),
+            directional_derivative_query_fraction=(
+                args.continuation_directional_derivative_query_fraction
+            ),
+        )
+    if args.evaluate_real_swiglu_distillation:
+        if not args.capture_output_dir or not args.distillation_output_dir:
+            parser.error(
+                "--evaluate-real-swiglu-distillation requires both --capture-output-dir "
+                "and --distillation-output-dir"
+            )
+        report["realSwiGLUDistillationEvaluation"] = evaluate_qwen_oracle_distillation(
+            capture_dir=Path(args.capture_output_dir),
+            distillation_dir=Path(args.distillation_output_dir),
+            model=args.live_model,
+            layer=args.live_layer,
+            device=device,
+            local_files_only=args.live_local_files_only,
+        )
+    if args.probe_real_swiglu_amplitude_response:
+        if not args.capture_output_dir or not args.distillation_output_dir:
+            parser.error(
+                "--probe-real-swiglu-amplitude-response requires both --capture-output-dir "
+                "and --distillation-output-dir"
+            )
+        report["realSwiGLUAmplitudeResponse"] = run_qwen_amplitude_response(
+            capture_dir=Path(args.capture_output_dir),
+            output_dir=Path(args.distillation_output_dir),
+            model=args.live_model,
+            layer=args.live_layer,
+            device=device,
+            local_files_only=args.live_local_files_only,
+            seed=args.seed,
+            max_oracle_points=args.live_max_calls,
+        )
+    if args.evaluate_real_swiglu_amplitude_response:
+        if not args.capture_output_dir or not args.distillation_output_dir:
+            parser.error(
+                "--evaluate-real-swiglu-amplitude-response requires both "
+                "--capture-output-dir and --distillation-output-dir"
+            )
+        report["realSwiGLUAmplitudeResponseEvaluation"] = (
+            evaluate_qwen_amplitude_response(
+                capture_dir=Path(args.capture_output_dir),
+                output_dir=Path(args.distillation_output_dir),
+                model=args.live_model,
+                layer=args.live_layer,
+                device=device,
+                local_files_only=args.live_local_files_only,
+            )
+        )
     if args.live_form_check:
         work_dir = Path(args.live_work_dir) if args.live_work_dir else Path("/tmp/cubic-live-check")
         report["liveFormCheck"] = live_form_check(

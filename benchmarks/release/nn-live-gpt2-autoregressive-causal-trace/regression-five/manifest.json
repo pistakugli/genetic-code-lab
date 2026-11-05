@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-30T09:49:03.189Z",
+  "lane": "nn-live-gpt2-autoregressive-causal-trace",
+  "variant": "regression-five",
+  "status": "generated",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-gpt2-autoregressive-causal-trace.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-gpt2-autoregressive-causal-trace",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.4"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "regression-five",
+    "GCL_GPT2_AUTOREGRESSIVE_DEVICE": "cuda",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "2dcbdad2fad5fac54305f2971070b7185bd4f7fb",
+    "statusShort": "M package.json\n M scripts/benchmark-nn-live-ordered-path-stability.ts\n M src/index.ts\n M src/solvers/blackbox-relu-nd-line-probe.ts\n M tools/llm-reader-ordered-path-stability.py\n?? .agents/\n?? benchmarks/release/nn-live-gpt2-autoregressive-causal-trace/\n?? benchmarks/release/nn-live-gpt2-internal-trace/\n?? benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2-5case/\n?? benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2/\n?? benchmarks/release/nn-live-ordered-path-stability/standard-matched-gpt2-5case-6prompt/\n?? docs/research/\n?? scripts/asad-benchmark-metrics.ts\n?? scripts/audit-asad-results.ts\n?? scripts/benchmark-asad.ts\n?? scripts/benchmark-bcad.ts\n?? scripts/benchmark-gfd.ts\n?? scripts/benchmark-gsmi.ts\n?? scripts/benchmark-mbcd.ts\n?? scripts/benchmark-nn-live-gpt2-autoregressive-causal-trace.ts\n?? scripts/benchmark-nn-live-gpt2-internal-trace.ts\n?? scripts/gfd-vp-cuda-client.ts\n?? scripts/gfd-vp-cuda-worker.py\n?? scripts/gsi-cuda-client.ts\n?? scripts/gsi-spectral-worker.py\n?? scripts/verify-asad-results.ts\n?? scripts/verify-bcad-results.ts\n?? scripts/verify-gfd-results.ts\n?? scripts/verify-gsmi-results.ts\n?? scripts/verify-mbcd-results.ts\n?? src/solvers/active-subspace-adaptive-discovery.ts\n?? src/solvers/boundary-conditioned-active-discovery.ts\n?? src/solvers/global-function-distillation.ts\n?? src/solvers/global-spectral-moment-inversion.ts\n?? src/solvers/multi-hypothesis-boundary-continuation.ts\n?? tests/active-subspace-adaptive-discovery.test.ts\n?? tests/asad-benchmark-metrics.test.ts\n?? tests/blackbox-relu-nd-star-probe.test.ts\n?? tests/boundary-conditioned-active-discovery.test.ts\n?? tests/global-function-distillation.test.ts\n?? tests/global-spectral-moment-inversion.test.ts\n?? tests/multi-hypothesis-boundary-continuation.test.ts\n?? tests/test_gpt2_internal_trace.py\n?? tests/test_ordered_path_ood_stress.py\n?? tools/llm_reader/gpt2_internal_trace.py\n?? tools/llm_reader/ood_paraphrases.py\n?? tools/llm_reader/verify_gpt2_autoregressive_causal_trace.py\n?? tools/llm_reader/verify_gpt2_internal_trace.py\n?? tools/llm_reader/verify_ordered_path_ood_stress.py",
+    "uncommittedDiffSha256": "cfc902415ab4f788218e5ac431255916d765a623ea703ad1ffba1e1ed05ade65"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-gpt2-autoregressive-causal-trace/regression-five/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-gpt2-autoregressive-causal-trace/regression-five/report.md",
+    "manifest": "benchmarks/release/nn-live-gpt2-autoregressive-causal-trace/regression-five/manifest.json"
+  },
+  "summary": {
+    "protocol": "legacy",
+    "caseSet": "regression-five",
+    "model": {
+      "id": "gpt2",
+      "class": "GPT2LMHeadModel",
+      "device": "cuda",
+      "localFilesOnly": true,
+      "config": {
+        "transformers_version": "5.5.0",
+        "architectures": [
+          "GPT2LMHeadModel"
+        ],
+        "output_hidden_states": false,
+        "return_dict": true,
+        "dtype": "float32",
+        "chunk_size_feed_forward": 0,
+        "is_encoder_decoder": false,
+        "id2label": {
+          "0": "LABEL_0",
+          "1": "LABEL_1"
+        },
+        "label2id": {
+          "LABEL_0": 0,
+          "LABEL_1": 1
+        },
+        "problem_type": null,
+        "vocab_size": 50257,
+        "n_positions": 1024,
+        "n_embd": 768,
+        "n_layer": 12,
+        "n_head": 12,
+        "n_inner": null,
+        "activation_function": "gelu_new",
+        "resid_pdrop": 0.1,
+        "embd_pdrop": 0.1,
+        "attn_pdrop": 0.1,
+        "layer_norm_epsilon": 0.00001,
+        "initializer_range": 0.02,
+        "summary_type": "cls_index",
+        "summary_use_proj": true,
+        "summary_activation": null,
+        "summary_proj_to_labels": true,
+        "summary_first_dropout": 0.1,
+        "scale_attn_weights": true,
+        "use_cache": true,
+        "bos_token_id": 50256,
+        "eos_token_id": 50256,
+        "pad_token_id": null,
+        "scale_attn_by_inverse_layer_idx": false,
+        "reorder_and_upcast_attn": false,
+        "add_cross_attention": false,
+        "tie_word_embeddings": true,
+        "_name_or_path": "gpt2",
+        "model_type": "gpt2",
+        "n_ctx": 1024,
+        "task_specific_params": {
+          "text-generation": {
+            "do_sample": true,
+            "max_length": 50
+          }
+        },
+        "output_attentions": false
+      },
+      "repositoryCommitHash": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+      "tokenizerClass": "GPT2Tokenizer",
+      "tokenizerNameOrPath": "gpt2"
+    },
+    "caseCount": 5,
+    "reportJson": "benchmarks/release/nn-live-gpt2-autoregressive-causal-trace/regression-five/report.json"
+  },
+  "notes": [
+    "Instrumented local GPT-2 witness; not a black-box solver result.",
+    "Source prompts and ordered-path nodes are read unchanged from the existing 50-fact report.",
+    "Free-running interventions are measured on baseline contexts and do not feed changed tokens into later steps.",
+    "Control groups match path component count, type, layer, and token positions; activation magnitude match coverage is recorded."
+  ]
+}

@@ -1,0 +1,374 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-qwen-swiglu-distillation-evaluation",
+  "status": "evaluated_posthoc",
+  "verificationMode": "independent_posthoc_white_box_evaluator",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "module": "model.layers.0.mlp",
+  "groundTruthWeightsReadByEvaluator": true,
+  "groundTruthWeightsUsedBySolver": false,
+  "targetReplayAbsoluteTolerance": 2e-05,
+  "solverReportSha256": "97f7224662102bf441fcc55736da1d49f13233ff5ce0e7e8b421522be1499547",
+  "functional": {
+    "recovery_observations": {
+      "samples": 42,
+      "relativeError": 0.28990411729237,
+      "normalizedMse": 0.09740111881251637,
+      "meanSquaredError": 0.0033365838698720058,
+      "referenceRms": 0.19924922443728543,
+      "cosineSimilarityMean": 0.9652712323608253,
+      "cosineSimilarityMedian": 0.9672232074917665,
+      "inputDensityQuartiles": [
+        {
+          "inputNormLow": 17.625309221590125,
+          "inputNormHigh": 19.30946641108445,
+          "metrics": {
+            "samples": 11,
+            "relativeError": 0.2589473947612137,
+            "normalizedMse": 0.0980064979100684,
+            "meanSquaredError": 0.0020131138911348304,
+            "referenceRms": 0.17326970134252478,
+            "cosineSimilarityMean": 0.9740592994207458,
+            "cosineSimilarityMedian": 0.9760895563891354
+          }
+        },
+        {
+          "inputNormLow": 19.30946641108445,
+          "inputNormHigh": 19.625834906003476,
+          "metrics": {
+            "samples": 10,
+            "relativeError": 0.28627325815810845,
+            "normalizedMse": 0.10408065248399721,
+            "meanSquaredError": 0.0033046425164562515,
+            "referenceRms": 0.20080820874662875,
+            "cosineSimilarityMean": 0.9676276870927284,
+            "cosineSimilarityMedian": 0.9689941079262323
+          }
+        },
+        {
+          "inputNormLow": 19.625834906003476,
+          "inputNormHigh": 20.367939082725385,
+          "metrics": {
+            "samples": 10,
+            "relativeError": 0.3168793860694162,
+            "normalizedMse": 0.12609732431125167,
+            "meanSquaredError": 0.0039145000987120164,
+            "referenceRms": 0.19744410248228855,
+            "cosineSimilarityMean": 0.9584537412028376,
+            "cosineSimilarityMedian": 0.9619174637225723
+          }
+        },
+        {
+          "inputNormLow": 20.367939082725385,
+          "inputNormHigh": 21.626676096476885,
+          "metrics": {
+            "samples": 11,
+            "relativeError": 0.29013762878867916,
+            "normalizedMse": 0.10302935816874913,
+            "meanSquaredError": 0.004163713052768949,
+            "referenceRms": 0.22240079666813714,
+            "cosineSimilarityMean": 0.9605386529609823,
+            "cosineSimilarityMedian": 0.9637277937931283
+          }
+        }
+      ],
+      "independentTargetReplayMaxAbsDelta": 1.1920928955078125e-06
+    },
+    "functional_evaluation": {
+      "samples": 56,
+      "relativeError": 20.26441938542336,
+      "normalizedMse": 470.5759303319329,
+      "meanSquaredError": 15.134936389675946,
+      "referenceRms": 0.19198006532693293,
+      "cosineSimilarityMean": 0.32161214789488746,
+      "cosineSimilarityMedian": 0.22011497010960115,
+      "inputDensityQuartiles": [
+        {
+          "inputNormLow": 17.17603992492754,
+          "inputNormHigh": 18.77130327750119,
+          "metrics": {
+            "samples": 14,
+            "relativeError": 17.777602981308778,
+            "normalizedMse": 450.08427267123875,
+            "meanSquaredError": 6.583117162267114,
+            "referenceRms": 0.14432533995816027,
+            "cosineSimilarityMean": 0.33700074501840926,
+            "cosineSimilarityMedian": 0.12831405024454642
+          }
+        },
+        {
+          "inputNormLow": 18.77130327750119,
+          "inputNormHigh": 19.775427854440796,
+          "metrics": {
+            "samples": 14,
+            "relativeError": 7.524330495859857,
+            "normalizedMse": 69.97811311116385,
+            "meanSquaredError": 2.031812343951894,
+            "referenceRms": 0.18944098106999505,
+            "cosineSimilarityMean": 0.3419557388267035,
+            "cosineSimilarityMedian": 0.36059430449540186
+          }
+        },
+        {
+          "inputNormLow": 19.775427854440796,
+          "inputNormHigh": 20.446592815927946,
+          "metrics": {
+            "samples": 14,
+            "relativeError": 6.838551966196083,
+            "normalizedMse": 58.436785633965776,
+            "meanSquaredError": 2.1142486502153575,
+            "referenceRms": 0.2126247811070853,
+            "cosineSimilarityMean": 0.34124706464521265,
+            "cosineSimilarityMedian": 0.4087101854587661
+          }
+        },
+        {
+          "inputNormLow": 20.446592815927946,
+          "inputNormHigh": 21.40058650230135,
+          "metrics": {
+            "samples": 14,
+            "relativeError": 33.087404781058886,
+            "normalizedMse": 1317.1290077319632,
+            "meanSquaredError": 49.81056740226943,
+            "referenceRms": 0.213303528634894,
+            "cosineSimilarityMean": 0.2662450430892244,
+            "cosineSimilarityMedian": 0.1890690658737795
+          }
+        }
+      ],
+      "independentTargetReplayMaxAbsDelta": 1.430511474609375e-06
+    },
+    "structural_evaluation": {
+      "samples": 39,
+      "relativeError": 6.229234547404135,
+      "normalizedMse": 46.35133707953556,
+      "meanSquaredError": 1.5347977052058925,
+      "referenceRms": 0.19887989731064715,
+      "cosineSimilarityMean": 0.4485394743183984,
+      "cosineSimilarityMedian": 0.40556106276987497,
+      "inputDensityQuartiles": [
+        {
+          "inputNormLow": 17.564501905534232,
+          "inputNormHigh": 18.698099378161498,
+          "metrics": {
+            "samples": 10,
+            "relativeError": 0.9855722902810112,
+            "normalizedMse": 1.673347366245913,
+            "meanSquaredError": 0.02130875593742873,
+            "referenceRms": 0.14811210795792892,
+            "cosineSimilarityMean": 0.5626412205282078,
+            "cosineSimilarityMedian": 0.5274787688283971
+          }
+        },
+        {
+          "inputNormLow": 18.698099378161498,
+          "inputNormHigh": 19.69614906239254,
+          "metrics": {
+            "samples": 9,
+            "relativeError": 1.3576617324690934,
+            "normalizedMse": 2.5827168291839118,
+            "meanSquaredError": 0.06476055094755831,
+            "referenceRms": 0.1874406106379178,
+            "cosineSimilarityMean": 0.5528102886045739,
+            "cosineSimilarityMedian": 0.5577494629057189
+          }
+        },
+        {
+          "inputNormLow": 19.69614906239254,
+          "inputNormHigh": 20.394884756663767,
+          "metrics": {
+            "samples": 10,
+            "relativeError": 2.6091716964640996,
+            "normalizedMse": 8.541251317199114,
+            "meanSquaredError": 0.3338642375735104,
+            "referenceRms": 0.22145336913024394,
+            "cosineSimilarityMean": 0.3441970217838432,
+            "cosineSimilarityMedian": 0.4026312240477753
+          }
+        },
+        {
+          "inputNormLow": 20.394884756663767,
+          "inputNormHigh": 21.603922539272528,
+          "metrics": {
+            "samples": 10,
+            "relativeError": 10.385944074588055,
+            "normalizedMse": 141.57466095849352,
+            "meanSquaredError": 5.572253560939238,
+            "referenceRms": 0.22728430956443882,
+            "cosineSimilarityMean": 0.34493644778558596,
+            "cosineSimilarityMedian": 0.12798320537027413
+          }
+        }
+      ],
+      "independentTargetReplayMaxAbsDelta": 1.1920928955078125e-06
+    },
+    "distributional_analysis": {
+      "samples": 38,
+      "relativeError": 5.488949061317792,
+      "normalizedMse": 35.09143684105827,
+      "meanSquaredError": 1.184862477889128,
+      "referenceRms": 0.19831007226768632,
+      "cosineSimilarityMean": 0.459084320162576,
+      "cosineSimilarityMedian": 0.40701973660911106,
+      "inputDensityQuartiles": [
+        {
+          "inputNormLow": 17.46743904266722,
+          "inputNormHigh": 18.50555864782502,
+          "metrics": {
+            "samples": 10,
+            "relativeError": 1.1496833006206635,
+            "normalizedMse": 2.326420196801069,
+            "meanSquaredError": 0.028955655970413607,
+            "referenceRms": 0.14800912147160314,
+            "cosineSimilarityMean": 0.6140340109551337,
+            "cosineSimilarityMedian": 0.7663639451430758
+          }
+        },
+        {
+          "inputNormLow": 18.50555864782502,
+          "inputNormHigh": 19.979047203284757,
+          "metrics": {
+            "samples": 9,
+            "relativeError": 1.6174782745928526,
+            "normalizedMse": 3.536057517680903,
+            "meanSquaredError": 0.1144381356057089,
+            "referenceRms": 0.20914473242890594,
+            "cosineSimilarityMean": 0.5043178403616787,
+            "cosineSimilarityMedian": 0.5172961950138644
+          }
+        },
+        {
+          "inputNormLow": 19.979047203284757,
+          "inputNormHigh": 20.474561672339565,
+          "metrics": {
+            "samples": 9,
+            "relativeError": 1.242503877245127,
+            "normalizedMse": 1.9353209640120972,
+            "meanSquaredError": 0.06777410479784036,
+            "referenceRms": 0.20952417644911311,
+            "cosineSimilarityMean": 0.46259724218766707,
+            "cosineSimilarityMedian": 0.4138207511562687
+          }
+        },
+        {
+          "inputNormLow": 20.474561672339565,
+          "inputNormHigh": 21.573887964998264,
+          "metrics": {
+            "samples": 10,
+            "relativeError": 9.411069259490981,
+            "normalizedMse": 108.05942544529923,
+            "meanSquaredError": 4.309530743645078,
+            "referenceRms": 0.22058502306912664,
+            "cosineSimilarityMean": 0.260262831368244,
+            "cosineSimilarityMedian": 0.26617181062657436
+          }
+        }
+      ],
+      "independentTargetReplayMaxAbsDelta": 9.5367431640625e-07
+    }
+  },
+  "generatedOracleValidation": {
+    "samples": 8192,
+    "relativeError": 0.5181101408067522,
+    "normalizedMse": 0.32976473619513624,
+    "meanSquaredError": 0.006268251962282469,
+    "referenceRms": 0.15280977278675698,
+    "cosineSimilarityMean": 0.8997560819707668,
+    "cosineSimilarityMedian": 0.9123511464356633,
+    "inputDensityQuartiles": [
+      {
+        "inputNormLow": 10.212976282713832,
+        "inputNormHigh": 13.696549681779247,
+        "metrics": {
+          "samples": 2048,
+          "relativeError": 0.26057257199050154,
+          "normalizedMse": 0.1832146101209931,
+          "meanSquaredError": 0.0003358193031651207,
+          "referenceRms": 0.07032732979807128,
+          "cosineSimilarityMean": 0.965734806846752,
+          "cosineSimilarityMedian": 0.9671059674961644
+        }
+      },
+      {
+        "inputNormLow": 13.696549681779247,
+        "inputNormHigh": 17.66378404956174,
+        "metrics": {
+          "samples": 2048,
+          "relativeError": 0.3815079687319945,
+          "normalizedMse": 0.22447433478642212,
+          "meanSquaredError": 0.0014670941536417787,
+          "referenceRms": 0.10039807353363027,
+          "cosineSimilarityMean": 0.9225802780048533,
+          "cosineSimilarityMedian": 0.926631725575565
+        }
+      },
+      {
+        "inputNormLow": 17.66378404956174,
+        "inputNormHigh": 22.765674138125995,
+        "metrics": {
+          "samples": 2048,
+          "relativeError": 0.45497369283893513,
+          "normalizedMse": 0.2656594663449463,
+          "meanSquaredError": 0.0041249110321101,
+          "referenceRms": 0.14116304148214542,
+          "cosineSimilarityMean": 0.8850923470231822,
+          "cosineSimilarityMedian": 0.8907195169525896
+        }
+      },
+      {
+        "inputNormLow": 22.765674138125995,
+        "inputNormHigh": 36.400118557605616,
+        "metrics": {
+          "samples": 2048,
+          "relativeError": 0.5723152173925877,
+          "normalizedMse": 0.3776032737567098,
+          "meanSquaredError": 0.01914518336021287,
+          "referenceRms": 0.2417655804085444,
+          "cosineSimilarityMean": 0.8256168960082799,
+          "cosineSimilarityMedian": 0.8315812044912791
+        }
+      }
+    ],
+    "independentTargetReplayMaxAbsDelta": 5.245208740234375e-06
+  },
+  "structural": {
+    "teacherComponentsObservedPosthoc": 4864,
+    "studentCandidateComponents": 8192,
+    "oneToOneMatches": 1098,
+    "matchingMethod": "greedy_one_to_one_from_top16_gate_cosines",
+    "gateAbsCosineMedian": 0.14946890622377396,
+    "gateSignedCosineMedian": -0.14217621088027954,
+    "gateCorrectOrientationCountAtCosine0.99": 0,
+    "gateMatchedCountAtAbsCosine0.99": 0,
+    "gateNormRelativeErrorMedian": 0.4855842888355255,
+    "upAbsCosineMedian": 0.02425517328083515,
+    "downAbsCosineMedian": 0.02967671398073435,
+    "upScaleAlignedRelativeErrorMedian": 0.9997057914733887,
+    "downReciprocalScaleAlignedRelativeErrorMedian": 205.3350067138672,
+    "downReciprocalScaleAlignmentUndefinedCount": 0,
+    "legitimateSymmetries": [
+      "permutation of hidden component rows/columns",
+      "nonzero reciprocal scaling of up-projection row and matching down-projection column"
+    ],
+    "gateScaleSymmetry": false,
+    "completeStructuralRecovery": false
+  },
+  "identifiability": {
+    "finiteOracleObservations": 73770,
+    "teacherComponentsWereHiddenFromSolver": true,
+    "teacherParametersWereHiddenFromSolver": true,
+    "functionalFitDoesNotProveStructuralIdentifiability": true,
+    "countEstimateIsStudentModelSelectionNotTeacherCountProof": true,
+    "identifiedByModelFamily": [
+      "input dimension",
+      "output dimension",
+      "SwiGLU activation family",
+      "bias-free Qwen2 feed-forward form"
+    ],
+    "unresolved": [
+      "global uniqueness of the 4864-component finite-sample factorization",
+      "whether omitted or weak student components are functionally redundant on the sampled domain"
+    ]
+  },
+  "evaluationSeconds": 6.0694906420540065
+}

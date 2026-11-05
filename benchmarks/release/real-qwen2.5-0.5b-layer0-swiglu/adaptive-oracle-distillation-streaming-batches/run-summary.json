@@ -1,0 +1,511 @@
+{
+  "runs": [],
+  "realSwiGLUDistillation": {
+    "schemaVersion": 1,
+    "kind": "gcl-oracle-only-adaptive-swiglu-distillation",
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "hiddenUnitCountProvidedToSolver": false,
+    "teacherComponentIdentitiesProvidedToSolver": false,
+    "inputDim": 896,
+    "outputDim": 896,
+    "publicActivationFamily": "silu-swiglu",
+    "biases": false,
+    "candidateWidthPolicy": "geometric-growth-selected-by-held-out-normalized-MSE",
+    "studentOptimizer": {
+      "name": "AdamW",
+      "learningRate": 0.003,
+      "weightDecay": 1e-06
+    },
+    "initializationCalibration": "match_student_output_RMS_to_measured_training_output_RMS",
+    "maxCandidateComponents": 8192,
+    "selectedCandidateComponents": 256,
+    "studentWidthSelectedByMeasurements": true,
+    "teacherComponentCountInferred": false,
+    "selectionScore": 0.7682117223739624,
+    "selectedCandidateValidationNormalizedMse": 0.7682117223739624,
+    "candidateStages": [
+      {
+        "candidateComponents": 1,
+        "effectiveParameterCount": 2688,
+        "validationNormalizedMse": 1.076433777809143,
+        "validationShellNormalizedMse": [
+          1.0902352333068848,
+          1.0758399963378906,
+          1.0804489850997925,
+          1.0753949880599976
+        ],
+        "bicProxyPenalty": 0.0015723647399204582,
+        "bicProxyScore": 0.07522588446855571,
+        "selectionScore": 1.076433777809143,
+        "initialOutputScale": 16.182222366333008,
+        "initialOutputRms": 0.0038393682334572077,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 32810
+      },
+      {
+        "candidateComponents": 2,
+        "effectiveParameterCount": 5376,
+        "validationNormalizedMse": 0.9958533048629761,
+        "validationShellNormalizedMse": [
+          0.9951267242431641,
+          0.9949820041656494,
+          0.9957380890846252,
+          0.9959554672241211
+        ],
+        "bicProxyPenalty": 0.0031447294798409163,
+        "bicProxyScore": -0.0010105870392121247,
+        "selectionScore": 0.9958533048629761,
+        "initialOutputScale": 13.328144073486328,
+        "initialOutputRms": 0.0046615274623036385,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 32810
+      },
+      {
+        "candidateComponents": 4,
+        "effectiveParameterCount": 10752,
+        "validationNormalizedMse": 2.0144104957580566,
+        "validationShellNormalizedMse": [
+          1.9233930110931396,
+          2.1946635246276855,
+          1.9917371273040771,
+          2.0071754455566406
+        ],
+        "bicProxyPenalty": 0.006289458959681833,
+        "bicProxyScore": 0.7066160536184581,
+        "selectionScore": 2.0144104957580566,
+        "initialOutputScale": 8.788668632507324,
+        "initialOutputRms": 0.007069274317473173,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 32810
+      },
+      {
+        "candidateComponents": 8,
+        "effectiveParameterCount": 21504,
+        "validationNormalizedMse": 2.5179178714752197,
+        "validationShellNormalizedMse": [
+          2.460428476333618,
+          2.4213078022003174,
+          2.546550750732422,
+          2.5187811851501465
+        ],
+        "bicProxyPenalty": 0.010196175720965484,
+        "bicProxyScore": 0.9336284942405852,
+        "selectionScore": 2.5179178714752197,
+        "initialOutputScale": 11.804402351379395,
+        "initialOutputRms": 0.005263248924165964,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 41002
+      },
+      {
+        "candidateComponents": 16,
+        "effectiveParameterCount": 43008,
+        "validationNormalizedMse": 1.0263653993606567,
+        "validationShellNormalizedMse": [
+          1.0021049976348877,
+          0.9620567560195923,
+          1.0172220468521118,
+          1.0335941314697266
+        ],
+        "bicProxyPenalty": 0.020392351441930967,
+        "bicProxyScore": 0.04641617451554457,
+        "selectionScore": 1.0263653993606567,
+        "initialOutputScale": 11.112567901611328,
+        "initialOutputRms": 0.00559092266485095,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 41002
+      },
+      {
+        "candidateComponents": 32,
+        "effectiveParameterCount": 86016,
+        "validationNormalizedMse": 0.8107401132583618,
+        "validationShellNormalizedMse": [
+          0.7974955439567566,
+          0.7876601219177246,
+          0.8086881637573242,
+          0.8130801916122437
+        ],
+        "bicProxyPenalty": 0.034348515393192655,
+        "bicProxyScore": -0.17545921303848394,
+        "selectionScore": 0.8107401132583618,
+        "initialOutputScale": 10.344483375549316,
+        "initialOutputRms": 0.006006052251905203,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 49194
+      },
+      {
+        "candidateComponents": 64,
+        "effectiveParameterCount": 172032,
+        "validationNormalizedMse": 1.0237934589385986,
+        "validationShellNormalizedMse": [
+          0.9929186105728149,
+          0.9825786352157593,
+          1.011151671409607,
+          1.0301926136016846
+        ],
+        "bicProxyPenalty": 0.06869703078638531,
+        "bicProxyScore": 0.09221183680419442,
+        "selectionScore": 1.0237934589385986,
+        "initialOutputScale": 11.26837158203125,
+        "initialOutputRms": 0.005513619165867567,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 49194
+      },
+      {
+        "candidateComponents": 128,
+        "effectiveParameterCount": 344064,
+        "validationNormalizedMse": 0.7995400428771973,
+        "validationShellNormalizedMse": [
+          0.7869285345077515,
+          0.7803491950035095,
+          0.8009904623031616,
+          0.8007415533065796
+        ],
+        "bicProxyPenalty": 0.11881139107497121,
+        "bicProxyScore": -0.1049072719878048,
+        "selectionScore": 0.7995400428771973,
+        "initialOutputScale": 10.503625869750977,
+        "initialOutputRms": 0.005915053654462099,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 57386
+      },
+      {
+        "candidateComponents": 256,
+        "effectiveParameterCount": 688128,
+        "validationNormalizedMse": 0.7682117223739624,
+        "validationShellNormalizedMse": [
+          0.7548097968101501,
+          0.7459972500801086,
+          0.7698681950569153,
+          0.7695969343185425
+        ],
+        "bicProxyPenalty": 0.23762278214994242,
+        "bicProxyScore": -0.026067121502889146,
+        "selectionScore": 0.7682117223739624,
+        "initialOutputScale": 10.524300575256348,
+        "initialOutputRms": 0.005903433542698622,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 57386
+      },
+      {
+        "candidateComponents": 512,
+        "effectiveParameterCount": 1376256,
+        "validationNormalizedMse": 0.9991976022720337,
+        "validationShellNormalizedMse": [
+          0.9720652103424072,
+          0.9631882309913635,
+          0.9891932606697083,
+          1.004539966583252
+        ],
+        "bicProxyPenalty": 0.41900341034306676,
+        "bicProxyScore": 0.41820069052173403,
+        "selectionScore": 0.9991976022720337,
+        "initialOutputScale": 10.941990852355957,
+        "initialOutputRms": 0.005678080953657627,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 65578
+      },
+      {
+        "candidateComponents": 1024,
+        "effectiveParameterCount": 2752512,
+        "validationNormalizedMse": 11.032892227172852,
+        "validationShellNormalizedMse": [
+          9.164387702941895,
+          10.230541229248047,
+          10.929126739501953,
+          11.134389877319336
+        ],
+        "bicProxyPenalty": 0.8380068206861335,
+        "bicProxyScore": 3.2388878341915275,
+        "selectionScore": 11.032892227172852,
+        "initialOutputScale": 10.41231918334961,
+        "initialOutputRms": 0.005966923199594021,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 65578
+      },
+      {
+        "candidateComponents": 2048,
+        "effectiveParameterCount": 5505024,
+        "validationNormalizedMse": 27.69083023071289,
+        "validationShellNormalizedMse": [
+          22.637561798095703,
+          24.88738441467285,
+          26.91734504699707,
+          28.1312198638916
+        ],
+        "bicProxyPenalty": 1.676013641372267,
+        "bicProxyScore": 4.997114961157763,
+        "selectionScore": 27.69083023071289,
+        "initialOutputScale": 10.58972454071045,
+        "initialOutputRms": 0.005866961553692818,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 65578
+      },
+      {
+        "candidateComponents": 4096,
+        "effectiveParameterCount": 11010048,
+        "validationNormalizedMse": 127.11820220947266,
+        "validationShellNormalizedMse": [
+          93.39766693115234,
+          111.11781311035156,
+          121.04619598388672,
+          130.07298278808594
+        ],
+        "bicProxyPenalty": 3.352027282744534,
+        "bicProxyScore": 8.197144662405027,
+        "selectionScore": 127.11820220947266,
+        "initialOutputScale": 10.588744163513184,
+        "initialOutputRms": 0.005867504980415106,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 65578
+      },
+      {
+        "candidateComponents": 8192,
+        "effectiveParameterCount": 22020096,
+        "validationNormalizedMse": 145.26168823242188,
+        "validationShellNormalizedMse": [
+          108.9003677368164,
+          121.00228118896484,
+          136.7310028076172,
+          149.44900512695312
+        ],
+        "bicProxyPenalty": 6.704054565489068,
+        "bicProxyScore": 11.68259142774207,
+        "selectionScore": 145.26168823242188,
+        "initialOutputScale": 10.604119300842285,
+        "initialOutputRms": 0.005858997348695993,
+        "trainingTargetOutputRms": 0.06212950870394707,
+        "trainingObservationCount": 65578
+      }
+    ],
+    "adaptiveQueryRounds": [
+      {
+        "afterCandidateComponents": 4,
+        "selectedShell": 1,
+        "selectedShellMultiplier": 0.75,
+        "validationNormalizedMseByShell": [
+          1.9233930110931396,
+          2.1946635246276855,
+          1.9917371273040771,
+          2.0071754455566406
+        ],
+        "oraclePoints": 8192
+      },
+      {
+        "afterCandidateComponents": 16,
+        "selectedShell": 3,
+        "selectedShellMultiplier": 1.4,
+        "validationNormalizedMseByShell": [
+          1.0021049976348877,
+          0.9620567560195923,
+          1.0172220468521118,
+          1.0335941314697266
+        ],
+        "oraclePoints": 8192
+      },
+      {
+        "afterCandidateComponents": 64,
+        "selectedShell": 3,
+        "selectedShellMultiplier": 1.4,
+        "validationNormalizedMseByShell": [
+          0.9929186105728149,
+          0.9825786352157593,
+          1.011151671409607,
+          1.0301926136016846
+        ],
+        "oraclePoints": 8192
+      },
+      {
+        "afterCandidateComponents": 256,
+        "selectedShell": 2,
+        "selectedShellMultiplier": 1.0,
+        "validationNormalizedMseByShell": [
+          0.7548097968101501,
+          0.7459972500801086,
+          0.7698681950569153,
+          0.7695969343185425
+        ],
+        "oraclePoints": 8192
+      }
+    ],
+    "queryAccounting": {
+      "oraclePoints": 73728,
+      "oracleQueryBudget": 73728,
+      "reusedRecoveryObservations": 42,
+      "initialGeneratedTrainingQueries": 32768,
+      "validationQueries": 8192,
+      "adaptiveQueries": 32768
+    },
+    "validation": {
+      "samples": 8192,
+      "relativeError": 0.8764751454244277,
+      "normalizedMse": 0.8276364860174816,
+      "meanSquaredError": 0.018939194864868055,
+      "referenceRms": 0.15701500274555097,
+      "cosineSimilarityMean": 0.3536502585546595,
+      "cosineSimilarityMedian": 0.3272065375147693,
+      "inputDensityQuartiles": [
+        {
+          "inputNormLow": 7.4983077586518485,
+          "inputNormHigh": 12.686084671998469,
+          "metrics": {
+            "samples": 2048,
+            "relativeError": 0.8781058099755551,
+            "normalizedMse": 0.8836214718344391,
+            "meanSquaredError": 0.0004946184877827086,
+            "referenceRms": 0.0253272666078292,
+            "cosineSimilarityMean": 0.3679150512089614,
+            "cosineSimilarityMedian": 0.3491569905716707
+          }
+        },
+        {
+          "inputNormLow": 12.686084671998469,
+          "inputNormHigh": 17.618394978002748,
+          "metrics": {
+            "samples": 2048,
+            "relativeError": 0.898043870667648,
+            "normalizedMse": 0.9129421275899501,
+            "meanSquaredError": 0.00412328032090383,
+            "referenceRms": 0.07150293645051561,
+            "cosineSimilarityMean": 0.35194929030257915,
+            "cosineSimilarityMedian": 0.3302663369405592
+          }
+        },
+        {
+          "inputNormLow": 17.618394978002748,
+          "inputNormHigh": 24.420823571347384,
+          "metrics": {
+            "samples": 2048,
+            "relativeError": 0.8883125419263425,
+            "normalizedMse": 0.8913778114649569,
+            "meanSquaredError": 0.01379495578824794,
+            "referenceRms": 0.13221915052191188,
+            "cosineSimilarityMean": 0.35255568691160816,
+            "cosineSimilarityMedian": 0.32559272547795004
+          }
+        },
+        {
+          "inputNormLow": 24.420823571347384,
+          "inputNormHigh": 48.573654224411065,
+          "metrics": {
+            "samples": 2048,
+            "relativeError": 0.8722060543079725,
+            "normalizedMse": 0.8530051294736469,
+            "meanSquaredError": 0.05734392486253773,
+            "referenceRms": 0.27455199913520023,
+            "cosineSimilarityMean": 0.3421810057954894,
+            "cosineSimilarityMedian": 0.30586493152250704
+          }
+        }
+      ]
+    },
+    "trainingSeconds": 25.610644695931114,
+    "performance": {
+      "device": "cuda",
+      "cudaDeviceName": "NVIDIA GeForce RTX 3070",
+      "peakAllocatedVramBytes": 1576872448,
+      "solverProcessPeakRssBytes": 8605700096,
+      "torchVersion": "2.10.0+cu128",
+      "torchCudaVersion": "12.8",
+      "peakWholeDeviceUsedBytesDuringOracleAndTraining": 5486673920,
+      "minimumWholeDeviceFreeBytesDuringOracleAndTraining": 2727411712,
+      "wholeDeviceMemoryMonitorSamples": 617
+    },
+    "oracleMetadataKeys": [
+      "hiddenSize",
+      "oracleOutputMode",
+      "oracleOwnsWeights",
+      "oracleQuantizationStep",
+      "oracleResponseWidth",
+      "protocolCapabilities",
+      "solverAccess",
+      "type"
+    ],
+    "opaqueOracleStderrTail": "",
+    "sourceCaptureReportSha256": "997ba2f55bf8378a2f72eca4dbbb31f1d54149391986220f10146a3a6d610d99",
+    "artifacts": {
+      "reconstruction.npz": {
+        "sha256": "0bc814d79663268cc5d63657f06f49082bd52d8fe326063eb9f6dbe2a85791f1",
+        "arrays": {
+          "gate": [
+            256,
+            896
+          ],
+          "up": [
+            256,
+            896
+          ],
+          "down": [
+            896,
+            256
+          ]
+        }
+      },
+      "distillation-training-observations.npz": {
+        "sha256": "c405e37e745a780a2683e5c3971fafc3cc3f63d472b22891819f71f3e28b67c2",
+        "arrays": {
+          "inputs": [
+            65578,
+            896
+          ],
+          "outputs": [
+            65578,
+            896
+          ],
+          "provenance": [
+            65578
+          ],
+          "natural_token_ids": [
+            65578
+          ],
+          "natural_token_positions": [
+            65578
+          ],
+          "natural_prompt_ids": [
+            65578
+          ],
+          "natural_prompt_sha256": [
+            65578
+          ]
+        }
+      },
+      "distillation-validation-probes.npz": {
+        "sha256": "437b561800c03ef8d8ac8e2b624222f478564ff8b4d0d20c520f0dc060201f1b",
+        "arrays": {
+          "inputs": [
+            8192,
+            896
+          ],
+          "outputs": [
+            8192,
+            896
+          ],
+          "shells": [
+            8192
+          ],
+          "provenance": [
+            8192
+          ]
+        }
+      },
+      "component-strength.npz": {
+        "sha256": "d6e5896f037913280e5198db1a777c6c6669975cf63bba3874fada5dd5f30d54",
+        "arrays": {
+          "rms": [
+            256
+          ]
+        }
+      }
+    },
+    "teacherArchitectureKnownToSolver": {
+      "inputDim": 896,
+      "outputDim": 896,
+      "activationFamily": "silu-swiglu",
+      "hiddenComponents": "not provided"
+    },
+    "targetModel": "Qwen/Qwen2.5-0.5B-Instruct",
+    "targetModule": "model.layers.0.mlp",
+    "captureNaturalRecoveryProvenancePreserved": true
+  }
+}

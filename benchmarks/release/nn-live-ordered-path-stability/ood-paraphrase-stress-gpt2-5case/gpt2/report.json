@@ -1,0 +1,1248 @@
+{
+  "schemaVersion": 1,
+  "kind": "gpt2-live-ordered-path-ood-stress",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-10-30T06:28:15.412252Z",
+  "model": {
+    "id": "gpt2",
+    "class": "GPT2LMHeadModel",
+    "device": "cuda",
+    "localFilesOnly": true,
+    "adapter": "gpt2",
+    "activationFamily": "gelu"
+  },
+  "sourceReport": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json",
+  "config": {
+    "subjects": [
+      "France",
+      "Germany",
+      "Greece",
+      "Italy",
+      "Portugal"
+    ],
+    "caseCount": 5,
+    "paraphraseCount": 6,
+    "paraphraseProfile": "ood",
+    "layerShifts": [
+      -2,
+      -1,
+      1,
+      2
+    ],
+    "minLayerControlCount": 2,
+    "minOriginalDrop": 0.05,
+    "minParaphraseDropRatio": 0.1,
+    "minParaphrasePassRate": 0.66,
+    "minLayerMargin": 0.001,
+    "minLayerSpecificityRate": 0.8,
+    "maxReplayError": 1e-05
+  },
+  "summary": {
+    "pass": false,
+    "caseCount": 5,
+    "passedCases": 2,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "ood",
+    "paraphrasePassRate": 0.43333333333333335,
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 5,
+        "passed": 2,
+        "passRate": 0.4,
+        "meanDropRatio": 0.2584861499262795,
+        "meanTokenCount": 20.0
+      },
+      "embedded-question": {
+        "count": 5,
+        "passed": 2,
+        "passRate": 0.4,
+        "meanDropRatio": 0.10021015031223524,
+        "meanTokenCount": 19.0
+      },
+      "imperative": {
+        "count": 5,
+        "passed": 0,
+        "passRate": 0.0,
+        "meanDropRatio": -0.3727635627375516,
+        "meanTokenCount": 10.0
+      },
+      "possessive-question": {
+        "count": 5,
+        "passed": 3,
+        "passRate": 0.6,
+        "meanDropRatio": 0.06517976899749649,
+        "meanTokenCount": 7.0
+      },
+      "sentence-completion": {
+        "count": 5,
+        "passed": 3,
+        "passRate": 0.6,
+        "meanDropRatio": 0.1667740794070291,
+        "meanTokenCount": 17.0
+      },
+      "service-question": {
+        "count": 5,
+        "passed": 3,
+        "passRate": 0.6,
+        "meanDropRatio": 0.04602338103679353,
+        "meanTokenCount": 9.0
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0,
+    "failedSubjects": [
+      "Germany",
+      "Portugal",
+      "Greece"
+    ]
+  },
+  "cases": [
+    {
+      "subject": "France",
+      "answer": "Paris",
+      "target": {
+        "tokenId": 6342,
+        "token": " Paris"
+      },
+      "paraphraseRescue": {
+        "attempted": 1,
+        "found": 0,
+        "items": [
+          {
+            "prompt": "Give the name of the capital city of France.",
+            "brokenDrop": -0.8926544189453125,
+            "found": false,
+            "bestLayerShift": -3,
+            "bestDrop": -0.09365081787109375,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -0.09365081787109375
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.267913818359375
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": -0.1431884765625
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery"
+          }
+        ]
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 9,
+            "head": 8,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 11,
+            "neuron": 1369,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 6342,
+          "token": " Paris"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 1.8188400268554688,
+        "reportedTargetLogitDrop": 1.8188400268554688,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of France?",
+          "tokenCount": 9,
+          "targetLogitDrop": 0.6582794189453125,
+          "ratioToOriginal": 0.3619226590715565,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is France's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 1.1105804443359375,
+          "ratioToOriginal": 0.6105981988179481,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of France.",
+          "tokenCount": 10,
+          "targetLogitDrop": -0.8926544189453125,
+          "ratioToOriginal": -0.4907822599927013,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of France?",
+          "tokenCount": 19,
+          "targetLogitDrop": 2.7270965576171875,
+          "ratioToOriginal": 1.4993603161087086,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of France is",
+          "tokenCount": 17,
+          "targetLogitDrop": 3.2621841430664062,
+          "ratioToOriginal": 1.7935519863757818,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of France?",
+          "tokenCount": 20,
+          "targetLogitDrop": 1.547637939453125,
+          "ratioToOriginal": 0.8508928309263042,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 5,
+        "passRate": 0.8333333333333334,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.8508928309263042,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.4993603161087086,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.4907822599927013,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.6105981988179481,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.7935519863757818,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.3619226590715565,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.354644775390625
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -0.089599609375
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.354644775390625,
+        "marginOverBestPositiveNeighbor": 1.4641952514648438,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Germany",
+      "answer": "Berlin",
+      "target": {
+        "tokenId": 11307,
+        "token": " Berlin"
+      },
+      "paraphraseRescue": {
+        "attempted": 2,
+        "found": 1,
+        "items": [
+          {
+            "prompt": "Give the name of the capital city of Germany.",
+            "brokenDrop": -1.0140380859375,
+            "found": true,
+            "bestLayerShift": 1,
+            "bestDrop": 0.47534942626953125,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -0.32032012939453125
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.2551727294921875
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": -0.3040313720703125
+              },
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.47534942626953125
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -22.936325073242188
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery"
+          },
+          {
+            "prompt": "I am checking a country profile. Could you tell me which city is the capital of Germany?",
+            "brokenDrop": -0.96539306640625,
+            "found": false,
+            "bestLayerShift": -1,
+            "bestDrop": -0.0366363525390625,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -0.5446319580078125
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.4239044189453125
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": -0.0366363525390625
+              },
+              {
+                "layerShift": 1,
+                "targetLogitDrop": -0.23480224609375
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -28.8629150390625
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery"
+          }
+        ]
+      },
+      "status": "failed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 9,
+            "head": 8,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 9,
+            "neuron": 687,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 11307,
+          "token": " Berlin"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 1.3880844116210938,
+        "reportedTargetLogitDrop": 1.3880844116210938,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Germany?",
+          "tokenCount": 9,
+          "targetLogitDrop": 0.38729095458984375,
+          "ratioToOriginal": 0.2790110971259598,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Germany's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 0.239715576171875,
+          "ratioToOriginal": 0.17269524401035513,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Germany.",
+          "tokenCount": 10,
+          "targetLogitDrop": -1.0140380859375,
+          "ratioToOriginal": -0.7305305624412578,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Germany?",
+          "tokenCount": 19,
+          "targetLogitDrop": -0.96539306640625,
+          "ratioToOriginal": -0.6954858496529056,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Germany is",
+          "tokenCount": 17,
+          "targetLogitDrop": 1.3574600219726562,
+          "ratioToOriginal": 0.9779376604246478,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Germany?",
+          "tokenCount": 20,
+          "targetLogitDrop": 0.066497802734375,
+          "ratioToOriginal": 0.04790616635245879,
+          "pass": false
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 3,
+        "passRate": 0.5,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.04790616635245879,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.6954858496529056,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.7305305624412578,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.17269524401035513,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.9779376604246478,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.2790110971259598,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.140655517578125
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -0.1165313720703125
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": -0.525421142578125
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": -13.019035339355469
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.140655517578125,
+        "marginOverBestPositiveNeighbor": 1.2474288940429688,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Italy",
+      "answer": "Rome",
+      "target": {
+        "tokenId": 10598,
+        "token": " Rome"
+      },
+      "paraphraseRescue": {
+        "attempted": 1,
+        "found": 1,
+        "items": [
+          {
+            "prompt": "Give the name of the capital city of Italy.",
+            "brokenDrop": -0.58343505859375,
+            "found": true,
+            "bestLayerShift": 1,
+            "bestDrop": 0.5546035766601562,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -0.32886505126953125
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.0697021484375
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": -0.0896148681640625
+              },
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.5546035766601562
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -22.839080810546875
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery"
+          }
+        ]
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 9,
+            "head": 8,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 9,
+            "neuron": 2746,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 10598,
+          "token": " Rome"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 3.2185821533203125,
+        "reportedTargetLogitDrop": 3.2185821533203125,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Italy?",
+          "tokenCount": 9,
+          "targetLogitDrop": 0.68463134765625,
+          "ratioToOriginal": 0.21271209341354838,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Italy's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 0.787872314453125,
+          "ratioToOriginal": 0.24478862956483813,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Italy.",
+          "tokenCount": 10,
+          "targetLogitDrop": -0.58343505859375,
+          "ratioToOriginal": -0.18127083007400455,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Italy?",
+          "tokenCount": 19,
+          "targetLogitDrop": 1.20416259765625,
+          "ratioToOriginal": 0.37412827769955387,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Italy is",
+          "tokenCount": 17,
+          "targetLogitDrop": 1.4269485473632812,
+          "ratioToOriginal": 0.4433469395495252,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Italy?",
+          "tokenCount": 20,
+          "targetLogitDrop": 1.559967041015625,
+          "ratioToOriginal": 0.4846752286270996,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 5,
+        "passRate": 0.8333333333333334,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.4846752286270996,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.37412827769955387,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.18127083007400455,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.24478862956483813,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.4433469395495252,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.21271209341354838,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.132659912109375
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -0.245391845703125
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": -0.425506591796875
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": -11.691307067871094
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.132659912109375,
+        "marginOverBestPositiveNeighbor": 3.0859222412109375,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Portugal",
+      "answer": "Lisbon",
+      "target": {
+        "tokenId": 41898,
+        "token": " Lisbon"
+      },
+      "paraphraseRescue": {
+        "attempted": 2,
+        "found": 2,
+        "items": [
+          {
+            "prompt": "Which city serves as the capital of Portugal?",
+            "brokenDrop": -0.648956298828125,
+            "found": true,
+            "bestLayerShift": 3,
+            "bestDrop": 0.46569061279296875,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -3.7352447509765625
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.5245590209960938
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": -3.469146728515625
+              },
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.39885711669921875
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": 0.17364501953125
+              },
+              {
+                "layerShift": 3,
+                "targetLogitDrop": 0.46569061279296875
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery"
+          },
+          {
+            "prompt": "What city is Portugal's capital?",
+            "brokenDrop": -0.7359466552734375,
+            "found": true,
+            "bestLayerShift": -1,
+            "bestDrop": 0.8742828369140625,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -2.882965087890625
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.3637237548828125
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": 0.8742828369140625
+              },
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.25055694580078125
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": 0.49334716796875
+              },
+              {
+                "layerShift": 3,
+                "targetLogitDrop": 0.6222000122070312
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery"
+          }
+        ]
+      },
+      "status": "failed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 6,
+            "head": 1,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 6,
+            "neuron": 2941,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 41898,
+          "token": " Lisbon"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 1.9844131469726562,
+        "reportedTargetLogitDrop": 1.9844131469726562,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Portugal?",
+          "tokenCount": 9,
+          "targetLogitDrop": -0.648956298828125,
+          "ratioToOriginal": -0.3270268088165751,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Portugal's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": -0.7359466552734375,
+          "ratioToOriginal": -0.37086362605295636,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Portugal.",
+          "tokenCount": 10,
+          "targetLogitDrop": -0.5737686157226562,
+          "ratioToOriginal": -0.2891376811315604,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Portugal?",
+          "tokenCount": 19,
+          "targetLogitDrop": -0.77264404296875,
+          "ratioToOriginal": -0.3893564423051046,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Portugal is",
+          "tokenCount": 17,
+          "targetLogitDrop": -2.573822021484375,
+          "ratioToOriginal": -1.2970192348356984,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Portugal?",
+          "tokenCount": 20,
+          "targetLogitDrop": -0.175384521484375,
+          "ratioToOriginal": -0.08838105197596319,
+          "pass": false
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 0,
+        "passRate": 0.0,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.08838105197596319,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.3893564423051046,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.2891376811315604,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.37086362605295636,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -1.2970192348356984,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.3270268088165751,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.13587188720703125
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -1.43701171875
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.0767669677734375
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": 0.04045867919921875
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.13587188720703125,
+        "marginOverBestPositiveNeighbor": 1.848541259765625,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Greece",
+      "answer": "Athens",
+      "target": {
+        "tokenId": 21891,
+        "token": " Athens"
+      },
+      "paraphraseRescue": {
+        "attempted": 2,
+        "found": 2,
+        "items": [
+          {
+            "prompt": "Which city serves as the capital of Greece?",
+            "brokenDrop": -0.7578887939453125,
+            "found": true,
+            "bestLayerShift": 1,
+            "bestDrop": 0.4298095703125,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -3.888397216796875
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.3870391845703125
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": -3.0823516845703125
+              },
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.4298095703125
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -0.292755126953125
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery"
+          },
+          {
+            "prompt": "What city is Greece's capital?",
+            "brokenDrop": -0.8468856811523438,
+            "found": true,
+            "bestLayerShift": -1,
+            "bestDrop": 1.20672607421875,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -3.0094833374023438
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.42523956298828125
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": 1.20672607421875
+              },
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.25388336181640625
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -0.0474700927734375
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path, not full circuit rediscovery"
+          }
+        ]
+      },
+      "status": "failed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 6,
+            "head": 1,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 9,
+            "neuron": 1993,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 21891,
+          "token": " Athens"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 2.5560989379882812,
+        "reportedTargetLogitDrop": 2.5560989379882812,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Greece?",
+          "tokenCount": 9,
+          "targetLogitDrop": -0.7578887939453125,
+          "ratioToOriginal": -0.29650213561052197,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Greece's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": -0.8468856811523438,
+          "ratioToOriginal": -0.33131960135270255,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Greece.",
+          "tokenCount": 10,
+          "targetLogitDrop": -0.4398956298828125,
+          "ratioToOriginal": -0.17209648004823405,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Greece?",
+          "tokenCount": 19,
+          "targetLogitDrop": -0.7351226806640625,
+          "ratioToOriginal": -0.287595550289076,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Greece is",
+          "tokenCount": 17,
+          "targetLogitDrop": -2.7706756591796875,
+          "ratioToOriginal": -1.083946954479111,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Greece?",
+          "tokenCount": 20,
+          "targetLogitDrop": -0.006805419921875,
+          "ratioToOriginal": -0.0026624242985019385,
+          "pass": false
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 0,
+        "passRate": 0.0,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.0026624242985019385,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.287595550289076,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.17209648004823405,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.33131960135270255,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -1.083946954479111,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.29650213561052197,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.17760467529296875
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -2.0309600830078125
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.13516998291015625
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": 0.06800079345703125
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.17760467529296875,
+        "marginOverBestPositiveNeighbor": 2.3784942626953125,
+        "pass": true
+      }
+    }
+  ],
+  "claimBoundary": {
+    "provesIfPasses": "The exact discovered circuit interventions replay on the source prompts, preserve target-causal effects across the configured standard or held-out OOD paraphrase families, and outperform neighboring-layer shifted controls for the configured real-model cases.",
+    "doesNotProve": "This does not prove neuron identity across model families, semantic equivalence of internal circuits, full-model circuit recovery, semantic validity beyond the curated capital-question templates, or arbitrary prompt stability."
+  }
+}

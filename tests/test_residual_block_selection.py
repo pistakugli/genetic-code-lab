@@ -306,6 +306,38 @@ class ResidualBlockSelectionTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "exposed teacher manifest"):
             validate_opaque_oracle_metadata(leaked)
 
+    def test_opaque_full_mlp_oracle_does_not_expose_component_count(self) -> None:
+        args = SimpleNamespace(
+            oracle_quantization_step=0.0,
+            oracle_eval_only=True,
+            oracle_ready_mode="opaque",
+            model="private/model",
+            layer=0,
+            unit=0,
+            device="cuda",
+        )
+        observed = build_oracle_ready_payload(
+            args=args,
+            model_type="qwen2",
+            units=[],
+            hidden_size=896,
+            intermediate_size=4864,
+            oracle_mode="full-mlp-vector",
+            output_channel=None,
+            block_device="cuda:0",
+        )
+
+        self.assertEqual(observed["hiddenSize"], 896)
+        self.assertEqual(observed["oracleResponseWidth"], 896)
+        self.assertEqual(observed["oracleOutputMode"], "full-mlp-vector")
+        self.assertNotIn("unitCount", observed)
+        validate_opaque_oracle_metadata(observed)
+
+        leaked = dict(observed)
+        leaked["unitCount"] = 4864
+        with self.assertRaisesRegex(RuntimeError, "must not expose unitCount"):
+            validate_opaque_oracle_metadata(leaked)
+
     def test_oracle_truth_is_locked_until_recovery_freeze(self) -> None:
         oracle = OracleClient.__new__(OracleClient)
         oracle.query_count = 123

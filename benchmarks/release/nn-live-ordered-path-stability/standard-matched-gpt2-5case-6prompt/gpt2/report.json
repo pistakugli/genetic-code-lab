@@ -1,0 +1,789 @@
+{
+  "schemaVersion": 1,
+  "kind": "gpt2-live-ordered-path-stability",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-10-30T06:32:24.921548Z",
+  "model": {
+    "id": "gpt2",
+    "class": "GPT2LMHeadModel",
+    "device": "cuda",
+    "localFilesOnly": true,
+    "adapter": "gpt2",
+    "activationFamily": "gelu"
+  },
+  "sourceReport": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json",
+  "config": {
+    "subjects": [
+      "France",
+      "Germany",
+      "Greece",
+      "Italy",
+      "Portugal"
+    ],
+    "caseCount": 5,
+    "paraphraseCount": 6,
+    "paraphraseProfile": "standard",
+    "layerShifts": [
+      -2,
+      -1,
+      1,
+      2
+    ],
+    "minLayerControlCount": 2,
+    "minOriginalDrop": 0.05,
+    "minParaphraseDropRatio": 0.1,
+    "minParaphrasePassRate": 0.66,
+    "minLayerMargin": 0.001,
+    "minLayerSpecificityRate": 0.8,
+    "maxReplayError": 1e-05
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 5,
+    "passedCases": 5,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "standard",
+    "paraphrasePassRate": 1.0,
+    "paraphraseFamilySummary": {
+      "standard-template": {
+        "count": 30,
+        "passed": 30,
+        "passRate": 1.0,
+        "meanDropRatio": 0.6479557878674821,
+        "meanTokenCount": 6.1
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0,
+    "failedSubjects": []
+  },
+  "cases": [
+    {
+      "subject": "France",
+      "answer": "Paris",
+      "target": {
+        "tokenId": 6342,
+        "token": " Paris"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 9,
+            "head": 8,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 11,
+            "neuron": 1369,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 6342,
+          "token": " Paris"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 1.8188400268554688,
+        "reportedTargetLogitDrop": 1.8188400268554688,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital city of France is",
+          "tokenCount": 6,
+          "targetLogitDrop": 1.2164764404296875,
+          "ratioToOriginal": 0.6688199195466424,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In France, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 1.922119140625,
+          "ratioToOriginal": 1.056782956304347,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In France, the capital city is",
+          "tokenCount": 7,
+          "targetLogitDrop": 1.5020599365234375,
+          "ratioToOriginal": 0.8258340009815477,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital of the country France is",
+          "tokenCount": 7,
+          "targetLogitDrop": 0.9276885986328125,
+          "ratioToOriginal": 0.5100440857553933,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "France's capital is",
+          "tokenCount": 4,
+          "targetLogitDrop": 0.25634002685546875,
+          "ratioToOriginal": 0.14093599385903463,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "For France, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 1.4918212890625,
+          "ratioToOriginal": 0.8202047827381826,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 6,
+        "passRate": 1.0,
+        "families": {
+          "standard-template": {
+            "count": 6,
+            "passed": 6,
+            "passRate": 1.0,
+            "meanDropRatio": 0.670436956530858,
+            "meanTokenCount": 6.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.354644775390625
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -0.089599609375
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.354644775390625,
+        "marginOverBestPositiveNeighbor": 1.4641952514648438,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Germany",
+      "answer": "Berlin",
+      "target": {
+        "tokenId": 11307,
+        "token": " Berlin"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 9,
+            "head": 8,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 9,
+            "neuron": 687,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 11307,
+          "token": " Berlin"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 1.3880844116210938,
+        "reportedTargetLogitDrop": 1.3880844116210938,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital city of Germany is",
+          "tokenCount": 6,
+          "targetLogitDrop": 1.6600112915039062,
+          "ratioToOriginal": 1.1959008239025168,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In Germany, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 2.2792816162109375,
+          "ratioToOriginal": 1.6420338684943854,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In Germany, the capital city is",
+          "tokenCount": 7,
+          "targetLogitDrop": 1.8547210693359375,
+          "ratioToOriginal": 1.3361731129664338,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital of the country Germany is",
+          "tokenCount": 7,
+          "targetLogitDrop": 1.0032806396484375,
+          "ratioToOriginal": 0.722780712216732,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "Germany's capital is",
+          "tokenCount": 4,
+          "targetLogitDrop": 0.31226348876953125,
+          "ratioToOriginal": 0.22496001407065006,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "For Germany, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 2.0593338012695312,
+          "ratioToOriginal": 1.4835796613150563,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 6,
+        "passRate": 1.0,
+        "families": {
+          "standard-template": {
+            "count": 6,
+            "passed": 6,
+            "passRate": 1.0,
+            "meanDropRatio": 1.1009046988276292,
+            "meanTokenCount": 6.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.140655517578125
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -0.1165313720703125
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": -0.525421142578125
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": -13.019035339355469
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.140655517578125,
+        "marginOverBestPositiveNeighbor": 1.2474288940429688,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Italy",
+      "answer": "Rome",
+      "target": {
+        "tokenId": 10598,
+        "token": " Rome"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 9,
+            "head": 8,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 9,
+            "neuron": 2746,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 10598,
+          "token": " Rome"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 3.2185821533203125,
+        "reportedTargetLogitDrop": 3.2185821533203125,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital city of Italy is",
+          "tokenCount": 6,
+          "targetLogitDrop": 2.56256103515625,
+          "ratioToOriginal": 0.7961769851090157,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In Italy, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 2.5314788818359375,
+          "ratioToOriginal": 0.7865198902021021,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In Italy, the capital city is",
+          "tokenCount": 7,
+          "targetLogitDrop": 2.07275390625,
+          "ratioToOriginal": 0.6439959608027194,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital of the country Italy is",
+          "tokenCount": 7,
+          "targetLogitDrop": 2.3158721923828125,
+          "ratioToOriginal": 0.7195317944560595,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "Italy's capital is",
+          "tokenCount": 4,
+          "targetLogitDrop": 0.44696807861328125,
+          "ratioToOriginal": 0.13887111073184377,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "For Italy, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 2.341766357421875,
+          "ratioToOriginal": 0.7275770031242148,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 6,
+        "passRate": 1.0,
+        "families": {
+          "standard-template": {
+            "count": 6,
+            "passed": 6,
+            "passRate": 1.0,
+            "meanDropRatio": 0.6354454574043259,
+            "meanTokenCount": 6.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.132659912109375
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -0.245391845703125
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": -0.425506591796875
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": -11.691307067871094
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.132659912109375,
+        "marginOverBestPositiveNeighbor": 3.0859222412109375,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Portugal",
+      "answer": "Lisbon",
+      "target": {
+        "tokenId": 41898,
+        "token": " Lisbon"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 6,
+            "head": 1,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 6,
+            "neuron": 2941,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 41898,
+          "token": " Lisbon"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 1.9844131469726562,
+        "reportedTargetLogitDrop": 1.9844131469726562,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital city of Portugal is",
+          "tokenCount": 6,
+          "targetLogitDrop": 0.9322052001953125,
+          "ratioToOriginal": 0.4697636687286862,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In Portugal, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 0.8740997314453125,
+          "ratioToOriginal": 0.4404827355527276,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In Portugal, the capital city is",
+          "tokenCount": 7,
+          "targetLogitDrop": 0.7473297119140625,
+          "ratioToOriginal": 0.37659985928543144,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital of the country Portugal is",
+          "tokenCount": 7,
+          "targetLogitDrop": 1.1599807739257812,
+          "ratioToOriginal": 0.5845460032833399,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "Portugal's capital is",
+          "tokenCount": 5,
+          "targetLogitDrop": 0.32159423828125,
+          "ratioToOriginal": 0.16206012279845136,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "For Portugal, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 0.8544387817382812,
+          "ratioToOriginal": 0.4305750458475746,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 6,
+        "passRate": 1.0,
+        "families": {
+          "standard-template": {
+            "count": 6,
+            "passed": 6,
+            "passRate": 1.0,
+            "meanDropRatio": 0.41067123924936855,
+            "meanTokenCount": 6.166666666666667
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.13587188720703125
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -1.43701171875
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.0767669677734375
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": 0.04045867919921875
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.13587188720703125,
+        "marginOverBestPositiveNeighbor": 1.848541259765625,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Greece",
+      "answer": "Athens",
+      "target": {
+        "tokenId": 21891,
+        "token": " Athens"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 6,
+            "head": 1,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 9,
+            "neuron": 1993,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 21891,
+          "token": " Athens"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 2.5560989379882812,
+        "reportedTargetLogitDrop": 2.5560989379882812,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital city of Greece is",
+          "tokenCount": 6,
+          "targetLogitDrop": 0.9409942626953125,
+          "ratioToOriginal": 0.36813687009936336,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In Greece, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 1.4139251708984375,
+          "ratioToOriginal": 0.5531574501616259,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "In Greece, the capital city is",
+          "tokenCount": 7,
+          "targetLogitDrop": 1.3370742797851562,
+          "ratioToOriginal": 0.5230917551405384,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "The capital of the country Greece is",
+          "tokenCount": 7,
+          "targetLogitDrop": 0.7374114990234375,
+          "ratioToOriginal": 0.2884909844701865,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "Greece's capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 0.8905487060546875,
+          "ratioToOriginal": 0.34840150074768755,
+          "pass": true
+        },
+        {
+          "profile": "standard",
+          "family": "standard-template",
+          "prompt": "For Greece, the capital is",
+          "tokenCount": 6,
+          "targetLogitDrop": 1.1570053100585938,
+          "ratioToOriginal": 0.4526449633319703,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 6,
+        "passRate": 1.0,
+        "families": {
+          "standard-template": {
+            "count": 6,
+            "passed": 6,
+            "passRate": 1.0,
+            "meanDropRatio": 0.42232058732522865,
+            "meanTokenCount": 6.333333333333333
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.17760467529296875
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -2.0309600830078125
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.13516998291015625
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": 0.06800079345703125
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.17760467529296875,
+        "marginOverBestPositiveNeighbor": 2.3784942626953125,
+        "pass": true
+      }
+    }
+  ],
+  "claimBoundary": {
+    "provesIfPasses": "The exact discovered circuit interventions replay on the source prompts, preserve target-causal effects across the configured standard or held-out OOD paraphrase families, and outperform neighboring-layer shifted controls for the configured real-model cases.",
+    "doesNotProve": "This does not prove neuron identity across model families, semantic equivalence of internal circuits, full-model circuit recovery, semantic validity beyond the curated capital-question templates, or arbitrary prompt stability."
+  }
+}

@@ -5,15 +5,28 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import multiprocessing as mp
 import random
+import uuid
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+from multiprocessing.connection import Connection
 from transformers.utils import logging as transformers_logging
+
+from llm_reader.blackbox_decision import analyze_next_token_decision, trace_greedy_generation
+from llm_reader.blackbox_decompiler import (
+    _training_formulations,
+    encode_prompt,
+    generate_reconstruction,
+    load_executable_reconstruction,
+    run_decompilation,
+    write_explanation_markdown,
+)
 
 transformers_logging.disable_progress_bar()
 
@@ -44,9 +57,38 @@ FACTS: List[Dict[str, str]] = [
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Output-only black-box LLM behavior reader for factual next-token prompts."
+        description="Output-only black-box LLM behavior reader."
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["facts", "decision", "trace", "decompile", "predict"],
+        default="facts",
     )
     parser.add_argument("--model", default="gpt2")
+    parser.add_argument("--prompt")
+    parser.add_argument("--target-token")
+    parser.add_argument("--contrast-token", action="append", default=[])
+    parser.add_argument("--max-probes", type=int, default=24)
+    parser.add_argument("--top-logits", type=int, default=10)
+    parser.add_argument("--max-new-tokens", type=int, default=32)
+    parser.add_argument("--prediction-beam-width", type=int, default=1)
+    parser.add_argument("--probes-per-token", type=int, default=4)
+    parser.add_argument("--response-probes", type=int, default=2)
+    parser.add_argument("--explanation-probes", type=int, default=8)
+    parser.add_argument("--interaction-probes", type=int, default=2)
+    parser.add_argument("--branch-probes", type=int, default=1)
+    parser.add_argument("--branch-width", type=int, default=3)
+    parser.add_argument("--query-budget", type=int, default=512)
+    parser.add_argument("--formulation-probes", type=int, default=1)
+    parser.add_argument(
+        "--prompt-format",
+        choices=["auto", "raw", "chat-template"],
+        default=None,
+        help="Prompt encoding; auto uses the tokenizer chat template when available.",
+    )
+    parser.add_argument("--session-dir")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--reconstruction")
     parser.add_argument("--case-count", type=int, default=10)
     parser.add_argument("--min-valid-cases", type=int, default=10)
     parser.add_argument("--only-subjects", default="")
@@ -61,8 +103,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--control-seed", type=int, default=260709)
     parser.add_argument("--device", choices=["cpu", "cuda", "auto"], default="cpu")
     parser.add_argument("--local-files-only", action="store_true")
-    parser.add_argument("--output-json", required=True)
-    parser.add_argument("--output-md", required=True)
+    parser.add_argument("--output-json")
+    parser.add_argument("--output-md")
     return parser.parse_args()
 
 
@@ -161,6 +203,18 @@ class BlackBoxNextTokenOracle:
         with torch.no_grad():
             return self.model(**encoded).logits.detach().cpu()[0, -1].float()
 
+    def query_token_ids(self, token_ids: List[int]) -> torch.Tensor:
+        if not token_ids:
+            raise ValueError("At least one input token is required.")
+        input_ids = torch.tensor([token_ids], dtype=torch.long, device=self.device)
+        attention_mask = torch.ones_like(input_ids)
+        self.query_count += 1
+        with torch.no_grad():
+            return self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+            ).logits.detach().cpu()[0, -1].float()
+
     def identity(self) -> Dict[str, Any]:
         config = getattr(self.model, "config", None)
         return {
@@ -170,6 +224,141 @@ class BlackBoxNextTokenOracle:
             "device": str(self.device),
             "localFilesOnly": self.local_files_only,
         }
+
+
+def _blackbox_oracle_worker(
+    connection: Connection,
+    model_id: str,
+    local_files_only: bool,
+    device_name: str,
+) -> None:
+    try:
+        device = torch.device(device_name)
+        config = AutoConfig.from_pretrained(model_id, local_files_only=local_files_only)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            local_files_only=local_files_only,
+        ).eval().to(device)
+    except Exception as error:
+        connection.send({
+            "status": "error",
+            "stage": "initialize",
+            "error": f"{type(error).__name__}: {error}",
+        })
+        connection.close()
+        return
+    connection.send({
+        "status": "ready",
+        "identity": {
+            "id": model_id,
+            "class": model.__class__.__name__,
+            "modelType": getattr(config, "model_type", None),
+            "device": str(device),
+            "localFilesOnly": local_files_only,
+        },
+    })
+    try:
+        while True:
+            request = connection.recv()
+            if request.get("operation") == "close":
+                connection.send({"status": "closed"})
+                break
+            try:
+                token_ids = request.get("inputTokenIds")
+                if not token_ids:
+                    raise ValueError("Oracle worker received an empty token sequence.")
+                input_ids = torch.tensor([token_ids], dtype=torch.long, device=device)
+                attention_mask = torch.ones_like(input_ids)
+                with torch.no_grad():
+                    logits = model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                    ).logits[0, -1].float()
+                connection.send({"status": "ok", "logits": logits.detach().cpu().tolist()})
+            except Exception as error:
+                connection.send({
+                    "status": "error",
+                    "stage": "query",
+                    "error": f"{type(error).__name__}: {error}",
+                })
+    finally:
+        connection.close()
+
+
+class ProcessSeparatedBlackBoxOracle:
+    """Keep model weights in the oracle worker; expose only token IDs and logits."""
+
+    def __init__(self, model_id: str, *, local_files_only: bool, device: str) -> None:
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_id,
+            local_files_only=local_files_only,
+        )
+        context = mp.get_context("spawn")
+        parent, child = context.Pipe()
+        self._connection = parent
+        self._worker = context.Process(
+            target=_blackbox_oracle_worker,
+            args=(child, model_id, local_files_only, device),
+            daemon=True,
+        )
+        self._worker.start()
+        child.close()
+        try:
+            ready = self._connection.recv()
+            if ready.get("status") != "ready":
+                raise RuntimeError(f"Oracle worker failed to initialize: {ready!r}")
+        except Exception as error:
+            self._worker.join()
+            self._connection.close()
+            if isinstance(error, RuntimeError):
+                raise
+            raise RuntimeError(
+                f"Oracle worker exited during initialization (exit code {self._worker.exitcode})."
+            ) from error
+        self._identity = ready["identity"]
+        self.query_count = 0
+        self._closed = False
+
+    def query_logits(self, prompt: str) -> List[float]:
+        token_ids = self.tokenizer(prompt, add_special_tokens=True)["input_ids"]
+        return self.query_token_ids(token_ids)
+
+    def query_token_ids(self, token_ids: List[int]) -> List[float]:
+        if self._closed:
+            raise RuntimeError("Oracle worker is closed.")
+        self._connection.send({
+            "operation": "query",
+            "inputTokenIds": [int(token_id) for token_id in token_ids],
+        })
+        self.query_count += 1
+        response = self._connection.recv()
+        if response.get("status") != "ok" or not isinstance(response.get("logits"), list):
+            raise RuntimeError(f"Oracle query failed: {response!r}")
+        return response["logits"]
+
+    def identity(self) -> Dict[str, Any]:
+        return dict(self._identity)
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        try:
+            if self._worker.is_alive():
+                self._connection.send({"operation": "close"})
+                response = self._connection.recv()
+                if response.get("status") != "closed":
+                    raise RuntimeError(f"Oracle worker failed to close cleanly: {response!r}")
+        finally:
+            self._worker.join()
+            self._connection.close()
+            self._closed = True
+
+    def __enter__(self) -> "ProcessSeparatedBlackBoxOracle":
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        del exc_type, exc_value, traceback
+        self.close()
 
 
 def build_answer_pool(tokenizer: Any, facts: List[Dict[str, str]]) -> List[Dict[str, Any]]:
@@ -485,8 +674,438 @@ def write_markdown(path: str, report: Dict[str, Any]) -> None:
     Path(path).write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_decision_markdown(path: str, report: Dict[str, Any]) -> None:
+    summary = report["summary"]
+    def cell(value: Any) -> str:
+        return str(value).replace("|", r"\|").replace("\r\n", "<br>").replace("\n", "<br>")
+
+    lines = [
+        "# Black-box next-token decision evidence",
+        "",
+        f"- model: `{report['model']['id']}`",
+        f"- target: `{report['decision']['target']['text']}`",
+        "",
+        "## Exact prompt",
+        "",
+        "```text",
+        report["decision"]["prompt"],
+        "```",
+        "",
+        f"- targetRank: `{report['decision']['baseline']['targetRank']}`",
+        f"- targetVsContrastMargin: `{report['decision']['baseline']['targetVsContrastMargin']}`",
+        f"- oracleQueryCount: `{report['decision']['queryCount']}`",
+        "",
+        "## Prompt-span counterfactuals",
+        "",
+        "| span | measured prompt | margin support | target rank | distribution JS (bits) |",
+        "| --- | --- | ---: | ---: | ---: |",
+    ]
+    for item in report["decision"]["counterfactuals"]:
+        lines.append(
+            f"| {cell(item['surface'])} | {cell(item['prompt'])} | {item['marginSupport']:.6f} "
+            f"| {item['targetRank']} | {item['distributionJensenShannonBits']:.6f} |"
+        )
+    lines.extend([
+        "",
+        f"- measuredCounterfactuals: `{summary['measuredCounterfactuals']}`",
+        f"- unprobedPromptSpans: `{summary['unprobedPromptSpanCount']}`",
+        f"- supportingPromptSpans: `{summary['supportingPromptSpans']}`",
+        f"- suppressingPromptSpans: `{summary['suppressingPromptSpans']}`",
+        "",
+        report["decision"]["claimBoundary"],
+        "",
+    ])
+    Path(path).write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_trace_markdown(path: str, report: Dict[str, Any]) -> None:
+    trace = report["trace"]
+    lines = [
+        "# Black-box autoregressive decision trace",
+        "",
+        f"- model: `{report['model']['id']}`",
+        f"- decodePolicy: `{trace['decodePolicy']}`",
+        f"- generatedText: `{trace['generatedText']}`",
+        f"- generatedTokens: `{len(trace['steps'])}`",
+        f"- oracleQueryCount: `{trace['queryCount']}`",
+        f"- sufficientContextSearchQueries: `{trace['explanationQueryCount']}`",
+        f"- pairwiseInteractionQueries: `{trace['interactionQueryCount']}`",
+        f"- alternativeBranchQueries: `{trace['branchQueryCount']}`",
+        f"- alternativeBranchBeamWidth: `{trace['branchWidth']}`",
+        "",
+        "| step | token | probability | rank | margin vs alternatives | strongest input-unit effect |",
+        "| ---: | --- | ---: | ---: | ---: | --- |",
+    ]
+    for step in trace["steps"]:
+        evidence = step["strongestSupportingToken"] or step["strongestSuppressingToken"]
+        effect = (
+            f"{evidence['source']} {evidence['inputToken']!r}: {evidence['marginSupport']:.4f}"
+            if evidence else "-"
+        )
+        lines.append(
+            f"| {step['stepIndex']} | {step['chosenToken']!r} "
+            f"| {step['chosenTokenProbability']:.6g} | {step['chosenTokenRank']} "
+            f"| {step['marginVsTopAlternatives']:.6f} | {effect} |"
+        )
+    lines.extend([
+        "",
+        "## Minimal sufficient context for each observed next token",
+        "",
+        "Each context below is a token-ID-preserving subset that retained the same top-1 "
+        "next token under oracle queries. `one-minimal` means every remaining editable "
+        "unit was individually tested; it does not mean a globally smallest explanation.",
+        "",
+    ])
+    for step in trace["steps"]:
+        evidence = step["minimalSufficientContext"]
+        retained = evidence["retainedContextTokens"]
+        rendered_tokens = " ".join(
+            item["token"].replace("|", r"\|")
+            for item in retained
+        ) or "(empty editable context)"
+        status = (
+            "one-minimal"
+            if evidence["minimality"]["oneMinimalAmongEditableUnits"]
+            else "budget-limited"
+        )
+        lines.extend([
+            f"### Step {step['stepIndex']}: `{step['chosenToken']!r}`",
+            "",
+            f"- retained tokens ({status}): `{rendered_tokens}`",
+            f"- token IDs: `{evidence['retainedContextTokenIds']}`",
+            f"- oracle queries: `{evidence['oracleQueryCount']}/{evidence['oracleQueryBudget']}`",
+        ])
+        for witness in evidence["singleTokenDeletionWitnesses"]:
+            removed_tokens = "".join(witness["removedContextTokens"])
+            lines.append(
+                f"- deleting `{removed_tokens!r}` changed top-1 to "
+                f"`{witness['counterfactualWinnerToken']!r}` "
+                f"(target-vs-best-alternative margin "
+                f"`{witness['targetVsBestAlternativeMargin']:.6f}`)"
+            )
+        lines.append("")
+    lines.extend([
+        "",
+        f"- inputTokens: `{trace['inputTokenCount']}`",
+        f"- specialTokensExcluded: `{trace['specialInputTokenCount']}`",
+        f"- whitespaceTokensExcluded: `{trace['whitespaceInputTokenCount']}`",
+        f"- protectedInputTokens: `{trace['protectedInputTokenCount']}`",
+        f"- maximumInterventionsPerStep: `{trace['probesPerToken']}`",
+        "",
+        "## Full-response prompt-unit counterfactuals",
+        "",
+        f"- requested: `{trace['responseProbeSummary']['requested']}`",
+        f"- selected from measured prompt units: `{trace['responseProbeSummary']['selected']}`",
+        f"- eligible measured prompt units: `{trace['responseProbeSummary']['eligibleMeasuredInputUnits']}`",
+        f"- oracle queries for full-response counterfactuals: `{trace['responseProbeSummary']['oracleQueryCount']}`",
+        "",
+        "| deleted prompt unit | counterfactual response | common prefix tokens | first divergence | changed |",
+        "| --- | --- | ---: | ---: | --- |",
+    ])
+    for item in trace["responseCounterfactuals"]:
+        first_divergence = item["firstDivergentTokenIndex"]
+        lines.append(
+            f"| {item['deletedInputToken']!r} | {item['counterfactualGeneratedText']!r} "
+            f"| {item['commonPrefixTokenCount']} "
+            f"| {first_divergence if first_divergence is not None else '-'} "
+            f"| {str(item['responseChanged']).lower()} |"
+        )
+    lines.extend([
+        "",
+        "## Forced-token autoregressive branches",
+        "",
+        "At each measured decision, a selected non-greedy candidate is forced once;",
+        "the remaining continuations are searched with bounded beam expansion,",
+        "ranked by cumulative token log-probability. These are output counterfactuals,",
+        "not transcripts of hidden reasoning.",
+        "",
+        "| step | forced token (rank) | beam continuation | mean log-probability | first divergence | queries |",
+        "| ---: | --- | --- | ---: | ---: | ---: |",
+    ])
+    for step in trace["steps"]:
+        for item in step["alternativeBranches"]:
+            for continuation in item["continuations"]:
+                lines.append(
+                    f"| {step['stepIndex']} | {item['forcedToken']!r} "
+                    f"(#{item['forcedTokenRank']}) | {continuation['text']!r} "
+                    f"| {continuation['meanTokenLogProbability']:.6f} "
+                    f"| {continuation['firstDivergentTokenIndex']} "
+                    f"| {item['oracleQueryCount']} |"
+                )
+    lines.extend([
+        "",
+        "## Pairwise decision interactions",
+        "",
+        "The interaction residual is the measured joint-deletion margin minus the",
+        "margin predicted by adding the two single-deletion effects. Tested pairs",
+        "are prioritized by the summed absolute single-deletion margin changes.",
+        "This is local to these exact token-ID interventions, not an internal circuit claim.",
+        "",
+        "| step | deleted units | joint margin | additive prediction | residual |",
+        "| ---: | --- | ---: | ---: | ---: |",
+    ])
+    for step in trace["steps"]:
+        for item in step["pairwiseInterventions"]:
+            units = " + ".join(
+                f"{unit['source']} {unit['text']!r}"
+                for unit in item["deletedUnits"]
+            )
+            lines.append(
+                f"| {step['stepIndex']} | {units} "
+                f"| {item['targetVsContrastMargin']:.6f} "
+                f"| {item['additivePredictedMargin']:.6f} "
+                f"| {item['interactionResidual']:.6f} |"
+            )
+    lines.extend([
+        "",
+        trace["claimBoundary"],
+        "",
+    ])
+    Path(path).write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> int:
     args = parse_args()
+    if args.mode == "predict":
+        if not args.reconstruction:
+            raise ValueError("--reconstruction is required in predict mode.")
+        if not args.prompt or not args.prompt.strip():
+            raise ValueError("--prompt must contain non-whitespace text in predict mode.")
+        if args.max_new_tokens < 1:
+            raise ValueError("--max-new-tokens must be positive.")
+        if args.prediction_beam_width < 1:
+            raise ValueError("--prediction-beam-width must be positive.")
+        artifact = load_executable_reconstruction(args.reconstruction)
+        if args.model != artifact["tokenizerModelId"]:
+            raise ValueError(
+                f"Tokenizer model {args.model!r} does not match reconstruction "
+                f"tokenizer {artifact['tokenizerModelId']!r}."
+            )
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.model,
+            local_files_only=args.local_files_only,
+        )
+        prompt_format = args.prompt_format or artifact.get("inputPromptFormat", "raw")
+        input_ids, used_prompt_format = encode_prompt(
+            tokenizer,
+            args.prompt,
+            prompt_format,
+        )
+        prediction = generate_reconstruction(
+            artifact,
+            input_ids,
+            tokenizer,
+            max_new_tokens=args.max_new_tokens,
+            prompt_text=args.prompt,
+            beam_width=args.prediction_beam_width,
+        )
+        print(json.dumps({
+            "kind": "gcl-blackbox-reconstruction-prediction",
+            "reconstruction": str(Path(args.reconstruction).resolve()),
+            "modelTokenizer": args.model,
+            "inputTokenIds": input_ids,
+            "promptFormat": used_prompt_format,
+            "prediction": prediction,
+            "oracleAccess": False,
+        }, indent=2))
+        return 0
+
+    if args.mode == "decompile":
+        if not args.prompt or not args.prompt.strip():
+            raise ValueError("--prompt must contain non-whitespace text in decompile mode.")
+        if args.query_budget < 1:
+            raise ValueError("--query-budget must be positive.")
+        available_formulations = len(_training_formulations(args.prompt))
+        if args.formulation_probes < 0:
+            raise ValueError("--formulation-probes must be non-negative.")
+        if args.formulation_probes > available_formulations:
+            raise ValueError(
+                "--formulation-probes cannot exceed the "
+                f"{available_formulations} available training formulations."
+            )
+        if args.max_new_tokens < 1:
+            raise ValueError("--max-new-tokens must be positive.")
+        if args.resume and not args.session_dir:
+            raise ValueError("--session-dir is required with --resume.")
+        session_dir = args.session_dir
+        if not session_dir:
+            request_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
+            session_dir = str(Path("artifacts/decompilations") / request_id)
+        if args.resume and not Path(session_dir).exists():
+            raise FileNotFoundError(f"Cannot resume missing decompilation session: {session_dir}")
+        with ProcessSeparatedBlackBoxOracle(
+            args.model,
+            local_files_only=args.local_files_only,
+            device=resolve_device(args.device),
+        ) as oracle:
+            report = run_decompilation(
+                oracle=oracle,
+                tokenizer=oracle.tokenizer,
+                prompt=args.prompt,
+                model_identity=oracle.identity(),
+                session_dir=session_dir,
+                query_budget=args.query_budget,
+                max_new_tokens=args.max_new_tokens,
+                probes_per_token=args.probes_per_token,
+                explanation_probes=args.explanation_probes,
+                interaction_probes=args.interaction_probes,
+                branch_probes=args.branch_probes,
+                branch_width=args.branch_width,
+                top_token_count=args.top_logits,
+                response_probes=args.response_probes,
+                resume=args.resume,
+                formulation_probes=args.formulation_probes,
+                prompt_format=args.prompt_format or "auto",
+            )
+        directory = Path(session_dir)
+        report_path = Path(args.output_json) if args.output_json else directory / "report.json"
+        reconstruction_path = directory / "reconstruction.json"
+        explanation_path = Path(args.output_md) if args.output_md else directory / "explanation.md"
+        report["executableReconstructionPath"] = str(reconstruction_path.resolve())
+        reconstruction_path.parent.mkdir(parents=True, exist_ok=True)
+        reconstruction_path.write_text(
+            json.dumps(report["executableReconstruction"], indent=2),
+            encoding="utf-8",
+        )
+        rendered = json.dumps(report, indent=2)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered, encoding="utf-8")
+        write_explanation_markdown(explanation_path, report)
+        print(rendered)
+        return 0
+
+    if args.mode == "trace":
+        if not args.prompt or not args.prompt.strip():
+            raise ValueError("--prompt must contain non-whitespace text when --mode=trace.")
+        if args.max_new_tokens < 1:
+            raise ValueError("--max-new-tokens must be positive.")
+        if args.probes_per_token < 0:
+            raise ValueError("--probes-per-token must be non-negative.")
+        if args.response_probes < 0:
+            raise ValueError("--response-probes must be non-negative.")
+        if args.explanation_probes < 0:
+            raise ValueError("--explanation-probes must be non-negative.")
+        if args.interaction_probes < 0:
+            raise ValueError("--interaction-probes must be non-negative.")
+        if args.branch_probes < 0:
+            raise ValueError("--branch-probes must be non-negative.")
+        if args.branch_width < 1:
+            raise ValueError("--branch-width must be positive.")
+        if args.top_logits < 2:
+            raise ValueError("--top-logits must be at least two in trace mode.")
+        with ProcessSeparatedBlackBoxOracle(
+            args.model,
+            local_files_only=args.local_files_only,
+            device=resolve_device(args.device),
+        ) as oracle:
+            prompt_ids = oracle.tokenizer(args.prompt, add_special_tokens=True)["input_ids"]
+            trace = trace_greedy_generation(
+                oracle_query_token_ids=oracle.query_token_ids,
+                tokenizer=oracle.tokenizer,
+                input_token_ids=prompt_ids,
+                max_new_tokens=args.max_new_tokens,
+                probes_per_token=args.probes_per_token,
+                top_token_count=args.top_logits,
+                response_probe_count=args.response_probes,
+                explanation_probes_per_token=args.explanation_probes,
+                interaction_probe_count=args.interaction_probes,
+                branch_probe_count=args.branch_probes,
+                branch_width=args.branch_width,
+            )
+            report = {
+                "schemaVersion": 1,
+                "generatedAt": now_iso(),
+                "lane": "nn-live-blackbox-llm-behavior-reader",
+                "model": oracle.identity(),
+                "access": {
+                    "solverAccess": "token-id-sequences-to-next-token-logits-only",
+                    "weightsUsedBySolver": False,
+                    "hooksUsedBySolver": False,
+                    "activationsUsedBySolver": False,
+                    "postHocWitnessOnly": True,
+                },
+                "input": {
+                    "prompt": args.prompt,
+                    "tokenIds": prompt_ids,
+                    "tokenCount": len(prompt_ids),
+                },
+                "trace": trace,
+                "summary": {
+                    "generatedTokenCount": len(trace["steps"]),
+                    "oracleQueryCount": oracle.query_count,
+                    "reportedQueryCount": trace["queryCount"],
+                    "explanationQueryCount": trace["explanationQueryCount"],
+                    "interactionQueryCount": trace["interactionQueryCount"],
+                    "branchQueryCount": trace["branchQueryCount"],
+                    "branchWidth": trace["branchWidth"],
+                    "queryAccountingMatches": oracle.query_count == trace["queryCount"],
+                },
+            }
+        rendered = json.dumps(report, indent=2)
+        if args.output_json:
+            Path(args.output_json).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.output_json).write_text(rendered, encoding="utf-8")
+        if args.output_md:
+            Path(args.output_md).parent.mkdir(parents=True, exist_ok=True)
+            write_trace_markdown(args.output_md, report)
+        print(rendered)
+        return 0
+
+    if args.mode == "decision":
+        if not args.prompt or not args.prompt.strip():
+            raise ValueError("--prompt must contain non-whitespace text when --mode=decision.")
+        if not args.target_token:
+            raise ValueError("--target-token is required when --mode=decision.")
+        if args.max_probes < 0:
+            raise ValueError("--max-probes must be non-negative.")
+        if args.top_logits < 1:
+            raise ValueError("--top-logits must be positive.")
+        with ProcessSeparatedBlackBoxOracle(
+            args.model,
+            local_files_only=args.local_files_only,
+            device=resolve_device(args.device),
+        ) as oracle:
+            decision = analyze_next_token_decision(
+                oracle_query=oracle.query_logits,
+                tokenizer=oracle.tokenizer,
+                prompt=args.prompt,
+                target_token=args.target_token,
+                contrast_tokens=args.contrast_token,
+                max_probes=args.max_probes,
+                top_token_count=args.top_logits,
+            )
+            report = {
+                "schemaVersion": 1,
+                "generatedAt": now_iso(),
+                "lane": "nn-live-blackbox-llm-behavior-reader",
+                "model": oracle.identity(),
+                "access": {
+                    "solverAccess": "token-id-sequences-to-next-token-logits-only",
+                    "weightsUsedBySolver": False,
+                    "hooksUsedBySolver": False,
+                    "activationsUsedBySolver": False,
+                    "postHocWitnessOnly": True,
+                },
+                "decision": decision,
+                "summary": {
+                    **decision["summary"],
+                    "oracleQueryCount": oracle.query_count,
+                    "reportedQueryCount": decision["queryCount"],
+                    "queryAccountingMatches": oracle.query_count == decision["queryCount"],
+                },
+            }
+        rendered = json.dumps(report, indent=2)
+        if args.output_json:
+            Path(args.output_json).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.output_json).write_text(rendered, encoding="utf-8")
+        if args.output_md:
+            Path(args.output_md).parent.mkdir(parents=True, exist_ok=True)
+            write_decision_markdown(args.output_md, report)
+        print(rendered)
+        return 0
+
+    if not args.output_json or not args.output_md:
+        raise ValueError("--output-json and --output-md are required in facts mode.")
     device = resolve_device(args.device)
     oracle = BlackBoxNextTokenOracle(args.model, local_files_only=args.local_files_only, device=device)
     facts = select_facts(args)

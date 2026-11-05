@@ -77,12 +77,60 @@ mechanistic-interpretability work.
 | **"Circuit finder"** | The gate uses hooks, hidden activations, attention/MLP ablations, or residual path patching and says so explicitly. | "instrumented circuit finder" |
 | **"LLM understands why"** | Never as a broad claim from one benchmark. | "benchmark-scoped behavior evidence for selected factual prompts" |
 | **"Original neuron identity"** | Hidden source ids, weights, hooks, or an identifiability proof are available. | "output-only target behavior evidence" |
+| **"SwiGLU mechanism evidence"** | A real model's gate/value/down-projection hooks reconstruct the measured forward pass and selected channel ablations are compared with controls. | "prompt-specific instrumented SwiGLU channel effects" |
 
 The output/logit-only behavior rail may claim prompt-intervention evidence,
 subject specificity, answer specificity, paraphrase/template stability, query
 budget, and model/runtime identity. It may not claim hidden-neuron identity,
 source-provenance, hook-based circuit recovery, full FFN extraction, or
 arbitrary LLM understanding.
+
+The interactive next-token decision mode additionally measures
+whitespace-delimited-span deletion counterfactuals against a fixed
+target/competitor set. Its "support" and
+"suppress" labels mean only that the measured target-vs-competitor logit margin
+decreased or increased under that exact text edit. Distribution-shift metrics
+and exact edited prompts must be retained with the report. These observations
+do not establish an internal reasoning step, semantic feature, or unique cause.
+
+The autoregressive `--trace` mode records a greedy token-by-token output path
+and bounded text-unit deletion counterfactuals against the exact token-ID
+prefix. It can show how deleting a measured prompt or generated-prefix unit
+changes the next-token distribution for that run. With `--response-probes`, it
+also regenerates complete greedy responses after deleting selected prompt units,
+reporting the exact counterfactual input, response, and first token divergence.
+With `--explanation-probes`, it also searches for a budget-bounded subset of
+tokenization-aware text units that preserves each observed next-token argmax.
+Chat control markers and role headers are protected. A result is called
+"one-minimal" only when every remaining editable unit was individually tested;
+this is not a globally smallest subset, a semantic rationale, or proof of the
+model's hidden reasoning. Exact token IDs, query budget, and whether the search
+exhausted that budget must remain in the report.
+This establishes an output change for that precise intervention, not semantic
+necessity or an internal cause: token deletion may damage formatting or alter
+the prompt in unintended ways. It does not expose hidden activations, prove why
+a token was generated, identify a unique reasoning chain, or generalize beyond
+the measured prompt, greedy decoding policy, model, and interventions.
+With `--interaction-probes`, it also measures bounded pairs of already-probed
+unit deletions, prioritizing units with the largest absolute single-deletion
+margin changes. The interaction residual is the joint-deletion target-vs-fixed-
+competitor margin minus the margin predicted by adding the two single-deletion
+effects. This detects non-additivity for those exact edits; it is not evidence
+of an internal circuit, semantic relation, or complete reasoning trace.
+With `--branch-probes`, it forces selected non-greedy next-token candidates and
+then resumes greedy decoding to measure their alternative continuations. These
+are output-level decision counterfactuals for the exact prefix, not transcripts
+of hidden reasoning or proof of why the model internally preferred one token.
+
+The instrumented `explain-llm` SwiGLU path may report the measured
+`SiLU(gate_proj(x))*up_proj(x)` channel values, largest signed input-weight
+terms, each selected channel's actual full-model next-token logit changes when
+ablated, and matched-active/inactive control ablations. These are local,
+prompt-specific causal effects under the exact intervention. They do not prove
+that a channel has a stable human semantic meaning, that its removal is
+necessary for a concept, or that the complete model's reasoning has been
+recovered. This path reads weights and hooks and is **instrumented**, not
+black-box.
 
 ---
 

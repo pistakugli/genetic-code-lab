@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-30T06:28:16.034Z",
+  "lane": "nn-live-ordered-path-stability",
+  "variant": "ood-paraphrase-stress-gpt2-5case",
+  "status": "fail",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-ordered-path-stability.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-ordered-path-ood-stress",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.4"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "ood-paraphrase-stress-gpt2-5case",
+    "GCL_LIVE_STABILITY_MODELS": "gpt2",
+    "GCL_LIVE_STABILITY_PARAPHRASE_PROFILE": "ood",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "2dcbdad2fad5fac54305f2971070b7185bd4f7fb",
+    "statusShort": "M package.json\n M scripts/benchmark-nn-live-ordered-path-stability.ts\n M src/index.ts\n M src/solvers/blackbox-relu-nd-line-probe.ts\n M tools/llm-reader-ordered-path-stability.py\n?? .agents/\n?? benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2-5case/\n?? benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2/\n?? docs/research/\n?? scripts/asad-benchmark-metrics.ts\n?? scripts/audit-asad-results.ts\n?? scripts/benchmark-asad.ts\n?? scripts/benchmark-bcad.ts\n?? scripts/benchmark-gfd.ts\n?? scripts/benchmark-gsmi.ts\n?? scripts/benchmark-mbcd.ts\n?? scripts/gfd-vp-cuda-client.ts\n?? scripts/gfd-vp-cuda-worker.py\n?? scripts/gsi-cuda-client.ts\n?? scripts/gsi-spectral-worker.py\n?? scripts/verify-asad-results.ts\n?? scripts/verify-bcad-results.ts\n?? scripts/verify-gfd-results.ts\n?? scripts/verify-gsmi-results.ts\n?? scripts/verify-mbcd-results.ts\n?? src/solvers/active-subspace-adaptive-discovery.ts\n?? src/solvers/boundary-conditioned-active-discovery.ts\n?? src/solvers/global-function-distillation.ts\n?? src/solvers/global-spectral-moment-inversion.ts\n?? src/solvers/multi-hypothesis-boundary-continuation.ts\n?? tests/active-subspace-adaptive-discovery.test.ts\n?? tests/asad-benchmark-metrics.test.ts\n?? tests/blackbox-relu-nd-star-probe.test.ts\n?? tests/boundary-conditioned-active-discovery.test.ts\n?? tests/global-function-distillation.test.ts\n?? tests/global-spectral-moment-inversion.test.ts\n?? tests/multi-hypothesis-boundary-continuation.test.ts\n?? tests/test_ordered_path_ood_stress.py\n?? tools/llm_reader/ood_paraphrases.py\n?? tools/llm_reader/verify_ordered_path_ood_stress.py",
+    "uncommittedDiffSha256": "df6765f5ec74bc1241fd363bae3c0ee4fa0bd11a7a35bd3af119a1d4ab7513fd"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2-5case/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2-5case/report.md",
+    "manifest": "benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2-5case/manifest.json"
+  },
+  "summary": {
+    "pass": false,
+    "cases": 1,
+    "passed": 0,
+    "failed": [
+      "gpt2"
+    ]
+  },
+  "notes": [
+    "Real-model circuit replay across GPT-2, Pythia/GPT-NeoX, Llama SwiGLU, and Mistral SwiGLU.",
+    "Paraphrase profile: ood.",
+    "Checks exact original replay, paraphrase persistence, and multi-neighborhood layer-shift controls without fitting a surrogate."
+  ]
+}

@@ -10,26 +10,39 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Dict, List
 
 import torch
+import torch.nn.functional as F
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 from transformers.utils import logging as transformers_logging
+
+from llm_reader.adapters.registry import create_adapter_for_model_type
 
 transformers_logging.disable_progress_bar()
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Read a live GPT-2/LLM forward pass and explain real hooked MLP neuron reactions."
+        description="Explain hooked GPT-2 MLP neurons or instrumented SwiGLU gate/value channels."
     )
     parser.add_argument("--model", default="gpt2", help="HuggingFace causal LM id or local model path.")
     parser.add_argument("--prompt", required=True, help="Prompt to run through the live model.")
     parser.add_argument("--layer", type=int, default=0, help="Transformer block index to inspect.")
+    parser.add_argument(
+        "--layers",
+        default="",
+        help="For SwiGLU models, comma-separated layer indexes or 'all'; defaults to --layer.",
+    )
     parser.add_argument("--token-index", type=int, default=-1, help="Prompt token index to explain; negative indexes are supported.")
-    parser.add_argument("--top-neurons", type=int, default=12, help="Number of top MLP source neurons to report.")
+    parser.add_argument("--top-neurons", type=int, default=12, help="Number of top MLP neurons or SwiGLU channels to report.")
     parser.add_argument("--top-logits", type=int, default=8, help="Number of next-token logits to report.")
     parser.add_argument("--ablation-mode", choices=["selected-token", "all-tokens", "none"], default="selected-token", help="Run real causal neuron ablations for reported neurons.")
-    parser.add_argument("--negative-controls", action=argparse.BooleanOptionalAction, default=True, help="Run negative-control ablations against the reported neurons.")
-    parser.add_argument("--control-count", type=int, default=50, help="Number of random/control neurons per negative-control family.")
+    parser.add_argument("--negative-controls", action=argparse.BooleanOptionalAction, default=True, help="Run negative-control ablations.")
+    parser.add_argument(
+        "--control-count",
+        type=int,
+        default=50,
+        help="GPT-2 control count per family; SwiGLU uses one active and one inactive control per selected layer.",
+    )
     parser.add_argument("--control-prompt", default="The weather in Berlin is", help="Different real prompt used to select off-prompt top neurons.")
     parser.add_argument("--control-seed", type=int, default=1337, help="Deterministic seed for random negative-control neuron selection.")
     parser.add_argument("--device", default="cpu", choices=["cpu", "cuda", "auto"], help="Runtime device.")
@@ -682,6 +695,500 @@ def make_text_report(report: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def parse_layer_selection(value: str, layer_count: int, fallback_layer: int) -> List[int]:
+    if not value.strip():
+        layers = [fallback_layer]
+    elif value.strip().lower() == "all":
+        layers = list(range(layer_count))
+    else:
+        try:
+            layers = [int(item.strip()) for item in value.split(",") if item.strip()]
+        except ValueError as error:
+            raise RuntimeError("--layers must be 'all' or a comma-separated list of integers.") from error
+        if not layers:
+            raise RuntimeError("--layers must include at least one layer.")
+    if len(set(layers)) != len(layers):
+        raise RuntimeError("--layers must not contain duplicate layer indexes.")
+    invalid = [layer for layer in layers if layer < 0 or layer >= layer_count]
+    if invalid:
+        raise RuntimeError(
+            f"Layer indexes {invalid} are outside model block range 0..{layer_count - 1}."
+        )
+    return layers
+
+
+def _capture_swiglu_layers(
+    model: Any,
+    mlps: Dict[int, Any],
+    encoded: Dict[str, torch.Tensor],
+) -> tuple[Any, Dict[int, Dict[str, torch.Tensor]]]:
+    captures: Dict[int, Dict[str, torch.Tensor]] = {layer: {} for layer in mlps}
+    handles = []
+    for layer, mlp in mlps.items():
+        module = mlp._mlp
+
+        def capture_input(module: Any, inputs: tuple[Any, ...], layer_index: int = layer) -> None:
+            captures[layer_index]["mlpInput"] = inputs[0].detach().cpu()[0].float()
+
+        def capture_gate(module: Any, inputs: tuple[Any, ...], output: torch.Tensor, layer_index: int = layer) -> None:
+            captures[layer_index]["gatePreactivation"] = output.detach().cpu()[0].float()
+
+        def capture_up(module: Any, inputs: tuple[Any, ...], output: torch.Tensor, layer_index: int = layer) -> None:
+            captures[layer_index]["upProjection"] = output.detach().cpu()[0].float()
+
+        def capture_activation(module: Any, inputs: tuple[Any, ...], layer_index: int = layer) -> None:
+            captures[layer_index]["activation"] = inputs[0].detach().cpu()[0].float()
+
+        def capture_mlp_output(module: Any, inputs: tuple[Any, ...], output: torch.Tensor, layer_index: int = layer) -> None:
+            captures[layer_index]["mlpOutput"] = output.detach().cpu()[0].float()
+
+        handles.extend([
+            module.gate_proj.register_forward_pre_hook(capture_input),
+            module.gate_proj.register_forward_hook(capture_gate),
+            module.up_proj.register_forward_hook(capture_up),
+            module.down_proj.register_forward_pre_hook(capture_activation),
+            module.down_proj.register_forward_hook(capture_mlp_output),
+        ])
+    try:
+        with torch.no_grad():
+            outputs = model(**encoded)
+    finally:
+        for handle in handles:
+            handle.remove()
+    required = {"mlpInput", "gatePreactivation", "upProjection", "activation", "mlpOutput"}
+    for layer, values in captures.items():
+        missing = sorted(required - set(values))
+        if missing:
+            raise RuntimeError(f"Missing SwiGLU captures for layer {layer}: {missing}")
+    return outputs, captures
+
+
+def _top_signed_drivers(
+    input_vector: torch.Tensor,
+    weight_vector: torch.Tensor,
+    bias: float,
+) -> List[Dict[str, Any]]:
+    contributions = input_vector.float() * weight_vector.float()
+    indices = torch.topk(contributions.abs(), k=min(8, contributions.numel())).indices
+    drivers = [
+        {
+            "mlpInputDimension": int(index),
+            "inputValue": float(input_vector[int(index)]),
+            "weight": float(weight_vector[int(index)]),
+            "signedContribution": float(contributions[int(index)]),
+        }
+        for index in indices
+    ]
+    if bias:
+        drivers.append({"bias": bias, "signedContribution": bias})
+    return drivers
+
+
+def _swiglu_unit_report(
+    tokenizer: Any,
+    mlps: Dict[int, Any],
+    captures: Dict[int, Dict[str, torch.Tensor]],
+    layer: int,
+    unit: int,
+    token_ids: torch.Tensor,
+    token_index: int,
+) -> Dict[str, Any]:
+    mlp = mlps[layer]
+    values = captures[layer]
+    module = mlp._mlp
+    gate_weight = module.gate_proj.weight.detach().cpu().float()[unit]
+    up_weight = module.up_proj.weight.detach().cpu().float()[unit]
+    down_row = mlp.c_proj.weight.detach().cpu().float()[unit]
+    gate_bias_tensor = getattr(module.gate_proj, "bias", None)
+    up_bias_tensor = getattr(module.up_proj, "bias", None)
+    gate_bias = float(gate_bias_tensor.detach().cpu()[unit]) if gate_bias_tensor is not None else 0.0
+    up_bias = float(up_bias_tensor.detach().cpu()[unit]) if up_bias_tensor is not None else 0.0
+    mlp_input = values["mlpInput"][token_index]
+    gate_pre = values["gatePreactivation"][token_index, unit]
+    gate_activation = F.silu(gate_pre)
+    up_projection = values["upProjection"][token_index, unit]
+    activation = values["activation"][token_index, unit]
+    contribution = activation * down_row
+    output = values["mlpOutput"][token_index]
+    output_norm = torch.linalg.vector_norm(output).clamp_min(1e-12)
+    contribution_norm = torch.linalg.vector_norm(contribution)
+    alignment = torch.dot(contribution, output) / (
+        contribution_norm * output_norm
+    ).clamp_min(1e-12)
+    token_scores = values["activation"][:, unit].abs() * torch.linalg.vector_norm(down_row)
+    token_positions = torch.topk(token_scores, k=min(5, token_scores.numel())).indices
+    return {
+        "layer": layer,
+        "unit": unit,
+        "unitType": "SwiGLU gate/value pair channel",
+        "gatePreactivation": float(gate_pre),
+        "gateActivationSiLU": float(gate_activation),
+        "upProjection": float(up_projection),
+        "productActivation": float(activation),
+        "gateBias": gate_bias,
+        "upBias": up_bias,
+        "downProjectionNorm": float(torch.linalg.vector_norm(down_row)),
+        "contributionNorm": float(contribution_norm),
+        "contributionAlignmentWithLayerMlpOutput": float(alignment),
+        "topGateInputDrivers": _top_signed_drivers(mlp_input, gate_weight, gate_bias),
+        "topUpInputDrivers": _top_signed_drivers(mlp_input, up_weight, up_bias),
+        "reactivatesAtPromptTokens": [
+            {
+                "position": int(position),
+                "token": clean_token(tokenizer, int(token_ids[position])),
+                "productActivation": float(values["activation"][int(position), unit]),
+                "contributionNorm": float(token_scores[int(position)]),
+            }
+            for position in token_positions
+        ],
+        "mechanisticDescription": (
+            "The normalized MLP input drives a learned gate projection and value projection. "
+            "SiLU(gate) multiplies the value channel; the resulting scalar scales one row "
+            "of the down projection and adds that vector to this block's MLP output."
+        ),
+    }
+
+
+def _run_swiglu_explanation(args: argparse.Namespace, config: Any, device: str) -> Dict[str, Any]:
+    model_type = str(getattr(config, "model_type", ""))
+    adapter = create_adapter_for_model_type(model_type)
+    if adapter.activation_family != "swiglu":
+        raise RuntimeError(
+            f"The multi-layer instrumented explainer currently supports SwiGLU adapters; "
+            f"model_type={model_type!r} uses {adapter.activation_family!r}."
+        )
+    tokenizer, model = adapter.load_model_and_tokenizer(
+        args.model,
+        local_files_only=args.local_files_only,
+        device=device,
+    )
+    layer_count = int(getattr(model.config, "num_hidden_layers"))
+    layers = parse_layer_selection(args.layers, layer_count, args.layer)
+    mlps = adapter.mlp_modules(model, layers)
+    encoded = tokenizer(args.prompt, return_tensors="pt")
+    encoded = {key: value.to(device) for key, value in encoded.items()}
+    token_ids = encoded["input_ids"][0].detach().cpu()
+    token_index = normalize_token_index(args.token_index, int(token_ids.numel()))
+    outputs, captures = _capture_swiglu_layers(model, mlps, encoded)
+    internal_operator_checks: Dict[str, Any] = {}
+    for layer, mlp in mlps.items():
+        values = captures[layer]
+        reconstructed_product = F.silu(values["gatePreactivation"]) * values["upProjection"]
+        product_error = float((reconstructed_product - values["activation"]).abs().max())
+        projection_weight = mlp.c_proj.weight.detach().cpu().float()
+        reconstructed_output = values["activation"] @ projection_weight
+        down_bias = getattr(mlp._mlp.down_proj, "bias", None)
+        if down_bias is not None:
+            reconstructed_output = reconstructed_output + down_bias.detach().cpu().float()
+        output_error = float((reconstructed_output - values["mlpOutput"]).abs().max())
+        product_matches = torch.allclose(
+            reconstructed_product,
+            values["activation"],
+            rtol=2e-4,
+            atol=2e-5,
+        )
+        output_matches = torch.allclose(
+            reconstructed_output,
+            values["mlpOutput"],
+            rtol=2e-4,
+            atol=2e-5,
+        )
+        if not product_matches or not output_matches:
+            raise RuntimeError(
+                f"SwiGLU hook reconstruction mismatch at layer {layer}: "
+                f"product_max_abs_error={product_error}, "
+                f"down_projection_max_abs_error={output_error}."
+            )
+        internal_operator_checks[str(layer)] = {
+            "gateValueProductMatchesHook": product_matches,
+            "productMaxAbsError": product_error,
+            "downProjectionMatchesHook": output_matches,
+            "downProjectionMaxAbsError": output_error,
+            "check": "SiLU(gate_proj(mlp_input))*up_proj(mlp_input), then down_proj",
+        }
+    baseline_logits = outputs.logits.detach().cpu()[0, token_index].float()
+    top_logits = torch.topk(
+        baseline_logits,
+        k=min(args.top_logits, baseline_logits.numel()),
+    )
+    candidate_token_ids = [int(index) for index in top_logits.indices]
+
+    candidates: List[Dict[str, Any]] = []
+    for layer, mlp in mlps.items():
+        projection = mlp.c_proj.weight.detach().cpu().float()
+        scores = captures[layer]["activation"][token_index].abs() * torch.linalg.vector_norm(
+            projection,
+            dim=1,
+        )
+        for unit_tensor in torch.topk(scores, k=min(args.top_neurons, scores.numel())).indices:
+            unit = int(unit_tensor)
+            item = _swiglu_unit_report(
+                tokenizer,
+                mlps,
+                captures,
+                layer,
+                unit,
+                token_ids,
+                token_index,
+            )
+            item["selectionScore"] = float(scores[unit])
+            candidates.append(item)
+    candidates.sort(key=lambda item: (-item["selectionScore"], item["layer"], item["unit"]))
+    units = candidates[:args.top_neurons]
+
+    control_items: List[Dict[str, Any]] = []
+    if args.ablation_mode != "none":
+        ablate_positions = (
+            [token_index]
+            if args.ablation_mode == "selected-token"
+            else list(range(int(token_ids.numel())))
+        )
+        for item in units:
+            ablated_logits = adapter.run_activation_ablation_logits(
+                model,
+                mlps[int(item["layer"])],
+                encoded,
+                int(item["unit"]),
+                ablate_positions,
+                token_index,
+            )
+            effects = logit_effects(
+                tokenizer,
+                baseline_logits,
+                ablated_logits,
+                candidate_token_ids,
+            )
+            item["causalAblation"] = {
+                "mode": args.ablation_mode,
+                "intervention": (
+                    f"zero SwiGLU product channel {item['unit']} at layer {item['layer']}"
+                ),
+                "tokenPositions": ablate_positions,
+                "candidateLogitEffects": effects,
+                "topLogitsAfterRemoval": top_logit_items(
+                    tokenizer,
+                    ablated_logits,
+                    min(args.top_logits, len(candidate_token_ids)),
+                ),
+                "maxAbsLogitDrop": max_abs_effect(effects),
+            }
+        if args.negative_controls:
+            rng = random.Random(args.control_seed)
+            selected_by_layer: Dict[int, List[int]] = {}
+            for item in units:
+                selected_by_layer.setdefault(int(item["layer"]), []).append(int(item["unit"]))
+            for layer, selected_units in selected_by_layer.items():
+                activation = captures[layer]["activation"][token_index]
+                exclusions = set(selected_units)
+                matched = adapter.pick_amplitude_matched_controls(
+                    activation,
+                    selected_units,
+                    exclusions,
+                    1,
+                    rng,
+                )
+                if matched:
+                    exclusions.add(int(matched[0]["neuron"]))
+                inactive, threshold = adapter.pick_inactive_controls(
+                    activation,
+                    exclusions,
+                    1,
+                    rng,
+                )
+                for kind, choices in (
+                    ("active-amplitude-matched", matched),
+                    ("inactive", inactive),
+                ):
+                    for choice in choices:
+                        control_unit = int(choice["neuron"])
+                        ablated_logits = adapter.run_activation_ablation_logits(
+                            model,
+                            mlps[layer],
+                            encoded,
+                            control_unit,
+                            [token_index],
+                            token_index,
+                        )
+                        effects = logit_effects(
+                            tokenizer,
+                            baseline_logits,
+                            ablated_logits,
+                            candidate_token_ids,
+                        )
+                        control_items.append({
+                            "layer": layer,
+                            "unit": control_unit,
+                            "kind": kind,
+                            "selectionMetadata": choice,
+                            "inactiveThresholdAbs": threshold if kind == "inactive" else None,
+                            "candidateLogitEffects": effects,
+                            "maxAbsLogitDrop": max_abs_effect(effects),
+                        })
+
+    selected_effect_by_layer: Dict[int, float] = {}
+    for item in units:
+        layer = int(item["layer"])
+        selected_effect_by_layer[layer] = max(
+            selected_effect_by_layer.get(layer, 0.0),
+            float(item.get("causalAblation", {}).get("maxAbsLogitDrop", 0.0)),
+        )
+    max_control_by_layer: Dict[int, float] = {}
+    for item in control_items:
+        layer = int(item["layer"])
+        max_control_by_layer[layer] = max(
+            max_control_by_layer.get(layer, 0.0),
+            float(item["maxAbsLogitDrop"]),
+        )
+    control_comparison = {
+        str(layer): {
+            "maxSelectedUnitAbsLogitEffect": selected_effect_by_layer[layer],
+            "maxMeasuredControlAbsLogitEffect": max_control_by_layer.get(layer, 0.0),
+            "selectedToMaxControlRatio": (
+                selected_effect_by_layer[layer] / max_control_by_layer[layer]
+                if max_control_by_layer.get(layer, 0.0) > 0.0
+                else None
+            ),
+        }
+        for layer in selected_effect_by_layer
+    }
+
+    return {
+        "schemaVersion": 1,
+        "mode": "instrumented-swiglu-mechanistic-reader",
+        "synthetic": False,
+        "surrogate": False,
+        "analysisAccess": "instrumented-real-model-weights-hooks-and-causal-ablations",
+        "model": adapter.model_identity(model, args.model, device, bool(args.local_files_only)),
+        "runtimeDependencies": {
+            "python": sys.executable,
+            "torch": torch.__version__,
+            "transformers": package_version("transformers"),
+            "numpy": package_version("numpy"),
+            "torchao": package_version("torchao"),
+        },
+        "prompt": args.prompt,
+        "tokens": [
+            {"position": index, "id": int(token_id), "text": clean_token(tokenizer, int(token_id))}
+            for index, token_id in enumerate(token_ids)
+        ],
+        "selection": {
+            "layers": layers,
+            "tokenIndex": token_index,
+            "tokenId": int(token_ids[token_index]),
+            "token": clean_token(tokenizer, int(token_ids[token_index])),
+            "component": "SwiGLU gate/value pair channel before down projection",
+        },
+        "hookShapes": {
+            str(layer): {key: list(value.shape) for key, value in values.items()}
+            for layer, values in captures.items()
+        },
+        "internalOperatorChecks": internal_operator_checks,
+        "nextToken": {"topLogits": top_logit_items(tokenizer, baseline_logits, args.top_logits)},
+        "units": units,
+        "negativeControls": {
+            "enabled": bool(args.negative_controls and args.ablation_mode != "none"),
+            "selection": "one active-amplitude-matched and one inactive control per selected layer",
+            "items": control_items,
+            "comparisonByLayer": control_comparison,
+        },
+        "accounting": {
+            "baselineForwardPasses": 1,
+            "unitAblationForwardPasses": len(units) if args.ablation_mode != "none" else 0,
+            "negativeControlForwardPasses": len(control_items),
+            "totalForwardPasses": (
+                1
+                + (len(units) if args.ablation_mode != "none" else 0)
+                + len(control_items)
+            ),
+        },
+        "claim": {
+            "does": (
+                "Uses real model hooks and weights to decompose selected SwiGLU gate/value "
+                "channels, show their strongest MLP-input drivers, and measure full-model "
+                "next-token logit changes when individual product channels are removed."
+            ),
+            "doesNot": (
+                "Does not recover a complete unique reasoning trace, prove semantic necessity, "
+                "or represent an oracle-only black-box analysis."
+            ),
+        },
+    }
+
+
+def make_swiglu_text_report(report: Dict[str, Any]) -> str:
+    lines = [
+        "GCL instrumented SwiGLU reader",
+        f"model: {report['model']['id']}",
+        f"layers: {report['selection']['layers']}",
+        f"token: #{report['selection']['tokenIndex']} {json.dumps(report['selection']['token'])}",
+        "access: real weights + hooks + causal ablations (not black-box)",
+        "",
+        "next-token logits:",
+    ]
+    for item in report["nextToken"]["topLogits"]:
+        lines.append(f"  {item['rank']:>2}. {json.dumps(item['token'])} logit={item['logit']:.6f}")
+    lines.extend(["", "highest-scoring SwiGLU channels:"])
+    verified_layers = sum(
+        1 for check in report["internalOperatorChecks"].values()
+        if check["gateValueProductMatchesHook"] and check["downProjectionMatchesHook"]
+    )
+    lines.append(
+        f"internal forward check: exact SiLU-gate/value products and down projections "
+        f"reconstructed in {verified_layers}/{len(report['internalOperatorChecks'])} scanned layers"
+    )
+    for rank, item in enumerate(report["units"], start=1):
+        lines.append(
+            f"  {rank:>2}. layer {item['layer']} unit {item['unit']} "
+            f"gate={item['gatePreactivation']:.4f} silu={item['gateActivationSiLU']:.4f} "
+            f"value={item['upProjection']:.4f} product={item['productActivation']:.4f}"
+        )
+        gate = ", ".join(
+            (
+                f"d{driver['mlpInputDimension']}:{driver['signedContribution']:.3f}"
+                if "mlpInputDimension" in driver
+                else f"bias:{driver['signedContribution']:.3f}"
+            )
+            for driver in item["topGateInputDrivers"][:3]
+        )
+        up = ", ".join(
+            (
+                f"d{driver['mlpInputDimension']}:{driver['signedContribution']:.3f}"
+                if "mlpInputDimension" in driver
+                else f"bias:{driver['signedContribution']:.3f}"
+            )
+            for driver in item["topUpInputDrivers"][:3]
+        )
+        lines.append(f"      strongest gate-input terms: {gate}")
+        lines.append(f"      strongest value-input terms: {up}")
+        ablation = item.get("causalAblation")
+        if ablation:
+            effects = ", ".join(
+                f"{json.dumps(effect['token'])}:{effect['logitDropWhenRemoved']:+.4f}"
+                for effect in ablation["candidateLogitEffects"][:3]
+            )
+            lines.append(f"      full-model effect when removed: {effects}")
+    controls = report["negativeControls"]
+    if controls["enabled"]:
+        lines.extend(["", "matched/inactive control ablations:"])
+        for item in controls["items"]:
+            effects = ", ".join(
+                f"{json.dumps(effect['token'])}:{effect['logitDropWhenRemoved']:+.4f}"
+                for effect in item["candidateLogitEffects"][:2]
+            )
+            lines.append(
+                f"  layer {item['layer']} unit {item['unit']} ({item['kind']}): {effects}"
+            )
+        for layer, comparison in controls["comparisonByLayer"].items():
+            ratio = comparison["selectedToMaxControlRatio"]
+            lines.append(
+                f"  layer {layer}: max selected/control effect ratio="
+                f"{ratio:.3f}" if ratio is not None
+                else f"  layer {layer}: measured control effect is zero"
+            )
+    lines.extend(["", report["claim"]["doesNot"]])
+    return "\n".join(lines)
+
+
 def main() -> None:
     args = parse_args()
     if args.top_neurons <= 0:
@@ -692,6 +1199,23 @@ def main() -> None:
     device = "cuda" if args.device == "auto" and torch.cuda.is_available() else args.device
     if device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested but torch.cuda.is_available() is false.")
+
+    config = AutoConfig.from_pretrained(args.model, local_files_only=args.local_files_only)
+    model_type = str(getattr(config, "model_type", ""))
+    if model_type in {"qwen2", "llama", "mistral"}:
+        report = _run_swiglu_explanation(args, config, device)
+        if args.output:
+            os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as file:
+                json.dump(report, file, indent=2)
+                file.write("\n")
+        print(json.dumps(report, indent=2) if args.format == "json" else make_swiglu_text_report(report))
+        return
+    if model_type != "gpt2":
+        raise RuntimeError(
+            "The live mechanistic explainer currently supports GPT-2 GELU and "
+            "Qwen2/LLaMA/Mistral SwiGLU architectures."
+        )
 
     tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=args.local_files_only)
     model = AutoModelForCausalLM.from_pretrained(args.model, local_files_only=args.local_files_only)

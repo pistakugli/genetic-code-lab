@@ -25,10 +25,17 @@ type StabilityCase = {
 };
 
 const repoRoot = path.resolve(__dirname, '..');
+const paraphraseProfile = envValue('GCL_LIVE_STABILITY_PARAPHRASE_PROFILE', 'standard');
+if (!['standard', 'ood'].includes(paraphraseProfile)) {
+  throw new Error('GCL_LIVE_STABILITY_PARAPHRASE_PROFILE must be standard or ood');
+}
+const defaultParaphraseCount = paraphraseProfile === 'ood' ? '6' : '3';
 const output = resolveBenchmarkOutput(
   repoRoot,
   'nn-live-ordered-path-stability',
-  'real-model-paraphrase-layer-replay'
+  paraphraseProfile === 'ood'
+    ? 'real-model-ood-paraphrase-layer-replay'
+    : 'real-model-paraphrase-layer-replay'
 );
 
 function resolveGclPython(): string {
@@ -62,6 +69,7 @@ function runCase(testCase: StabilityCase): { status: number | null; reportPath: 
     '--subjects', testCase.subjects,
     '--case-count', testCase.caseCount,
     '--paraphrase-count', testCase.paraphraseCount,
+    '--paraphrase-profile', paraphraseProfile,
     '--min-original-drop', testCase.minOriginalDrop,
     '--min-paraphrase-drop-ratio', testCase.minParaphraseDropRatio,
     '--min-paraphrase-pass-rate', testCase.minParaphrasePassRate,
@@ -69,10 +77,11 @@ function runCase(testCase: StabilityCase): { status: number | null; reportPath: 
     '--min-layer-control-count', testCase.minLayerControlCount,
     '--min-layer-margin', testCase.minLayerMargin,
     '--min-layer-specificity-rate', testCase.minLayerSpecificityRate,
-    // A path that breaks under paraphrase is a finding about that path, not about the model:
-    // the behaviour survives, so something carries it. Searching for where the effect moved
-    // is the difference between reporting fragility and reading the circuit.
+    // Rerun component and ordered-path selection on broken prompts; layer shifts remain hints.
     ...(envValue('GCL_LIVE_STABILITY_RESCUE', '1') === '1' ? ['--rescue-broken-paraphrases'] : []),
+    '--replacement-candidate-count', envValue('GCL_LIVE_STABILITY_REPLACEMENT_CANDIDATES', '10'),
+    '--replacement-max-pair-attempts', envValue('GCL_LIVE_STABILITY_REPLACEMENT_PAIR_ATTEMPTS', '32'),
+    '--replacement-max-set-attempts', envValue('GCL_LIVE_STABILITY_REPLACEMENT_SET_ATTEMPTS', '24'),
     // Leading-minus values must use the equals form or argparse reads them as flags,
     // the same reason --layer-shifts does.
     `--rescue-layer-shifts=${envValue('GCL_LIVE_STABILITY_RESCUE_SHIFTS', '-3,-2,-1,1,2,3')}`,
@@ -108,7 +117,7 @@ const cases: StabilityCase[] = [
     inputReport: 'benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json',
     subjects: envValue('GCL_LIVE_STABILITY_GPT2_SUBJECTS', 'France,Germany,Italy,Portugal,Greece'),
     caseCount: envValue('GCL_LIVE_STABILITY_GPT2_CASE_COUNT', '5'),
-    paraphraseCount: envValue('GCL_LIVE_STABILITY_GPT2_PARAPHRASE_COUNT', '3'),
+    paraphraseCount: envValue('GCL_LIVE_STABILITY_GPT2_PARAPHRASE_COUNT', defaultParaphraseCount),
     minOriginalDrop: envValue('GCL_LIVE_STABILITY_GPT2_MIN_ORIGINAL_DROP', '0.05'),
     minParaphraseDropRatio: envValue('GCL_LIVE_STABILITY_GPT2_MIN_PARAPHRASE_DROP_RATIO', '0.10'),
     minParaphrasePassRate: envValue('GCL_LIVE_STABILITY_GPT2_MIN_PARAPHRASE_PASS_RATE', '0.66'),
@@ -126,7 +135,7 @@ const cases: StabilityCase[] = [
     inputReport: 'benchmarks/release/nn-live-pythia-ordered-residual-path-circuit-finder/pythia-70m-20-facts-ordered-residual-path/report.json',
     subjects: envValue('GCL_LIVE_STABILITY_PYTHIA_SUBJECTS', 'Spain,Japan,Russia,Norway,Austria'),
     caseCount: envValue('GCL_LIVE_STABILITY_PYTHIA_CASE_COUNT', '5'),
-    paraphraseCount: envValue('GCL_LIVE_STABILITY_PYTHIA_PARAPHRASE_COUNT', '3'),
+    paraphraseCount: envValue('GCL_LIVE_STABILITY_PYTHIA_PARAPHRASE_COUNT', defaultParaphraseCount),
     minOriginalDrop: envValue('GCL_LIVE_STABILITY_PYTHIA_MIN_ORIGINAL_DROP', '0.05'),
     minParaphraseDropRatio: envValue('GCL_LIVE_STABILITY_PYTHIA_MIN_PARAPHRASE_DROP_RATIO', '0.10'),
     minParaphrasePassRate: envValue('GCL_LIVE_STABILITY_PYTHIA_MIN_PARAPHRASE_PASS_RATE', '0.66'),
@@ -144,7 +153,7 @@ const cases: StabilityCase[] = [
     inputReport: 'benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/llama-3.2-3b-20-facts-ordered-residual-path/report.json',
     subjects: envValue('GCL_LIVE_STABILITY_LLAMA_SUBJECTS', 'France,Germany,Italy,Spain'),
     caseCount: envValue('GCL_LIVE_STABILITY_LLAMA_CASE_COUNT', '4'),
-    paraphraseCount: envValue('GCL_LIVE_STABILITY_LLAMA_PARAPHRASE_COUNT', '3'),
+    paraphraseCount: envValue('GCL_LIVE_STABILITY_LLAMA_PARAPHRASE_COUNT', defaultParaphraseCount),
     minOriginalDrop: envValue('GCL_LIVE_STABILITY_LLAMA_MIN_ORIGINAL_DROP', '0.005'),
     minParaphraseDropRatio: envValue('GCL_LIVE_STABILITY_LLAMA_MIN_PARAPHRASE_DROP_RATIO', '0.05'),
     minParaphrasePassRate: envValue('GCL_LIVE_STABILITY_LLAMA_MIN_PARAPHRASE_PASS_RATE', '0.66'),
@@ -162,7 +171,7 @@ const cases: StabilityCase[] = [
     inputReport: 'benchmarks/release/nn-live-mistral-swiglu-ordered-residual-path-circuit-finder/mistral-7b-instruct-v0.3-10-facts-ordered-residual-path/report.json',
     subjects: envValue('GCL_LIVE_STABILITY_MISTRAL_SUBJECTS', 'France,Germany,Spain,Japan'),
     caseCount: envValue('GCL_LIVE_STABILITY_MISTRAL_CASE_COUNT', '4'),
-    paraphraseCount: envValue('GCL_LIVE_STABILITY_MISTRAL_PARAPHRASE_COUNT', '3'),
+    paraphraseCount: envValue('GCL_LIVE_STABILITY_MISTRAL_PARAPHRASE_COUNT', defaultParaphraseCount),
     minOriginalDrop: envValue('GCL_LIVE_STABILITY_MISTRAL_MIN_ORIGINAL_DROP', '0.005'),
     minParaphraseDropRatio: envValue('GCL_LIVE_STABILITY_MISTRAL_MIN_PARAPHRASE_DROP_RATIO', '0.05'),
     minParaphrasePassRate: envValue('GCL_LIVE_STABILITY_MISTRAL_MIN_PARAPHRASE_PASS_RATE', '0.66'),
@@ -174,14 +183,26 @@ const cases: StabilityCase[] = [
   }
 ];
 
-const results = cases.map((testCase) => {
+const selectedCaseIds = envValue('GCL_LIVE_STABILITY_MODELS', cases.map(testCase => testCase.id).join(','))
+  .split(',')
+  .map(value => value.trim())
+  .filter(Boolean);
+if (selectedCaseIds.length === 0 || selectedCaseIds.some(id => !cases.some(testCase => testCase.id === id))) {
+  throw new Error(`GCL_LIVE_STABILITY_MODELS must select known model ids: ${cases.map(testCase => testCase.id).join(',')}`);
+}
+const selectedCases = cases.filter(testCase => selectedCaseIds.includes(testCase.id));
+
+const results = selectedCases.map((testCase) => {
   console.log(JSON.stringify({ stabilityCase: testCase.id, model: testCase.model }));
   const result = runCase(testCase);
   return {
     id: testCase.id,
     label: testCase.label,
+    adapter: testCase.adapter,
+    model: testCase.model,
     status: result.status === 0 ? 'pass' : 'fail',
     reportPath: path.relative(repoRoot, result.reportPath),
+    artifactPath: path.relative(output.outputDir, result.reportPath),
     summary: result.summary
   };
 });
@@ -189,7 +210,10 @@ const results = cases.map((testCase) => {
 const pass = results.every((result) => result.status === 'pass');
 const suiteReport = {
   schemaVersion: 1,
-  kind: 'nn-live-ordered-path-stability-suite',
+  kind: paraphraseProfile === 'ood'
+    ? 'nn-live-ordered-path-ood-stress-suite'
+    : 'nn-live-ordered-path-stability-suite',
+  paraphraseProfile,
   synthetic: false,
   surrogate: false,
   generatedAt: new Date().toISOString(),
@@ -213,6 +237,8 @@ fs.writeFileSync(
     `- Pass: \`${pass}\``,
     `- Passed: \`${suiteReport.summary.passed}/${suiteReport.summary.cases}\``,
     '',
+    `- Paraphrase profile: \`${paraphraseProfile}\``,
+    '',
     '| model | status | cases | paraphrase pass | layer specificity | failed subjects | report |',
     '|---|---:|---:|---:|---:|---|---|',
     ...results.map((result) => {
@@ -233,7 +259,8 @@ writeBenchmarkManifest(repoRoot, output, {
   summary: suiteReport.summary,
   notes: [
     'Real-model circuit replay across GPT-2, Pythia/GPT-NeoX, Llama SwiGLU, and Mistral SwiGLU.',
-    'Checks exact original replay, broader paraphrase persistence, and multi-neighborhood layer-shift controls without fitting a surrogate.'
+    `Paraphrase profile: ${paraphraseProfile}.`,
+    'Checks exact original replay, paraphrase persistence, and multi-neighborhood layer-shift controls without fitting a surrogate.'
   ]
 });
 

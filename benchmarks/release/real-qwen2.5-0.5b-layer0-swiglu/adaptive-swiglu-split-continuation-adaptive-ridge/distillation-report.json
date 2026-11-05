@@ -1,0 +1,450 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-oracle-only-swiglu-split-continuation",
+  "algorithm": "function-preserving-unit-splitting-with-streamed-variable-projection",
+  "solverAccess": "oracle-only",
+  "weightsUsedBySolver": false,
+  "hooksUsedBySolver": false,
+  "hiddenUnitCountProvidedToSolver": false,
+  "teacherComponentIdentitiesProvidedToSolver": false,
+  "teacherComponentCountInferred": false,
+  "inputDim": 896,
+  "outputDim": 896,
+  "publicActivationFamily": "silu-swiglu",
+  "biases": false,
+  "candidateWidthPolicy": "geometric-function-preserving-splitting-selected-by-held-out-oracle-nmse",
+  "trainingConfig": {
+    "stepsPerStage": 1000,
+    "batchSize": 128,
+    "learningRate": 0.001,
+    "splitPerturbation": 0.06,
+    "projectionRidge": 1e-06,
+    "projectionInterval": 250,
+    "projectionBatchSize": 512
+  },
+  "probeDistribution": {
+    "sampler": "natural-mean-preserving-shrinkage-covariance-gaussian",
+    "naturalRecoverySamples": 42,
+    "empiricalCovarianceRankBound": 42,
+    "isotropicShrinkage": 0.15,
+    "radialShellMultipliers": [
+      0.45,
+      0.75,
+      1.0,
+      1.4
+    ]
+  },
+  "selectedCandidateComponents": 8192,
+  "studentWidthSelectedByMeasurements": true,
+  "selectionScore": 0.32976473650342075,
+  "selectedCandidateValidationNormalizedMse": 0.32976473650342075,
+  "candidateStages": [
+    {
+      "candidateComponents": 1,
+      "validation": {
+        "relativeError": 0.9013368989818945,
+        "normalizedMse": 0.9980087016879219,
+        "meanSquaredError": 0.018970403221269295,
+        "cosineSimilarityMean": 0.556450430479759
+      },
+      "validationShellNormalizedMse": [
+        1.200277258177482,
+        1.0122415200732033,
+        0.9987710834455583,
+        1.0149972129903464
+      ],
+      "trainingObservations": 32810,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 2,
+      "validation": {
+        "relativeError": 0.8864639960281862,
+        "normalizedMse": 0.9653442839344968,
+        "meanSquaredError": 0.018349509661200688,
+        "cosineSimilarityMean": 0.5820738051917737
+      },
+      "validationShellNormalizedMse": [
+        1.117843385894737,
+        0.953368743765038,
+        0.9556714700066903,
+        0.9900107203166744
+      ],
+      "trainingObservations": 32810,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 4,
+      "validation": {
+        "relativeError": 0.8647154754867165,
+        "normalizedMse": 0.9185578005686734,
+        "meanSquaredError": 0.017460180286362814,
+        "cosineSimilarityMean": 0.6056862664753906
+      },
+      "validationShellNormalizedMse": [
+        1.0393624683684597,
+        0.8920131058384475,
+        0.9073693930078292,
+        0.9455496092188189
+      ],
+      "trainingObservations": 32810,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 8,
+      "validation": {
+        "relativeError": 0.8396593080538212,
+        "normalizedMse": 0.8660964134672262,
+        "meanSquaredError": 0.016462980898042497,
+        "cosineSimilarityMean": 0.6463226122957733
+      },
+      "validationShellNormalizedMse": [
+        0.847313754491791,
+        0.7952535720034172,
+        0.8382066352485339,
+        0.9078531283960098
+      ],
+      "trainingObservations": 41002,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 16,
+      "validation": {
+        "relativeError": 0.7868747449668524,
+        "normalizedMse": 0.7606261288606369,
+        "meanSquaredError": 0.014458174904402285,
+        "cosineSimilarityMean": 0.702296053026767
+      },
+      "validationShellNormalizedMse": [
+        0.6629390838137362,
+        0.6596639890304489,
+        0.722624693212929,
+        0.8096078645135005
+      ],
+      "trainingObservations": 41002,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 32,
+      "validation": {
+        "relativeError": 0.7321595447024499,
+        "normalizedMse": 0.6585238119301926,
+        "meanSquaredError": 0.012517388096912068,
+        "cosineSimilarityMean": 0.7569744394048307
+      },
+      "validationShellNormalizedMse": [
+        0.5017625795943526,
+        0.5225293540970912,
+        0.602396130480847,
+        0.7172472641291325
+      ],
+      "trainingObservations": 49194,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 64,
+      "validation": {
+        "relativeError": 0.693970560788183,
+        "normalizedMse": 0.5916190117465869,
+        "meanSquaredError": 0.011245644639390257,
+        "cosineSimilarityMean": 0.7919639504303662
+      },
+      "validationShellNormalizedMse": [
+        0.37711241463888817,
+        0.4370671247031438,
+        0.5254889607350199,
+        0.6562438705584274
+      ],
+      "trainingObservations": 49194,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 128,
+      "validation": {
+        "relativeError": 0.6654968218312936,
+        "normalizedMse": 0.544066515711826,
+        "meanSquaredError": 0.010341754700924261,
+        "cosineSimilarityMean": 0.8086987920211772
+      },
+      "validationShellNormalizedMse": [
+        0.3600277847655284,
+        0.4062573987515696,
+        0.4818509353909327,
+        0.6028757034642599
+      ],
+      "trainingObservations": 57386,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 256,
+      "validation": {
+        "relativeError": 0.6370170931035858,
+        "normalizedMse": 0.49849659775972266,
+        "meanSquaredError": 0.009475550110874623,
+        "cosineSimilarityMean": 0.8285447882812808
+      },
+      "validationShellNormalizedMse": [
+        0.3177501157364513,
+        0.36520134976959323,
+        0.43634592744799416,
+        0.5553555070830096
+      ],
+      "trainingObservations": 57386,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 512,
+      "validation": {
+        "relativeError": 0.6056497063314635,
+        "normalizedMse": 0.45061230679654257,
+        "meanSquaredError": 0.00856535333002515,
+        "cosineSimilarityMean": 0.8473819234150444
+      },
+      "validationShellNormalizedMse": [
+        0.2916568267959433,
+        0.32975244720027397,
+        0.38988950841216735,
+        0.5033082841023008
+      ],
+      "trainingObservations": 65578,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 1024,
+      "validation": {
+        "relativeError": 0.5715275025520485,
+        "normalizedMse": 0.401267785035901,
+        "meanSquaredError": 0.007627400110802837,
+        "cosineSimilarityMean": 0.8670375642649181
+      },
+      "validationShellNormalizedMse": [
+        0.25374254077147285,
+        0.28843271411748256,
+        0.3429603703379292,
+        0.45042020923334974
+      ],
+      "trainingObservations": 65578,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 2048,
+      "validation": {
+        "relativeError": 0.541450220491685,
+        "normalizedMse": 0.36014475688294123,
+        "meanSquaredError": 0.006845723133015123,
+        "cosineSimilarityMean": 0.8824751523700698
+      },
+      "validationShellNormalizedMse": [
+        0.22295283956627093,
+        0.25478297540450606,
+        0.30286552951847595,
+        0.40651537409100263
+      ],
+      "trainingObservations": 65578,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 4096,
+      "validation": {
+        "relativeError": 0.522586755250396,
+        "normalizedMse": 0.3354878711217775,
+        "meanSquaredError": 0.006377038777579197,
+        "cosineSimilarityMean": 0.8917786341094697
+      },
+      "validationShellNormalizedMse": [
+        0.20192345494801836,
+        0.233226476085601,
+        0.28013828600629226,
+        0.3800605332490256
+      ],
+      "trainingObservations": 65578,
+      "maximumEffectiveProjectionRidge": 1e-06
+    },
+    {
+      "candidateComponents": 8192,
+      "validation": {
+        "relativeError": 0.5181101409743316,
+        "normalizedMse": 0.32976473650342075,
+        "meanSquaredError": 0.006268251979211397,
+        "cosineSimilarityMean": 0.8997560821277136
+      },
+      "validationShellNormalizedMse": [
+        0.18037648008795226,
+        0.21145464660856103,
+        0.2588304472253162,
+        0.3817410198302253
+      ],
+      "trainingObservations": 65578,
+      "maximumEffectiveProjectionRidge": 1e-06
+    }
+  ],
+  "adaptiveQueryRounds": [
+    {
+      "afterCandidateComponents": 4,
+      "selectedShell": 0,
+      "oraclePoints": 8192,
+      "validationNormalizedMseByShell": [
+        1.0393624683684597,
+        0.8920131058384475,
+        0.9073693930078292,
+        0.9455496092188189
+      ]
+    },
+    {
+      "afterCandidateComponents": 16,
+      "selectedShell": 3,
+      "oraclePoints": 8192,
+      "validationNormalizedMseByShell": [
+        0.6629390838137362,
+        0.6596639890304489,
+        0.722624693212929,
+        0.8096078645135005
+      ]
+    },
+    {
+      "afterCandidateComponents": 64,
+      "selectedShell": 3,
+      "oraclePoints": 8192,
+      "validationNormalizedMseByShell": [
+        0.37711241463888817,
+        0.4370671247031438,
+        0.5254889607350199,
+        0.6562438705584274
+      ]
+    },
+    {
+      "afterCandidateComponents": 256,
+      "selectedShell": 3,
+      "oraclePoints": 8192,
+      "validationNormalizedMseByShell": [
+        0.3177501157364513,
+        0.36520134976959323,
+        0.43634592744799416,
+        0.5553555070830096
+      ]
+    }
+  ],
+  "queryAccounting": {
+    "oraclePoints": 73728,
+    "oracleQueryBudget": 73728,
+    "reusedRecoveryObservations": 42,
+    "initialGeneratedTrainingQueries": 32768,
+    "validationQueries": 8192,
+    "adaptiveQueries": 32768
+  },
+  "validation": {
+    "relativeError": 0.5181101409743316,
+    "normalizedMse": 0.32976473650342075,
+    "meanSquaredError": 0.006268251979211397,
+    "cosineSimilarityMean": 0.8997560821277136
+  },
+  "trainingSeconds": 40.29703313799109,
+  "performance": {
+    "device": "cuda",
+    "cudaDeviceName": "NVIDIA GeForce RTX 3070",
+    "peakAllocatedVramBytes": 1505141248,
+    "solverProcessPeakRssBytes": 7723814912,
+    "torchVersion": "2.10.0+cu128",
+    "torchCudaVersion": "12.8",
+    "projectionBatchSize": 512,
+    "projectionInterval": 250,
+    "peakWholeDeviceUsedBytesDuringOracleAndTraining": 5069144064,
+    "minimumWholeDeviceFreeBytesDuringOracleAndTraining": 3144941568,
+    "wholeDeviceMemoryMonitorSamples": 909
+  },
+  "oracleMetadataKeys": [
+    "hiddenSize",
+    "oracleOutputMode",
+    "oracleOwnsWeights",
+    "oracleQuantizationStep",
+    "oracleResponseWidth",
+    "protocolCapabilities",
+    "solverAccess",
+    "type"
+  ],
+  "opaqueOracleStderrTail": "",
+  "sourceCaptureReportSha256": "997ba2f55bf8378a2f72eca4dbbb31f1d54149391986220f10146a3a6d610d99",
+  "artifacts": {
+    "reconstruction.npz": {
+      "sha256": "01ed3333ac8015422836bf0c6b850b72d652a9d8986502798390abb0d9ca67d5",
+      "arrays": {
+        "gate": [
+          8192,
+          896
+        ],
+        "up": [
+          8192,
+          896
+        ],
+        "down": [
+          896,
+          8192
+        ]
+      }
+    },
+    "distillation-training-observations.npz": {
+      "sha256": "4076b2c8170c19591c69ae637007b3299869a64c3f124120612d04b6fa1764fd",
+      "arrays": {
+        "inputs": [
+          65578,
+          896
+        ],
+        "outputs": [
+          65578,
+          896
+        ],
+        "provenance": [
+          65578
+        ],
+        "natural_token_ids": [
+          65578
+        ],
+        "natural_token_positions": [
+          65578
+        ],
+        "natural_prompt_ids": [
+          65578
+        ],
+        "natural_prompt_sha256": [
+          65578
+        ]
+      }
+    },
+    "distillation-validation-probes.npz": {
+      "sha256": "d8239646d2dd00a25da54454b8672f2a283fe34cba8c5df1c18c9c8841da0b23",
+      "arrays": {
+        "inputs": [
+          8192,
+          896
+        ],
+        "outputs": [
+          8192,
+          896
+        ],
+        "shells": [
+          8192
+        ],
+        "provenance": [
+          8192
+        ]
+      }
+    },
+    "component-strength.npz": {
+      "sha256": "845dc4f3965b2ad64fc8a87e330ae1707029e5ffa10d36955f3068ee7cf02f84",
+      "arrays": {
+        "rms": [
+          8192
+        ]
+      }
+    }
+  },
+  "teacherArchitectureKnownToSolver": {
+    "inputDim": 896,
+    "outputDim": 896,
+    "activationFamily": "silu-swiglu",
+    "hiddenComponents": "not provided"
+  },
+  "targetModel": "Qwen/Qwen2.5-0.5B-Instruct",
+  "targetModule": "model.layers.0.mlp",
+  "captureNaturalRecoveryProvenancePreserved": true
+}

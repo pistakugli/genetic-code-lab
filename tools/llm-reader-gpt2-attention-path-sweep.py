@@ -541,13 +541,14 @@ def run_case(
     answer_pool: List[Dict[str, Any]],
     args: argparse.Namespace,
     rng: random.Random,
+    prompt: str | None = None,
 ) -> Dict[str, Any]:
     target = factual.encode_single_answer_token(tokenizer, fact["answer"])
     if target is None:
         return {"subject": fact["subject"], "status": "skipped", "reason": "answer is not a single token"}
     target_token_id, target_token = target
     wrong_answer_targets = factual.choose_wrong_answer_tokens(answer_pool, target_token_id, args.wrong_answer_count)
-    prompt = factual.prompt_for_fact(fact)
+    prompt = prompt if prompt is not None else factual.prompt_for_fact(fact)
     device = next(model.parameters()).device
     encoded = encode_prompt(tokenizer, prompt, device)
     token_ids = encoded["input_ids"][0].detach().cpu()

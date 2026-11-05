@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-synthetic-oracle-jvp-supervision-validation",
+  "method": "unit-direction central differences from oracle endpoints; student analytic JVP loss; candidate widths selected on held-out joint score",
+  "teacherParametersProvidedToSolver": false,
+  "cases": [
+    {
+      "seed": 2026,
+      "inputDim": 6,
+      "outputDim": 4,
+      "teacherComponentsPosthocOnly": 3,
+      "syntheticTeacherFamily": "bias-free SwiGLU",
+      "queryBudgetPerFit": 768,
+      "outcomes": [
+        {
+          "directionalDerivativeWeight": 0.0,
+          "selectedStudentComponents": 4,
+          "heldoutFunctionalNmse": 0.5387632846832275,
+          "oracleValidationNmse": 0.4617619659208833,
+          "directionalDerivativeValidationNmse": null,
+          "medianStudentToBestTeacherGateAbsCosine": 0.7214813232421875,
+          "oraclePoints": 768,
+          "weightsUsedBySolver": false
+        },
+        {
+          "directionalDerivativeWeight": 0.2,
+          "selectedStudentComponents": 4,
+          "heldoutFunctionalNmse": 0.3222346007823944,
+          "oracleValidationNmse": 0.2677548236904228,
+          "directionalDerivativeValidationNmse": 0.36654812847278523,
+          "medianStudentToBestTeacherGateAbsCosine": 0.4984232783317566,
+          "oraclePoints": 768,
+          "weightsUsedBySolver": false
+        }
+      ]
+    },
+    {
+      "seed": 2027,
+      "inputDim": 8,
+      "outputDim": 5,
+      "teacherComponentsPosthocOnly": 3,
+      "syntheticTeacherFamily": "bias-free SwiGLU",
+      "queryBudgetPerFit": 768,
+      "outcomes": [
+        {
+          "directionalDerivativeWeight": 0.0,
+          "selectedStudentComponents": 4,
+          "heldoutFunctionalNmse": 0.6353777050971985,
+          "oracleValidationNmse": 0.26818535314592346,
+          "directionalDerivativeValidationNmse": null,
+          "medianStudentToBestTeacherGateAbsCosine": 0.9724507331848145,
+          "oraclePoints": 768,
+          "weightsUsedBySolver": false
+        },
+        {
+          "directionalDerivativeWeight": 0.2,
+          "selectedStudentComponents": 4,
+          "heldoutFunctionalNmse": 0.6716490387916565,
+          "oracleValidationNmse": 0.43036657005498563,
+          "directionalDerivativeValidationNmse": 0.6687835503555419,
+          "medianStudentToBestTeacherGateAbsCosine": 0.8647597432136536,
+          "oraclePoints": 768,
+          "weightsUsedBySolver": false
+        }
+      ]
+    }
+  ]
+}

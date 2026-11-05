@@ -1,0 +1,403 @@
+{
+  "schemaVersion": 1,
+  "kind": "gpt2-live-ordered-path-ood-stress",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-11-04T20:28:19.993653Z",
+  "model": {
+    "id": "gpt2",
+    "class": "GPT2LMHeadModel",
+    "device": "cuda",
+    "localFilesOnly": true,
+    "adapter": "gpt2",
+    "activationFamily": "gelu"
+  },
+  "sourceReport": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/benchmarks/release/nn-live-gpt2-ordered-residual-path-circuit-finder/gpt2-50-facts-ordered-residual-path/report.json",
+  "config": {
+    "subjects": [
+      "France"
+    ],
+    "caseCount": 1,
+    "paraphraseCount": 6,
+    "paraphraseProfile": "ood",
+    "layerShifts": [
+      -2,
+      -1,
+      1,
+      2
+    ],
+    "minLayerControlCount": 2,
+    "minOriginalDrop": 0.05,
+    "minParaphraseDropRatio": 0.1,
+    "minParaphrasePassRate": 0.66,
+    "minLayerMargin": 0.001,
+    "minLayerSpecificityRate": 0.8,
+    "maxReplayError": 1e-05,
+    "replacementPathSearchEnabled": true,
+    "replacementPathTransferEnabled": true,
+    "replacementCandidateCount": 10,
+    "replacementMaxPairAttempts": 32,
+    "replacementMaxSetAttempts": 24
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 1,
+    "passedCases": 1,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "ood",
+    "paraphrasePassRate": 0.8333333333333334,
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "meanDropRatio": 0.8508928309263042,
+        "meanTokenCount": 20.0
+      },
+      "embedded-question": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "meanDropRatio": 1.4993603161087086,
+        "meanTokenCount": 19.0
+      },
+      "imperative": {
+        "count": 1,
+        "passed": 0,
+        "passRate": 0.0,
+        "meanDropRatio": -0.4907822599927013,
+        "meanTokenCount": 10.0
+      },
+      "possessive-question": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "meanDropRatio": 0.6105981988179481,
+        "meanTokenCount": 7.0
+      },
+      "sentence-completion": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "meanDropRatio": 1.7935519863757818,
+        "meanTokenCount": 17.0
+      },
+      "service-question": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "meanDropRatio": 0.3619226590715565,
+        "meanTokenCount": 9.0
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0,
+    "failedSubjects": [],
+    "replacementPathSearch": {
+      "attempted": 1,
+      "passed": 1
+    },
+    "replacementPathTransfer": {
+      "attempted": 5,
+      "passed": 4
+    }
+  },
+  "cases": [
+    {
+      "subject": "France",
+      "answer": "Paris",
+      "target": {
+        "tokenId": 6342,
+        "token": " Paris"
+      },
+      "paraphraseRescue": {
+        "attempted": 1,
+        "found": 0,
+        "items": [
+          {
+            "prompt": "Give the name of the capital city of France.",
+            "family": "imperative",
+            "brokenDrop": -0.8926544189453125,
+            "found": false,
+            "bestLayerShift": -3,
+            "bestDrop": -0.09365081787109375,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": -0.09365081787109375
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.267913818359375
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": -0.1431884765625
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "Give the name of the capital city of France.",
+              "status": "passed",
+              "found": true,
+              "failureReason": null,
+              "selectionMode": "ordered-rescue-minimal-layer-passing-pair",
+              "readTokenIndex": 9,
+              "searchLayers": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "mlpInterventions": [
+                {
+                  "layer": 6,
+                  "neuron": 834,
+                  "ablateTokenPositions": [
+                    9
+                  ]
+                }
+              ],
+              "attentionInterventions": [
+                {
+                  "layer": 6,
+                  "head": 5,
+                  "ablateTokenPositions": [
+                    9
+                  ]
+                }
+              ],
+              "targetLogitDrop": 1.909942626953125,
+              "pathActivationDelta": 0.06901776790618896,
+              "pathMarginOverControlP95": 0.046838309036684234,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "failed",
+                "sourceFamily": "imperative",
+                "sourcePrompt": "Give the name of the capital city of France.",
+                "discoveryTargetLogitDrop": 1.909942626953125,
+                "minTargetLogitDrop": 0.05,
+                "minDropRatio": 0.1,
+                "expectedHeldoutFamilyCount": 5,
+                "items": [
+                  {
+                    "family": "service-question",
+                    "prompt": "Which city serves as the capital of France?",
+                    "tokenCount": 9,
+                    "targetLogitDrop": 0.15529632568359375,
+                    "ratioToDiscovery": 0.08130941918990173,
+                    "pass": false
+                  },
+                  {
+                    "family": "possessive-question",
+                    "prompt": "What city is France's capital?",
+                    "tokenCount": 7,
+                    "targetLogitDrop": 1.2872848510742188,
+                    "ratioToDiscovery": 0.6739913717344411,
+                    "pass": true
+                  },
+                  {
+                    "family": "embedded-question",
+                    "prompt": "I am checking a country profile. Could you tell me which city is the capital of France?",
+                    "tokenCount": 19,
+                    "targetLogitDrop": 3.738922119140625,
+                    "ratioToDiscovery": 1.9576096508748102,
+                    "pass": true
+                  },
+                  {
+                    "family": "sentence-completion",
+                    "prompt": "Complete this sentence with a city name: The city that is the capital of France is",
+                    "tokenCount": 17,
+                    "targetLogitDrop": 0.9684371948242188,
+                    "ratioToDiscovery": 0.507050411440441,
+                    "pass": true
+                  },
+                  {
+                    "family": "context-prefixed-question",
+                    "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of France?",
+                    "tokenCount": 20,
+                    "targetLogitDrop": 2.1020660400390625,
+                    "ratioToDiscovery": 1.100591195973476,
+                    "pass": true
+                  }
+                ],
+                "summary": {
+                  "attempted": 5,
+                  "passed": 4,
+                  "passRate": 0.8
+                },
+                "claimBoundary": "Held-out family replay measures whether the prompt-specific discovered path retains its causal target-logit effect on the other configured OOD formulations; it does not establish semantic circuit identity or general prompt robustness."
+              }
+            }
+          }
+        ]
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 9,
+            "head": 8,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 11,
+            "neuron": 1369,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 6342,
+          "token": " Paris"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 1.8188400268554688,
+        "reportedTargetLogitDrop": 1.8188400268554688,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of France?",
+          "tokenCount": 9,
+          "targetLogitDrop": 0.6582794189453125,
+          "ratioToOriginal": 0.3619226590715565,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is France's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 1.1105804443359375,
+          "ratioToOriginal": 0.6105981988179481,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of France.",
+          "tokenCount": 10,
+          "targetLogitDrop": -0.8926544189453125,
+          "ratioToOriginal": -0.4907822599927013,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of France?",
+          "tokenCount": 19,
+          "targetLogitDrop": 2.7270965576171875,
+          "ratioToOriginal": 1.4993603161087086,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of France is",
+          "tokenCount": 17,
+          "targetLogitDrop": 3.2621841430664062,
+          "ratioToOriginal": 1.7935519863757818,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of France?",
+          "tokenCount": 20,
+          "targetLogitDrop": 1.547637939453125,
+          "ratioToOriginal": 0.8508928309263042,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 5,
+        "passRate": 0.8333333333333334,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.8508928309263042,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.4993603161087086,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.4907822599927013,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.6105981988179481,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.7935519863757818,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.3619226590715565,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.354644775390625
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": -0.089599609375
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.354644775390625,
+        "marginOverBestPositiveNeighbor": 1.4641952514648438,
+        "pass": true
+      }
+    }
+  ],
+  "claimBoundary": {
+    "provesIfPasses": "The exact discovered circuit interventions replay on the source prompts, preserve target-causal effects across the configured standard or held-out OOD paraphrase families, and outperform neighboring-layer shifted controls for the configured real-model cases.",
+    "doesNotProve": "This does not prove neuron identity across model families, semantic equivalence of internal circuits, full-model circuit recovery, semantic validity beyond the curated capital-question templates, or arbitrary prompt stability."
+  }
+}

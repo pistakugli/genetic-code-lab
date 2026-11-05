@@ -1592,8 +1592,9 @@ def run_case(
     answer_pool: List[Dict[str, Any]],
     args: argparse.Namespace,
     rng: random.Random,
+    prompt: str | None = None,
 ) -> Dict[str, Any]:
-    prompt = prompt_for_fact(fact)
+    prompt = prompt if prompt is not None else prompt_for_fact(fact)
     encoded = tokenizer(prompt, return_tensors="pt")
     device = next(model.parameters()).device
     encoded = {key: value.to(device) for key, value in encoded.items()}

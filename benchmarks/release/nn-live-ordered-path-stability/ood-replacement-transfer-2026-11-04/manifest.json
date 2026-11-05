@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-04T20:28:20.601Z",
+  "lane": "nn-live-ordered-path-stability",
+  "variant": "ood-replacement-transfer-2026-11-04",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab/scripts/benchmark-nn-live-ordered-path-stability.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-ordered-path-ood-stress",
+    "cwd": "/home/kugli/Downloads/Genetic-Code-Lab/genetic-code-lab",
+    "node": "v22.23.4"
+  },
+  "env": {
+    "GCL_BENCHMARK_VARIANT": "ood-replacement-transfer-2026-11-04",
+    "GCL_LIVE_STABILITY_GPT2_CASE_COUNT": "1",
+    "GCL_LIVE_STABILITY_GPT2_PARAPHRASE_COUNT": "6",
+    "GCL_LIVE_STABILITY_GPT2_SUBJECTS": "France",
+    "GCL_LIVE_STABILITY_GPT2_TIMEOUT_MS": "300000",
+    "GCL_LIVE_STABILITY_MODELS": "gpt2",
+    "GCL_LIVE_STABILITY_PARAPHRASE_PROFILE": "ood",
+    "GCL_PYTHON": ".gcl-python-gpu/bin/python"
+  },
+  "git": {
+    "commit": "2dcbdad2fad5fac54305f2971070b7185bd4f7fb",
+    "statusShort": "M README.md\n M docs/claim-policy.md\n M docs/nn-decompiler-roadmap.md\n M package.json\n M scripts/benchmark-nn-live-ordered-path-stability.ts\n M src/cli/index.ts\n M src/index.ts\n M src/solvers/blackbox-relu-nd-line-probe.ts\n M tests/test_residual_block_selection.py\n M tools/llm-reader-blackbox-behavior.py\n M tools/llm-reader-gpt2-attention-path-sweep.py\n M tools/llm-reader-gpt2-combined-circuit-sweep.py\n M tools/llm-reader-gpt2-factual-sweep.py\n M tools/llm-reader-gpt2-live.py\n M tools/llm-reader-gpt2-ordered-residual-path-sweep.py\n M tools/llm-reader-ordered-path-stability.py\n M tools/llm_reader/adapters/llama_swiglu.py\n M tools/llm_reader/adapters/registry.py\n M tools/llm_reader/blind_swiglu_oracle_decompiler.py\n M tools/llm_reader/cubic_identification_probe.py\n?? .agents/\n?? .self-heal/\n?? .unlazy/\n?? GATES-synthetic-cubic-2026-11-01.md\n?? GATES.md\n?? benchmarks/release/nn-live-gpt2-autoregressive-causal-trace/\n?? benchmarks/release/nn-live-gpt2-counterfactual-circuit-transfer/\n?? benchmarks/release/nn-live-gpt2-internal-trace/\n?? benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2-5case/\n?? benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2/\n?? benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-2026-11-04/\n?? benchmarks/release/nn-live-ordered-path-stability/standard-matched-gpt2-5case-6prompt/\n?? benchmarks/release/real-qwen2.5-0.5b-layer0-swiglu/\n?? docs/research/\n?? scripts/asad-benchmark-metrics.ts\n?? scripts/audit-asad-results.ts\n?? scripts/benchmark-asad.ts\n?? scripts/benchmark-bcad.ts\n?? scripts/benchmark-gfd.ts\n?? scripts/benchmark-gsmi.ts\n?? scripts/benchmark-mbcd.ts\n?? scripts/benchmark-nn-live-gpt2-autoregressive-causal-trace.ts\n?? scripts/benchmark-nn-live-gpt2-counterfactual-transfer.ts\n?? scripts/benchmark-nn-live-gpt2-internal-trace.ts\n?? scripts/gfd-vp-cuda-client.ts\n?? scripts/gfd-vp-cuda-worker.py\n?? scripts/gsi-cuda-client.ts\n?? scripts/gsi-spectral-worker.py\n?? scripts/verify-asad-results.ts\n?? scripts/verify-bcad-results.ts\n?? scripts/verify-gfd-results.ts\n?? scripts/verify-gsmi-results.ts\n?? scripts/verify-mbcd-results.ts\n?? src/solvers/active-subspace-adaptive-discovery.ts\n?? src/solvers/boundary-conditioned-active-discovery.ts\n?? src/solvers/global-function-distillation.ts\n?? src/solvers/global-spectral-moment-inversion.ts\n?? src/solvers/multi-hypothesis-boundary-continuation.ts\n?? tests/active-subspace-adaptive-discovery.test.ts\n?? tests/asad-benchmark-metrics.test.ts\n?? tests/blackbox-relu-nd-star-probe.test.ts\n?? tests/boundary-conditioned-active-discovery.test.ts\n?? tests/global-function-distillation.test.ts\n?? tests/global-spectral-moment-inversion.test.ts\n?? tests/multi-hypothesis-boundary-continuation.test.ts\n?? tests/test_blackbox_decision.py\n?? tests/test_cubic_oracle_recovery.py\n?? tests/test_gpt2_counterfactual_transfer.py\n?? tests/test_gpt2_internal_trace.py\n?? tests/test_llm_reader_live_swiglu.py\n?? tests/test_ordered_path_ood_stress.py\n?? tests/test_swiglu_amplitude_response.py\n?? tests/test_swiglu_observability_experiments.py\n?? tests/test_swiglu_split_continuation.py\n?? tests/verify_swiglu_amplitude_response_artifacts.py\n?? tests/verify_swiglu_observability_artifacts.py\n?? tools/llm_reader/adapters/qwen2_swiglu.py\n?? tools/llm_reader/blackbox_decision.py\n?? tools/llm_reader/blackbox_decompiler.py\n?? tools/llm_reader/finalize_gpt2_counterfactual_transfer.py\n?? tools/llm_reader/gpt2_counterfactual_transfer.py\n?? tools/llm_reader/gpt2_internal_trace.py\n?? tools/llm_reader/ood_paraphrases.py\n?? tools/llm_reader/swiglu_amplitude_response.py\n?? tools/llm_reader/swiglu_observability_experiments.py\n?? tools/llm_reader/swiglu_split_continuation.py\n?? tools/llm_reader/verify_gpt2_autoregressive_causal_trace.py\n?? tools/llm_reader/verify_gpt2_counterfactual_transfer.py\n?? tools/llm_reader/verify_gpt2_internal_trace.py\n?? tools/llm_reader/verify_ordered_path_ood_stress.py",
+    "uncommittedDiffSha256": "d4295a54c8919c69bfddacb101a45b198e26fea0f6ffb520c58fbf166db290a2"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-2026-11-04/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-2026-11-04/report.md",
+    "manifest": "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-2026-11-04/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "cases": 1,
+    "passed": 1,
+    "failed": []
+  },
+  "notes": [
+    "Real-model circuit replay across GPT-2, Pythia/GPT-NeoX, Llama SwiGLU, and Mistral SwiGLU.",
+    "Paraphrase profile: ood.",
+    "Checks exact original replay, paraphrase persistence, and multi-neighborhood layer-shift controls without fitting a surrogate."
+  ]
+}

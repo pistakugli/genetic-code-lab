@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-qwen-swiglu-amplitude-polarity-evaluation",
+  "status": "evaluated_posthoc",
+  "verificationMode": "independent_posthoc_white_box_evaluator",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "module": "model.layers.0.mlp",
+  "groundTruthWeightsReadByEvaluator": true,
+  "groundTruthWeightsUsedBySolver": false,
+  "solverReportSha256": "e90500d6166d62024491afdbd9b2cb86473907839a6dbd9ec984bb4a700ca589",
+  "rawArtifactSha256": "3657fd97a7f507d1075b97f1f5d601fcd503f5230c48eb957e014faecd668edb",
+  "captureReportSha256": "85b20f0d8cd80bce408caa51f432e2cd406666750e993f2bae49eb3a6cdd20ee",
+  "independentOracleReplay": {
+    "maxAbsoluteDelta": 0.00146484375,
+    "maxPerSampleRelativeL2Delta": 7.036482685133483e-07,
+    "relativeL2Tolerance": 5e-06,
+    "absoluteDeltaIsInformationalAtLargeAmplitudes": true,
+    "metrics": {
+      "samples": 2304,
+      "relativeError": 4.190512324867636e-07,
+      "normalizedMse": 1.784612416304647e-13,
+      "meanSquaredError": 4.3014722368864933e-10,
+      "referenceRms": 49.4927333939714,
+      "cosineSimilarityMean": 0.9999999999998903,
+      "cosineSimilarityMedian": 0.9999999999999101,
+      "inputDensityQuartiles": [
+        {
+          "inputNormLow": 0.24999999576618723,
+          "inputNormHigh": 1.749999978091013,
+          "metrics": {
+            "samples": 576,
+            "relativeError": 3.996562314164488e-07,
+            "normalizedMse": 1.7866156336115955e-13,
+            "meanSquaredError": 1.3334065867233007e-20,
+            "referenceRms": 0.00028893137822456595,
+            "cosineSimilarityMean": 0.9999999999998939,
+            "cosineSimilarityMedian": 0.9999999999999161
+          }
+        },
+        {
+          "inputNormLow": 1.749999978091013,
+          "inputNormHigh": 11.999999920420224,
+          "metrics": {
+            "samples": 576,
+            "relativeError": 4.0459902620340805e-07,
+            "normalizedMse": 1.819592304783323e-13,
+            "meanSquaredError": 5.912445805153283e-17,
+            "referenceRms": 0.019004600878943657,
+            "cosineSimilarityMean": 0.999999999999893,
+            "cosineSimilarityMedian": 0.999999999999915
+          }
+        },
+        {
+          "inputNormLow": 11.999999920420224,
+          "inputNormHigh": 80.00000012889876,
+          "metrics": {
+            "samples": 576,
+            "relativeError": 4.3097144327084455e-07,
+            "normalizedMse": 1.9952108363854242e-13,
+            "meanSquaredError": 3.990850812584038e-13,
+            "referenceRms": 1.465832182259663,
+            "cosineSimilarityMean": 0.9999999999998851,
+            "cosineSimilarityMedian": 0.9999999999999041
+          }
+        },
+        {
+          "inputNormLow": 80.00000012889876,
+          "inputNormHigh": 512.0000071554858,
+          "metrics": {
+            "samples": 576,
+            "relativeError": 4.1904858121770496e-07,
+            "normalizedMse": 1.8722283789313655e-13,
+            "meanSquaredError": 1.7201897505355467e-09,
+            "referenceRms": 98.97461093624993,
+            "cosineSimilarityMean": 0.9999999999998894,
+            "cosineSimilarityMedian": 0.999999999999905
+          }
+        }
+      ]
+    }
+  },
+  "responseStability": {
+    "criterion": "relative L2 change of f(\u00b1t u)/t\u00b2 at each of the final two amplitude transitions is <= 1% for both polarities",
+    "byDirectionKind": {
+      "natural_observed": {
+        "directions": 32,
+        "stableBothPolaritiesAtFinalTwoSteps": 0,
+        "stableFraction": 0.0
+      },
+      "natural_combination": {
+        "directions": 32,
+        "stableBothPolaritiesAtFinalTwoSteps": 0,
+        "stableFraction": 0.0
+      },
+      "independent_gaussian": {
+        "directions": 32,
+        "stableBothPolaritiesAtFinalTwoSteps": 0,
+        "stableFraction": 0.0
+      }
+    },
+    "overallStableDirectionFraction": 0.0,
+    "byPolarityFinalTwoStepP95RelativeChange": [
+      0.07986357063055038,
+      0.07718249410390854
+    ]
+  },
+  "asymptoticResponse": {
+    "formula": "P(u)=D sum_i max(g_i\u00b7u,0)(v_i\u00b7u); N(u)=D sum_i min(g_i\u00b7u,0)(v_i\u00b7u)",
+    "exactPolarityReversalIdentityMaxAbsoluteError": 0.0,
+    "positiveNegativeLimitsAreDirectionReversals": true,
+    "finalAmplitudeRelativeErrorByDirectionKind": {
+      "natural_observed": {
+        "positiveMedianRelativeError": 0.007308870511454733,
+        "positiveP95RelativeError": 0.008941540576825672,
+        "negativeMedianRelativeError": 0.004712378887867175,
+        "negativeP95RelativeError": 0.0061652719735802814,
+        "nearZeroAsymptoticComponents": 0
+      },
+      "natural_combination": {
+        "positiveMedianRelativeError": 0.006829535194857033,
+        "positiveP95RelativeError": 0.010239264800278569,
+        "negativeMedianRelativeError": 0.006540623305429769,
+        "negativeP95RelativeError": 0.010351272475528087,
+        "nearZeroAsymptoticComponents": 0
+      },
+      "independent_gaussian": {
+        "positiveMedianRelativeError": 0.013687126937569679,
+        "positiveP95RelativeError": 0.01621724457139679,
+        "negativeMedianRelativeError": 0.013382832501232504,
+        "negativeP95RelativeError": 0.015444974739461437,
+        "nearZeroAsymptoticComponents": 0
+      }
+    }
+  },
+  "posthocComponentSignatureAnalysis": {
+    "teacherComponentCountReadOnlyAfterProbe": 4864,
+    "teacherWeightsUsedOnlyByEvaluator": true,
+    "signatureDefinition": "per-component asymptotic response across directions, measured before and after its down-projection column",
+    "cosinesAreAbsoluteAndCompareNearestOtherComponent": true,
+    "byDirectionKindAndPolarity": {
+      "natural_observed": {
+        "positive": {
+          "beforeOutputProjection": {
+            "activeComponents": 4755,
+            "inactiveComponents": 109,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.8316859006881714,
+            "nearestOtherComponentAbsoluteCosineP95": 0.9994257688522339,
+            "componentsWithNearestCosineAtLeast0.99": 414
+          },
+          "afterOutputProjection": {
+            "activeComponents": 4755,
+            "inactiveComponents": 109,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.07211197912693024,
+            "nearestOtherComponentAbsoluteCosineP95": 0.1649876832962036,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          }
+        },
+        "negative": {
+          "beforeOutputProjection": {
+            "activeComponents": 4797,
+            "inactiveComponents": 67,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.772667646408081,
+            "nearestOtherComponentAbsoluteCosineP95": 0.9445362091064453,
+            "componentsWithNearestCosineAtLeast0.99": 49
+          },
+          "afterOutputProjection": {
+            "activeComponents": 4797,
+            "inactiveComponents": 67,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.06357868760824203,
+            "nearestOtherComponentAbsoluteCosineP95": 0.13214057683944702,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          }
+        }
+      },
+      "natural_combination": {
+        "positive": {
+          "beforeOutputProjection": {
+            "activeComponents": 4864,
+            "inactiveComponents": 0,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.8077222108840942,
+            "nearestOtherComponentAbsoluteCosineP95": 0.9234723448753357,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          },
+          "afterOutputProjection": {
+            "activeComponents": 4864,
+            "inactiveComponents": 0,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.06875436007976532,
+            "nearestOtherComponentAbsoluteCosineP95": 0.14751005172729492,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          }
+        },
+        "negative": {
+          "beforeOutputProjection": {
+            "activeComponents": 4864,
+            "inactiveComponents": 0,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.8007149696350098,
+            "nearestOtherComponentAbsoluteCosineP95": 0.9089525938034058,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          },
+          "afterOutputProjection": {
+            "activeComponents": 4864,
+            "inactiveComponents": 0,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.06708270311355591,
+            "nearestOtherComponentAbsoluteCosineP95": 0.14544007182121277,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          }
+        }
+      },
+      "independent_gaussian": {
+        "positive": {
+          "beforeOutputProjection": {
+            "activeComponents": 4864,
+            "inactiveComponents": 0,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.7545164823532104,
+            "nearestOtherComponentAbsoluteCosineP95": 0.8849732875823975,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          },
+          "afterOutputProjection": {
+            "activeComponents": 4864,
+            "inactiveComponents": 0,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.05899258702993393,
+            "nearestOtherComponentAbsoluteCosineP95": 0.11710541695356369,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          }
+        },
+        "negative": {
+          "beforeOutputProjection": {
+            "activeComponents": 4864,
+            "inactiveComponents": 0,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.7494491338729858,
+            "nearestOtherComponentAbsoluteCosineP95": 0.8758893013000488,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          },
+          "afterOutputProjection": {
+            "activeComponents": 4864,
+            "inactiveComponents": 0,
+            "nearestOtherComponentAbsoluteCosineMedian": 0.05900473892688751,
+            "nearestOtherComponentAbsoluteCosineP95": 0.11760607361793518,
+            "componentsWithNearestCosineAtLeast0.99": 0
+          }
+        }
+      }
+    },
+    "isSolverRecoveryEvidence": false
+  },
+  "conclusion": {
+    "structuralRecoveryAlgorithmImplemented": false,
+    "recoveryJustifiedByMeasurements": false,
+    "reason": "this evaluator reports measured convergence and post-hoc component signatures; it does not invert their summed oracle responses into an oracle-only structure"
+  },
+  "performance": {
+    "evaluationSeconds": 3.2089333781041205,
+    "peakHostVmHwmBytes": 3850379264,
+    "peakCudaAllocatorBytes": 2367136256,
+    "cudaDeviceWideUsedBytesAfterEvaluation": 3381657600
+  }
+}

@@ -163,7 +163,6 @@ def build_oracle_ready_payload(
     payload: dict[str, Any] = {
         "type": "ready",
         "hiddenSize": int(hidden_size),
-        "unitCount": len(units),
         "oracleQuantizationStep": float(args.oracle_quantization_step),
         "oracleOwnsWeights": True,
         "solverAccess": "oracle-only",
@@ -171,21 +170,25 @@ def build_oracle_ready_payload(
         # point where a scalar one returns 1, so a query count means something different in
         # the two modes and a budget comparison between them is not like for like. Recording
         # the width here keeps that visible in every artifact rather than in a lane's name.
-        "oracleResponseWidth": int(hidden_size) if oracle_mode == "selected-unit-ffn-vector" else 1,
+        "oracleResponseWidth": (
+            int(hidden_size)
+            if oracle_mode in {"selected-unit-ffn-vector", "full-mlp-vector"}
+            else 1
+        ),
         "oracleOutputMode": oracle_mode,
         "protocolCapabilities": {
             "eval": True,
             "truth": not bool(args.oracle_eval_only),
         },
     }
+    if oracle_mode != "full-mlp-vector":
+        payload["unitCount"] = len(units)
     if args.oracle_ready_mode == "full":
         payload.update({
             "model": args.model,
             "modelType": model_type,
             "layer": int(args.layer),
             "unit": int(args.unit),
-            "units": [int(value) for value in units],
-            "intermediateSize": int(intermediate_size),
             "device": args.device,
             # `device` is the request; this is where the tensors that answer a call actually
             # live. They were not the same thing: the oracle accepted `--device cuda` and then
@@ -196,6 +199,11 @@ def build_oracle_ready_payload(
             "oracleMode": oracle_mode,
             "outputChannel": output_channel,
         })
+        if oracle_mode != "full-mlp-vector":
+            payload.update({
+                "units": [int(value) for value in units],
+                "intermediateSize": int(intermediate_size),
+            })
     return payload
 
 
@@ -212,8 +220,13 @@ def validate_opaque_oracle_metadata(metadata: dict[str, Any]) -> None:
         raise RuntimeError("opaque oracle does not advertise eval capability")
     if capabilities.get("truth") is not False:
         raise RuntimeError("opaque solver oracle must not advertise truth capability")
-    if int(metadata.get("hiddenSize", 0)) <= 0 or int(metadata.get("unitCount", 0)) <= 0:
-        raise RuntimeError("opaque oracle metadata requires positive hiddenSize and unitCount")
+    if int(metadata.get("hiddenSize", 0)) <= 0:
+        raise RuntimeError("opaque oracle metadata requires positive hiddenSize")
+    if metadata.get("oracleOutputMode") == "full-mlp-vector":
+        if "unitCount" in metadata:
+            raise RuntimeError("full-module oracle metadata must not expose unitCount")
+    elif int(metadata.get("unitCount", 0)) <= 0:
+        raise RuntimeError("opaque selected-unit oracle metadata requires positive unitCount")
 
 
 def oracle_server(args: argparse.Namespace) -> int:
@@ -224,8 +237,13 @@ def oracle_server(args: argparse.Namespace) -> int:
     transformers_logging.disable_progress_bar()
     config = AutoConfig.from_pretrained(args.model, local_files_only=args.local_files_only)
     model_type = str(getattr(config, "model_type", ""))
-    if model_type not in {"mistral", "llama"}:
-        raise RuntimeError(f"blind SwiGLU oracle expected mistral/llama model_type, got {model_type!r}")
+    whole_module = args.oracle_output_mode == "full-mlp-vector"
+    supported_model_types = {"mistral", "llama", "qwen2"} if whole_module else {"mistral", "llama"}
+    if model_type not in supported_model_types:
+        raise RuntimeError(
+            f"blind SwiGLU oracle mode {args.oracle_output_mode!r} does not support "
+            f"model_type={model_type!r}; expected one of {sorted(supported_model_types)}"
+        )
 
     if getattr(config, "quantization_config", None):
         model = AutoModelForCausalLM.from_pretrained(
@@ -234,7 +252,7 @@ def oracle_server(args: argparse.Namespace) -> int:
             device_map=args.device,
         )
     else:
-        dtype = torch.float16 if args.device == "cuda" else torch.float32
+        dtype = torch.float32 if whole_module or args.device != "cuda" else torch.float16
         model = AutoModelForCausalLM.from_pretrained(
             args.model,
             local_files_only=args.local_files_only,
@@ -253,65 +271,78 @@ def oracle_server(args: argparse.Namespace) -> int:
     # card held a model nothing read again. Measured on the 4096-unit rung: seven torch threads
     # at 21 minutes of CPU each over 42 minutes of wall clock, GPU utilisation 13%.
     compute_device = str(args.device)
-    gate_weight = dequantized_weight(mlp.gate_proj).detach().float().to(compute_device)
-    up_weight = dequantized_weight(mlp.up_proj).detach().float().to(compute_device)
-    down_weight = None
-    if args.output_channel >= 0:
-        down_weight = dequantized_weight(mlp.down_proj).detach().float().to(compute_device)
-        if args.output_channel >= down_weight.shape[0]:
-            raise RuntimeError(
-                f"output channel {args.output_channel} outside down_proj output range "
-                f"0..{down_weight.shape[0] - 1}"
-            )
-    units = parse_units(args.unit, args.units)
-    for unit in units:
-        if unit < 0 or unit >= gate_weight.shape[0]:
-            raise RuntimeError(f"unit {unit} outside SwiGLU intermediate range 0..{gate_weight.shape[0] - 1}")
-    gate = gate_weight[units].contiguous()
-    up = up_weight[units].contiguous()
+    if whole_module:
+        hidden_size = int(getattr(config, "hidden_size"))
+        units: list[int] = []
+        gate = up = source_matrix = source_scales = None
+        oracle_mode = "full-mlp-vector"
+        output_channel = None
+    else:
+        gate_weight = dequantized_weight(mlp.gate_proj).detach().float().to(compute_device)
+        up_weight = dequantized_weight(mlp.up_proj).detach().float().to(compute_device)
+        down_weight = None
+        if args.output_channel >= 0:
+            down_weight = dequantized_weight(mlp.down_proj).detach().float().to(compute_device)
+            if args.output_channel >= down_weight.shape[0]:
+                raise RuntimeError(
+                    f"output channel {args.output_channel} outside down_proj output range "
+                    f"0..{down_weight.shape[0] - 1}"
+                )
+        units = parse_units(args.unit, args.units)
+        for unit in units:
+            if unit < 0 or unit >= gate_weight.shape[0]:
+                raise RuntimeError(
+                    f"unit {unit} outside SwiGLU intermediate range 0..{gate_weight.shape[0] - 1}"
+                )
+        gate = gate_weight[units].contiguous()
+        up = up_weight[units].contiguous()
+        source_matrix: torch.Tensor | None = None
+        if args.oracle_output_mode == "selected-unit-ffn-vector":
+            if down_weight is None:
+                down_weight = dequantized_weight(mlp.down_proj).detach().float().to(compute_device)
+            source_matrix = down_weight[:, units].contiguous()
+            source_scales = torch.ones(len(units), dtype=torch.float32, device=compute_device)
+            oracle_mode = "selected-unit-ffn-vector"
+            output_channel = None
+        elif down_weight is None:
+            source_scales = torch.ones(len(units), dtype=torch.float32, device=compute_device)
+            oracle_mode = "selected-unit-sum"
+            output_channel = None
+        else:
+            source_scales = down_weight[args.output_channel, units].contiguous()
+            oracle_mode = "down-proj-output-channel"
+            output_channel = int(args.output_channel)
+        hidden_size = int(gate.shape[1])
     # A vector-valued oracle. The scalar modes collapse the block to one number, which is
     # what makes a unit's activation boundary visible only as a kink competing with every
     # other unit's kink for the same scalar. Returning the block's contribution to the whole
     # residual stream instead makes the Jacobian a matrix, and a boundary crossing a rank-1
     # jump in it, which is separable by linear algebra rather than by resolving overlaps in
     # time. Still black-box: the solver sees outputs, never a weight.
-    source_matrix: torch.Tensor | None = None
-    if args.oracle_output_mode == "selected-unit-ffn-vector":
-        if down_weight is None:
-            down_weight = dequantized_weight(mlp.down_proj).detach().float().to(compute_device)
-        source_matrix = down_weight[:, units].contiguous()
-        source_scales = torch.ones(len(units), dtype=torch.float32, device=compute_device)
-        oracle_mode = "selected-unit-ffn-vector"
-        output_channel = None
-    elif down_weight is None:
-        source_scales = torch.ones(len(units), dtype=torch.float32, device=compute_device)
-        oracle_mode = "selected-unit-sum"
-        output_channel = None
-    else:
-        source_scales = down_weight[args.output_channel, units].contiguous()
-        oracle_mode = "down-proj-output-channel"
-        output_channel = int(args.output_channel)
-    hidden_size = int(gate.shape[1])
-
     print(json.dumps(build_oracle_ready_payload(
         args=args,
         model_type=model_type,
         units=units,
         hidden_size=hidden_size,
-        intermediate_size=int(gate_weight.shape[0]),
+        intermediate_size=(
+            int(getattr(config, "intermediate_size"))
+            if whole_module
+            else int(gate_weight.shape[0])
+        ),
         oracle_mode=oracle_mode,
         output_channel=output_channel,
-        block_device=str(gate.device),
+        block_device=str(next(mlp.parameters()).device if whole_module else gate.device),
     )), flush=True)
 
     # Everything the oracle answers from is now a copy in `gate`, `up`, `source_matrix` and
     # `source_scales`; the model is dead weight from here on and holds 2.5 GB of a 7.65 GB card.
     # The 2048-unit rung died on a 680 MiB allocation with 463 MiB free, so this is the
     # difference between the upper rungs running and not running.
-    del gate_weight, up_weight, down_weight, mlp, layers, model
-    gc.collect()
-    if compute_device.startswith("cuda"):
-        _release_device_cache(torch)
+    if not whole_module:
+        del gate_weight, up_weight, down_weight, mlp, layers, model
+        gc.collect()
+        if compute_device.startswith("cuda"):
+            _release_device_cache(torch)
 
     oracle_query_count = 0
     for line in sys.stdin:
@@ -340,15 +371,18 @@ def oracle_server(args: argparse.Namespace) -> int:
             with torch.no_grad():
                 for start in range(0, values.shape[0], batch_size):
                     batch = torch.from_numpy(values[start:start + batch_size]).to(compute_device)
-                    gate_projection = batch @ gate.T
-                    up_projection = batch @ up.T
-                    atom_values = torch.nn.functional.silu(gate_projection) * up_projection
-                    if source_matrix is None:
-                        outputs.append((atom_values @ source_scales).cpu().numpy())
+                    if whole_module:
+                        outputs.append(mlp(batch).detach().float().cpu().numpy())
                     else:
-                        # (batch, units) @ (units, hidden) -> the block's contribution to the
-                        # residual stream, one row per probe point.
-                        outputs.append((atom_values @ source_matrix.T).cpu().numpy())
+                        gate_projection = batch @ gate.T
+                        up_projection = batch @ up.T
+                        atom_values = torch.nn.functional.silu(gate_projection) * up_projection
+                        if source_matrix is None:
+                            outputs.append((atom_values @ source_scales).cpu().numpy())
+                        else:
+                            # (batch, units) @ (units, hidden) -> the block's contribution to the
+                            # residual stream, one row per probe point.
+                            outputs.append((atom_values @ source_matrix.T).cpu().numpy())
             result = np.concatenate(outputs).astype(np.float64)
             if args.oracle_quantization_step > 0.0:
                 result = np.round(result / args.oracle_quantization_step) * args.oracle_quantization_step
@@ -360,10 +394,10 @@ def oracle_server(args: argparse.Namespace) -> int:
                 "totalCount": oracle_query_count,
             }), flush=True)
         elif command == "truth_npy":
-            if args.oracle_eval_only:
+            if args.oracle_eval_only or whole_module:
                 print(json.dumps({
                     "type": "error",
-                    "error": "truth-disabled-for-eval-only-oracle",
+                    "error": "truth-disabled-for-oracle-mode",
                 }), flush=True)
                 continue
             gate_path = Path(request["gatePath"])
@@ -442,6 +476,12 @@ class OracleClient:
                 "--max-oracle-calls",
                 str(args.max_oracle_calls),
             ]
+            if getattr(args, "oracle_ready_mode", "full") == "opaque":
+                command.extend(["--oracle-ready-mode", "opaque"])
+            if getattr(args, "oracle_eval_only", False):
+                command.append("--oracle-eval-only")
+            if getattr(args, "require_opaque_oracle", False):
+                command.append("--require-opaque-oracle")
             if args.units:
                 command.extend(["--units", args.units])
             if args.output_channel >= 0:
@@ -14653,13 +14693,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-channel", type=int, default=-1)
     parser.add_argument(
         "--oracle-output-mode",
-        choices=["scalar", "selected-unit-ffn-vector"],
+        choices=["scalar", "selected-unit-ffn-vector", "full-mlp-vector"],
         default="scalar",
         help=(
             "what one oracle call returns. `scalar` is the summed block or a single "
-            "down_proj channel. `selected-unit-ffn-vector` returns the block's whole "
-            "contribution to the residual stream, which makes the Jacobian a matrix and a "
-            "unit's boundary a rank-1 jump in it"
+            "down_proj channel. `selected-unit-ffn-vector` returns selected units' contribution "
+            "to the residual stream. `full-mlp-vector` returns the actual complete MLP module output."
         ),
     )
     parser.add_argument("--device", default="cuda")

@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-real-qwen-activation-capture",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "requestedModel": "Qwen/Qwen2.5-0.5B-Instruct",
+  "module": "model.layers.0.mlp",
+  "architecture": {
+    "modelType": "qwen2",
+    "inputDim": 896,
+    "outputDim": 896,
+    "intermediateDim": 4864,
+    "activation": "silu"
+  },
+  "accessMode": {
+    "activationCapture": "instrumented",
+    "fullModuleOracle": "opaque_eval_only",
+    "solverReceivedWeights": false,
+    "solverReceivedHooks": false,
+    "solverReceivedHiddenUnitCount": false,
+    "postHocGroundTruthUsed": false
+  },
+  "datasets": {
+    "recovery_observations": {
+      "file": "recovery_observations.npz",
+      "sha256": "5eed4aa7a990edcd3e4ac7458760a33ce8cbf6f723ab718c408bb595a322618d",
+      "samples": 42,
+      "inputShape": [
+        42,
+        896
+      ],
+      "outputShape": [
+        42,
+        896
+      ],
+      "activationProvenance": "natural_observed_model_inference",
+      "accessMode": "instrumented_capture",
+      "prompts": [
+        {
+          "promptId": "recovery-01",
+          "promptSha256": "a86c9606bc9efb3be048211a11c5bae65f24d4a67ad761c4a7e6e53ff41100ba",
+          "tokenCount": 9
+        },
+        {
+          "promptId": "recovery-02",
+          "promptSha256": "5c4b4305ed7b1fd29b731d36870b6cceeb4ed2789704c8e41df8299bfc888fb8",
+          "tokenCount": 13
+        },
+        {
+          "promptId": "recovery-03",
+          "promptSha256": "9ae8f0c333afa281e91ad767a3b82a26ae74ef3c3b55b721e230658b2eb2ddf8",
+          "tokenCount": 20
+        }
+      ]
+    },
+    "functional_evaluation": {
+      "file": "functional_evaluation.npz",
+      "sha256": "5282eee0cb0d9ba7d2281c921efae812c3bf2427d7d6069787e52a81773f994c",
+      "samples": 56,
+      "inputShape": [
+        56,
+        896
+      ],
+      "outputShape": [
+        56,
+        896
+      ],
+      "activationProvenance": "natural_observed_model_inference",
+      "accessMode": "instrumented_capture",
+      "prompts": [
+        {
+          "promptId": "functional-01",
+          "promptSha256": "90c2a7830d7758807723e60cffc6802f124a2aeb360f2597440a0ec7902ec4e9",
+          "tokenCount": 23
+        },
+        {
+          "promptId": "functional-02",
+          "promptSha256": "b0414e84415a722b8f0f763a32e69cf15ab6f0f62d0d7ee6ab9c978a2c01303d",
+          "tokenCount": 13
+        },
+        {
+          "promptId": "functional-03",
+          "promptSha256": "389bb36bff2dea68a402ea743e15a89021da33626b6ef1577d146652a5a75386",
+          "tokenCount": 20
+        }
+      ]
+    },
+    "structural_evaluation": {
+      "file": "structural_evaluation.npz",
+      "sha256": "730e1f213c5da6bce14e13b328aa5cb5de6564de38469e7dbfbc15fd2db1e7a3",
+      "samples": 39,
+      "inputShape": [
+        39,
+        896
+      ],
+      "outputShape": [
+        39,
+        896
+      ],
+      "activationProvenance": "natural_observed_model_inference",
+      "accessMode": "instrumented_capture",
+      "prompts": [
+        {
+          "promptId": "structural-01",
+          "promptSha256": "623521d4a2c07f46cfe27511b0a1f85c2ac5ca89574d1d276c5a9b083c3fecfa",
+          "tokenCount": 12
+        },
+        {
+          "promptId": "structural-02",
+          "promptSha256": "46590be66e674f38098e332870bb6bae08c17853254ddb3334f05888aea59409",
+          "tokenCount": 11
+        },
+        {
+          "promptId": "structural-03",
+          "promptSha256": "f5d0ab79eec90e6da4e97c1eafbfda8391800e4f41af4538ea132fb230a13f7a",
+          "tokenCount": 16
+        }
+      ]
+    },
+    "distributional_analysis": {
+      "file": "distributional_analysis.npz",
+      "sha256": "3ee281917671b0e66237a096224f3ec03908a3a2513328c0f9dac610e95eb302",
+      "samples": 38,
+      "inputShape": [
+        38,
+        896
+      ],
+      "outputShape": [
+        38,
+        896
+      ],
+      "activationProvenance": "natural_observed_model_inference",
+      "accessMode": "instrumented_capture",
+      "prompts": [
+        {
+          "promptId": "distribution-01",
+          "promptSha256": "b3f5cbd16f7d7210ed28dd2d213199731d45748612f066f190145d61fbda8547",
+          "tokenCount": 10
+        },
+        {
+          "promptId": "distribution-02",
+          "promptSha256": "18b81700f7e92b53e19d00d5d8c359d0cba202f15de5690ad500f33265afaa46",
+          "tokenCount": 10
+        },
+        {
+          "promptId": "distribution-03",
+          "promptSha256": "fcff3cd07673afcfa73f8cb9edad81e9a54787493cad6ace51f13be08e1d8c12",
+          "tokenCount": 18
+        }
+      ]
+    },
+    "generated_oracle_probes": {
+      "file": "generated_oracle_probes.npz",
+      "sha256": "a66fc79a6049c40e34294067745d87872fa1c9d24926d26f7578521ef4811c46",
+      "samples": 32,
+      "inputShape": [
+        32,
+        896
+      ],
+      "outputShape": [
+        32,
+        896
+      ],
+      "activationProvenance": "deliberately_generated_oracle_probes",
+      "accessMode": "opaque_eval_only_oracle",
+      "distribution": "iid_standard_normal_scaled_to_unit_expected_l2"
+    }
+  },
+  "activationDistribution": {
+    "recovery_observations": {
+      "inputRms": 0.6597966551780701,
+      "inputMean": 0.0028985715471208096,
+      "inputStd": 0.6597902774810791,
+      "inputAbsQuantiles": [
+        0.38482801616191864,
+        0.9845441222190857,
+        1.707500368356706,
+        11.566305160522461
+      ],
+      "directReplayMaxAbsDelta": 0.0,
+      "captureSeconds": 0.27580919302999973
+    },
+    "functional_evaluation": {
+      "inputRms": 0.6528278589248657,
+      "inputMean": 2.3602298824698664e-05,
+      "inputStd": 0.6528278589248657,
+      "inputAbsQuantiles": [
+        0.370720311999321,
+        0.9484131932258606,
+        1.6922534704208374,
+        12.07730484008789
+      ],
+      "directReplayMaxAbsDelta": 0.0,
+      "captureSeconds": 0.0434276059968397
+    },
+    "structural_evaluation": {
+      "inputRms": 0.6543549299240112,
+      "inputMean": -0.0007796119316481054,
+      "inputStd": 0.6543545126914978,
+      "inputAbsQuantiles": [
+        0.37099216878414154,
+        0.9483146131038667,
+        1.6833593153953552,
+        11.649319648742676
+      ],
+      "directReplayMaxAbsDelta": 0.0,
+      "captureSeconds": 0.04188399692066014
+    },
+    "distributional_analysis": {
+      "inputRms": 0.6574686765670776,
+      "inputMean": 0.0013094500172883272,
+      "inputStd": 0.6574673652648926,
+      "inputAbsQuantiles": [
+        0.37161605060100555,
+        0.9624290227890014,
+        1.7043920850753773,
+        11.655205726623535
+      ],
+      "directReplayMaxAbsDelta": 0.0,
+      "captureSeconds": 0.04173843690659851
+    }
+  },
+  "oracleSmoke": {
+    "queryCount": 32,
+    "queryBudget": 128,
+    "unitCountExposedToOracleClient": false,
+    "maxAbsDeltaAgainstIndependentDirectMlp": 0.0,
+    "elapsedSeconds": 3.1738245310261846,
+    "oracleStderrTail": ""
+  },
+  "recovery": {
+    "status": "blocked_before_oracle_queries_by_workspace_guard",
+    "reconstructionProduced": false,
+    "functionalRecovery": "not_evaluated_no_reconstruction",
+    "structuralRecovery": "not_evaluated_no_reconstruction",
+    "distributionalGeneralization": "not_evaluated_no_reconstruction",
+    "measuredCubicWorkspaceEstimate": {
+      "coefficientCount": 120288896,
+      "directionCount": 360866688,
+      "directionTensorBytes": 2586692419584,
+      "cubicDesignBytes": 347266044021571584,
+      "minimumWorkspaceBytes": 347268630713991168
+    },
+    "directionMultiple": 3.0,
+    "workspaceBytesAtFourGiBLimit": 4294967296,
+    "oracleCallsSpentByRecoverySolver": 0
+  },
+  "performance": {
+    "device": "cuda",
+    "cudaDeviceName": "NVIDIA GeForce RTX 3070",
+    "cudaTotalMemoryBytes": 8214085632,
+    "cudaPeakAllocatedBytesDuringActivationCapture": 2002129920,
+    "modelLoadSeconds": 1.1830667750909925,
+    "activationCaptureSeconds": 0.40291996602900326,
+    "activationSamplesPerSecond": 434.3294320326708,
+    "fullModuleOracleProbesPerSecond": 10.08247295563423,
+    "torchVersion": "2.10.0+cu128",
+    "torchCudaVersion": "12.8"
+  }
+}

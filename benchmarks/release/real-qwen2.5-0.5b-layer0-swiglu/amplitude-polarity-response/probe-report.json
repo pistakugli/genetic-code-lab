@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-qwen-swiglu-amplitude-polarity-probe",
+  "status": "captured",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "module": "model.layers.0.mlp",
+  "architecture": {
+    "inputDim": 896,
+    "outputDim": 896,
+    "activation": "silu"
+  },
+  "solverAccess": "oracle-only",
+  "teacherParametersUsedBySolver": false,
+  "hiddenUnitCountProvidedToSolver": false,
+  "accessMode": {
+    "fullModuleOracle": "opaque_eval_only",
+    "capturedNaturalActivationVectorsUsedOnlyAsDirections": true,
+    "oracleTruthCapability": false
+  },
+  "captureReportSha256": "85b20f0d8cd80bce408caa51f432e2cd406666750e993f2bae49eb3a6cdd20ee",
+  "directionDesign": {
+    "count": 96,
+    "naturalObserved": 32,
+    "naturalCombinations": 32,
+    "independentGaussian": 32,
+    "seed": 941,
+    "provenanceStoredPerDirection": true
+  },
+  "amplitudes": [
+    0.25,
+    0.5,
+    1.0,
+    2.0,
+    4.0,
+    8.0,
+    16.0,
+    32.0,
+    64.0,
+    128.0,
+    256.0,
+    512.0
+  ],
+  "polarityOrder": [
+    1.0,
+    -1.0
+  ],
+  "queryAccounting": {
+    "oraclePoints": 2304,
+    "oracleQueryBudget": 2304,
+    "requestedPoints": 2304,
+    "evalRequests": 9,
+    "pointsPerDirection": 24,
+    "rawArtifact": "amplitude-responses.npz",
+    "rawArtifactSha256": "3657fd97a7f507d1075b97f1f5d601fcd503f5230c48eb957e014faecd668edb"
+  },
+  "responseAnalysis": {
+    "stabilityRelativeChangeThreshold": 0.01,
+    "stableBothPolaritiesAtFinalTwoSteps": 0,
+    "stableFraction": 0.0,
+    "medianFinalTwoStepRelativeChangeByPolarity": [
+      0.030497629195451736,
+      0.027555692940950394
+    ],
+    "p95FinalTwoStepRelativeChangeByPolarity": [
+      0.07986357063055038,
+      0.07718249410390854
+    ],
+    "maximumFinalTwoStepRelativeChangeByPolarity": [
+      0.08694189041852951,
+      0.08858917653560638
+    ]
+  },
+  "performance": {
+    "runtimeSeconds": 6.483104478102177,
+    "parentVmHwmBytes": 690233344,
+    "oracleVmHwmBytes": 3707174912,
+    "sampledPeakCombinedPssBytes": 1410061312,
+    "sampledPeakDeviceWideVramBytes": 3032481792,
+    "resourceSampleCount": 48,
+    "resourceSampleIntervalSeconds": 0.1,
+    "vramScope": "nvidia-smi device-wide usage; includes concurrent GPU processes",
+    "parentPssMeasurementSource": "/proc/self/smaps_rollup:Pss",
+    "oraclePssMeasurementSource": "/proc/<pid>/smaps_rollup:Pss",
+    "processHighWaterMarkSource": "/proc/<pid>/status:VmHWM",
+    "oracleStderrTail": ""
+  },
+  "interpretation": {
+    "functionalRecovery": "not_measured_no_reconstruction",
+    "structuralRecovery": "not_measured_no_reconstruction",
+    "distributionalGeneralization": "not_measured_no_reconstruction"
+  }
+}

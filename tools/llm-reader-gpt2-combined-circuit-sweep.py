@@ -460,6 +460,7 @@ def run_component_case(
     answer_pool: List[Dict[str, Any]],
     args: argparse.Namespace,
     rng: random.Random,
+    prompt: str | None = None,
 ) -> Dict[str, Any]:
     if component == "mlp":
         row = factual.run_case(
@@ -470,6 +471,7 @@ def run_component_case(
             answer_pool=answer_pool,
             args=namespace_for_mlp(args),
             rng=rng,
+            prompt=prompt,
         )
         if row.get("status") == "failed" and fallback_modules and set(fallback_modules) != set(primary_modules):
             fallback_row = factual.run_case(
@@ -480,6 +482,7 @@ def run_component_case(
                 answer_pool=answer_pool,
                 args=namespace_for_mlp(args),
                 rng=rng,
+                prompt=prompt,
             )
             if fallback_row.get("status") == "passed":
                 fallback_row["adaptiveLayerExpansion"] = True
@@ -494,6 +497,7 @@ def run_component_case(
             answer_pool=answer_pool,
             args=namespace_for_attention(args),
             rng=rng,
+            prompt=prompt,
         )
         if row.get("status") == "failed" and fallback_modules and set(fallback_modules) != set(primary_modules):
             fallback_row = attention.run_case(
@@ -504,6 +508,7 @@ def run_component_case(
                 answer_pool=answer_pool,
                 args=namespace_for_attention(args),
                 rng=rng,
+                prompt=prompt,
             )
             if fallback_row.get("status") == "passed":
                 fallback_row["adaptiveLayerExpansion"] = True
@@ -555,8 +560,9 @@ def run_combined_case(
     answer_pool: List[Dict[str, Any]],
     args: argparse.Namespace,
     rng: random.Random,
+    prompt: str | None = None,
 ) -> Dict[str, Any]:
-    prompt = factual.prompt_for_fact(fact)
+    prompt = prompt if prompt is not None else factual.prompt_for_fact(fact)
     target = factual.encode_single_answer_token(tokenizer, fact["answer"])
     if target is None:
         return {"subject": fact["subject"], "answer": fact["answer"], "prompt": prompt, "status": "skipped", "reason": "answer is not a single token"}
@@ -578,6 +584,7 @@ def run_combined_case(
         answer_pool=answer_pool,
         args=args,
         rng=rng,
+        prompt=prompt,
     )
     attention_row = run_component_case(
         component="attention",
@@ -589,6 +596,7 @@ def run_combined_case(
         answer_pool=answer_pool,
         args=args,
         rng=rng,
+        prompt=prompt,
     )
     if mlp_row.get("status") == "skipped" or attention_row.get("status") == "skipped":
         return {"subject": fact["subject"], "answer": fact["answer"], "prompt": prompt, "status": "skipped", "reason": "component skipped"}

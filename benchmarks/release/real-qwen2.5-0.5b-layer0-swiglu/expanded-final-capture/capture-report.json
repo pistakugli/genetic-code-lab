@@ -1,0 +1,631 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-real-qwen-activation-capture",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "requestedModel": "Qwen/Qwen2.5-0.5B-Instruct",
+  "module": "model.layers.0.mlp",
+  "architecture": {
+    "modelType": "qwen2",
+    "inputDim": 896,
+    "outputDim": 896,
+    "intermediateDim": 4864,
+    "activation": "silu"
+  },
+  "accessMode": {
+    "activationCapture": "instrumented",
+    "fullModuleOracle": "opaque_eval_only",
+    "solverReceivedWeights": false,
+    "solverReceivedHooks": false,
+    "solverReceivedHiddenUnitCount": false,
+    "postHocGroundTruthUsed": false
+  },
+  "datasets": {
+    "recovery_observations": {
+      "file": "recovery_observations.npz",
+      "sha256": "af5f7c76806d7479b16e218fac4291eec8045f6275b73b4478baabd9b26baf8f",
+      "samples": 1111,
+      "inputShape": [
+        1111,
+        896
+      ],
+      "outputShape": [
+        1111,
+        896
+      ],
+      "activationProvenance": "natural_observed_model_inference",
+      "accessMode": "instrumented_capture",
+      "prompts": [
+        {
+          "promptId": "recovery-01",
+          "promptSha256": "a86c9606bc9efb3be048211a11c5bae65f24d4a67ad761c4a7e6e53ff41100ba",
+          "tokenCount": 9
+        },
+        {
+          "promptId": "recovery-02",
+          "promptSha256": "5c4b4305ed7b1fd29b731d36870b6cceeb4ed2789704c8e41df8299bfc888fb8",
+          "tokenCount": 13
+        },
+        {
+          "promptId": "recovery-03",
+          "promptSha256": "9ae8f0c333afa281e91ad767a3b82a26ae74ef3c3b55b721e230658b2eb2ddf8",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-001",
+          "promptSha256": "88691b399752f441edeab8e99023e52e48ae34d8b2d9702b278a8704f193ac96",
+          "tokenCount": 24
+        },
+        {
+          "promptId": "recovery-extra-002",
+          "promptSha256": "448544721ebe9198522bcec949c55014612b9c2409f907437f7b6079b2dc4a82",
+          "tokenCount": 25
+        },
+        {
+          "promptId": "recovery-extra-003",
+          "promptSha256": "f11edf1ff8e58a14da90efc70821446a7ec4338a710f9af72eea5fccef36d2c6",
+          "tokenCount": 16
+        },
+        {
+          "promptId": "recovery-extra-004",
+          "promptSha256": "48268cb3bacab9f0a4aefbdb715d823bf5713bd564fb19de6f25b57d92f26ab6",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "recovery-extra-005",
+          "promptSha256": "55c48bb48525f3d1ae738ca9c0fc32dd05880ac13010ea547d95e26016d971e7",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-006",
+          "promptSha256": "b4559f27fe1892329bb980f2cf541dd075932e92c8812ed69d7cf6d23457dffd",
+          "tokenCount": 19
+        },
+        {
+          "promptId": "recovery-extra-007",
+          "promptSha256": "cda76e74c447c4961aebd590b976733ef116d6a413b8fedcd7dc4e0066d25037",
+          "tokenCount": 22
+        },
+        {
+          "promptId": "recovery-extra-008",
+          "promptSha256": "cf67842addf0d7b976ef6655d1f24abdb9ae6c9c922aa25cfc193883f791aab4",
+          "tokenCount": 38
+        },
+        {
+          "promptId": "recovery-extra-009",
+          "promptSha256": "f8667e20c15dac890aa91486cccde1920aef1074d1bd059d3bdc3a90f8c9a3e1",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-010",
+          "promptSha256": "ab55ab499103f3bc32c62f853971087e7f56dda74411977088e200d122159ce2",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "recovery-extra-011",
+          "promptSha256": "9e6750372860db10cb05e36c5db148130df83ebceb96e91e9b43a33e2c6a4a92",
+          "tokenCount": 19
+        },
+        {
+          "promptId": "recovery-extra-012",
+          "promptSha256": "d54382db7b0fb9bafa97b97e43c6090eca586b41997aac92bca10f637316bbec",
+          "tokenCount": 22
+        },
+        {
+          "promptId": "recovery-extra-013",
+          "promptSha256": "ee3007de103e59253613bf64e9145a84daf5579d557986e502c7800a39db95a5",
+          "tokenCount": 36
+        },
+        {
+          "promptId": "recovery-extra-014",
+          "promptSha256": "ef382dd339d74daa52829449e1440c568a7d28f44f5b0645a1f9650c52080e23",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "recovery-extra-015",
+          "promptSha256": "7330fda184d133b20e11a49e0245b9ee77af1a4f6f730818aa0bce92188ca2c4",
+          "tokenCount": 26
+        },
+        {
+          "promptId": "recovery-extra-016",
+          "promptSha256": "cafef741317bae7fdcbfef69f373d94fc58995e8ad79a454fe400037ce71fb99",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "recovery-extra-017",
+          "promptSha256": "9405017a1a0844f4fc874d50aaaaefce0bf0395a1f3039363eca16ae70a42344",
+          "tokenCount": 21
+        },
+        {
+          "promptId": "recovery-extra-018",
+          "promptSha256": "10597ffa112898554af21b138672c361d9c39e9f43dcf60764157dbc40563323",
+          "tokenCount": 22
+        },
+        {
+          "promptId": "recovery-extra-019",
+          "promptSha256": "d52fb2080eeef828da0edf5969dfbce7cd6788c8d559c6f7b073f6bd6f0e4835",
+          "tokenCount": 15
+        },
+        {
+          "promptId": "recovery-extra-020",
+          "promptSha256": "9ee5a772fbc6f55fdade313510db854c0a970c6643fdfd61e2587b742e616b28",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "recovery-extra-021",
+          "promptSha256": "946f14051f7d8a26c40a5fa91faa6b562da9d50972b9997f071f31b5d5d28316",
+          "tokenCount": 22
+        },
+        {
+          "promptId": "recovery-extra-022",
+          "promptSha256": "7bcfc0b3fc7c499d46ad7696d8d5665675e416feab0a153cc951d8d1055758a0",
+          "tokenCount": 42
+        },
+        {
+          "promptId": "recovery-extra-023",
+          "promptSha256": "9dca2714883a7fc33ba92bf8e537adccff08fd4af82e1f1eb41819f80fcbd6fa",
+          "tokenCount": 24
+        },
+        {
+          "promptId": "recovery-extra-024",
+          "promptSha256": "d9869a93984a255188be101c548a8bfed28f9653d9a9d244ab6b72154c5cf428",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "recovery-extra-025",
+          "promptSha256": "f299694e94415d8f0a0781a75103589e22b7dfd00ae87cbaad4b1ebea4dd9bee",
+          "tokenCount": 19
+        },
+        {
+          "promptId": "recovery-extra-026",
+          "promptSha256": "e4fffe07a8f1845b5094c428a324cf2c8cd9a5deb7d2f3a52a5028aa1fab3f2b",
+          "tokenCount": 21
+        },
+        {
+          "promptId": "recovery-extra-027",
+          "promptSha256": "9d902b3e5e526851b6041a62f0e96bb932cab89d89e62eaac1046b5ee11f4837",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "recovery-extra-028",
+          "promptSha256": "638f432ef1064fd00197733dd66ca06166e7724590f8f4a0bee0d87be15cd94e",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "recovery-extra-029",
+          "promptSha256": "e1a047df4c811f9e592097769b0105896784f6be4476d1a706fc0632f39719dc",
+          "tokenCount": 16
+        },
+        {
+          "promptId": "recovery-extra-030",
+          "promptSha256": "74bec568e24b3db0cbc454527ad726431757ecce99e13500d5c2827e0da7ad49",
+          "tokenCount": 38
+        },
+        {
+          "promptId": "recovery-extra-031",
+          "promptSha256": "4bd012c228007e4fc3c74cacb67bb1d969b7908915b7963500945feea0e564f9",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-032",
+          "promptSha256": "96c1ce84e6281c5fbebfeb1ecacfbac600dfda7d937606d2184d1ba31ef58277",
+          "tokenCount": 22
+        },
+        {
+          "promptId": "recovery-extra-033",
+          "promptSha256": "85b4e4f8e322baa3216a87e7cd020610ba482a6b8ef31bc78c0780274bd6ad61",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-034",
+          "promptSha256": "3f233b9a2c1aeff22e779c1c1c12a984992bf826fc03980ae9c5ef698bc68827",
+          "tokenCount": 21
+        },
+        {
+          "promptId": "recovery-extra-035",
+          "promptSha256": "917008f98a0d24d7d9bec5044fdaa705b3f8c0bc2d879520f3a18dee9da25429",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "recovery-extra-036",
+          "promptSha256": "0ea0f8136942e8a2546160968f822439861ff0f432bd4cfd73377f0b919015bc",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-037",
+          "promptSha256": "b3c0a8a342d58c27d36ceefb3240e93a8ef605c7f763e586b84dea22244322e6",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "recovery-extra-038",
+          "promptSha256": "e9909ce60058a8c6ad07f4474dac4900ac3665e3baa4c70c51aaf35d9e3ae354",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-039",
+          "promptSha256": "52c495278380c8dec1e612580d60e8a289fedc29516e4e139b81baf32ebaa528",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-040",
+          "promptSha256": "53c70ebf46e036ba5fc4dd20d3cb54b9a228b2da2a764ab1dd4b26c879ab674e",
+          "tokenCount": 38
+        },
+        {
+          "promptId": "recovery-extra-041",
+          "promptSha256": "5c3ea1ed756ecd1117cd02ea9e64a0f2e6fac2a30ae40efcadc3d67e06fd19c8",
+          "tokenCount": 23
+        },
+        {
+          "promptId": "recovery-extra-042",
+          "promptSha256": "766ff59e0649ab559ed08da2d6d5dad00c7f0b49cea54df34f2f0094b4f87307",
+          "tokenCount": 23
+        },
+        {
+          "promptId": "recovery-extra-043",
+          "promptSha256": "721f75107ae8d729668d62468f3adde676e5d330a95c4e5b39d7e580416a5aca",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "recovery-extra-044",
+          "promptSha256": "ab48bc3b5b16e846fd0d492fdc6cedbed4b1a608b8eeaa3b6f29395b84c8ad53",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "recovery-extra-045",
+          "promptSha256": "27ce1b845fa90e6896b14766c0b39768382c69f7a0b232f888c05d5577882930",
+          "tokenCount": 22
+        },
+        {
+          "promptId": "recovery-extra-046",
+          "promptSha256": "a38959c4e805dd9ff38d8c8de2785f5541dd68f66ce1bfe49cab9e1ab7b8fc86",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "recovery-extra-047",
+          "promptSha256": "225c59006e4db01ccd21ef36a9940bf3cabe5b4dd83e69986c0c66a83cf70e1f",
+          "tokenCount": 19
+        },
+        {
+          "promptId": "recovery-extra-048",
+          "promptSha256": "c5eccc6cde42c8a756d69812660c221c2922e9f464be6698107b9f44ff66189a",
+          "tokenCount": 44
+        }
+      ]
+    },
+    "functional_evaluation": {
+      "file": "functional_evaluation.npz",
+      "sha256": "42c2b5f530d459711ddabed401402e828e90f065b408af0f2ae58a4eca88ca7a",
+      "samples": 549,
+      "inputShape": [
+        549,
+        896
+      ],
+      "outputShape": [
+        549,
+        896
+      ],
+      "activationProvenance": "natural_observed_model_inference",
+      "accessMode": "instrumented_capture",
+      "prompts": [
+        {
+          "promptId": "functional-01",
+          "promptSha256": "90c2a7830d7758807723e60cffc6802f124a2aeb360f2597440a0ec7902ec4e9",
+          "tokenCount": 23
+        },
+        {
+          "promptId": "functional-02",
+          "promptSha256": "b0414e84415a722b8f0f763a32e69cf15ab6f0f62d0d7ee6ab9c978a2c01303d",
+          "tokenCount": 13
+        },
+        {
+          "promptId": "functional-03",
+          "promptSha256": "389bb36bff2dea68a402ea743e15a89021da33626b6ef1577d146652a5a75386",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "functional-extra-001",
+          "promptSha256": "3c159ff2d437c3c3d63fdecfc04f96304f0864399237a02861a2a46f86ed4ed1",
+          "tokenCount": 19
+        },
+        {
+          "promptId": "functional-extra-002",
+          "promptSha256": "158314c422317783dd4313ad11f26914203bac8eb06f23e7b76d5ef12f1b53e3",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "functional-extra-003",
+          "promptSha256": "9b77bff3cb11f090aeee896fd10bec30c0ba899164fc614421867c3f25c06560",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "functional-extra-004",
+          "promptSha256": "9016056eb13dbdeed18982d49f3cc111e30a5ec384feb1bdb836fa9640dd30e3",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "functional-extra-005",
+          "promptSha256": "b10d5391d941500796cef38084729e5b01ec41adf02f3e448253c7795d180fc8",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "functional-extra-006",
+          "promptSha256": "44167557f138ef2cf079c16c19117e65a06dc8b7c02db68831eae70d3dd3dfc8",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "functional-extra-007",
+          "promptSha256": "316a06d1e5f244542f9de29248f8cd7a34e1b87a88a9a8edf68b5261ebfa714f",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "functional-extra-008",
+          "promptSha256": "1696e3da48af7a3386ad36a1d67ccbb1aeca72e0b8947735b05ffccb6c01910b",
+          "tokenCount": 39
+        },
+        {
+          "promptId": "functional-extra-009",
+          "promptSha256": "c033059b4ac940d054d3a0338abc8ff6bfbb42ae821bdfec42926ad99989b4d4",
+          "tokenCount": 20
+        },
+        {
+          "promptId": "functional-extra-010",
+          "promptSha256": "d3fba9e3e6768fe900e05cd18046905e772fb7f39a5547dfbde1e981688b541a",
+          "tokenCount": 19
+        },
+        {
+          "promptId": "functional-extra-011",
+          "promptSha256": "7b1a8e3cd2db606c6d46e497a119d2cebf21622f3e55735314ea2214dbe659c5",
+          "tokenCount": 22
+        },
+        {
+          "promptId": "functional-extra-012",
+          "promptSha256": "a7ae85a4a4f63172d996576bbff84453f7f2efef4a1eec9cf62c439188aaa680",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "functional-extra-013",
+          "promptSha256": "cbea70fca5a56f29e81ea74ce6ea874758b3d1e3ea6b89823dcd7e120759618b",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "functional-extra-014",
+          "promptSha256": "6b8a86eb28a9fcb9534b761d34ab926241badfce4bacb5a3a03b049edc0e97b6",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "functional-extra-015",
+          "promptSha256": "5978bf7df4798de459db89b9077f1b843303fed8b0507522d0c36ab24724d0e9",
+          "tokenCount": 21
+        },
+        {
+          "promptId": "functional-extra-016",
+          "promptSha256": "cb225a5d765fb907d008978e871630b18d5694cba45ec9d9d3406ed14ce5c3e3",
+          "tokenCount": 16
+        },
+        {
+          "promptId": "functional-extra-017",
+          "promptSha256": "930d9825ad397f9998cb92485e0abdf68f0fc574954f926bf0e94f952467a3f4",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "functional-extra-018",
+          "promptSha256": "b4f6dcc623d325e3a9c0315fe9616c68c10a36b1952102e65e74b93f77259f58",
+          "tokenCount": 18
+        },
+        {
+          "promptId": "functional-extra-019",
+          "promptSha256": "2f806348924bdf48601835de49ba7ee959c084e05ce563ff7339349f43e085ef",
+          "tokenCount": 17
+        },
+        {
+          "promptId": "functional-extra-020",
+          "promptSha256": "da2600debb97622e6987dc0ddd13815644e8c85efc7ef8a30fe5afbf7f7f6ea1",
+          "tokenCount": 40
+        },
+        {
+          "promptId": "functional-extra-021",
+          "promptSha256": "bf025b32d948e1f171733d9133d903a623cb234e4dec3a3773fce3a5514452fa",
+          "tokenCount": 22
+        },
+        {
+          "promptId": "functional-extra-022",
+          "promptSha256": "a2e5e4827acb78bc392e6a9ec7c4ea274745454a02e6ee7b91b4967fd7c1211d",
+          "tokenCount": 23
+        },
+        {
+          "promptId": "functional-extra-023",
+          "promptSha256": "a9f1ad7b6bea0df3f374a88b3d7fd583ede1e8a7e88a48c226f7458a1bbeacfe",
+          "tokenCount": 19
+        },
+        {
+          "promptId": "functional-extra-024",
+          "promptSha256": "59579050a26f3bb495e2fba025c32c68e56bbe4708d6bb708045a5d6f933a998",
+          "tokenCount": 15
+        }
+      ]
+    },
+    "structural_evaluation": {
+      "file": "structural_evaluation.npz",
+      "sha256": "730e1f213c5da6bce14e13b328aa5cb5de6564de38469e7dbfbc15fd2db1e7a3",
+      "samples": 39,
+      "inputShape": [
+        39,
+        896
+      ],
+      "outputShape": [
+        39,
+        896
+      ],
+      "activationProvenance": "natural_observed_model_inference",
+      "accessMode": "instrumented_capture",
+      "prompts": [
+        {
+          "promptId": "structural-01",
+          "promptSha256": "623521d4a2c07f46cfe27511b0a1f85c2ac5ca89574d1d276c5a9b083c3fecfa",
+          "tokenCount": 12
+        },
+        {
+          "promptId": "structural-02",
+          "promptSha256": "46590be66e674f38098e332870bb6bae08c17853254ddb3334f05888aea59409",
+          "tokenCount": 11
+        },
+        {
+          "promptId": "structural-03",
+          "promptSha256": "f5d0ab79eec90e6da4e97c1eafbfda8391800e4f41af4538ea132fb230a13f7a",
+          "tokenCount": 16
+        }
+      ]
+    },
+    "distributional_analysis": {
+      "file": "distributional_analysis.npz",
+      "sha256": "3ee281917671b0e66237a096224f3ec03908a3a2513328c0f9dac610e95eb302",
+      "samples": 38,
+      "inputShape": [
+        38,
+        896
+      ],
+      "outputShape": [
+        38,
+        896
+      ],
+      "activationProvenance": "natural_observed_model_inference",
+      "accessMode": "instrumented_capture",
+      "prompts": [
+        {
+          "promptId": "distribution-01",
+          "promptSha256": "b3f5cbd16f7d7210ed28dd2d213199731d45748612f066f190145d61fbda8547",
+          "tokenCount": 10
+        },
+        {
+          "promptId": "distribution-02",
+          "promptSha256": "18b81700f7e92b53e19d00d5d8c359d0cba202f15de5690ad500f33265afaa46",
+          "tokenCount": 10
+        },
+        {
+          "promptId": "distribution-03",
+          "promptSha256": "fcff3cd07673afcfa73f8cb9edad81e9a54787493cad6ace51f13be08e1d8c12",
+          "tokenCount": 18
+        }
+      ]
+    },
+    "generated_oracle_probes": {
+      "file": "generated_oracle_probes.npz",
+      "sha256": "a66fc79a6049c40e34294067745d87872fa1c9d24926d26f7578521ef4811c46",
+      "samples": 32,
+      "inputShape": [
+        32,
+        896
+      ],
+      "outputShape": [
+        32,
+        896
+      ],
+      "activationProvenance": "deliberately_generated_oracle_probes",
+      "accessMode": "opaque_eval_only_oracle",
+      "distribution": "iid_standard_normal_scaled_to_unit_expected_l2"
+    }
+  },
+  "additionalPromptSources": {
+    "recovery_observations": {
+      "file": "additional-recovery-observations-prompts.json",
+      "sha256": "13cc33c8944da4a014909917426b366c545cba9b1a1f3d8b7b21ba6d720b2f5d",
+      "promptCount": 48
+    },
+    "functional_evaluation": {
+      "file": "additional-functional-evaluation-prompts.json",
+      "sha256": "b559b3e617fd2bd7ebfe34bbf1fea1a180078aec6f0335660be852441f9fed60",
+      "promptCount": 24
+    }
+  },
+  "activationDistribution": {
+    "recovery_observations": {
+      "inputRms": 0.6489688754081726,
+      "inputMean": -0.0018419354455545545,
+      "inputStd": 0.6489662528038025,
+      "inputAbsQuantiles": [
+        0.3595556914806366,
+        0.9405110776424408,
+        1.6625843107700313,
+        12.26190185546875
+      ],
+      "directReplayMaxAbsDelta": 0.0,
+      "captureSeconds": 0.9710568810114637
+    },
+    "functional_evaluation": {
+      "inputRms": 0.6485353112220764,
+      "inputMean": -0.0021375378128141165,
+      "inputStd": 0.6485317945480347,
+      "inputAbsQuantiles": [
+        0.36151009798049927,
+        0.939173299074173,
+        1.6547922503948205,
+        12.235740661621094
+      ],
+      "directReplayMaxAbsDelta": 0.0,
+      "captureSeconds": 0.39176448702346534
+    },
+    "structural_evaluation": {
+      "inputRms": 0.6543549299240112,
+      "inputMean": -0.0007796119316481054,
+      "inputStd": 0.6543545126914978,
+      "inputAbsQuantiles": [
+        0.37099216878414154,
+        0.9483146131038667,
+        1.6833593153953552,
+        11.649319648742676
+      ],
+      "directReplayMaxAbsDelta": 0.0,
+      "captureSeconds": 0.04015817400068045
+    },
+    "distributional_analysis": {
+      "inputRms": 0.6574686765670776,
+      "inputMean": 0.0013094500172883272,
+      "inputStd": 0.6574673652648926,
+      "inputAbsQuantiles": [
+        0.37161605060100555,
+        0.9624290227890014,
+        1.7043920850753773,
+        11.655205726623535
+      ],
+      "directReplayMaxAbsDelta": 0.0,
+      "captureSeconds": 0.03967209893744439
+    }
+  },
+  "oracleSmoke": {
+    "queryCount": 32,
+    "queryBudget": 128,
+    "unitCountExposedToOracleClient": false,
+    "maxAbsDeltaAgainstIndependentDirectMlp": 0.0,
+    "elapsedSeconds": 3.203482927987352,
+    "oracleStderrTail": ""
+  },
+  "recovery": {
+    "status": "blocked_before_oracle_queries_by_workspace_guard",
+    "reconstructionProduced": false,
+    "functionalRecovery": "not_evaluated_no_reconstruction",
+    "structuralRecovery": "not_evaluated_no_reconstruction",
+    "distributionalGeneralization": "not_evaluated_no_reconstruction",
+    "measuredCubicWorkspaceEstimate": {
+      "coefficientCount": 120288896,
+      "directionCount": 360866688,
+      "directionTensorBytes": 2586692419584,
+      "cubicDesignBytes": 347266044021571584,
+      "minimumWorkspaceBytes": 347268630713991168
+    },
+    "directionMultiple": 3.0,
+    "workspaceBytesAtFourGiBLimit": 4294967296,
+    "oracleCallsSpentByRecoverySolver": 0
+  },
+  "performance": {
+    "device": "cuda",
+    "cudaDeviceName": "NVIDIA GeForce RTX 3070",
+    "cudaTotalMemoryBytes": 8214085632,
+    "cudaPeakAllocatedBytesDuringActivationCapture": 2015443968,
+    "modelLoadSeconds": 1.1380188929615542,
+    "activationCaptureSeconds": 1.4428994340123609,
+    "activationSamplesPerSecond": 1203.8261011509412,
+    "fullModuleOracleProbesPerSecond": 9.989127683631702,
+    "torchVersion": "2.10.0+cu128",
+    "torchCudaVersion": "12.8"
+  }
+}

@@ -664,6 +664,7 @@ def select_ordered_rescue_attempt(
     rng: random.Random,
     read_token_index: int,
     target_token_id: int,
+    prompt: str | None = None,
 ) -> Dict[str, Any] | None:
     mlp_row = combined.run_component_case(
         component="mlp",
@@ -675,6 +676,7 @@ def select_ordered_rescue_attempt(
         answer_pool=answer_pool,
         args=args,
         rng=rng,
+        prompt=prompt,
     )
     attention_row = combined.run_component_case(
         component="attention",
@@ -686,6 +688,7 @@ def select_ordered_rescue_attempt(
         answer_pool=answer_pool,
         args=args,
         rng=rng,
+        prompt=prompt,
     )
     if mlp_row.get("status") == "skipped" or attention_row.get("status") == "skipped":
         return None
@@ -982,6 +985,7 @@ def run_ordered_case(
     answer_pool: List[Dict[str, Any]],
     args: argparse.Namespace,
     rng: random.Random,
+    prompt: str | None = None,
 ) -> Dict[str, Any]:
     combined_row = combined.run_combined_case(
         model=model,
@@ -996,6 +1000,7 @@ def run_ordered_case(
         answer_pool=answer_pool,
         args=namespace_for_combined(args),
         rng=rng,
+        prompt=prompt,
     )
     if combined_row.get("status") == "skipped":
         return combined_row
@@ -1011,7 +1016,7 @@ def run_ordered_case(
             "combined": compact_combined(combined_row),
         }
 
-    prompt = factual.prompt_for_fact(fact)
+    prompt = prompt if prompt is not None else factual.prompt_for_fact(fact)
     target = factual.encode_single_answer_token(tokenizer, fact["answer"])
     if target is None:
         return {"subject": fact["subject"], "answer": fact["answer"], "prompt": prompt, "status": "skipped", "reason": "answer is not a single token"}
@@ -1084,6 +1089,7 @@ def run_ordered_case(
             rng=rng,
             read_token_index=read_token_index,
             target_token_id=target_token_id,
+            prompt=prompt,
         )
         if ordered_rescue is not None:
             rescue_chosen = ordered_rescue["chosen"]

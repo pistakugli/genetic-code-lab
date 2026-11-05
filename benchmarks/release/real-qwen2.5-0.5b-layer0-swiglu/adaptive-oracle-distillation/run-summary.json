@@ -1,0 +1,449 @@
+{
+  "runs": [],
+  "realSwiGLUDistillation": {
+    "schemaVersion": 1,
+    "kind": "gcl-oracle-only-adaptive-swiglu-distillation",
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "hiddenUnitCountProvidedToSolver": false,
+    "teacherComponentIdentitiesProvidedToSolver": false,
+    "inputDim": 896,
+    "outputDim": 896,
+    "publicActivationFamily": "silu-swiglu",
+    "biases": false,
+    "candidateWidthPolicy": "geometric-growth-selected-by-held-out-BIC-proxy",
+    "maxCandidateComponents": 8192,
+    "selectedCandidateComponents": 1,
+    "studentWidthSelectedByMeasurements": true,
+    "teacherComponentCountInferred": false,
+    "selectionScore": 0.00792175538822759,
+    "selectedCandidateValidationNormalizedMse": 1.0063695907592773,
+    "candidateStages": [
+      {
+        "candidateComponents": 1,
+        "effectiveParameterCount": 2688,
+        "validationNormalizedMse": 1.0063695907592773,
+        "validationShellNormalizedMse": [
+          1.0039793252944946,
+          1.0058844089508057,
+          1.0200355052947998,
+          1.0031449794769287
+        ],
+        "bicProxyPenalty": 0.0015723647399204582,
+        "selectionScore": 0.00792175538822759,
+        "trainingObservationCount": 32810
+      },
+      {
+        "candidateComponents": 2,
+        "effectiveParameterCount": 5376,
+        "validationNormalizedMse": 2.4042325019836426,
+        "validationShellNormalizedMse": [
+          2.6265041828155518,
+          2.451441764831543,
+          2.3728561401367188,
+          2.4062893390655518
+        ],
+        "bicProxyPenalty": 0.0031447294798409163,
+        "selectionScore": 0.8803754561117019,
+        "trainingObservationCount": 32810
+      },
+      {
+        "candidateComponents": 4,
+        "effectiveParameterCount": 10752,
+        "validationNormalizedMse": 1.451514482498169,
+        "validationShellNormalizedMse": [
+          1.4719338417053223,
+          1.4046462774276733,
+          1.4306275844573975,
+          1.45986807346344
+        ],
+        "bicProxyPenalty": 0.006289458959681833,
+        "selectionScore": 0.37889694100056154,
+        "trainingObservationCount": 32810
+      },
+      {
+        "candidateComponents": 8,
+        "effectiveParameterCount": 21504,
+        "validationNormalizedMse": 4.479163646697998,
+        "validationShellNormalizedMse": [
+          4.87721061706543,
+          4.3020405769348145,
+          4.9238691329956055,
+          4.38203239440918
+        ],
+        "bicProxyPenalty": 0.010196175720965484,
+        "selectionScore": 1.5096325187149469,
+        "trainingObservationCount": 41002
+      },
+      {
+        "candidateComponents": 16,
+        "effectiveParameterCount": 43008,
+        "validationNormalizedMse": 3.6032779216766357,
+        "validationShellNormalizedMse": [
+          3.719852924346924,
+          3.829347610473633,
+          3.674560546875,
+          3.568203926086426
+        ],
+        "bicProxyPenalty": 0.020392351441930967,
+        "selectionScore": 1.3022363164186221,
+        "trainingObservationCount": 41002
+      },
+      {
+        "candidateComponents": 32,
+        "effectiveParameterCount": 86016,
+        "validationNormalizedMse": 47.590572357177734,
+        "validationShellNormalizedMse": [
+          48.036949157714844,
+          49.26166534423828,
+          48.69663619995117,
+          47.19581985473633
+        ],
+        "bicProxyPenalty": 0.034348515393192655,
+        "selectionScore": 3.896983197290993,
+        "trainingObservationCount": 49194
+      },
+      {
+        "candidateComponents": 64,
+        "effectiveParameterCount": 172032,
+        "validationNormalizedMse": 540.1047973632812,
+        "validationShellNormalizedMse": [
+          579.2156982421875,
+          561.710205078125,
+          557.8211669921875,
+          533.885986328125
+        ],
+        "bicProxyPenalty": 0.06869703078638531,
+        "selectionScore": 6.360460220706978,
+        "trainingObservationCount": 49194
+      },
+      {
+        "candidateComponents": 128,
+        "effectiveParameterCount": 344064,
+        "validationNormalizedMse": 12157.5087890625,
+        "validationShellNormalizedMse": [
+          14086.65625,
+          13193.373046875,
+          12740.1171875,
+          11922.9619140625
+        ],
+        "bicProxyPenalty": 0.11881139107497121,
+        "selectionScore": 9.524513656286025,
+        "trainingObservationCount": 57386
+      },
+      {
+        "candidateComponents": 256,
+        "effectiveParameterCount": 688128,
+        "validationNormalizedMse": 105410.2734375,
+        "validationShellNormalizedMse": [
+          127590.59375,
+          110622.5,
+          110789.5390625,
+          103531.9765625
+        ],
+        "bicProxyPenalty": 0.23762278214994242,
+        "selectionScore": 11.803238163433381,
+        "trainingObservationCount": 57386
+      },
+      {
+        "candidateComponents": 512,
+        "effectiveParameterCount": 1376256,
+        "validationNormalizedMse": 1421103.75,
+        "validationShellNormalizedMse": [
+          1607118.375,
+          1509054.375,
+          1463921.75,
+          1402593.0
+        ],
+        "bicProxyPenalty": 0.41900341034306676,
+        "selectionScore": 14.585947826720465,
+        "trainingObservationCount": 65578
+      },
+      {
+        "candidateComponents": 1024,
+        "effectiveParameterCount": 2752512,
+        "validationNormalizedMse": 7445574.5,
+        "validationShellNormalizedMse": [
+          8585471.0,
+          8195534.0,
+          7980971.5,
+          7250718.0
+        ],
+        "bicProxyPenalty": 0.8380068206861335,
+        "selectionScore": 16.661137207692388,
+        "trainingObservationCount": 65578
+      },
+      {
+        "candidateComponents": 2048,
+        "effectiveParameterCount": 5505024,
+        "validationNormalizedMse": 23852998.0,
+        "validationShellNormalizedMse": [
+          27283158.0,
+          25411236.0,
+          25539786.0,
+          23300742.0
+        ],
+        "bicProxyPenalty": 1.676013641372267,
+        "selectionScore": 18.6634341110771,
+        "trainingObservationCount": 65578
+      },
+      {
+        "candidateComponents": 4096,
+        "effectiveParameterCount": 11010048,
+        "validationNormalizedMse": 110924880.0,
+        "validationShellNormalizedMse": [
+          127874440.0,
+          118030920.0,
+          116697584.0,
+          108856336.0
+        ],
+        "bicProxyPenalty": 3.352027282744534,
+        "selectionScore": 21.87639105616116,
+        "trainingObservationCount": 65578
+      },
+      {
+        "candidateComponents": 8192,
+        "effectiveParameterCount": 22020096,
+        "validationNormalizedMse": 482664608.0,
+        "validationShellNormalizedMse": [
+          560545664.0,
+          516344256.0,
+          508274720.0,
+          473302720.0
+        ],
+        "bicProxyPenalty": 6.704054565489068,
+        "selectionScore": 26.698887142528427,
+        "trainingObservationCount": 65578
+      }
+    ],
+    "adaptiveQueryRounds": [
+      {
+        "afterCandidateComponents": 4,
+        "selectedShell": 0,
+        "selectedShellMultiplier": 0.45,
+        "validationNormalizedMseByShell": [
+          1.4719338417053223,
+          1.4046462774276733,
+          1.4306275844573975,
+          1.45986807346344
+        ],
+        "oraclePoints": 8192
+      },
+      {
+        "afterCandidateComponents": 16,
+        "selectedShell": 1,
+        "selectedShellMultiplier": 0.75,
+        "validationNormalizedMseByShell": [
+          3.719852924346924,
+          3.829347610473633,
+          3.674560546875,
+          3.568203926086426
+        ],
+        "oraclePoints": 8192
+      },
+      {
+        "afterCandidateComponents": 64,
+        "selectedShell": 0,
+        "selectedShellMultiplier": 0.45,
+        "validationNormalizedMseByShell": [
+          579.2156982421875,
+          561.710205078125,
+          557.8211669921875,
+          533.885986328125
+        ],
+        "oraclePoints": 8192
+      },
+      {
+        "afterCandidateComponents": 256,
+        "selectedShell": 0,
+        "selectedShellMultiplier": 0.45,
+        "validationNormalizedMseByShell": [
+          127590.59375,
+          110622.5,
+          110789.5390625,
+          103531.9765625
+        ],
+        "oraclePoints": 8192
+      }
+    ],
+    "queryAccounting": {
+      "oraclePoints": 73728,
+      "oracleQueryBudget": 73728,
+      "reusedRecoveryObservations": 42,
+      "initialGeneratedTrainingQueries": 32768,
+      "validationQueries": 8192,
+      "adaptiveQueries": 32768
+    },
+    "validation": {
+      "samples": 8192,
+      "relativeError": 1.0031776688038427,
+      "normalizedMse": 1.084216793586046,
+      "meanSquaredError": 0.024810642687222977,
+      "referenceRms": 0.15701500274555097,
+      "cosineSimilarityMean": 0.10191761471348122,
+      "cosineSimilarityMedian": 0.16031403016928447,
+      "inputDensityQuartiles": [
+        {
+          "inputNormLow": 7.4983077586518485,
+          "inputNormHigh": 12.686084671998469,
+          "metrics": {
+            "samples": 2048,
+            "relativeError": 1.0057800125283711,
+            "normalizedMse": 1.1592538873034304,
+            "meanSquaredError": 0.0006489072787059694,
+            "referenceRms": 0.0253272666078292,
+            "cosineSimilarityMean": 0.11205905406539446,
+            "cosineSimilarityMedian": 0.18194218550896268
+          }
+        },
+        {
+          "inputNormLow": 12.686084671998469,
+          "inputNormHigh": 17.618394978002748,
+          "metrics": {
+            "samples": 2048,
+            "relativeError": 1.0180827872009235,
+            "normalizedMse": 1.1733142131133076,
+            "meanSquaredError": 0.005299244343054151,
+            "referenceRms": 0.07150293645051561,
+            "cosineSimilarityMean": 0.09622541449753992,
+            "cosineSimilarityMedian": 0.1634161370349816
+          }
+        },
+        {
+          "inputNormLow": 17.618394978002748,
+          "inputNormHigh": 24.420823571347384,
+          "metrics": {
+            "samples": 2048,
+            "relativeError": 1.0136364639463658,
+            "normalizedMse": 1.1606323781397454,
+            "meanSquaredError": 0.017961937280594174,
+            "referenceRms": 0.13221915052191188,
+            "cosineSimilarityMean": 0.09979870753266967,
+            "cosineSimilarityMedian": 0.15708197079287087
+          }
+        },
+        {
+          "inputNormLow": 24.420823571347384,
+          "inputNormHigh": 48.573654224411065,
+          "metrics": {
+            "samples": 2048,
+            "relativeError": 0.9996927153256971,
+            "normalizedMse": 1.1205893838818275,
+            "meanSquaredError": 0.07533248184653761,
+            "referenceRms": 0.27455199913520023,
+            "cosineSimilarityMean": 0.09958728275832084,
+            "cosineSimilarityMedian": 0.1440450072222405
+          }
+        }
+      ]
+    },
+    "trainingSeconds": 42.27124421100598,
+    "performance": {
+      "device": "cuda",
+      "cudaDeviceName": "NVIDIA GeForce RTX 3070",
+      "peakAllocatedVramBytes": 2046671872,
+      "solverProcessPeakRssBytes": 8951357440,
+      "torchVersion": "2.10.0+cu128",
+      "torchCudaVersion": "12.8",
+      "peakWholeDeviceUsedBytesDuringOracleAndTraining": 7237074944,
+      "minimumWholeDeviceFreeBytesDuringOracleAndTraining": 977010688,
+      "wholeDeviceMemoryMonitorSamples": 977
+    },
+    "oracleMetadataKeys": [
+      "hiddenSize",
+      "oracleOutputMode",
+      "oracleOwnsWeights",
+      "oracleQuantizationStep",
+      "oracleResponseWidth",
+      "protocolCapabilities",
+      "solverAccess",
+      "type"
+    ],
+    "opaqueOracleStderrTail": "",
+    "sourceCaptureReportSha256": "997ba2f55bf8378a2f72eca4dbbb31f1d54149391986220f10146a3a6d610d99",
+    "artifacts": {
+      "reconstruction.npz": {
+        "sha256": "e146a77c67de6c90e0e7b0611220db62716dec4e28388322aa7370ac37916a85",
+        "arrays": {
+          "gate": [
+            1,
+            896
+          ],
+          "up": [
+            1,
+            896
+          ],
+          "down": [
+            896,
+            1
+          ]
+        }
+      },
+      "distillation-training-observations.npz": {
+        "sha256": "0db8f3c58c2162cdc903fd7eec26bd37c1164f9d1dc0fd22e17a7a0f04d6cab9",
+        "arrays": {
+          "inputs": [
+            65578,
+            896
+          ],
+          "outputs": [
+            65578,
+            896
+          ],
+          "provenance": [
+            65578
+          ],
+          "natural_token_ids": [
+            65578
+          ],
+          "natural_token_positions": [
+            65578
+          ],
+          "natural_prompt_ids": [
+            65578
+          ],
+          "natural_prompt_sha256": [
+            65578
+          ]
+        }
+      },
+      "distillation-validation-probes.npz": {
+        "sha256": "437b561800c03ef8d8ac8e2b624222f478564ff8b4d0d20c520f0dc060201f1b",
+        "arrays": {
+          "inputs": [
+            8192,
+            896
+          ],
+          "outputs": [
+            8192,
+            896
+          ],
+          "shells": [
+            8192
+          ],
+          "provenance": [
+            8192
+          ]
+        }
+      },
+      "component-strength.npz": {
+        "sha256": "49b13c3e4da56f53c943bf67e45eec249481ceb26848b55e34a9880d4e8593d2",
+        "arrays": {
+          "rms": [
+            1
+          ]
+        }
+      }
+    },
+    "teacherArchitectureKnownToSolver": {
+      "inputDim": 896,
+      "outputDim": 896,
+      "activationFamily": "silu-swiglu",
+      "hiddenComponents": "not provided"
+    },
+    "targetModel": "Qwen/Qwen2.5-0.5B-Instruct",
+    "targetModule": "model.layers.0.mlp",
+    "captureNaturalRecoveryProvenancePreserved": true
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "kind": "nn-live-ordered-path-ood-stress-suite",
+  "paraphraseProfile": "ood",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-10-30T06:28:16.034Z",
+  "summary": {
+    "pass": false,
+    "cases": 1,
+    "passed": 0,
+    "failed": [
+      "gpt2"
+    ]
+  },
+  "results": [
+    {
+      "id": "gpt2",
+      "label": "GPT-2",
+      "adapter": "gpt2",
+      "model": "gpt2",
+      "status": "fail",
+      "reportPath": "benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2-5case/gpt2/report.json",
+      "artifactPath": "gpt2/report.json",
+      "summary": {
+        "pass": false,
+        "caseCount": 5,
+        "passedCases": 2,
+        "originalReplayPassRate": 1,
+        "paraphraseProfile": "ood",
+        "paraphrasePassRate": 0.43333333333333335,
+        "paraphraseFamilySummary": {
+          "context-prefixed-question": {
+            "count": 5,
+            "passed": 2,
+            "passRate": 0.4,
+            "meanDropRatio": 0.2584861499262795,
+            "meanTokenCount": 20
+          },
+          "embedded-question": {
+            "count": 5,
+            "passed": 2,
+            "passRate": 0.4,
+            "meanDropRatio": 0.10021015031223524,
+            "meanTokenCount": 19
+          },
+          "imperative": {
+            "count": 5,
+            "passed": 0,
+            "passRate": 0,
+            "meanDropRatio": -0.3727635627375516,
+            "meanTokenCount": 10
+          },
+          "possessive-question": {
+            "count": 5,
+            "passed": 3,
+            "passRate": 0.6,
+            "meanDropRatio": 0.06517976899749649,
+            "meanTokenCount": 7
+          },
+          "sentence-completion": {
+            "count": 5,
+            "passed": 3,
+            "passRate": 0.6,
+            "meanDropRatio": 0.1667740794070291,
+            "meanTokenCount": 17
+          },
+          "service-question": {
+            "count": 5,
+            "passed": 3,
+            "passRate": 0.6,
+            "meanDropRatio": 0.04602338103679353,
+            "meanTokenCount": 9
+          }
+        },
+        "layerSpecificityRate": 1,
+        "maxReplayError": 0,
+        "failedSubjects": [
+          "Germany",
+          "Portugal",
+          "Greece"
+        ]
+      }
+    }
+  ]
+}

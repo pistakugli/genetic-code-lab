@@ -63,6 +63,9 @@ class SwiGLUProjectionView:
 class SwiGLUMlpView:
     def __init__(self, mlp: Any) -> None:
         self._mlp = mlp
+        self.gate_proj = mlp.gate_proj
+        self.up_proj = mlp.up_proj
+        self.down_proj = mlp.down_proj
         self.act = SwiGLUActivationHook(mlp.down_proj)
         self.c_proj = SwiGLUProjectionView(mlp.down_proj)
 
