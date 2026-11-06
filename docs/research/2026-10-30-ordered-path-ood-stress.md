@@ -111,6 +111,108 @@ measurements.
 Runtime and VRAM were not measured in this lane. CUDA use is verified from the
 model report; it is not evidence of a speedup.
 
+## Why-report layer
+
+The rescue/replacement lane records what happened when a paraphrase breaks a
+path: the broken replay drop, layer-shift attempts, the rediscovered
+replacement path, and its held-out family transfer. It did not explain the
+finding. The north-star reader step "explain why selected components react"
+requires the artifact to say why the path broke and where the measured effect
+went, not only that it broke.
+
+The stability runner now attaches a why-report to every case with rescue
+measurements **or at least one broken paraphrase**, computed by the
+pure-stdlib module
+[`llm_reader/why_report.py`](../../tools/llm_reader/why_report.py) from values
+already recorded in the artifact (no model queries, no new measurements):
+
+- break classification: `sign-flip` (ablation raises the target logit, so the
+  recorded components are counterproductive under the new phrasing),
+  `magnitude-collapse` (positive drop below the absolute gate), or
+  `relative-falloff` (clears the absolute gate but misses the configured
+  ratio);
+- layer-shift rescue outcome: whether shifting the same components across
+  layers recovered the effect, which distinguishes a layer misplacement from a
+  component re-binding;
+- replacement-path comparison against the source circuit: source vs
+  replacement layers, mean layer direction (earlier/later/same), MLP and
+  attention component overlap, ablate-position movement, and a change kind
+  (`component-retention`, `position-rebinding`, `layer-local-rebinding`,
+  `component-rebinding`);
+- transfer diagnosis for the replacement path: which held-out families failed
+  and which threshold (absolute drop vs discovery-relative ratio) they missed;
+- a narrative `whyStatement` assembled only from recorded numbers, plus a
+  per-entry claim boundary;
+- a per-paraphrase break classification for **every** broken paraphrase, not
+  only the ones the run selected for a rescue search, with an honest
+  `rescueSought` flag and, when a rescue search exists, its layer-shift
+  outcome;
+- an `attempted` flag on the replacement comparison so a historical run
+  without a replacement search reads "not run" instead of the misleading
+  "did not find".
+
+The markdown report gains a "Why the path broke" section with the same
+content, and the artifact config gains a `whyReportEnabled` marker. The
+independent verifier recomputes the classification, overlap counts, change
+kind, direction, and transfer diagnosis from the raw rescue measurements, so a
+fabricated or stale why block fails verification; artifacts recorded before
+this layer (no marker) keep verifying under the previous rules.
+
+Applied to the recorded France replacement-transfer artifact: the imperative
+break is classified as a `sign-flip` (broken drop `-0.8927` against the source
+`1.8188`), the layer-shift attempts all remain negative, and the replacement
+path is a `component-rebinding` that moves the effect earlier (layers `9/11`
+to `6`, positions `4` to `9`, zero of two components retained) with `4/5`
+held-out family transfer (service-question below the relative ratio). That is
+the previously missing "why and where" statement for that recorded finding,
+produced by the repo's own gate tooling rather than by hand.
+
+Claim boundary for the why-report layer: it is a comparative diagnosis of
+recorded interventions between two prompts of one subject. It is not semantic
+proof of what components compute, not proof of circuit uniqueness, and not
+evidence beyond the measured families, subjects, and models.
+
+## Family-level break atlas
+
+The why-report explains one break at a time. The atlas layer
+([`llm_reader/why_atlas.py`](../../tools/llm_reader/why_atlas.py)) aggregates
+**every recorded paraphrase replay** across the recorded artifacts into a
+family-level break taxonomy, recomputed from the raw fields and verified by an
+independent recomputation, so a fabricated atlas fails `verify_break_atlas`.
+
+Applied to the four recorded GPT-2 artifacts (five-case OOD suite, one-case
+preflight, replacement-transfer run, and the matched standard baseline), the
+atlas restates the whole recorded population:
+
+- 72 measured paraphrase replays: 53 passed, 19 broken;
+- break kinds across all 19 breaks: 18 `sign-flip`, 1 `relative-falloff`,
+  0 `magnitude-collapse` — when a recorded OOD replay broke, ablation almost
+  always *raised* the target logit instead of merely fading;
+- the `imperative` family broke 7/7 measured replays, all sign-flips (mean
+  broken ratio `-0.41`); no other family broke more than 3/7;
+- the matched standard-profile baseline broke 0/30, so the taxonomy is a
+  property of the OOD phrasings under this protocol, not of the replay
+  machinery;
+- rescue coverage: only 10 of the 19 broken paraphrases were rescue-searched
+  in the recorded runs; of those 10 searches, 6 recovered the effect by
+  shifting the same components to a neighbouring layer (layer misplacement),
+  while the 4 failures are the Germany embedded-question break and the France
+  imperative break (recorded in three separate runs). The one replacement
+  search that ran found a `component-rebinding` (the France case above).
+
+That population statement corrects an implicit bias in the earlier per-case
+reading: the France replacement-transfer case, which motivated the why-report
+layer, is *atypical* — for the majority of the rescue-searched breaks in the
+recorded population the measured effect simply moved with the components to a
+neighbouring layer. The atlas keeps that visible by reporting rescue coverage
+(10/19) rather than generalising the searched subset.
+
+Claim boundary for the atlas: it aggregates the four listed artifacts of one
+model and one protocol; three of them share the France subject, and the
+rescue-searched subset is not a random sample of breaks. It is a restatement
+of recorded numbers, not a semantic claim about prompt families and not
+evidence about unmeasured subjects, families, or models.
+
 ## Artifacts
 
 - [Five-case suite report](../../benchmarks/release/nn-live-ordered-path-stability/ood-paraphrase-stress-gpt2-5case/report.json)
@@ -121,3 +223,4 @@ model report; it is not evidence of a speedup.
 - [Replacement-path transfer suite report](../../benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-2026-11-04/report.json)
 - [Replacement-path transfer raw report](../../benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-2026-11-04/gpt2/report.json)
 - [Independent artifact verifier](../../tools/llm_reader/verify_ordered_path_ood_stress.py)
+- [Family-level break atlas module](../../tools/llm_reader/why_atlas.py)

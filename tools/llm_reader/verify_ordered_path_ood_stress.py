@@ -28,6 +28,323 @@ def _close(value: Any, expected: float) -> bool:
     return _is_number(value) and math.isclose(float(value), expected, rel_tol=1e-9, abs_tol=1e-9)
 
 
+def _why_component_ids(interventions: Any, id_field: str) -> set:
+    ids = set()
+    for intervention in interventions or []:
+        if not isinstance(intervention, dict):
+            continue
+        layer = intervention.get("layer")
+        component = intervention.get(id_field)
+        if isinstance(layer, int) and isinstance(component, int):
+            ids.add((layer, component))
+    return ids
+
+
+def _why_positions(interventions: Any) -> set:
+    positions = set()
+    for intervention in interventions or []:
+        if not isinstance(intervention, dict):
+            continue
+        for position in intervention.get("ablateTokenPositions", []) or []:
+            if isinstance(position, int):
+                positions.add(position)
+    return positions
+
+
+def _expected_path_change(source_nodes: Any, replacement: Any) -> Dict[str, Any] | None:
+    if not isinstance(source_nodes, dict) or not isinstance(replacement, dict):
+        return None
+    source_mlp = _why_component_ids(source_nodes.get("mlp", []), "neuron")
+    source_attention = _why_component_ids(source_nodes.get("attention", []), "head")
+    replacement_mlp = _why_component_ids(replacement.get("mlpInterventions", []), "neuron")
+    replacement_attention = _why_component_ids(replacement.get("attentionInterventions", []), "head")
+    source_layers = {layer for layer, _ in source_mlp | source_attention}
+    replacement_layers = {layer for layer, _ in replacement_mlp | replacement_attention}
+    source_positions = _why_positions(source_nodes.get("mlp", [])) | _why_positions(
+        source_nodes.get("attention", [])
+    )
+    replacement_positions = _why_positions(replacement.get("mlpInterventions", [])) | _why_positions(
+        replacement.get("attentionInterventions", [])
+    )
+    overlap = len(source_mlp & replacement_mlp) + len(source_attention & replacement_attention)
+    shared_layers = sorted(source_layers & replacement_layers)
+    if overlap and shared_layers:
+        change_kind = "component-retention"
+    elif overlap:
+        change_kind = "position-rebinding"
+    elif source_layers and replacement_layers and abs(
+        sum(replacement_layers) / len(replacement_layers) - sum(source_layers) / len(source_layers)
+    ) < 1e-12:
+        change_kind = "layer-local-rebinding"
+    else:
+        change_kind = "component-rebinding"
+    if source_layers and replacement_layers:
+        delta = (
+            sum(replacement_layers) / len(replacement_layers)
+            - sum(source_layers) / len(source_layers)
+        )
+        direction = "earlier" if delta < 0 else "later" if delta > 0 else "same"
+    else:
+        direction = "same"
+    return {
+        "sourceLayers": sorted(source_layers),
+        "replacementLayers": sorted(replacement_layers),
+        "layerOverlap": shared_layers,
+        "sourceAblatePositions": sorted(source_positions),
+        "replacementAblatePositions": sorted(replacement_positions),
+        "componentOverlapCount": overlap,
+        "changeKind": change_kind,
+        "direction": direction,
+    }
+
+
+def _verify_case_why(case: Dict[str, Any], case_prefix: str, config: Dict[str, Any]) -> List[str]:
+    """Check the why-report blocks against the raw rescue measurements.
+
+    Every classification, overlap count, direction, and transfer diagnosis is
+    recomputed here from the raw artifact fields, so a fabricated or stale
+    why-report entry fails verification. Artifacts recorded before the
+    why-report layer (no ``whyReportEnabled`` marker) keep verifying under the
+    previous rules.
+    """
+
+    errors: List[str] = []
+    if config.get("whyReportEnabled") is not True:
+        return errors
+    rescue = case.get("paraphraseRescue", {})
+    rescue_items = rescue.get("items", []) if isinstance(rescue, dict) else []
+    paraphrases = [
+        paraphrase
+        for paraphrase in case.get("paraphrases", []) or []
+        if isinstance(paraphrase, dict)
+    ]
+    broken_paraphrases = [paraphrase for paraphrase in paraphrases if paraphrase.get("pass") is False]
+    why = case.get("whyReport")
+    if not isinstance(why, dict):
+        if rescue_items:
+            errors.append(case_prefix + "why-report is missing for a case with rescue measurements")
+        elif broken_paraphrases:
+            errors.append(case_prefix + "why-report is missing for a case with broken paraphrases")
+        return errors
+    if not rescue_items and not broken_paraphrases:
+        errors.append(case_prefix + "why-report exists without rescue measurements or broken paraphrases")
+        return errors
+    if why.get("subject") != case.get("subject"):
+        errors.append(case_prefix + "why-report subject does not match the case")
+    why_items = why.get("items")
+    if not isinstance(why_items, list) or len(why_items) != len(rescue_items):
+        errors.append(case_prefix + "why-report does not cover every rescue measurement")
+        return errors
+    original_drop = case.get("originalReplay", {}).get("targetLogitDrop")
+    min_original_drop = config.get("minOriginalDrop")
+    rescue_by_prompt = {
+        str(rescue_item.get("prompt")): rescue_item
+        for rescue_item in rescue_items
+        if isinstance(rescue_item, dict)
+    }
+    paraphrase_breaks = why.get("paraphraseBreaks")
+    if broken_paraphrases:
+        if not isinstance(paraphrase_breaks, list) or len(paraphrase_breaks) != len(broken_paraphrases):
+            errors.append(case_prefix + "why-report does not classify every broken paraphrase")
+        else:
+            breaks_by_prompt = {
+                str(entry.get("prompt")): entry
+                for entry in paraphrase_breaks
+                if isinstance(entry, dict)
+            }
+            for paraphrase in broken_paraphrases:
+                entry = breaks_by_prompt.get(str(paraphrase.get("prompt")))
+                break_prefix = f"{case_prefix}paraphrase break {paraphrase.get('family')}: "
+                if entry is None:
+                    errors.append(break_prefix + "classification is missing")
+                    continue
+                drop = paraphrase.get("targetLogitDrop")
+                if _is_number(drop) and _is_number(min_original_drop):
+                    expected_kind = (
+                        "sign-flip"
+                        if drop < 0
+                        else "magnitude-collapse"
+                        if drop < min_original_drop
+                        else "relative-falloff"
+                    )
+                    break_block = entry.get("break")
+                    if not isinstance(break_block, dict) or break_block.get("kind") != expected_kind:
+                        errors.append(break_prefix + "break kind disagrees with the recorded drop")
+                    elif not _close(break_block.get("brokenTargetLogitDrop"), float(drop)):
+                        errors.append(break_prefix + "broken drop differs from the raw paraphrase measurement")
+                rescue_item = rescue_by_prompt.get(str(paraphrase.get("prompt")))
+                if entry.get("rescueSought") is not (rescue_item is not None):
+                    errors.append(break_prefix + "rescue-sought flag disagrees with the recorded rescue searches")
+                elif rescue_item is not None:
+                    shift_block = entry.get("layerShiftRescue")
+                    if not isinstance(shift_block, dict):
+                        errors.append(break_prefix + "layer-shift outcome is missing")
+                    else:
+                        if shift_block.get("recovered") is not bool(rescue_item.get("found")):
+                            errors.append(break_prefix + "layer-shift recovery flag disagrees with the rescue measurement")
+                        if shift_block.get("bestLayerShift") != rescue_item.get("bestLayerShift"):
+                            errors.append(break_prefix + "best layer shift differs from the rescue measurement")
+                if entry.get("replacementSought") is not (
+                    rescue_item is not None and "replacementPathSearch" in rescue_item
+                ):
+                    errors.append(break_prefix + "replacement-sought flag disagrees with the recorded path searches")
+            expected_break_kinds_all: Dict[str, int] = {}
+            for paraphrase in broken_paraphrases:
+                drop = paraphrase.get("targetLogitDrop")
+                if _is_number(drop) and _is_number(min_original_drop):
+                    kind = (
+                        "sign-flip"
+                        if drop < 0
+                        else "magnitude-collapse"
+                        if drop < min_original_drop
+                        else "relative-falloff"
+                    )
+                    expected_break_kinds_all[kind] = expected_break_kinds_all.get(kind, 0) + 1
+            if why.get("paraphraseBreakKinds") != expected_break_kinds_all:
+                errors.append(case_prefix + "why-report paraphrase break kinds do not match raw measurements")
+            if why.get("paraphraseBreakCount") != len(broken_paraphrases):
+                errors.append(case_prefix + "why-report paraphrase break count does not match raw measurements")
+            expected_sought = sum(
+                1
+                for paraphrase in broken_paraphrases
+                if str(paraphrase.get("prompt")) in rescue_by_prompt
+            )
+            if why.get("rescueSoughtCount") != expected_sought:
+                errors.append(case_prefix + "why-report rescue-sought count does not match raw measurements")
+    elif paraphrase_breaks:
+        errors.append(case_prefix + "paraphrase break classifications exist without broken paraphrases")
+    for why_index, (rescue_item, why_item) in enumerate(zip(rescue_items, why_items)):
+        if not isinstance(rescue_item, dict) or not isinstance(why_item, dict):
+            errors.append(case_prefix + f"why entry {why_index} is malformed")
+            continue
+        why_prefix = f"{case_prefix}why entry {why_index}: "
+        broken_drop = rescue_item.get("brokenDrop")
+        replacement = rescue_item.get("replacementPathSearch", {})
+        break_block = why_item.get("break")
+        if _is_number(broken_drop) and _is_number(min_original_drop):
+            expected_kind = (
+                "sign-flip"
+                if broken_drop < 0
+                else "magnitude-collapse"
+                if broken_drop < min_original_drop
+                else "relative-falloff"
+            )
+            if not isinstance(break_block, dict):
+                errors.append(why_prefix + "break classification is missing")
+            else:
+                if break_block.get("kind") != expected_kind:
+                    errors.append(why_prefix + "break kind disagrees with the recorded drops")
+                if not _close(break_block.get("brokenTargetLogitDrop"), float(broken_drop)):
+                    errors.append(why_prefix + "broken drop differs from the raw rescue measurement")
+                if _is_number(original_drop) and not _close(
+                    break_block.get("originalTargetLogitDrop"), float(original_drop)
+                ):
+                    errors.append(why_prefix + "original drop differs from the raw replay measurement")
+        shift_block = why_item.get("layerShiftRescue")
+        if not isinstance(shift_block, dict):
+            errors.append(why_prefix + "layer-shift rescue block is missing")
+        else:
+            if shift_block.get("recovered") is not bool(rescue_item.get("found")):
+                errors.append(why_prefix + "layer-shift recovery flag disagrees with the rescue measurement")
+            if shift_block.get("bestLayerShift") != rescue_item.get("bestLayerShift"):
+                errors.append(why_prefix + "best layer shift differs from the rescue measurement")
+        replacement_block = why_item.get("replacementPath")
+        if not isinstance(replacement_block, dict):
+            errors.append(why_prefix + "replacement comparison is missing")
+        else:
+            if replacement_block.get("found") is not bool(replacement.get("found")):
+                errors.append(why_prefix + "replacement found flag disagrees with the path-search result")
+            if replacement_block.get("attempted") is not ("replacementPathSearch" in rescue_item):
+                errors.append(why_prefix + "replacement attempted flag disagrees with the recorded run")
+            if _is_number(replacement.get("targetLogitDrop")) and not _close(
+                replacement_block.get("targetLogitDrop"), float(replacement["targetLogitDrop"])
+            ):
+                errors.append(why_prefix + "replacement drop differs from the raw path-search result")
+            expected_change = _expected_path_change(case.get("sourceCircuit", {}), replacement)
+            path_change = replacement_block.get("pathChange")
+            if not isinstance(path_change, dict):
+                errors.append(why_prefix + "path comparison is missing")
+            elif expected_change is not None:
+                for key in (
+                    "sourceLayers",
+                    "replacementLayers",
+                    "layerOverlap",
+                    "sourceAblatePositions",
+                    "replacementAblatePositions",
+                ):
+                    if path_change.get(key) != expected_change[key]:
+                        errors.append(why_prefix + f"{key} does not match the recorded interventions")
+                if path_change.get("componentOverlapCount") != expected_change["componentOverlapCount"]:
+                    errors.append(why_prefix + "component overlap count does not match the recorded interventions")
+                if path_change.get("changeKind") != expected_change["changeKind"]:
+                    errors.append(why_prefix + "change kind disagrees with the recorded interventions")
+                if path_change.get("direction") != expected_change["direction"]:
+                    errors.append(why_prefix + "movement direction disagrees with the recorded interventions")
+        transfer_block = why_item.get("transfer")
+        transfer = replacement.get("crossFamilyTransfer", {}) if isinstance(replacement, dict) else {}
+        if isinstance(transfer, dict) and transfer:
+            if not isinstance(transfer_block, dict):
+                errors.append(why_prefix + "transfer diagnosis is missing")
+            else:
+                raw_failing = sorted(
+                    str(item.get("family"))
+                    for item in transfer.get("items", [])
+                    if isinstance(item, dict) and item.get("pass") is False
+                )
+                why_failing = sorted(
+                    str(item.get("family"))
+                    for item in transfer_block.get("failingFamilies", [])
+                    if isinstance(item, dict)
+                )
+                if why_failing != raw_failing:
+                    errors.append(why_prefix + "failing family diagnosis differs from raw transfer measurements")
+                raw_transfer_summary = transfer.get("summary", {})
+                if isinstance(raw_transfer_summary, dict) and (
+                    transfer_block.get("attempted") != raw_transfer_summary.get("attempted")
+                    or transfer_block.get("passed") != raw_transfer_summary.get("passed")
+                ):
+                    errors.append(why_prefix + "transfer counts differ from the raw transfer summary")
+                if transfer_block.get("status") != transfer.get("status"):
+                    errors.append(why_prefix + "transfer status differs from the raw transfer report")
+        if not isinstance(why_item.get("whyStatement"), str) or not why_item.get("whyStatement", "").strip():
+            errors.append(why_prefix + "why statement is missing")
+        if not isinstance(why_item.get("claimBoundary"), str) or not why_item.get("claimBoundary", "").strip():
+            errors.append(why_prefix + "claim boundary is missing")
+    if why.get("rescueCount") != len(rescue_items):
+        errors.append(case_prefix + "why-report rescue count does not match raw measurements")
+    expected_replacements = sum(
+        1
+        for rescue_item in rescue_items
+        if isinstance(rescue_item, dict)
+        and bool(rescue_item.get("replacementPathSearch", {}).get("found"))
+    )
+    if why.get("replacementFoundCount") != expected_replacements:
+        errors.append(case_prefix + "why-report replacement count does not match raw measurements")
+    expected_shift_recoveries = sum(
+        1 for rescue_item in rescue_items if isinstance(rescue_item, dict) and bool(rescue_item.get("found"))
+    )
+    if why.get("layerShiftOnlyRecoveries") != expected_shift_recoveries:
+        errors.append(case_prefix + "why-report layer-shift recovery count does not match raw measurements")
+    expected_break_kinds: Dict[str, int] = {}
+    for rescue_item in rescue_items:
+        if (
+            isinstance(rescue_item, dict)
+            and _is_number(rescue_item.get("brokenDrop"))
+            and _is_number(min_original_drop)
+        ):
+            kind = (
+                "sign-flip"
+                if rescue_item["brokenDrop"] < 0
+                else "magnitude-collapse"
+                if rescue_item["brokenDrop"] < min_original_drop
+                else "relative-falloff"
+            )
+            expected_break_kinds[kind] = expected_break_kinds.get(kind, 0) + 1
+    if why.get("breakKinds") != expected_break_kinds:
+        errors.append(case_prefix + "why-report break-kind aggregate does not match raw measurements")
+    return errors
+
+
 def verify_case_report(report: Dict[str, Any], expected_model_id: str, expected_adapter: str) -> List[str]:
     errors: List[str] = []
     prefix = f"{expected_model_id} ({expected_adapter}): "
@@ -305,6 +622,7 @@ def verify_case_report(report: Dict[str, Any], expected_model_id: str, expected_
                 )
             ):
                 errors.append(replacement_prefix + "held-out transfer aggregate does not match raw measurements")
+        errors.extend(_verify_case_why(case, case_prefix, config))
         if paraphrases and isinstance(original.get("pass"), bool) and isinstance(controls.get("pass"), bool):
             case_paraphrase_rate = sum(bool(item.get("pass")) for item in valid_case_prompts) / max(1, len(valid_case_prompts))
             min_case_rate = config.get("minParaphrasePassRate", 1.0)
@@ -405,6 +723,69 @@ def verify_case_report(report: Dict[str, Any], expected_model_id: str, expected_
                 errors.append(prefix + "replacement-path transfer attempt count does not match raw measurements")
             if transfer_summary.get("passed") != expected_passed:
                 errors.append(prefix + "replacement-path transfer pass count does not match raw measurements")
+    if config.get("whyReportEnabled") is True:
+        why_summary = summary.get("whyReport")
+        expected_why_cases = [
+            case
+            for case in cases
+            if isinstance(case, dict)
+            and isinstance(case.get("paraphraseRescue", {}), dict)
+            and case.get("paraphraseRescue", {}).get("items")
+        ]
+        expected_rescues = sum(len(case["paraphraseRescue"]["items"]) for case in expected_why_cases)
+        expected_replacement_found = sum(
+            1
+            for case in expected_why_cases
+            for rescue_item in case["paraphraseRescue"]["items"]
+            if isinstance(rescue_item, dict)
+            and bool(rescue_item.get("replacementPathSearch", {}).get("found"))
+        )
+        expected_shift_recoveries = sum(
+            1
+            for case in expected_why_cases
+            for rescue_item in case["paraphraseRescue"]["items"]
+            if isinstance(rescue_item, dict) and bool(rescue_item.get("found"))
+        )
+        expected_break_kinds: Dict[str, int] = {}
+        expected_change_kinds: Dict[str, int] = {}
+        for case in expected_why_cases:
+            for rescue_item in case["paraphraseRescue"]["items"]:
+                if not isinstance(rescue_item, dict):
+                    continue
+                if (
+                    _is_number(rescue_item.get("brokenDrop"))
+                    and _is_number(config.get("minOriginalDrop"))
+                ):
+                    kind = (
+                        "sign-flip"
+                        if rescue_item["brokenDrop"] < 0
+                        else "magnitude-collapse"
+                        if rescue_item["brokenDrop"] < config["minOriginalDrop"]
+                        else "relative-falloff"
+                    )
+                    expected_break_kinds[kind] = expected_break_kinds.get(kind, 0) + 1
+                replacement = rescue_item.get("replacementPathSearch", {})
+                if isinstance(replacement, dict) and replacement.get("found") is True:
+                    change = _expected_path_change(case.get("sourceCircuit", {}), replacement)
+                    if change:
+                        expected_change_kinds[change["changeKind"]] = (
+                            expected_change_kinds.get(change["changeKind"], 0) + 1
+                        )
+        if not isinstance(why_summary, dict):
+            errors.append(prefix + "why-report aggregate is missing")
+        else:
+            if why_summary.get("caseCount") != len(expected_why_cases):
+                errors.append(prefix + "why-report case count does not match raw measurements")
+            if why_summary.get("rescueCount") != expected_rescues:
+                errors.append(prefix + "why-report rescue count does not match raw measurements")
+            if why_summary.get("replacementFoundCount") != expected_replacement_found:
+                errors.append(prefix + "why-report replacement count does not match raw measurements")
+            if why_summary.get("layerShiftOnlyRecoveries") != expected_shift_recoveries:
+                errors.append(prefix + "why-report layer-shift recovery count does not match raw measurements")
+            if why_summary.get("breakKinds") != expected_break_kinds:
+                errors.append(prefix + "why-report break-kind aggregate does not match raw measurements")
+            if why_summary.get("replacementChangeKinds") != expected_change_kinds:
+                errors.append(prefix + "why-report change-kind aggregate does not match raw measurements")
     if (
         len(original_passes) == len(cases)
         and len(layer_passes) == len(cases)
