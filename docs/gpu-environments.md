@@ -25,6 +25,7 @@ Every live-lane host, rented or owned, satisfies the same contract:
 
 | Environment | Cost | Setup | Evidence status |
 | --- | --- | --- | --- |
+| Kaggle API GPU kernel (headless) | free (30 h GPU/week) | `KAGGLE_API_TOKEN` + `bash scripts/gpu/kaggle/run-kaggle-gpu-lane.sh` — one command: patch bundle → dataset → kernel push → poll → download → local re-verification | full lane + suite + verifier cycle, `device: cuda` artifacts are release-grade |
 | Google Colab free T4 | free (Google account) | open `scripts/gpu/colab-gcl-ordered-path-ood-stress.ipynb`, Runtime → T4 GPU, Run all | full lane + suite + verifier cycle, `device: cuda` artifacts are release-grade |
 | Owned/workstation GPU (e.g. RTX 3070) | owned | `bash scripts/gpu/provision-gpu-env.sh`, then any lane or `npm run` script | recorded release evidence was produced this way (see `benchmarks/release/nn-live-ordered-path-stability/`) |
 | Any Linux CUDA host (rented: RunPod, Vast, Lambda, …) | hourly | same provision script; check `nvidia-smi` driver ≥ the cu128 wheel requirement first | same as workstation once `gpu-smoke.py` passes |
@@ -44,7 +45,26 @@ Idempotent. The final step is the smoke check; a host is usable only when it
 prints `verdict: OK`. The smoke report records throughput and the device
 fingerprint, so runs can cite which host produced them.
 
-### 2. Colab free T4 (no local setup at all)
+### 2. Kaggle API GPU kernel (headless, fully automated)
+
+The only GPU path with **zero browser interaction after a one-time token**:
+
+1. Generate a token at `https://www.kaggle.com/settings/api` (Generate New
+   Token under API) and `export KAGGLE_API_TOKEN=...` (or save it to
+   `~/.kaggle/access_token`). Legacy `kaggle.json` username/key pairs are no
+   longer accepted by the server on write routes.
+2. `bash scripts/gpu/kaggle/run-kaggle-gpu-lane.sh`
+
+The driver regenerates the patch bundle (`origin/main..HEAD`), uploads it as a
+private dataset, pushes the GPU kernel (`scripts/gpu/kaggle/kernel.py`: clone
+repo → apply patches → pinned stack → `gpu-smoke.py` → ordered-path OOD stress
+run with the recorded France configuration, plus a France+Germany extended
+run → suite assembly → verification), polls until the kernel completes,
+downloads the artifacts, copies the suites into
+`benchmarks/release/nn-live-ordered-path-stability/`, and re-runs the
+verifier locally on the downloaded evidence.
+
+### 3. Colab free T4 (no local setup at all)
 
 Open `scripts/gpu/colab-gcl-ordered-path-ood-stress.ipynb` in Colab, pick a T4
 runtime, Run all. The notebook clones the public GitHub remote, provisions,
@@ -53,7 +73,7 @@ replacement search), assembles the suite with the python wrapper, verifies it
 with `tools/llm_reader/verify_ordered_path_ood_stress.py`, and zips the
 artifacts. No Node.js and no credentials beyond the Colab account.
 
-### 3. Full release gate (needs Node.js)
+### 4. Full release gate (needs Node.js)
 
 ```bash
 npm install
@@ -66,7 +86,7 @@ The `:gpu` npm scripts preset `GCL_PYTHON=.gcl-python-gpu/bin/python`. Every
 lane parameter is env-tunable (`GCL_LIVE_STABILITY_*`); the orchestrator passes
 `--device` from `GCL_DEVICE` (default `cuda`).
 
-### 4. CPU plumbing smoke (what it can and cannot show)
+### 5. CPU plumbing smoke (what it can and cannot show)
 
 ```bash
 GCL_DEVICE=cpu GCL_BENCHMARK_ROOT=benchmarks/scratch \
