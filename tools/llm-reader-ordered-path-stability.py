@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import random
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +19,7 @@ from llm_reader.ood_paraphrases import (
     ood_paraphrase_cases_for_fact,
     summarize_paraphrases_by_family,
 )
+from llm_reader.why_report import attach_why_analysis, render_why_markdown
 
 
 def load_tool_module(filename: str, module_name: str) -> Any:
@@ -470,7 +472,7 @@ def make_markdown(report: Dict[str, Any]) -> str:
                     f"{transfer_summary.get('passed', 0)}/"
                     f"{transfer_summary.get('attempted', 0)} |"
                 )
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines + render_why_markdown(report)) + "\n"
 
 
 def main() -> None:
@@ -499,7 +501,8 @@ def main() -> None:
 
     adapter = create_adapter(args.adapter)
     ordered.set_live_adapter(args.adapter)
-    device = "cuda" if args.device == "auto" and torch.cuda.is_available() else args.device
+    device_request = os.environ.get("GCL_DEVICE") or args.device
+    device = "cuda" if device_request == "auto" and torch.cuda.is_available() else device_request
     if device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but unavailable.")
     layer_shifts = parse_layer_shifts(args.layer_shifts)
@@ -825,6 +828,10 @@ def main() -> None:
     }
     output_json = Path(args.output_json)
     output_md = Path(args.output_md)
+    # North-star step 7 for this lane: every recorded break gets a why-report
+    # (break classification, where the effect went, replacement comparison, and
+    # transfer diagnosis) computed from the measurements already collected.
+    attach_why_analysis(output)
     output_json.parent.mkdir(parents=True, exist_ok=True)
     output_md.parent.mkdir(parents=True, exist_ok=True)
     output_json.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")

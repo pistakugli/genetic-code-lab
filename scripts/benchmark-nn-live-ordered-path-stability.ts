@@ -85,7 +85,9 @@ function runCase(testCase: StabilityCase): { status: number | null; reportPath: 
     // Leading-minus values must use the equals form or argparse reads them as flags,
     // the same reason --layer-shifts does.
     `--rescue-layer-shifts=${envValue('GCL_LIVE_STABILITY_RESCUE_SHIFTS', '-3,-2,-1,1,2,3')}`,
-    '--device', 'cuda',
+    // GCL_DEVICE flows through to the lane tool (env overrides the flag there),
+    // so CPU hosts can smoke the full release gate without a CUDA device.
+    '--device', envValue('GCL_DEVICE', 'cuda'),
     '--local-files-only',
     '--output-json', reportPath,
     '--output-md', markdownPath
