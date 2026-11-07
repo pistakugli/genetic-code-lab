@@ -375,6 +375,15 @@ def oracle_server(args: argparse.Namespace) -> int:
                 for start in range(0, values.shape[0], batch_size):
                     batch = torch.from_numpy(values[start:start + batch_size]).to(compute_device)
                     if whole_module:
+                        # Quantized blocks compute in their recorded dtype; a float32
+                        # input into the bnb kernel kills the server process outright,
+                        # which surfaces downstream only as a closed pipe. Cast to the
+                        # provider's compute dtype before the module sees the batch.
+                        first_weight = mlp.gate_proj.weight
+                        quant_state = getattr(first_weight, "quant_state", None)
+                        compute_dtype = getattr(quant_state, "dtype", None)
+                        if compute_dtype in (torch.float16, torch.bfloat16):
+                            batch = batch.to(compute_dtype)
                         outputs.append(mlp(batch).detach().float().cpu().numpy())
                     else:
                         gate_projection = batch @ gate.T
