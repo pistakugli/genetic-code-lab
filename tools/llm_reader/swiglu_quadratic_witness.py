@@ -58,6 +58,7 @@ class VectorOracle:
 
     def __init__(self, args: argparse.Namespace, work_dir: Path) -> None:
         self.work_dir = work_dir
+        self.max_oracle_calls = int(args.max_oracle_calls)
         self.query_count = 0
         self._counter = 0
         command = [
@@ -97,8 +98,10 @@ class VectorOracle:
         if values.ndim != 2 or values.shape[1] != self.hidden:
             raise RuntimeError(f"witness input shape mismatch: {values.shape}")
         requested = int(values.shape[0])
-        if requested > int(self.meta.get("maxOracleCalls", 0)) - self.query_count:
-            raise RuntimeError("witness oracle budget exceeded")
+        if requested > self.max_oracle_calls - self.query_count:
+            raise RuntimeError(
+                f"witness oracle budget exceeded: requested={requested} "
+                f"consumed={self.query_count} limit={self.max_oracle_calls}")
         self._counter += 1
         input_path = self.work_dir / f"witness-input-{self._counter}.npy"
         output_path = self.work_dir / f"witness-output-{self._counter}.npy"
