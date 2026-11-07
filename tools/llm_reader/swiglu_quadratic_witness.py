@@ -2,8 +2,10 @@
 """Structural quadratic-identity witness for blind SwiGLU oracle blocks.
 
 Queries an isolated MLP block through the oracle-only server protocol
-(`--oracle-output-mode full-mlp-vector`) and certifies, without touching a
-single weight, that the block's even part
+(the same selected-unit-ffn-vector path the recorded lanes use, with the
+full unit list, which returns the complete MLP contribution to the residual
+stream: down_proj(silu(gate_proj(x)) * up_proj(x))) and certifies, without
+touching a single weight, that the block's even part
 
     E(x) = (f(x) + f(-x)) / 2
 
@@ -54,21 +56,23 @@ def make_random(seed: int):
 
 
 class VectorOracle:
-    """Minimal oracle-only client for the full-mlp-vector server mode."""
+    """Minimal oracle-only client: all-units selected-unit-ffn-vector server."""
 
     def __init__(self, args: argparse.Namespace, work_dir: Path) -> None:
         self.work_dir = work_dir
         self.max_oracle_calls = int(args.max_oracle_calls)
         self.query_count = 0
         self._counter = 0
+        units = list(range(int(args.intermediate_size)))
         command = [
             sys.executable, str(TOOL_PATH),
             "--oracle-server",
             "--model", args.model,
             "--layer", str(args.layer),
             "--unit", "0",
+            "--units", ",".join(str(u) for u in units),
             "--device", args.device,
-            "--oracle-output-mode", "full-mlp-vector",
+            "--oracle-output-mode", "selected-unit-ffn-vector",
             "--batch-size", str(args.batch_size),
             "--max-oracle-calls", str(args.max_oracle_calls),
         ]
@@ -83,15 +87,24 @@ class VectorOracle:
         )
         ready_line = self.process.stdout.readline()
         if not ready_line:
-            raise RuntimeError("witness oracle did not become ready")
+            raise RuntimeError(f"witness oracle did not become ready; stderr tail: "
+                               f"{self.stderr_tail()}")
         self.meta = json.loads(ready_line)
         if self.meta.get("type") != "ready":
             raise RuntimeError(f"witness oracle not ready: {self.meta}")
-        if self.meta.get("oracleOutputMode") != "full-mlp-vector":
-            raise RuntimeError(f"expected full-mlp-vector oracle, got {self.meta.get('oracleOutputMode')!r}")
+        if self.meta.get("oracleOutputMode") != "selected-unit-ffn-vector":
+            raise RuntimeError(f"expected selected-unit-ffn-vector oracle, got "
+                               f"{self.meta.get('oracleOutputMode')!r}")
         if self.meta.get("solverAccess") != "oracle-only" or not self.meta.get("oracleOwnsWeights"):
             raise RuntimeError("witness oracle did not declare oracle-only weight ownership")
         self.hidden = int(self.meta["hiddenSize"])
+
+    def stderr_tail(self, max_chars: int = 4000) -> str:
+        try:
+            self.stderr_file.flush()
+            return self.stderr_path.read_text(encoding="utf-8", errors="replace")[-max_chars:]
+        except OSError:
+            return ""
 
     def eval(self, X: np.ndarray) -> np.ndarray:
         values = np.ascontiguousarray(X, dtype=np.float32)
@@ -114,10 +127,12 @@ class VectorOracle:
         self.process.stdin.flush()
         response_line = self.process.stdout.readline()
         if not response_line:
-            raise RuntimeError("witness oracle closed stdout")
+            raise RuntimeError(f"witness oracle closed stdout; stderr tail: "
+                               f"{self.stderr_tail()}")
         response = json.loads(response_line)
         if response.get("type") != "ok":
-            raise RuntimeError(f"witness oracle eval failed: {response}")
+            raise RuntimeError(f"witness oracle eval failed: {response}; "
+                               f"stderr tail: {self.stderr_tail()}")
         observed = int(response.get("count", -1))
         if observed != requested:
             raise RuntimeError(f"witness oracle count mismatch: {observed} != {requested}")
@@ -298,6 +313,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--max-oracle-calls", type=int, default=200000)
+    parser.add_argument("--intermediate-size", type=int, required=True,
+                        help="unit count of the block (witness queries all units)")
     parser.add_argument("--checks", type=int, default=256)
     parser.add_argument("--scale", type=float, default=0.35)
     parser.add_argument("--seed", type=int, default=260621)
