@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-07T08:28:50.000Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "mistral-4096d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/tmp/gcl-venv/bin/python",
+      "tools/llm_reader/blind_swiglu_oracle_decompiler.py",
+      "(per-case invocation; see per-case manifests)"
+    ],
+    "cwd": "/tmp/gcl-repo",
+    "python": "3.12"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_TIMEOUT_MS": "5400000",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "mistral-4096d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "2",
+    "GCL_BLIND_SWIGLU_SWEEP_UNIT_COUNT": "8",
+    "GCL_BLIND_SWIGLU_ACTIVE_RANK": "16",
+    "GCL_BLIND_SWIGLU_GRADIENT_MODE": "forward-coordinate",
+    "GCL_BLIND_SWIGLU_PROBE_POINTS": "17",
+    "GCL_BLIND_SWIGLU_FINITE_DIFFERENCE_STEP": "0.04",
+    "GCL_BLIND_SWIGLU_TRAIN_COUNT": "9600",
+    "GCL_BLIND_SWIGLU_VALIDATION_COUNT": "2048",
+    "GCL_BLIND_SWIGLU_FIT_STEPS": "6000",
+    "GCL_BLIND_SWIGLU_FIT_RESTARTS": "160",
+    "GCL_BLIND_SWIGLU_FIT_LEARNING_RATE": "0.006",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.0035",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_WORST_ERROR": "0.06",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.98",
+    "GCL_BLIND_SWIGLU_MAX_ORACLE_CALLS": "85000",
+    "GCL_BLIND_SWIGLU_PROGRESS": "1"
+  },
+  "git": {
+    "commit": "ea762245402291a122afa9003b0012da170fae61",
+    "statusShort": ""
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only-kaggle-t4-2026-11-07/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only-kaggle-t4-2026-11-07/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/mistral-4096d-randomized-2block-8unit-forward-coordinate-sweep-oracle-only-kaggle-t4-2026-11-07/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 2,
+    "passedCases": 2,
+    "failedCases": 0,
+    "minR2": 0.9973158790677202,
+    "maxMae": 0.0007405548754244283,
+    "maxWorstError": 0.01830709845547525,
+    "minSubspacePrincipalCosine": 0.9999216423199736,
+    "maxRawOracleCallsPerCase": 81297,
+    "totalRawOracleCalls": 162594,
+    "maxUnitCount": 8,
+    "maxAtomCount": 8,
+    "accessInvariant": true
+  },
+  "notes": [
+    "This sweep proves selected real local Mistral-family 4096D SwiGLU unit or small-unit-block outputs can be recovered as blind oracle-only explicit SwiGLU atoms under the recorded case budgets.",
+    "It does not prove full Mistral-family FFN extraction, all-channel 4096D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.",
+    "Kaggle T4 replay of the recorded RTX 3070 configuration; no threshold was relaxed."
+  ]
+}

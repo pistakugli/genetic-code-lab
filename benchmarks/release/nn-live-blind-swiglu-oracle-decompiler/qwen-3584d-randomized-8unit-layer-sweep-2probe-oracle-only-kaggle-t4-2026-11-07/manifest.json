@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-07T08:36:04.000Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "qwen-3584d-randomized-8unit-layer-sweep-2probe-oracle-only",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/tmp/gcl-venv/bin/python",
+      "tools/llm_reader/blind_swiglu_oracle_decompiler.py",
+      "(per-case invocation; see per-case manifests)"
+    ],
+    "cwd": "/tmp/gcl-repo",
+    "python": "3.12"
+  },
+  "env": {
+    "GCL_BLIND_SWIGLU_MODEL": "unsloth/Qwen2.5-7B-Instruct-bnb-4bit",
+    "GCL_BLIND_SWIGLU_MODEL_LABEL": "qwen-3584d",
+    "GCL_BLIND_SWIGLU_FAMILY_LABEL": "Qwen-family",
+    "GCL_BLIND_SWIGLU_EXPECTED_DIMENSION": "3584",
+    "GCL_BLIND_SWIGLU_LAYER_COUNT": "28",
+    "GCL_BLIND_SWIGLU_INTERMEDIATE_SIZE": "18944",
+    "GCL_BLIND_SWIGLU_SWEEP_VARIANT": "qwen-3584d-randomized-8unit-layer-sweep-2probe-oracle-only",
+    "GCL_BLIND_SWIGLU_SWEEP_RANDOM_COUNT": "8",
+    "GCL_BLIND_SWIGLU_TIMEOUT_MS": "2100000",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_R2": "0.995",
+    "GCL_BLIND_SWIGLU_SWEEP_MAX_MAE": "0.002",
+    "GCL_BLIND_SWIGLU_SWEEP_MIN_SUBSPACE_COSINE": "0.99"
+  },
+  "git": {
+    "commit": "ea762245402291a122afa9003b0012da170fae61",
+    "statusShort": ""
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/qwen-3584d-randomized-8unit-layer-sweep-2probe-oracle-only-kaggle-t4-2026-11-07/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/qwen-3584d-randomized-8unit-layer-sweep-2probe-oracle-only-kaggle-t4-2026-11-07/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/qwen-3584d-randomized-8unit-layer-sweep-2probe-oracle-only-kaggle-t4-2026-11-07/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 8,
+    "passedCases": 8,
+    "failedCases": 0,
+    "minR2": 0.9999999957331516,
+    "maxMae": 1.0189573986133082e-05,
+    "maxWorstError": 0.00016841797026345695,
+    "minSubspacePrincipalCosine": 0.9999999980342267,
+    "maxRawOracleCallsPerCase": 16448,
+    "totalRawOracleCalls": 131584,
+    "maxUnitCount": 1,
+    "maxAtomCount": 1,
+    "accessInvariant": true
+  },
+  "notes": [
+    "This sweep proves selected real local Qwen-family 3584D SwiGLU unit or small-unit-block outputs can be recovered as blind oracle-only explicit SwiGLU atoms under the recorded case budgets.",
+    "It does not prove full Qwen-family FFN extraction, all-channel 3584D decompilation, exhaustive LLM circuit recovery, or semantic original-neuron identity from output-only access.",
+    "Kaggle T4 replay of the recorded RTX 3070 configuration; no threshold was relaxed."
+  ]
+}
