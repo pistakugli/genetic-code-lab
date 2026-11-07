@@ -238,7 +238,10 @@ def oracle_server(args: argparse.Namespace) -> int:
     config = AutoConfig.from_pretrained(args.model, local_files_only=args.local_files_only)
     model_type = str(getattr(config, "model_type", ""))
     whole_module = args.oracle_output_mode == "full-mlp-vector"
-    supported_model_types = {"mistral", "llama", "qwen2"} if whole_module else {"mistral", "llama"}
+    # Qwen2 exposes the same MLP structure the selected-unit oracle answers from
+    # (mlp.gate_proj / up_proj / down_proj, bias-free Linears, SiLU-gated SwiGLU),
+    # so it is accepted in the opaque selected-unit oracle mode as well.
+    supported_model_types = {"mistral", "llama", "qwen2"}
     if model_type not in supported_model_types:
         raise RuntimeError(
             f"blind SwiGLU oracle mode {args.oracle_output_mode!r} does not support "
