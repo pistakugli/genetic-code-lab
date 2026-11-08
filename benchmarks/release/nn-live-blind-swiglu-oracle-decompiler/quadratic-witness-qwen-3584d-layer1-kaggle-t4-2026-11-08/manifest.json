@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-08T13:48:59.000Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "quadratic-witness-qwen-3584d-layer1-kaggle-t4-2026-11-08",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/tmp/gcl-venv/bin/python",
+      "/tmp/gcl-repo/tools/llm_reader/swiglu_quadratic_witness.py",
+      "(see witness report)"
+    ],
+    "cwd": "/tmp/gcl-repo",
+    "python": "3.12"
+  },
+  "env": {
+    "GCL_WITNESS_SEED": "260621",
+    "GCL_WITNESS_CHECKS": "256",
+    "GCL_WITNESS_TOLERANCE": "0.02",
+    "HF_HOME": "/tmp/hf-cache"
+  },
+  "git": {
+    "commit": "964dbed6eee9befde247d101f01a9f2a1baf8b08",
+    "statusShort": ""
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/quadratic-witness-qwen-3584d-layer1-kaggle-t4-2026-11-08/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/quadratic-witness-qwen-3584d-layer1-kaggle-t4-2026-11-08/report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/quadratic-witness-qwen-3584d-layer1-kaggle-t4-2026-11-08/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "oracleCalls": 6145,
+    "identities": [
+      "homogeneity-t2",
+      "homogeneity-t3",
+      "polarization",
+      "parallelogram",
+      "originNormRelative"
+    ]
+  },
+  "notes": [
+    "SwiGLU quadratic-identity structural witness (oracle-only, full-mlp-vector mode), qwen family: certifies the target block's even part is exactly a vector-valued quadratic map \u2014 bias-free SiLU-gated structure \u2014 from f(x) queries alone. The LLaMA-family witness passed in kernel v11 and is landed in origin/main; this run extends the evidence class to qwen.",
+    "Kernel v13 rerun: v12's witness invocations did not propagate HF_HOME to the oracle subprocess, so both witnesses died with LocalEntryNotFoundError before any oracle call; v13 passes the kernel env end-to-end (kernel -> witness -> oracle).",
+    "Tool: tools/llm_reader/swiglu_quadratic_witness.py."
+  ]
+}

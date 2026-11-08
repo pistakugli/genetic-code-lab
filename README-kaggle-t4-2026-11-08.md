@@ -1,18 +1,26 @@
 # Kaggle T4 evidence day 2: quadratic-identity witness + lane F post-mortem (2026-11-08)
 
-Continues `README-kaggle-t4-2026-11-07.md` (lanes A–E, kernels v3/v5). Two
-things happened on 2026-11-08 in headless kernel `kuglipista/gcl-swiglu-lane`:
+Continues `README-kaggle-t4-2026-11-07.md` (lanes A–E, kernels v3/v5). Three
+things happened on 2026-11-08 in the headless lane kernels:
 
 1. **Kernel v11 landed a new evidence class**: the oracle-only
    **SwiGLU quadratic-identity structural witness** passed on the real
    quantized LLaMA-3.2-3B layer-1 block — the first GCL evidence that
    certifies *structure* (bias-free SiLU gating) from `f(x)` queries alone,
    rather than reconstructing parameters.
-2. **Lane F v1 (128-unit block, 8x lane E) failed**, and the failure is the
+2. **Kernel v13 extended the witness to all three model families**: after a
+   witness environment regression in kernel v12 (the oracle subprocess did not
+   inherit `HF_HOME`, so both new witnesses died `LocalEntryNotFoundError`
+   before a single oracle call), kernel v13 reran them with end-to-end env
+   propagation — **Mistral-7B (4096D) and Qwen2.5-7B (3584D) both PASS**, all
+   identity residuals at ~1e-6 relative against a 0.02 tolerance.
+3. **Lane F v1 (128-unit block, 8x lane E) failed**, and the failure is the
    informative kind: the fit interpolated the training set to machine
    precision while validation R2 was −39.6 — an identifiability failure by
-   configuration, not a solver defect. Kernel v12 re-launches lane F at
-   48 units with lane-E-matched data density.
+   configuration, not a solver defect. Kernel v12 re-launched lane F at
+   48 units with lane-E-matched data density; that session was killed by a
+   version push over the running kernel and is being re-run (see the incident
+   note below).
 
 ## Quadratic-identity witness (kernel v11, PASS)
 
@@ -101,6 +109,75 @@ identifiability margins** instead of constant budget:
   `kuglipista/gcl-swiglu-lane` as version 12), so it survives sandbox
   recycling; the v11 source had to be recovered from Kaggle.
 
+## Quadratic-identity witnesses, Mistral + Qwen (kernel v13, PASS)
+
+Kernel v12 ran both new witnesses cache-blind: the kernel downloaded the
+providers into `HF_HOME=/tmp/hf-cache` and passed that env to the downloads
+and the lane F solver, but **not** to the witness tool — whose oracle
+subprocess inherits the parent env — so the oracle looked in the default
+empty cache and died `LocalEntityNotFoundError` under `--local-files-only`,
+before a single oracle call (6.1–6.6 s each). Kernel v13 (commit `964dbed`,
+headless kernel `kuglipista/gcl-swiglu-witness`, 180.5 s total, exit 0) is a
+witness-only rerun with the env propagated end-to-end
+(kernel → witness → oracle) plus a hard pre-flight gate that refuses to run
+a cache-blind witness.
+
+Mistral-7B (`unsloth/mistral-7b-instruct-v0.3-bnb-4bit`) layer 1,
+full-mlp-vector mode (all 14,336 units), 256 checks, scale 0.35,
+seed 260621, tolerance 0.02 — **6,145 oracle calls, 13.5 s on the T4**:
+
+| check | median rel. residual | p90 | max | gate |
+| --- | --- | --- | --- | --- |
+| homogeneity-t2 | 8.574e-07 | 8.976e-07 | 1.528e-06 | pass |
+| homogeneity-t3 | 1.484e-06 | 1.582e-06 | 2.028e-06 | pass |
+| polarization | 1.694e-06 | 1.828e-06 | 2.598e-06 | pass |
+| parallelogram | 1.388e-06 | 1.483e-06 | 2.002e-06 | pass |
+| originNormRelative | 0.000e+00 | – | – | pass |
+
+Qwen2.5-7B (`unsloth/Qwen2.5-7B-Instruct-bnb-4bit`) layer 1,
+full-mlp-vector mode (all 18,944 units), same protocol — **6,145 oracle
+calls, 13.0 s on the T4**:
+
+| check | median rel. residual | p90 | max | gate |
+| --- | --- | --- | --- | --- |
+| homogeneity-t2 | 7.339e-07 | 7.724e-07 | 8.193e-07 | pass |
+| homogeneity-t3 | 1.307e-06 | 1.387e-06 | 1.490e-06 | pass |
+| polarization | 1.463e-06 | 1.550e-06 | 1.629e-06 | pass |
+| parallelogram | 1.045e-06 | 1.109e-06 | 1.161e-06 | pass |
+| originNormRelative | 0.000e+00 | – | – | pass |
+
+All identity residuals sit four orders of magnitude below the 0.02 gate,
+matching the LLaMA result — the bias-free SiLU-gated structure certificate
+now covers **all three model families** (LLaMA 3072D, Mistral 4096D, Qwen
+3584D). Both runs declare the full oracle-only audit
+(`solverAccess=oracle-only`, weights/hooks/source-ids false,
+`postHocWitnessOnly=true`).
+
+- Evidence:
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/quadratic-witness-mistral-4096d-layer1-kaggle-t4-2026-11-08/`
+  and
+  `…/quadratic-witness-qwen-3584d-layer1-kaggle-t4-2026-11-08/`
+  (report.json, report.md, manifest.json; produced at repo commit `964dbed`).
+- Run summary (`allLanesPassed: true`) and the full kernel log are archived
+  in the run output; the kernel source is the repository's
+  `scripts/gpu/kaggle/swiglu-lane/kernel.py` at `964dbed`, pushed under the
+  fresh slug `kuglipista/gcl-swiglu-witness` (kernel version 1).
+
+## Lane F v2 session loss (v12/v13 incident, 2026-11-08)
+
+The lane F v2 case in kernel v12 was unaffected by the witness env bug (the
+lane solver received the env) and was progressing normally (48/48 atoms fit,
+gradient scoring phase, ~491 s solver-relative at last observation). It was
+killed when kernel v13 was pushed **over the running session** on the same
+slug — Kaggle aborts a running version on a new push — and the
+`gcl-swiglu-lane` slug subsequently became inaccessible to its owner via the
+API (403 on kernels get/status/output, hidden from `kernels list --mine`),
+so the partial run could not be harvested. Lessons applied going forward:
+never push over a running kernel; run each long case under a dedicated fresh
+slug; harvest the output before any further push. Lane F v2 is re-launched
+unchanged (same units, argv, and recorded lane E environment) under its own
+slug.
+
 ## Environment (kernel v11)
 
 - GPU: Tesla T4 (14.56 GB, sm_75), CUDA build 12.8; torch 2.10.0+cu128,
@@ -114,8 +191,10 @@ identifiability margins** instead of constant budget:
 
 The witness certifies the target *structure* (bias-free SiLU-gated even
 part) of one layer of each model family, from `f(x)`-only access; it does
-not recover parameters. Lane F v2, if it passes, extends the recorded
-selected-unit-block recovery evidence to 48 units — it is still not
-full-block recovery (8192 units), which remains an open problem per the
-research note. The v1 failure is evidence about configuration scaling, not
-about the solver's correctness at recorded scales.
+not recover parameters — that certificate now covers LLaMA-3.2-3B,
+Mistral-7B-v0.3 and Qwen2.5-7B layer-1 blocks (kernels v11 + v13). Lane F
+v2, if it passes, extends the recorded selected-unit-block recovery
+evidence to 48 units — it is still not full-block recovery (8192 units),
+which remains an open problem per the research note. The v1 failure is
+evidence about configuration scaling, not about the solver's correctness at
+recorded scales.
