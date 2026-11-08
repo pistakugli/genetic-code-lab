@@ -201,7 +201,11 @@ def run_witness(args: argparse.Namespace) -> int:
     E_xy, E_xz, E_yz = oracle.even(X + Y), oracle.even(X + Zc), oracle.even(Y + Zc)
     E_xyz = oracle.even(X + Y + Zc)
     lhs = E_xyz - E_xy - E_xz - E_yz + E_x + E_y + E_z
-    r = rel_resid(lhs, E_xyz)
+    # Violation magnitude relative to the map's own scale: lhs is identically
+    # zero for a quadratic map, so ||lhs - E_xyz|| would be 1.0 exactly when
+    # the identity holds — the violation norm, not the difference from the
+    # reference, is the error.
+    r = np.linalg.norm(lhs, axis=1) / np.maximum(np.linalg.norm(E_xyz, axis=1), 1e-30)
     results["polarization"] = {
         "median": float(np.median(r)), "p90": float(np.quantile(r, 0.9)),
         "max": float(np.max(r)),
@@ -211,7 +215,8 @@ def run_witness(args: argparse.Namespace) -> int:
     # --- check 3: parallelogram ----------------------------------------------
     E_xmy = oracle.even(X - Y)
     lhs = E_xy + E_xmy - 2.0 * E_x - 2.0 * E_y
-    r = rel_resid(lhs, E_xy + E_xmy)
+    ref = E_xy + E_xmy
+    r = np.linalg.norm(lhs, axis=1) / np.maximum(np.linalg.norm(ref, axis=1), 1e-30)
     results["parallelogram"] = {
         "median": float(np.median(r)), "p90": float(np.quantile(r, 0.9)),
         "max": float(np.max(r)),
