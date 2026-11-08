@@ -79,12 +79,47 @@ with h even. Three consequences:
   problem; the quadratic identity above is the shared mathematical
   foundation both sides build on.
 
+## Lane F v1 post-mortem (kernel v11, 2026-11-08) — the fiber bound bit back
+
+The 128-unit lane F launched in kernel v11 violated the R >= ~6m fiber bound
+recorded above: 32,000 train rows against 128 atoms is 250 rows/atom (2m),
+inside the 3-4m zone that "demonstrably admits exact-fitting wrong
+factorizations". The measured failure mode matched the theory exactly:
+
+- the batched fit drove **train MAE to 4.06e-14** (machine-zero interpolation),
+- while **validation R2 was -39.61** (MAE 3.75, worst error 20.5),
+- CEGIS cycle 1 accepted 0 atoms, and the run was killed by its own 5 h case
+  timeout at 18,000 s mid-cycle-2.
+
+Parameter accounting: 128 atoms x (2 x 256 + 1) = 65,664 free parameters on
+32,000 rows = 0.49 rows/parameter. Lane E ran 15.4. The lesson is now a
+design rule: **scale train rows with the parameter count (or per-atom data
+density), never with the session budget.**
+
+## Lane F v2 configuration (kernel v12)
+
+48 units = first 48 distinct LCG draws (seed 260621; a verified subset of the
+v1 128-unit list — the same block, smaller), 48 atoms, activeRank 96,
+direction count 1152 (12/rank-dim, lane E parity), train 92,640 = exactly
+10 rows/parameter (1,930 rows/atom = 1.9x lane E's density, 6.7x the 6m
+bound), restarts 512 and structured starts on (both lane E parity), oracle
+budget 2,400,000, case timeout 8 h. Projected batched-fit cost from the v11
+throughput measurement: ~2.5 h, leaving hours of headroom for the adaptive
+stages. If v2 passes, the honest scaling statement is "3x lane E's units at
+2x its per-atom data density", not "8x".
+
 ## Artifacts from this session
 
 - `tools/llm_reader/swiglu_quadratic_witness.py` — oracle-only structural
   witness (homogeneity / polarization / parallelogram / origin-norm gates).
-- Lane F: LLaMA-3.2-3B layer-1, 128 LCG-drawn units (seed 260621), 128 atoms,
-  activeRank 256 — 8x the previous largest replayed block (lane E, 16 units).
+- Landed witness evidence (kernel v11, PASS):
+  `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/quadratic-witness-llama-3072d-layer1-kaggle-t4-2026-11-08/`
+  — all identity residuals at ~1e-6 relative, 6,145 f(x)-only oracle calls.
+- Lane F v1 (128 units, 128 atoms, activeRank 256) — FAILED by
+  identifiability, post-mortem above; the failure manifest stayed in the
+  kernel output and is documented in `README-kaggle-t4-2026-11-08.md`.
+- Lane F v2 (48 units) + Mistral/Qwen family witnesses — kernel v12,
+  `scripts/gpu/kaggle/swiglu-lane/kernel.py`.
 - Prototype scripts (session sandbox, not repo):
   `scripts/fullblock-prototype.py` (numpy ALS + identifiability matrix),
   `scripts/fullblock-torch.py` (full-f Adam).

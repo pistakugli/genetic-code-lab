@@ -1,0 +1,65 @@
+{
+  "kind": "swiglu-quadratic-identity-witness",
+  "pass": true,
+  "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+  "layer": 1,
+  "seed": 260621,
+  "checks": 256,
+  "scale": 0.35,
+  "tolerance": 0.02,
+  "oracleCalls": 6145,
+  "hiddenSize": 3072,
+  "oracleMeta": {
+    "hiddenSize": 3072,
+    "oracleOutputMode": "selected-unit-ffn-vector",
+    "oracleResponseWidth": 3072,
+    "solverAccess": "oracle-only",
+    "oracleOwnsWeights": true,
+    "oracleQuantizationStep": 0.0
+  },
+  "identities": {
+    "evenPart": "E(x) = (f(x) + f(-x)) / 2",
+    "basis": "silu(s) - silu(-s) = s holds for the SiLU function itself, so a bias-free SwiGLU block has an exactly quadratic even part regardless of the weight values (including quantized weights)."
+  },
+  "results": {
+    "homogeneity-t2": {
+      "median": 7.329283962660443e-07,
+      "p90": 7.561929838352278e-07,
+      "max": 7.929643993283455e-07
+    },
+    "homogeneity-t3": {
+      "median": 1.242153575768651e-06,
+      "p90": 1.2973578844532278e-06,
+      "max": 1.383480613488318e-06
+    },
+    "polarization": {
+      "median": 1.4042858357876147e-06,
+      "p90": 1.4613474202003855e-06,
+      "max": 1.579607291830632e-06
+    },
+    "parallelogram": {
+      "median": 1.1706435593930491e-06,
+      "p90": 1.2133229018922912e-06,
+      "max": 1.2782691064379354e-06
+    },
+    "originNormRelative": 0.0
+  },
+  "gates": {
+    "homogeneity-t2": true,
+    "homogeneity-t3": true,
+    "polarization": true,
+    "parallelogram": true,
+    "originNormRelative": true
+  },
+  "accessAudit": {
+    "solverAccess": "oracle-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "postHocWitnessOnly": true
+  },
+  "claimBoundary": [
+    "This witness certifies the oracle block's even part is a vector-valued quadratic map to the recorded tolerance (float-rounding of the provider), which is the structural signature of a bias-free SiLU-gated GLU block.",
+    "It does not certify weight values, unit identities, or the recovery quality of any solver; it certifies target structure only."
+  ]
+}
