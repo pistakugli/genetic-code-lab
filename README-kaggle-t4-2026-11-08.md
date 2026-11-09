@@ -178,6 +178,43 @@ slug; harvest the output before any further push. Lane F v2 is re-launched
 unchanged (same units, argv, and recorded lane E environment) under its own
 slug.
 
+## Lane F v2 result (kernel v14, FAIL — recorded failure frontier)
+
+Re-run under the dedicated slug `kuglipista/gcl-swiglu-lane-f` (repo commit
+`521969a`, clean status): the case ran its full course — 25,758.4 s
+(7.15 h) of solver time, 259,841 raw oracle calls, and **failed** every
+recovery gate:
+
+| gate | required | measured |
+| --- | --- | --- |
+| validation R2 | ≥ 0.995 | **0.0104** |
+| MAE | ≤ 0.015 | **0.358** |
+| worst error | ≤ 0.12 | **1.996** |
+| subspace min principal cosine | ≥ 0.999 | **0.00126** |
+| paired atoms (joint cosine ≥ 0.99) | 48 | **0** |
+
+Unlike lane F v1 (which interpolated the training set to machine zero and
+failed only on validation — spurious-solution signature), v2's fit did not
+even reach train interpolation quality; validation R2 ≈ 0.01 means the
+recovered 48-atom model explains ~1% of block variance. Solver phases from
+the kernel log: basis recovery succeeded immediately (activeRank 96,
+energyRatio 0.9999999999999992 — the linear-algebra stage is not the
+bottleneck); the joint nonlinear fit then spent 23,002 s before validation;
+two CEGIS cycles accepted **0 atoms** each (`replaced: false`); the
+weak-gate analysis flagged 24 of 48 atoms with weak gate norms and refit
+attempts on the 8-atom weak block did not move any gate. The access audit
+is clean (`solverAccess=oracle-only`, weights/hooks/source-ids false,
+truth locked until recovery frozen), so this is a genuine solver-frontier
+result, not an access violation: **the recorded greedy-atom joint recovery
+does not scale from 16 to 48 units, even at 10 rows/parameter with lane-E
+probe geometry and restart counts.** The identifiability-matched data
+density was necessary but not sufficient; the bottleneck is the non-convex
+joint fit itself (48 interacting atoms on a rugged landscape), not data.
+
+Evidence:
+`benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-lcg48-48atom-forward-coordinate-oracle-only-kaggle-t4-2026-11-08/`
+(report.json, report.md, manifest.json; status `fail`).
+
 ## Environment (kernel v11)
 
 - GPU: Tesla T4 (14.56 GB, sm_75), CUDA build 12.8; torch 2.10.0+cu128,
