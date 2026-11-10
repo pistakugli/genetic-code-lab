@@ -215,6 +215,44 @@ Evidence:
 `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/llama-3072d-layer1-lcg48-48atom-forward-coordinate-oracle-only-kaggle-t4-2026-11-08/`
 (report.json, report.md, manifest.json; status `fail`).
 
+## Lane G result (kernel v15, FAIL — family generalization + frontier bracket)
+
+Run under the dedicated slug `kuglipista/gcl-swiglu-lane-g` (repo commit
+`27b0d4f`, clean status, HF cache pre-flight clean for all three providers),
+2026-11-09 16:15:30–17:23:02 UTC, 4,050.8 s total, 551,761 raw oracle calls
+across three cases. All three cases **failed their gates**; exit 1 by design.
+
+| case | units | family | R2 | MAE | worst | subspace cos | paired ≥ 0.99 | verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| G1 mistral-16 | 16 | Mistral-7B 4096D | 0.999336 | 0.000167 | 0.00296 | **0.999999** | **4**/16 | FAIL (gate) |
+| G2 qwen-16 | 16 | Qwen2.5-7B 3584D | 0.999995 | 0.000369 | 0.00780 | 0.017855 | **7**/16 | FAIL (gate) |
+| G3 llama-24 | 24 | LLaMA-3.2-3B 3072D | 0.417466 | 0.191788 | 1.42547 | 0.002379 | **0**/24 (max cos 0.8612) | FAIL (bracket) |
+
+What the two 16-unit cases actually measured — a failure mode lane E did
+not show: **functional recovery succeeds, canonical-form recovery does
+not.** On mistral, the 32-dim atom subspace is recovered to 1−5e-07 and the
+block function to R2 0.99934 (above the recorded v3 mistral 8-unit baseline
+0.9973, at twice the unit count), yet only 4/16 atoms individually pair at
+joint cosine ≥ 0.99 — within the correct span, the solver's joint fit lands
+on a mixture of the true (gate, up) pairs. On qwen the block function is
+recovered to R2 0.9999952 with 7/16 atoms paired (one at cosine 1.0) but the
+recovered subspace is rotated away from the source subspace (min principal
+cosine 0.0179): the solver found *an* equivalent decomposition, not *the*
+decomposition. The gates distinguish these from a true recovery, which is
+exactly what they are for. G3 brackets the joint-fit frontier on LLaMA at
+10 rows/parameter: 24 units fails outright (0/24 paired, best joint cosine
+0.8612), so the recorded frontier on this protocol is 16 passes / 24 fails
+/ 48 fails, and the 16-unit pass is currently LLaMA-only.
+
+Honest standing against the v3 baselines: mistral-16 beats the v3 mistral
+8-unit functional result at twice the units; qwen-16 is close to but below
+the v3 qwen 8-unit result; neither earns an atom-level claim. No
+superiority claim over the recorded baselines is earned by this run.
+
+Evidence:
+`benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/{mistral-4096d-layer1-lcg16-16atom,qwen-3584d-layer1-lcg16-16atom,llama-3072d-layer1-lcg24-24atom}-forward-coordinate-oracle-only-kaggle-t4-2026-11-09/`
+(report.json, report.md, manifest.json each; status `fail`).
+
 ## Environment (kernel v11)
 
 - GPU: Tesla T4 (14.56 GB, sm_75), CUDA build 12.8; torch 2.10.0+cu128,
@@ -230,8 +268,10 @@ The witness certifies the target *structure* (bias-free SiLU-gated even
 part) of one layer of each model family, from `f(x)`-only access; it does
 not recover parameters — that certificate now covers LLaMA-3.2-3B,
 Mistral-7B-v0.3 and Qwen2.5-7B layer-1 blocks (kernels v11 + v13). Lane F
-v2, if it passes, extends the recorded selected-unit-block recovery
-evidence to 48 units — it is still not full-block recovery (8192 units),
+v2 failed (see above); the recorded atom-level selected-unit-block recovery
+remains lane E's 16-unit LLaMA pass, and lane G shows that pass does not
+yet generalize to Mistral/Qwen under atom-level gates (function yes,
+canonical form no). None of this is full-block recovery (8192+ units),
 which remains an open problem per the research note. The v1 failure is
 evidence about configuration scaling, not about the solver's correctness at
 recorded scales.
