@@ -170,6 +170,82 @@ class OODParaphraseTests(unittest.TestCase):
             )
         )
 
+    def test_artifact_verifier_accepts_recorded_cpu_device_and_rejects_unknown_devices(self) -> None:
+        family_names = [family for family, _ in OOD_CAPITAL_PROMPT_TEMPLATES]
+        paraphrases = [
+            {
+                "profile": "ood",
+                "family": family,
+                "prompt": f"Which city is the capital of France? ({family})",
+                "tokenCount": 7,
+                "targetLogitDrop": 2.0,
+                "ratioToOriginal": 1.0,
+                "pass": True,
+            }
+            for family in family_names
+        ]
+        family_summary = {
+            family: {
+                "count": 1,
+                "passed": 1,
+                "passRate": 1.0,
+                "meanDropRatio": 1.0,
+                "meanTokenCount": 7.0,
+            }
+            for family in family_names
+        }
+
+        def case_report_with_device(device: str):
+            return {
+                "kind": "gpt2-live-ordered-path-ood-stress",
+                "synthetic": False,
+                "surrogate": False,
+                "model": {"id": "gpt2", "adapter": "gpt2", "device": device},
+                "config": {
+                    "caseCount": 1,
+                    "paraphraseCount": len(family_names),
+                    "paraphraseProfile": "ood",
+                    "minParaphrasePassRate": 0.66,
+                    "minLayerSpecificityRate": 0.8,
+                },
+                "summary": {
+                    "pass": True,
+                    "caseCount": 1,
+                    "originalReplayPassRate": 1.0,
+                    "paraphraseProfile": "ood",
+                    "paraphrasePassRate": 1.0,
+                    "paraphraseFamilySummary": family_summary,
+                    "layerSpecificityRate": 1.0,
+                    "maxReplayError": 0.0,
+                },
+                "cases": [{
+                    "subject": "France",
+                    "answer": "Paris",
+                    "status": "passed",
+                    "originalReplay": {
+                        "targetLogitDrop": 2.0,
+                        "absoluteReplayError": 0.0,
+                        "pass": True,
+                    },
+                    "paraphrases": paraphrases,
+                    "layerControls": {"items": [{"shift": 1}], "pass": True},
+                }],
+                "claimBoundary": {
+                    "provesIfPasses": "Configured causal replay only.",
+                    "doesNotProve": "Arbitrary prompt stability.",
+                },
+            }
+
+        for device in ("cuda", "cpu"):
+            self.assertEqual(
+                verify_case_report(case_report_with_device(device), "gpt2", "gpt2"),
+                [],
+                f"a recorded {device} live run must verify",
+            )
+        errors = verify_case_report(case_report_with_device("gpu-cloud"), "gpt2", "gpt2")
+        self.assertEqual(len(errors), 1)
+        self.assertIn("supported live device", errors[0])
+
     def test_artifact_verifier_checks_replacement_path_result_and_aggregate(self) -> None:
         family_names = [family for family, _ in OOD_CAPITAL_PROMPT_TEMPLATES]
         paraphrases = [

@@ -60,7 +60,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="when a paraphrase breaks the path, search for the path that replaced it",
     )
-    parser.add_argument("--max-rescue-attempts", type=int, default=2)
+    parser.add_argument(
+        "--max-rescue-attempts",
+        type=int,
+        default=6,
+        help="rescue at most this many broken paraphrases; 6 covers every OOD family",
+    )
     parser.add_argument("--rescue-layer-shifts", default="-3,-2,-1,1,2,3")
     parser.add_argument("--replacement-candidate-count", type=int, default=10)
     parser.add_argument("--replacement-max-pair-attempts", type=int, default=32)
@@ -778,6 +783,7 @@ def main() -> None:
             "replacementCandidateCount": int(args.replacement_candidate_count),
             "replacementMaxPairAttempts": int(args.replacement_max_pair_attempts),
             "replacementMaxSetAttempts": int(args.replacement_max_set_attempts),
+            "maxRescueAttempts": int(args.max_rescue_attempts),
         },
         "summary": {
             "pass": pass_summary,

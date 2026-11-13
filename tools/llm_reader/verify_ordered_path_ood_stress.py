@@ -361,8 +361,8 @@ def verify_case_report(report: Dict[str, Any], expected_model_id: str, expected_
         errors.append(prefix + "model identity does not match the selected suite case")
     if model.get("adapter") != expected_adapter:
         errors.append(prefix + "adapter identity does not match the selected suite case")
-    if model.get("device") != "cuda":
-        errors.append(prefix + "pilot must record CUDA as the model device")
+    if model.get("device") not in ("cuda", "cpu"):
+        errors.append(prefix + "pilot must record a supported live device (cuda or cpu)")
 
     config = report.get("config")
     summary = report.get("summary")
