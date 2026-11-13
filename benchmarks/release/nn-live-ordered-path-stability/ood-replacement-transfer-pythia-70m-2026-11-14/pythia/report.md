@@ -67,6 +67,16 @@ Per broken paraphrase: why the replay failed, where the measured effect went, an
 
 ### France
 
+Measured paraphrase breaks for this subject:
+
+| family | break kind | broken drop | ratio to original | rescue sought | layer-shift outcome |
+|---|---|---|---|---|---|
+| service-question | magnitude-collapse | 0.000000 | 0.000000 | yes | recovered (shift 1) |
+| possessive-question | magnitude-collapse | 0.000000 | 0.000000 | yes | not recovered (best shift 1) |
+| embedded-question | magnitude-collapse | 0.000000 | 0.000000 | yes | not recovered (best shift 1) |
+| sentence-completion | magnitude-collapse | 0.000000 | 0.000000 | yes | not recovered (best shift 1) |
+| context-prefixed-question | magnitude-collapse | 0.000000 | 0.000000 | yes | not recovered (best shift 1) |
+
 **service-question** - Which city serves as the capital of France?
 
 Under the service-question phrasing of the France prompt the original path (MLP L1 n309 + attention L0 h6) broke as a magnitude-collapse: the remapped replay drop was 0.0000 against 2.0000 on the source prompt. A layer shift of 1 alone recovered the effect. The replacement search did not find a passing path. The search's best rejected candidate (MLP L4 n234 + attention L2 h4, L3 h4) with target-logit drop 1.0000 did not pass the replacement gates, so its comparison below describes a candidate, not a carried effect.

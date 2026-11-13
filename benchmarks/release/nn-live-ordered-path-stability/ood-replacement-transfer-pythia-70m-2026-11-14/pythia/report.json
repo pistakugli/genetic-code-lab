@@ -117,7 +117,12 @@
       "breakKinds": {
         "magnitude-collapse": 5
       },
-      "replacementChangeKinds": {}
+      "replacementChangeKinds": {},
+      "paraphraseBreakCount": 5,
+      "paraphraseBreakKinds": {
+        "magnitude-collapse": 5
+      },
+      "rescueSoughtCount": 5
     }
   },
   "cases": [
@@ -606,6 +611,11 @@
           "magnitude-collapse": 5
         },
         "replacementChangeKinds": {},
+        "paraphraseBreakCount": 5,
+        "paraphraseBreakKinds": {
+          "magnitude-collapse": 5
+        },
+        "rescueSoughtCount": 5,
         "whereEffectWent": {
           "layerSets": [],
           "directions": []
@@ -636,6 +646,7 @@
             },
             "replacementPath": {
               "found": false,
+              "attempted": true,
               "selectionMode": "ordered-rescue-best-margin-pair",
               "targetLogitDrop": 1.0,
               "pathChangeScope": "best rejected candidate",
@@ -730,6 +741,7 @@
             },
             "replacementPath": {
               "found": false,
+              "attempted": true,
               "selectionMode": null,
               "targetLogitDrop": 0.0,
               "pathChangeScope": "no candidate recorded",
@@ -804,6 +816,7 @@
             },
             "replacementPath": {
               "found": false,
+              "attempted": true,
               "selectionMode": null,
               "targetLogitDrop": 0.0,
               "pathChangeScope": "no candidate recorded",
@@ -878,6 +891,7 @@
             },
             "replacementPath": {
               "found": false,
+              "attempted": true,
               "selectionMode": null,
               "targetLogitDrop": 0.0,
               "pathChangeScope": "no candidate recorded",
@@ -952,6 +966,7 @@
             },
             "replacementPath": {
               "found": false,
+              "attempted": true,
               "selectionMode": null,
               "targetLogitDrop": 0.0,
               "pathChangeScope": "no candidate recorded",
@@ -1000,6 +1015,113 @@
             },
             "whyStatement": "Under the context-prefixed-question phrasing of the France prompt the original path (MLP L1 n309 + attention L0 h6) broke as a magnitude-collapse: the remapped replay drop was 0.0000 against 2.0000 on the source prompt. Replaying the same components shifted across layers (1, 2, 3) reached at best 0.0000, so the effect did not simply move with those components. The replacement search did not find a passing path (ordered path requires selected MLP and attention interventions).",
             "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          }
+        ],
+        "paraphraseBreaks": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of France?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": true,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 1.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "possessive-question",
+            "prompt": "What city is France's capital?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "embedded-question",
+            "prompt": "I am checking a country profile. Could you tell me which city is the capital of France?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "sentence-completion",
+            "prompt": "Complete this sentence with a city name: The city that is the capital of France is",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "context-prefixed-question",
+            "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of France?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
           }
         ]
       }
