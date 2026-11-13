@@ -266,6 +266,16 @@ def build_rescue_why(
     replacement = rescue_item.get("replacementPathSearch", {}) or {}
     replacement_attempted = "replacementPathSearch" in rescue_item
     replacement_found = bool(replacement.get("found")) if replacement_attempted else False
+    replacement_has_candidate = bool(
+        replacement.get("mlpInterventions") or replacement.get("attentionInterventions")
+    )
+    path_scope = (
+        "replacement path"
+        if replacement_found
+        else "best rejected candidate"
+        if replacement_has_candidate
+        else "no candidate recorded"
+    )
     path_change = compare_paths(
         source_nodes=case.get("sourceCircuit", {}) or {},
         replacement=replacement,
@@ -316,6 +326,12 @@ def build_rescue_why(
                 "The replacement-path search was not run for this break in the recorded "
                 "run, so the artifact says nothing about where a replacement would be found."
             )
+    if not replacement_found and replacement_has_candidate:
+        sentences.append(
+            f"The search's best rejected candidate ({_replacement_phrase(replacement)}) with "
+            f"target-logit drop {_fmt(replacement_drop)} did not pass the replacement gates, "
+            f"so its comparison below describes a candidate, not a carried effect."
+        )
     if transfer.get("status") in ("passed", "failed"):
         failing = [str(item["family"]) for item in transfer["failingFamilies"]]
         sentences.append(
@@ -335,6 +351,7 @@ def build_rescue_why(
             "attempted": replacement_attempted,
             "selectionMode": replacement.get("selectionMode"),
             "targetLogitDrop": replacement_drop,
+            "pathChangeScope": path_scope,
             "pathChange": path_change,
         },
         "transfer": transfer,
@@ -601,7 +618,8 @@ def render_why_markdown(report: Dict[str, Any]) -> List[str]:
             lines.append(str(entry.get("whyStatement")))
             lines.append("")
             path_change = entry["replacementPath"]["pathChange"]
-            lines.append("| field | source circuit | replacement path |")
+            path_scope = entry["replacementPath"].get("pathChangeScope", "replacement path")
+            lines.append(f"| field | source circuit | {path_scope} |")
             lines.append("|---|---|---|")
             lines.append(
                 f"| layers | {path_change['sourceLayers']} | {path_change['replacementLayers']} |"
