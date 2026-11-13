@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-13T19:13:44.795489Z",
+  "lane": "nn-live-ordered-path-stability",
+  "variant": "ood-replacement-transfer-pythia-70m-2026-11-14",
+  "status": "fail",
+  "command": {
+    "argv": [
+      "python3",
+      "tools/llm-reader-ordered-path-stability.py",
+      "--adapter",
+      "gpt-neox",
+      "--model",
+      "EleutherAI/pythia-70m-deduped",
+      "--input-report",
+      "benchmarks/release/nn-live-pythia-ordered-residual-path-circuit-finder/pythia-70m-20-facts-ordered-residual-path/report.json",
+      "--subjects",
+      "France",
+      "--case-count",
+      "1",
+      "--paraphrase-count",
+      "6",
+      "--paraphrase-profile",
+      "ood",
+      "--min-original-drop",
+      "0.05",
+      "--min-paraphrase-drop-ratio",
+      "0.10",
+      "--min-paraphrase-pass-rate",
+      "0.66",
+      "--layer-shifts=-2,-1,1,2",
+      "--min-layer-control-count",
+      "2",
+      "--min-layer-margin",
+      "0.001",
+      "--min-layer-specificity-rate",
+      "0.8",
+      "--rescue-broken-paraphrases",
+      "--rescue-layer-shifts=-3,-2,-1,1,2,3",
+      "--replacement-candidate-count",
+      "10",
+      "--replacement-max-pair-attempts",
+      "32",
+      "--replacement-max-set-attempts",
+      "24",
+      "--device",
+      "cpu",
+      "--output-json",
+      "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-pythia-70m-2026-11-14/pythia/report.json",
+      "--output-md",
+      "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-pythia-70m-2026-11-14/pythia/report.md"
+    ],
+    "cwd": "/home/z/my-project/genetic-code-lab",
+    "python": "3.12.16"
+  },
+  "env": {
+    "GCL_PYTHON": "python3",
+    "DEVICE": "cpu"
+  },
+  "git": {
+    "commit": "ff7db23598a1f1f89db0c8344bc788ba04df50c8",
+    "statusShort": "?? benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-pythia-70m-2026-11-14/\n?? docs/research/2026-11-14-pythia-70m-ood-replacement-transfer.md",
+    "uncommittedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-pythia-70m-2026-11-14/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-pythia-70m-2026-11-14/report.md",
+    "manifest": "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-pythia-70m-2026-11-14/manifest.json",
+    "caseReport": "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-pythia-70m-2026-11-14/pythia/report.json"
+  },
+  "summary": {
+    "pass": false,
+    "cases": 1,
+    "passed": 0,
+    "failed": [
+      "pythia"
+    ]
+  },
+  "notes": [
+    "Second-family evidence for the why-report layer: Pythia-70m-deduped replayed live on CPU from the recorded circuit-finder artifact.",
+    "Original replay reproduces the recorded target-logit drop exactly (absolute replay error 0.0).",
+    "Five of six OOD paraphrase families break the path as magnitude-collapse; the service-question break is a layer misplacement recovered by a +1 layer shift; the replacement search finds no passing path for any break, so cross-family transfer is not attempted.",
+    "The stress gate fails honestly (paraphrase pass rate 1/6 under the configured thresholds); the artifact records the failure and the why-report explains every recorded break.",
+    "Run in the continuation sandbox without GPU; the verifier accepts recorded CPU live runs alongside CUDA."
+  ]
+}
