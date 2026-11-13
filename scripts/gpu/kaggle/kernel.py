@@ -125,11 +125,16 @@ def main():
          "--output-json", f"../{PRIMARY_SUITE}/gpt2/report.json",
          "--output-md", f"../{PRIMARY_SUITE}/gpt2/report.md"], env=env)
     os.chdir(REPO)
-    run([PYTHON, "scripts/gpu/wrap-lane-suite.py",
-         "--paraphrase-profile", "ood",
-         "--result", f"id=gpt2,label=GPT-2,adapter=gpt2,model=gpt2,report={PRIMARY_SUITE}/gpt2/report.json",
-         "--output-dir", PRIMARY_SUITE,
-         "--note", "Kaggle GPU kernel run (headless); recorded France OOD-stress configuration."], env=env)
+    # An honest lane-gate failure (OOD robustness below threshold) is a
+    # recorded measurement, not an execution error: the wrapper exits 1 when
+    # the lane summary says pass=false, and the suite must still be assembled
+    # and verified so the artifact ships.
+    wrap_primary = run([PYTHON, "scripts/gpu/wrap-lane-suite.py",
+                "--paraphrase-profile", "ood",
+                "--result", f"id=gpt2,label=GPT-2,adapter=gpt2,model=gpt2,report={PRIMARY_SUITE}/gpt2/report.json",
+                "--output-dir", PRIMARY_SUITE,
+                "--note", "Kaggle GPU kernel run (headless); recorded France OOD-stress configuration."],
+               env=env, check=False)
 
     # --- 5. Extended lane run: two subjects, informational --------------------
     extended_ok = True
@@ -141,11 +146,14 @@ def main():
              "--output-json", f"../{EXTENDED_SUITE}/gpt2/report.json",
              "--output-md", f"../{EXTENDED_SUITE}/gpt2/report.md"], env=env)
         os.chdir(REPO)
+        # Same honest-gate rule as the primary run: a lane-gate failure
+        # still assembles and verifies the extended suite.
         run([PYTHON, "scripts/gpu/wrap-lane-suite.py",
              "--paraphrase-profile", "ood",
              "--result", f"id=gpt2,label=GPT-2,adapter=gpt2,model=gpt2,report={EXTENDED_SUITE}/gpt2/report.json",
              "--output-dir", EXTENDED_SUITE,
-             "--note", "Kaggle GPU kernel extended run (France+Germany); informational."], env=env)
+             "--note", "Kaggle GPU kernel extended run (France+Germany); informational."],
+            env=env, check=False)
     except RuntimeError as error:
         print(f"[kernel] extended run failed (non-fatal): {error}", flush=True)
         extended_ok = False
@@ -171,6 +179,7 @@ def main():
         "kind": "gcl-kaggle-gpu-lane-run",
         "primarySuite": PRIMARY_SUITE,
         "extendedSuite": EXTENDED_SUITE,
+        "suiteWrapperExit": wrap_primary.returncode,
         "primaryVerifierExit": primary_verify.returncode,
         "extendedVerifierExit": extended_verify.returncode,
         "extendedRunCompleted": extended_ok,
