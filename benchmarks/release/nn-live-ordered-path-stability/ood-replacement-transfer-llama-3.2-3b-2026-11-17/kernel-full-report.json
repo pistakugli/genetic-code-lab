@@ -1,0 +1,1385 @@
+{
+  "schemaVersion": 1,
+  "kind": "llama-swiglu-live-ordered-path-ood-stress",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-11-17T18:55:40.675159Z",
+  "model": {
+    "id": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "class": "LlamaForCausalLM",
+    "modelType": "llama",
+    "layers": 28,
+    "heads": 24,
+    "keyValueHeads": 8,
+    "hiddenSize": 3072,
+    "intermediateSize": 8192,
+    "device": "cuda",
+    "localFilesOnly": false,
+    "quantized": true,
+    "adapter": "llama-swiglu",
+    "activationFamily": "swiglu",
+    "addressedMlpUnit": "silu(gate_proj(x))*up_proj(x) pair before down_proj"
+  },
+  "sourceReport": "/kaggle/input/gcl-llama-ood-input/input/report.json",
+  "config": {
+    "subjects": [
+      "France",
+      "Germany",
+      "Italy",
+      "Spain"
+    ],
+    "caseCount": 4,
+    "paraphraseCount": 6,
+    "paraphraseProfile": "ood",
+    "layerShifts": [
+      -2,
+      -1,
+      1,
+      2
+    ],
+    "minLayerControlCount": 2,
+    "minOriginalDrop": 0.005,
+    "minParaphraseDropRatio": 0.5,
+    "minParaphrasePassRate": 0.66,
+    "minLayerMargin": 0.0001,
+    "minLayerSpecificityRate": 0.75,
+    "maxReplayError": 0.125,
+    "replacementPathSearchEnabled": true,
+    "replacementPathTransferEnabled": true,
+    "replacementCandidateCount": 10,
+    "replacementMaxPairAttempts": 32,
+    "replacementMaxSetAttempts": 24,
+    "whyReportEnabled": true
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 4,
+    "passedCases": 4,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "ood",
+    "paraphrasePassRate": 0.9166666666666666,
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 4,
+        "passed": 3,
+        "passRate": 0.75,
+        "meanDropRatio": 0.6897321428571428,
+        "meanTokenCount": 21.0
+      },
+      "embedded-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.7053571428571428,
+        "meanTokenCount": 20.0
+      },
+      "imperative": {
+        "count": 4,
+        "passed": 3,
+        "passRate": 0.75,
+        "meanDropRatio": 0.7852678571428572,
+        "meanTokenCount": 11.0
+      },
+      "possessive-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.8928571428571428,
+        "meanTokenCount": 8.0
+      },
+      "sentence-completion": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.7986607142857143,
+        "meanTokenCount": 18.0
+      },
+      "service-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.9491071428571429,
+        "meanTokenCount": 10.0
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.125,
+    "failedSubjects": [],
+    "replacementPathSearch": {
+      "attempted": 2,
+      "passed": 2
+    },
+    "replacementPathTransfer": {
+      "attempted": 10,
+      "passed": 10
+    },
+    "whyReport": {
+      "caseCount": 2,
+      "rescueCount": 2,
+      "layerShiftOnlyRecoveries": 0,
+      "replacementFoundCount": 2,
+      "breakKinds": {
+        "relative-falloff": 2
+      },
+      "replacementChangeKinds": {
+        "component-rebinding": 2
+      },
+      "paraphraseBreakCount": 2,
+      "paraphraseBreakKinds": {
+        "relative-falloff": 2
+      },
+      "rescueSoughtCount": 2
+    }
+  },
+  "cases": [
+    {
+      "subject": "France",
+      "answer": "Paris",
+      "target": {
+        "tokenId": 12366,
+        "token": " Paris"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 27,
+            "head": 5,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 27,
+            "neuron": 1184,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 12366,
+          "token": " Paris"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 0.625,
+        "reportedTargetLogitDrop": 0.625,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of France?",
+          "tokenCount": 10,
+          "targetLogitDrop": 0.6875,
+          "ratioToOriginal": 1.1,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is France's capital?",
+          "tokenCount": 8,
+          "targetLogitDrop": 0.625,
+          "ratioToOriginal": 1.0,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of France.",
+          "tokenCount": 11,
+          "targetLogitDrop": 0.5625,
+          "ratioToOriginal": 0.9,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of France?",
+          "tokenCount": 20,
+          "targetLogitDrop": 0.625,
+          "ratioToOriginal": 1.0,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of France is",
+          "tokenCount": 18,
+          "targetLogitDrop": 0.5625,
+          "ratioToOriginal": 0.9,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of France?",
+          "tokenCount": 21,
+          "targetLogitDrop": 0.625,
+          "ratioToOriginal": 1.0,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 6,
+        "passRate": 1.0,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.0,
+            "meanTokenCount": 21.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.0,
+            "meanTokenCount": 20.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.9,
+            "meanTokenCount": 11.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.0,
+            "meanTokenCount": 8.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.9,
+            "meanTokenCount": 18.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.1,
+            "meanTokenCount": 10.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.125
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.125,
+        "marginOverBestPositiveNeighbor": 0.5,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Germany",
+      "answer": "Berlin",
+      "target": {
+        "tokenId": 20437,
+        "token": " Berlin"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 27,
+            "head": 5,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 27,
+            "neuron": 4993,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 20437,
+          "token": " Berlin"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 1.0,
+        "reportedTargetLogitDrop": 0.875,
+        "absoluteReplayError": 0.125,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Germany?",
+          "tokenCount": 10,
+          "targetLogitDrop": 0.875,
+          "ratioToOriginal": 0.875,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Germany's capital?",
+          "tokenCount": 8,
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 1.0,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Germany.",
+          "tokenCount": 11,
+          "targetLogitDrop": 0.8125,
+          "ratioToOriginal": 0.8125,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Germany?",
+          "tokenCount": 20,
+          "targetLogitDrop": 0.75,
+          "ratioToOriginal": 0.75,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Germany is",
+          "tokenCount": 18,
+          "targetLogitDrop": 0.6875,
+          "ratioToOriginal": 0.6875,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Germany?",
+          "tokenCount": 21,
+          "targetLogitDrop": 0.9375,
+          "ratioToOriginal": 0.9375,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 6,
+        "passRate": 1.0,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.9375,
+            "meanTokenCount": 21.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.75,
+            "meanTokenCount": 20.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.8125,
+            "meanTokenCount": 11.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.0,
+            "meanTokenCount": 8.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.6875,
+            "meanTokenCount": 18.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.875,
+            "meanTokenCount": 10.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.0
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.0,
+        "marginOverBestPositiveNeighbor": 1.0,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Italy",
+      "answer": "Rome",
+      "target": {
+        "tokenId": 22463,
+        "token": " Rome"
+      },
+      "paraphraseRescue": {
+        "attempted": 1,
+        "found": 0,
+        "items": [
+          {
+            "prompt": "Give the name of the capital city of Italy.",
+            "family": "imperative",
+            "brokenDrop": 0.375,
+            "found": false,
+            "bestLayerShift": -1,
+            "bestDrop": 0.125,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": 0.125
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "Give the name of the capital city of Italy.",
+              "status": "passed",
+              "found": true,
+              "failureReason": null,
+              "selectionMode": "ordered-rescue-minimal-layer-passing-pair",
+              "readTokenIndex": 10,
+              "searchLayers": [
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27
+              ],
+              "mlpInterventions": [
+                {
+                  "layer": 18,
+                  "neuron": 4625,
+                  "ablateTokenPositions": [
+                    10
+                  ]
+                }
+              ],
+              "attentionInterventions": [
+                {
+                  "layer": 17,
+                  "head": 0,
+                  "ablateTokenPositions": [
+                    10
+                  ]
+                }
+              ],
+              "targetLogitDrop": 0.25,
+              "pathActivationDelta": 0.0234375,
+              "pathMarginOverControlP95": 0.021055221557617188,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "passed",
+                "sourceFamily": "imperative",
+                "sourcePrompt": "Give the name of the capital city of Italy.",
+                "discoveryTargetLogitDrop": 0.25,
+                "minTargetLogitDrop": 0.005,
+                "minDropRatio": 0.5,
+                "expectedHeldoutFamilyCount": 5,
+                "items": [
+                  {
+                    "family": "service-question",
+                    "prompt": "Which city serves as the capital of Italy?",
+                    "tokenCount": 10,
+                    "targetLogitDrop": 0.125,
+                    "ratioToDiscovery": 0.5,
+                    "pass": true
+                  },
+                  {
+                    "family": "possessive-question",
+                    "prompt": "What city is Italy's capital?",
+                    "tokenCount": 8,
+                    "targetLogitDrop": 0.125,
+                    "ratioToDiscovery": 0.5,
+                    "pass": true
+                  },
+                  {
+                    "family": "embedded-question",
+                    "prompt": "I am checking a country profile. Could you tell me which city is the capital of Italy?",
+                    "tokenCount": 20,
+                    "targetLogitDrop": 0.25,
+                    "ratioToDiscovery": 1.0,
+                    "pass": true
+                  },
+                  {
+                    "family": "sentence-completion",
+                    "prompt": "Complete this sentence with a city name: The city that is the capital of Italy is",
+                    "tokenCount": 18,
+                    "targetLogitDrop": 0.125,
+                    "ratioToDiscovery": 0.5,
+                    "pass": true
+                  },
+                  {
+                    "family": "context-prefixed-question",
+                    "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Italy?",
+                    "tokenCount": 21,
+                    "targetLogitDrop": 0.125,
+                    "ratioToDiscovery": 0.5,
+                    "pass": true
+                  }
+                ],
+                "summary": {
+                  "attempted": 5,
+                  "passed": 5,
+                  "passRate": 1.0
+                },
+                "claimBoundary": "Held-out family replay measures whether the prompt-specific discovered path retains its causal target-logit effect on the other configured OOD formulations; it does not establish semantic circuit identity or general prompt robustness."
+              }
+            }
+          }
+        ]
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 27,
+            "head": 5,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 27,
+            "neuron": 5089,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 22463,
+          "token": " Rome"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 0.875,
+        "reportedTargetLogitDrop": 0.875,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Italy?",
+          "tokenCount": 10,
+          "targetLogitDrop": 0.5,
+          "ratioToOriginal": 0.5714285714285714,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Italy's capital?",
+          "tokenCount": 8,
+          "targetLogitDrop": 0.5,
+          "ratioToOriginal": 0.5714285714285714,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Italy.",
+          "tokenCount": 11,
+          "targetLogitDrop": 0.375,
+          "ratioToOriginal": 0.42857142857142855,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Italy?",
+          "tokenCount": 20,
+          "targetLogitDrop": 0.5,
+          "ratioToOriginal": 0.5714285714285714,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Italy is",
+          "tokenCount": 18,
+          "targetLogitDrop": 0.75,
+          "ratioToOriginal": 0.8571428571428571,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Italy?",
+          "tokenCount": 21,
+          "targetLogitDrop": 0.5,
+          "ratioToOriginal": 0.5714285714285714,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 5,
+        "passRate": 0.8333333333333334,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5714285714285714,
+            "meanTokenCount": 21.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5714285714285714,
+            "meanTokenCount": 20.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.42857142857142855,
+            "meanTokenCount": 11.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5714285714285714,
+            "meanTokenCount": 8.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.8571428571428571,
+            "meanTokenCount": 18.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5714285714285714,
+            "meanTokenCount": 10.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.125
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.125,
+        "marginOverBestPositiveNeighbor": 0.75,
+        "pass": true
+      },
+      "whyReport": {
+        "subject": "Italy",
+        "rescueCount": 1,
+        "layerShiftOnlyRecoveries": 0,
+        "replacementFoundCount": 1,
+        "breakKinds": {
+          "relative-falloff": 1
+        },
+        "replacementChangeKinds": {
+          "component-rebinding": 1
+        },
+        "paraphraseBreakCount": 1,
+        "paraphraseBreakKinds": {
+          "relative-falloff": 1
+        },
+        "rescueSoughtCount": 1,
+        "whereEffectWent": {
+          "layerSets": [
+            [
+              17,
+              18
+            ]
+          ],
+          "directions": [
+            "earlier"
+          ]
+        },
+        "items": [
+          {
+            "family": "imperative",
+            "prompt": "Give the name of the capital city of Italy.",
+            "break": {
+              "kind": "relative-falloff",
+              "brokenTargetLogitDrop": 0.375,
+              "originalTargetLogitDrop": 0.875,
+              "ratioToOriginal": 0.42857142857142855,
+              "minOriginalDrop": 0.005,
+              "minParaphraseDropRatio": 0.5,
+              "interpretation": "The replay drop clears the absolute gate but falls below the configured ratio to the original replay, so the path retains only a fraction of its source-prompt effect."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                -3,
+                -2,
+                -1
+              ],
+              "bestLayerShift": -1,
+              "bestShiftedTargetLogitDrop": 0.125,
+              "recovered": false,
+              "interpretation": "Shifting the same components across the configured layers never recovers the effect, so the break is not a layer misplacement of the same components."
+            },
+            "replacementPath": {
+              "found": true,
+              "attempted": true,
+              "selectionMode": "ordered-rescue-minimal-layer-passing-pair",
+              "targetLogitDrop": 0.25,
+              "pathChange": {
+                "sourceLayers": [
+                  27
+                ],
+                "replacementLayers": [
+                  17,
+                  18
+                ],
+                "layerOverlap": [],
+                "meanLayerDelta": -9.5,
+                "direction": "earlier",
+                "sourceMlpComponents": [
+                  [
+                    27,
+                    5089
+                  ]
+                ],
+                "replacementMlpComponents": [
+                  [
+                    18,
+                    4625
+                  ]
+                ],
+                "sourceAttentionComponents": [
+                  [
+                    27,
+                    5
+                  ]
+                ],
+                "replacementAttentionComponents": [
+                  [
+                    17,
+                    0
+                  ]
+                ],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 2,
+                "sourceAblatePositions": [
+                  5
+                ],
+                "replacementAblatePositions": [
+                  10
+                ],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "passed",
+              "sourceFamily": "imperative",
+              "attempted": 5,
+              "passed": 5,
+              "passRate": 1.0,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the imperative phrasing of the Italy prompt the original path (MLP L27 n5089 + attention L27 h5) broke as a relative-falloff: the remapped replay drop was 0.3750 against 0.8750 on the source prompt. Replaying the same components shifted across layers (-3, -2, -1) reached at best 0.1250, so the effect did not simply move with those components. The replacement search found a path (MLP L18 n4625 + attention L17 h0) with target-logit drop 0.2500; relative to the source circuit this is a component-rebinding: layers [27] -> [17, 18] (earlier), 0/2 components retained, ablate positions [5] -> [10]. On held-out families the replacement path passed 5/5.",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          }
+        ],
+        "paraphraseBreaks": [
+          {
+            "family": "imperative",
+            "prompt": "Give the name of the capital city of Italy.",
+            "break": {
+              "kind": "relative-falloff",
+              "brokenTargetLogitDrop": 0.375,
+              "originalTargetLogitDrop": 0.875,
+              "ratioToOriginal": 0.42857142857142855,
+              "minOriginalDrop": 0.005,
+              "minParaphraseDropRatio": 0.5,
+              "interpretation": "The replay drop clears the absolute gate but falls below the configured ratio to the original replay, so the path retains only a fraction of its source-prompt effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": -1,
+              "bestShiftedTargetLogitDrop": 0.125
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          }
+        ]
+      }
+    },
+    {
+      "subject": "Spain",
+      "answer": "Madrid",
+      "target": {
+        "tokenId": 25048,
+        "token": " Madrid"
+      },
+      "paraphraseRescue": {
+        "attempted": 1,
+        "found": 0,
+        "items": [
+          {
+            "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+            "family": "context-prefixed-question",
+            "brokenDrop": 0.0625,
+            "found": false,
+            "bestLayerShift": -3,
+            "bestDrop": 0.0,
+            "attempts": [
+              {
+                "layerShift": -3,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": -2,
+                "targetLogitDrop": -0.0625
+              },
+              {
+                "layerShift": -1,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 1,
+                "targetLogitDrop": -0.0625
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 3,
+                "targetLogitDrop": -0.0625
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+              "status": "passed",
+              "found": true,
+              "failureReason": null,
+              "selectionMode": "ordered-rescue-minimal-layer-passing-pair",
+              "readTokenIndex": 20,
+              "searchLayers": [
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27
+              ],
+              "mlpInterventions": [
+                {
+                  "layer": 21,
+                  "neuron": 3044,
+                  "ablateTokenPositions": [
+                    20
+                  ]
+                }
+              ],
+              "attentionInterventions": [
+                {
+                  "layer": 17,
+                  "head": 3,
+                  "ablateTokenPositions": [
+                    20
+                  ]
+                }
+              ],
+              "targetLogitDrop": 0.5625,
+              "pathActivationDelta": 0.0078125,
+              "pathMarginOverControlP95": 0.004246520996093755,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "passed",
+                "sourceFamily": "context-prefixed-question",
+                "sourcePrompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+                "discoveryTargetLogitDrop": 0.5625,
+                "minTargetLogitDrop": 0.005,
+                "minDropRatio": 0.5,
+                "expectedHeldoutFamilyCount": 5,
+                "items": [
+                  {
+                    "family": "service-question",
+                    "prompt": "Which city serves as the capital of Spain?",
+                    "tokenCount": 10,
+                    "targetLogitDrop": 0.625,
+                    "ratioToDiscovery": 1.1111111111111112,
+                    "pass": true
+                  },
+                  {
+                    "family": "possessive-question",
+                    "prompt": "What city is Spain's capital?",
+                    "tokenCount": 8,
+                    "targetLogitDrop": 0.5625,
+                    "ratioToDiscovery": 1.0,
+                    "pass": true
+                  },
+                  {
+                    "family": "imperative",
+                    "prompt": "Give the name of the capital city of Spain.",
+                    "tokenCount": 11,
+                    "targetLogitDrop": 0.75,
+                    "ratioToDiscovery": 1.3333333333333333,
+                    "pass": true
+                  },
+                  {
+                    "family": "embedded-question",
+                    "prompt": "I am checking a country profile. Could you tell me which city is the capital of Spain?",
+                    "tokenCount": 20,
+                    "targetLogitDrop": 0.5,
+                    "ratioToDiscovery": 0.8888888888888888,
+                    "pass": true
+                  },
+                  {
+                    "family": "sentence-completion",
+                    "prompt": "Complete this sentence with a city name: The city that is the capital of Spain is",
+                    "tokenCount": 18,
+                    "targetLogitDrop": 0.625,
+                    "ratioToDiscovery": 1.1111111111111112,
+                    "pass": true
+                  }
+                ],
+                "summary": {
+                  "attempted": 5,
+                  "passed": 5,
+                  "passRate": 1.0
+                },
+                "claimBoundary": "Held-out family replay measures whether the prompt-specific discovered path retains its causal target-logit effect on the other configured OOD formulations; it does not establish semantic circuit identity or general prompt robustness."
+              }
+            }
+          }
+        ]
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 20,
+            "head": 3,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 20,
+            "neuron": 5491,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 25048,
+          "token": " Madrid"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 0.25,
+        "reportedTargetLogitDrop": 0.125,
+        "absoluteReplayError": 0.125,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Spain?",
+          "tokenCount": 10,
+          "targetLogitDrop": 0.3125,
+          "ratioToOriginal": 1.25,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Spain's capital?",
+          "tokenCount": 8,
+          "targetLogitDrop": 0.25,
+          "ratioToOriginal": 1.0,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Spain.",
+          "tokenCount": 11,
+          "targetLogitDrop": 0.25,
+          "ratioToOriginal": 1.0,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Spain?",
+          "tokenCount": 20,
+          "targetLogitDrop": 0.125,
+          "ratioToOriginal": 0.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Spain is",
+          "tokenCount": 18,
+          "targetLogitDrop": 0.1875,
+          "ratioToOriginal": 0.75,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+          "tokenCount": 21,
+          "targetLogitDrop": 0.0625,
+          "ratioToOriginal": 0.25,
+          "pass": false
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 5,
+        "passRate": 0.8333333333333334,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.25,
+            "meanTokenCount": 21.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5,
+            "meanTokenCount": 20.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.0,
+            "meanTokenCount": 11.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.0,
+            "meanTokenCount": 8.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.75,
+            "meanTokenCount": 18.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.25,
+            "meanTokenCount": 10.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": 0.0
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 4,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.0,
+        "marginOverBestPositiveNeighbor": 0.25,
+        "pass": true
+      },
+      "whyReport": {
+        "subject": "Spain",
+        "rescueCount": 1,
+        "layerShiftOnlyRecoveries": 0,
+        "replacementFoundCount": 1,
+        "breakKinds": {
+          "relative-falloff": 1
+        },
+        "replacementChangeKinds": {
+          "component-rebinding": 1
+        },
+        "paraphraseBreakCount": 1,
+        "paraphraseBreakKinds": {
+          "relative-falloff": 1
+        },
+        "rescueSoughtCount": 1,
+        "whereEffectWent": {
+          "layerSets": [
+            [
+              17,
+              21
+            ]
+          ],
+          "directions": [
+            "earlier"
+          ]
+        },
+        "items": [
+          {
+            "family": "context-prefixed-question",
+            "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+            "break": {
+              "kind": "relative-falloff",
+              "brokenTargetLogitDrop": 0.0625,
+              "originalTargetLogitDrop": 0.25,
+              "ratioToOriginal": 0.25,
+              "minOriginalDrop": 0.005,
+              "minParaphraseDropRatio": 0.5,
+              "interpretation": "The replay drop clears the absolute gate but falls below the configured ratio to the original replay, so the path retains only a fraction of its source-prompt effect."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                -3,
+                -2,
+                -1,
+                1,
+                2,
+                3
+              ],
+              "bestLayerShift": -3,
+              "bestShiftedTargetLogitDrop": 0.0,
+              "recovered": false,
+              "interpretation": "Shifting the same components across the configured layers never recovers the effect, so the break is not a layer misplacement of the same components."
+            },
+            "replacementPath": {
+              "found": true,
+              "attempted": true,
+              "selectionMode": "ordered-rescue-minimal-layer-passing-pair",
+              "targetLogitDrop": 0.5625,
+              "pathChange": {
+                "sourceLayers": [
+                  20
+                ],
+                "replacementLayers": [
+                  17,
+                  21
+                ],
+                "layerOverlap": [],
+                "meanLayerDelta": -1.0,
+                "direction": "earlier",
+                "sourceMlpComponents": [
+                  [
+                    20,
+                    5491
+                  ]
+                ],
+                "replacementMlpComponents": [
+                  [
+                    21,
+                    3044
+                  ]
+                ],
+                "sourceAttentionComponents": [
+                  [
+                    20,
+                    3
+                  ]
+                ],
+                "replacementAttentionComponents": [
+                  [
+                    17,
+                    3
+                  ]
+                ],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 2,
+                "sourceAblatePositions": [
+                  5
+                ],
+                "replacementAblatePositions": [
+                  20
+                ],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "passed",
+              "sourceFamily": "context-prefixed-question",
+              "attempted": 5,
+              "passed": 5,
+              "passRate": 1.0,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the context-prefixed-question phrasing of the Spain prompt the original path (MLP L20 n5491 + attention L20 h3) broke as a relative-falloff: the remapped replay drop was 0.0625 against 0.2500 on the source prompt. Replaying the same components shifted across layers (-3, -2, -1, 1, 2, 3) reached at best 0.0000, so the effect did not simply move with those components. The replacement search found a path (MLP L21 n3044 + attention L17 h3) with target-logit drop 0.5625; relative to the source circuit this is a component-rebinding: layers [20] -> [17, 21] (earlier), 0/2 components retained, ablate positions [5] -> [20]. On held-out families the replacement path passed 5/5.",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          }
+        ],
+        "paraphraseBreaks": [
+          {
+            "family": "context-prefixed-question",
+            "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+            "break": {
+              "kind": "relative-falloff",
+              "brokenTargetLogitDrop": 0.0625,
+              "originalTargetLogitDrop": 0.25,
+              "ratioToOriginal": 0.25,
+              "minOriginalDrop": 0.005,
+              "minParaphraseDropRatio": 0.5,
+              "interpretation": "The replay drop clears the absolute gate but falls below the configured ratio to the original replay, so the path retains only a fraction of its source-prompt effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": -3,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          }
+        ]
+      }
+    }
+  ],
+  "claimBoundary": {
+    "provesIfPasses": "The exact discovered circuit interventions replay on the source prompts, preserve target-causal effects across the configured standard or held-out OOD paraphrase families, and outperform neighboring-layer shifted controls for the configured real-model cases.",
+    "doesNotProve": "This does not prove neuron identity across model families, semantic equivalence of internal circuits, full-model circuit recovery, semantic validity beyond the curated capital-question templates, or arbitrary prompt stability."
+  }
+}

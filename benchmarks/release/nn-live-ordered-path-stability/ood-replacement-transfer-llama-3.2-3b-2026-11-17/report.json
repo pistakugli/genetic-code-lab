@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "kind": "nn-live-ordered-path-ood-stress-suite",
+  "paraphraseProfile": "ood",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-11-17T19:04:48.927477Z",
+  "summary": {
+    "pass": true,
+    "cases": 1,
+    "passed": 1,
+    "failed": []
+  },
+  "results": [
+    {
+      "id": "llama",
+      "label": "Llama SwiGLU",
+      "adapter": "llama-swiglu",
+      "model": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+      "status": "pass",
+      "reportPath": "benchmarks/release/nn-live-ordered-path-stability/ood-replacement-transfer-llama-3.2-3b-2026-11-17/llama/report.json",
+      "artifactPath": "llama/report.json",
+      "summary": {
+        "pass": true,
+        "caseCount": 4,
+        "passedCases": 4,
+        "originalReplayPassRate": 1.0,
+        "paraphraseProfile": "ood",
+        "paraphrasePassRate": 0.9166666666666666,
+        "paraphraseFamilySummary": {
+          "context-prefixed-question": {
+            "count": 4,
+            "passed": 3,
+            "passRate": 0.75,
+            "meanDropRatio": 0.6897321428571428,
+            "meanTokenCount": 21.0
+          },
+          "embedded-question": {
+            "count": 4,
+            "passed": 4,
+            "passRate": 1.0,
+            "meanDropRatio": 0.7053571428571428,
+            "meanTokenCount": 20.0
+          },
+          "imperative": {
+            "count": 4,
+            "passed": 3,
+            "passRate": 0.75,
+            "meanDropRatio": 0.7852678571428572,
+            "meanTokenCount": 11.0
+          },
+          "possessive-question": {
+            "count": 4,
+            "passed": 4,
+            "passRate": 1.0,
+            "meanDropRatio": 0.8928571428571428,
+            "meanTokenCount": 8.0
+          },
+          "sentence-completion": {
+            "count": 4,
+            "passed": 4,
+            "passRate": 1.0,
+            "meanDropRatio": 0.7986607142857143,
+            "meanTokenCount": 18.0
+          },
+          "service-question": {
+            "count": 4,
+            "passed": 4,
+            "passRate": 1.0,
+            "meanDropRatio": 0.9491071428571429,
+            "meanTokenCount": 10.0
+          }
+        },
+        "layerSpecificityRate": 1.0,
+        "maxReplayError": 0.125,
+        "failedSubjects": [],
+        "replacementPathSearch": {
+          "attempted": 2,
+          "passed": 2
+        },
+        "replacementPathTransfer": {
+          "attempted": 10,
+          "passed": 10
+        },
+        "whyReport": {
+          "caseCount": 2,
+          "rescueCount": 2,
+          "layerShiftOnlyRecoveries": 0,
+          "replacementFoundCount": 2,
+          "breakKinds": {
+            "relative-falloff": 2
+          },
+          "replacementChangeKinds": {
+            "component-rebinding": 2
+          },
+          "paraphraseBreakCount": 2,
+          "paraphraseBreakKinds": {
+            "relative-falloff": 2
+          },
+          "rescueSoughtCount": 2
+        }
+      }
+    }
+  ]
+}

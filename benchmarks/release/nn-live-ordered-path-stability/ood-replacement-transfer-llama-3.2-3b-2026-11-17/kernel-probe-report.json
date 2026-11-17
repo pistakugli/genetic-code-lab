@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "kind": "llama-swiglu-live-ordered-path-ood-stress",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-11-17T18:13:43.799168Z",
+  "model": {
+    "id": "unsloth/llama-3.2-3b-instruct-unsloth-bnb-4bit",
+    "class": "LlamaForCausalLM",
+    "modelType": "llama",
+    "layers": 28,
+    "heads": 24,
+    "keyValueHeads": 8,
+    "hiddenSize": 3072,
+    "intermediateSize": 8192,
+    "device": "cuda",
+    "localFilesOnly": false,
+    "quantized": true,
+    "adapter": "llama-swiglu",
+    "activationFamily": "swiglu",
+    "addressedMlpUnit": "silu(gate_proj(x))*up_proj(x) pair before down_proj"
+  },
+  "sourceReport": "/kaggle/input/gcl-llama-ood-input/input/report.json",
+  "config": {
+    "subjects": [
+      "France"
+    ],
+    "caseCount": 1,
+    "paraphraseCount": 1,
+    "paraphraseProfile": "ood",
+    "layerShifts": [
+      -2,
+      -1,
+      1,
+      2
+    ],
+    "minLayerControlCount": 2,
+    "minOriginalDrop": 0.005,
+    "minParaphraseDropRatio": 0.05,
+    "minParaphrasePassRate": 0.66,
+    "minLayerMargin": 0.0001,
+    "minLayerSpecificityRate": 0.75,
+    "maxReplayError": 1e-05,
+    "replacementPathSearchEnabled": true,
+    "replacementPathTransferEnabled": true,
+    "replacementCandidateCount": 10,
+    "replacementMaxPairAttempts": 32,
+    "replacementMaxSetAttempts": 24,
+    "whyReportEnabled": true
+  },
+  "summary": {
+    "pass": true,
+    "caseCount": 1,
+    "passedCases": 1,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "ood",
+    "paraphrasePassRate": 1.0,
+    "paraphraseFamilySummary": {
+      "service-question": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "meanDropRatio": 1.1,
+        "meanTokenCount": 10.0
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0,
+    "failedSubjects": [],
+    "replacementPathSearch": {
+      "attempted": 0,
+      "passed": 0
+    },
+    "replacementPathTransfer": {
+      "attempted": 0,
+      "passed": 0
+    },
+    "whyReport": {
+      "caseCount": 0,
+      "rescueCount": 0,
+      "layerShiftOnlyRecoveries": 0,
+      "replacementFoundCount": 0,
+      "breakKinds": {},
+      "replacementChangeKinds": {},
+      "paraphraseBreakCount": 0,
+      "paraphraseBreakKinds": {},
+      "rescueSoughtCount": 0
+    }
+  },
+  "cases": [
+    {
+      "subject": "France",
+      "answer": "Paris",
+      "target": {
+        "tokenId": 12366,
+        "token": " Paris"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 27,
+            "head": 5,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 27,
+            "neuron": 1184,
+            "ablateTokenPositions": [
+              5
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 12366,
+          "token": " Paris"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 5,
+        "targetLogitDrop": 0.625,
+        "reportedTargetLogitDrop": 0.625,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of France?",
+          "tokenCount": 10,
+          "targetLogitDrop": 0.6875,
+          "ratioToOriginal": 1.1,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "families": {
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.1,
+            "meanTokenCount": 10.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": 0.125
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.125,
+        "marginOverBestPositiveNeighbor": 0.5,
+        "pass": true
+      }
+    }
+  ],
+  "claimBoundary": {
+    "provesIfPasses": "The exact discovered circuit interventions replay on the source prompts, preserve target-causal effects across the configured standard or held-out OOD paraphrase families, and outperform neighboring-layer shifted controls for the configured real-model cases.",
+    "doesNotProve": "This does not prove neuron identity across model families, semantic equivalence of internal circuits, full-model circuit recovery, semantic validity beyond the curated capital-question templates, or arbitrary prompt stability."
+  }
+}
