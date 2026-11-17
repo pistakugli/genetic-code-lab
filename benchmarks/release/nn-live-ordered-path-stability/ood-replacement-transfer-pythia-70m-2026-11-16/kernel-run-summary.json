@@ -1,0 +1,105 @@
+{
+  "kind": "gcl-kaggle-pythia-ood-replacement-transfer-run",
+  "variant": "ood-replacement-transfer-pythia-70m-2026-11-16",
+  "pinnedRepoCommit": "5fdcf36ea421ad04c1f5080e64533093a39ef139",
+  "model": "EleutherAI/pythia-70m-deduped",
+  "adapter": "gpt-neox",
+  "subjects": [
+    "Spain",
+    "Japan",
+    "Russia",
+    "Norway",
+    "Austria"
+  ],
+  "caseCount": 5,
+  "paraphraseCount": 6,
+  "paraphraseProfile": "ood",
+  "runnerExitStatus": 1,
+  "verifyErrors": [],
+  "caseSummary": {
+    "pass": false,
+    "caseCount": 5,
+    "passedCases": 1,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "ood",
+    "paraphrasePassRate": 0.43333333333333335,
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 5,
+        "passed": 2,
+        "passRate": 0.4,
+        "meanDropRatio": 0.1,
+        "meanTokenCount": 20.0
+      },
+      "embedded-question": {
+        "count": 5,
+        "passed": 1,
+        "passRate": 0.2,
+        "meanDropRatio": 0.1,
+        "meanTokenCount": 19.0
+      },
+      "imperative": {
+        "count": 5,
+        "passed": 5,
+        "passRate": 1.0,
+        "meanDropRatio": 5.9,
+        "meanTokenCount": 10.0
+      },
+      "possessive-question": {
+        "count": 5,
+        "passed": 2,
+        "passRate": 0.4,
+        "meanDropRatio": 0.3,
+        "meanTokenCount": 7.0
+      },
+      "sentence-completion": {
+        "count": 5,
+        "passed": 2,
+        "passRate": 0.4,
+        "meanDropRatio": 0.3,
+        "meanTokenCount": 17.0
+      },
+      "service-question": {
+        "count": 5,
+        "passed": 1,
+        "passRate": 0.2,
+        "meanDropRatio": 0.0,
+        "meanTokenCount": 9.0
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0,
+    "failedSubjects": [
+      "Spain",
+      "Japan",
+      "Norway",
+      "Austria"
+    ],
+    "replacementPathSearch": {
+      "attempted": 8,
+      "passed": 0
+    },
+    "replacementPathTransfer": {
+      "attempted": 0,
+      "passed": 0
+    },
+    "whyReport": {
+      "caseCount": 4,
+      "rescueCount": 8,
+      "layerShiftOnlyRecoveries": 2,
+      "replacementFoundCount": 0,
+      "breakKinds": {
+        "sign-flip": 3,
+        "magnitude-collapse": 5
+      },
+      "replacementChangeKinds": {},
+      "paraphraseBreakCount": 17,
+      "paraphraseBreakKinds": {
+        "sign-flip": 5,
+        "magnitude-collapse": 12
+      },
+      "rescueSoughtCount": 8
+    }
+  },
+  "elapsedSeconds": 227.1
+}

@@ -1,0 +1,106 @@
+{
+  "kind": "gcl-kaggle-mistral-ood-replacement-transfer-run",
+  "variant": "ood-replacement-transfer-mistral-7b-2026-11-16",
+  "pinnedRepoCommit": "5fdcf36ea421ad04c1f5080e64533093a39ef139",
+  "verifierFixApplied": {
+    "description": "per-case reset of replacement_transfer_records in verify_ordered_path_ood_stress.py; the pinned verifier re-checked earlier cases' transfer prompts against later cases' held-out prompts and fabricated mismatches",
+    "sha256": "feec699719caee6d97aad8dd08feaec18eb5daa770bb56a4eb657bb20de3706a",
+    "changesVerificationOnly": true
+  },
+  "model": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+  "adapter": "mistral-swiglu",
+  "subjects": [
+    "France",
+    "Germany",
+    "Spain",
+    "Japan"
+  ],
+  "caseCount": 4,
+  "paraphraseCount": 6,
+  "paraphraseProfile": "ood",
+  "maxReplayErrorTolerance": 0.125,
+  "maxReplayErrorToleranceRationale": "cross-host fp16/bnb-4bit replay tolerance: the source circuit-finder artifact was recorded on the developer's CUDA GPU and this lane replays on a Kaggle T4; same-host runs of this lane family measured 0.0 error",
+  "runnerExitStatus": 0,
+  "verifyErrors": [],
+  "caseSummary": {
+    "pass": true,
+    "caseCount": 4,
+    "passedCases": 4,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "ood",
+    "paraphrasePassRate": 0.8333333333333334,
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 4,
+        "passed": 3,
+        "passRate": 0.75,
+        "meanDropRatio": 0.38541666666666663,
+        "meanTokenCount": 23.0
+      },
+      "embedded-question": {
+        "count": 4,
+        "passed": 3,
+        "passRate": 0.75,
+        "meanDropRatio": 0.3020833333333333,
+        "meanTokenCount": 20.0
+      },
+      "imperative": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.5148809523809523,
+        "meanTokenCount": 11.0
+      },
+      "possessive-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.7321428571428571,
+        "meanTokenCount": 9.0
+      },
+      "sentence-completion": {
+        "count": 4,
+        "passed": 2,
+        "passRate": 0.5,
+        "meanDropRatio": 0.2232142857142857,
+        "meanTokenCount": 18.0
+      },
+      "service-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.6130952380952381,
+        "meanTokenCount": 10.0
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0625,
+    "failedSubjects": [],
+    "replacementPathSearch": {
+      "attempted": 4,
+      "passed": 4
+    },
+    "replacementPathTransfer": {
+      "attempted": 20,
+      "passed": 13
+    },
+    "whyReport": {
+      "caseCount": 3,
+      "rescueCount": 4,
+      "layerShiftOnlyRecoveries": 3,
+      "replacementFoundCount": 4,
+      "breakKinds": {
+        "magnitude-collapse": 4
+      },
+      "replacementChangeKinds": {
+        "component-rebinding": 4
+      },
+      "paraphraseBreakCount": 4,
+      "paraphraseBreakKinds": {
+        "magnitude-collapse": 4
+      },
+      "rescueSoughtCount": 4
+    }
+  },
+  "elapsedSeconds": 8156.0
+}

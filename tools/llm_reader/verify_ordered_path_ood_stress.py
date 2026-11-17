@@ -401,9 +401,14 @@ def verify_case_report(report: Dict[str, Any], expected_model_id: str, expected_
     layer_passes = []
     replay_errors = []
     replacement_searches = []
-    replacement_transfer_records = []
     for case_index, case in enumerate(cases):
         case_prefix = f"{prefix}case {case_index}: "
+        # Per-case reset: a replacement-transfer record must only be checked
+        # against THIS case's held-out paraphrase prompts. Accumulating the
+        # records across cases and re-checking them inside every later case's
+        # iteration would compare one case's transfer prompts against another
+        # case's prompts and fabricate mismatches.
+        replacement_transfer_records = []
         original = case.get("originalReplay")
         if not isinstance(original, dict):
             errors.append(case_prefix + "original causal replay measurements are missing")

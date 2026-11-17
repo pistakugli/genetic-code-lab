@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-17T10:37:33.435098Z",
+  "lane": "nn-live-qwen2-swiglu-ordered-residual-path-circuit-finder",
+  "variant": "qwen-2.5-1.5b-11-facts-ordered-residual-path",
+  "status": "fail",
+  "command": {
+    "argv": [
+      "python3",
+      "gcl-qwen-ood-lane.py"
+    ],
+    "npmLifecycleEvent": null,
+    "cwd": "/kaggle/working",
+    "node": null
+  },
+  "env": {},
+  "git": {
+    "commit": "5fdcf36ea421ad04c1f5080e64533093a39ef139",
+    "statusShort": null,
+    "uncommittedDiffSha256": null
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-qwen2-swiglu-ordered-residual-path-circuit-finder/qwen-2.5-1.5b-11-facts-ordered-residual-path/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-qwen2-swiglu-ordered-residual-path-circuit-finder/qwen-2.5-1.5b-11-facts-ordered-residual-path/report.md",
+    "manifest": "benchmarks/release/nn-live-qwen2-swiglu-ordered-residual-path-circuit-finder/qwen-2.5-1.5b-11-facts-ordered-residual-path/manifest.json"
+  },
+  "summary": {
+    "pass": false,
+    "validCases": 11,
+    "passedCases": 9,
+    "failedCases": 2,
+    "passRate": 0.8181818181818182,
+    "combinedGraphPassRate": 1.0,
+    "medianSelectedPathActivationDelta": 0.14971387386322021,
+    "p10SelectedPathActivationDelta": 0.0,
+    "medianControlPathP95ActivationDelta": 0.06075114645063869,
+    "medianOrderedPathLiftOverControlP95": 6.8772905613795015,
+    "medianCombinedTargetLogitDrop": 1.02490234375,
+    "failedSubjects": [
+      "Greece",
+      "Netherlands"
+    ],
+    "skippedCases": 0
+  },
+  "notes": [
+    "Qwen2.5-1.5B-Instruct fp16 circuit-finder run recorded on the Kaggle T4 GPU kernel kuglipista/gcl-qwen-ood-lane (pinned repo commit 5fdcf36).",
+    "This artifact is the circuit-finder input for the OOD replacement-transfer lane ood-replacement-transfer-qwen-2.5-1.5b-2026-11-17 recorded in the same kernel run, with the same-host strict replay gate (1e-5).",
+    "Recorded result: 9/11 valid cases passed; the two failed cases were excluded from the OOD lane."
+  ]
+}

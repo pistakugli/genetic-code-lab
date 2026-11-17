@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "1",
+  "kind": "gpu-smoke",
+  "generatedAt": "2026-11-16T11:38:52.923364+00:00",
+  "ok": true,
+  "gpuAccelerated": true,
+  "requestedDevice": "cuda",
+  "resolvedDevice": "cuda",
+  "deviceEnvironmentOverride": {
+    "variable": "GCL_DEVICE",
+    "value": "cuda"
+  },
+  "environment": {
+    "os": "Linux-6.18.55+-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "torch": "2.10.0+cu128",
+    "transformers": "5.5.0",
+    "numpy": "2.4.6",
+    "cudaBuild": "12.8",
+    "cudaAvailable": true,
+    "mpsAvailable": false,
+    "gpuCount": 2,
+    "gpus": [
+      {
+        "index": 0,
+        "name": "Tesla T4",
+        "totalMemoryGB": 14.56,
+        "multiprocessorCount": 40,
+        "capability": "7.5"
+      },
+      {
+        "index": 1,
+        "name": "Tesla T4",
+        "totalMemoryGB": 14.56,
+        "multiprocessorCount": 40,
+        "capability": "7.5"
+      }
+    ],
+    "nvidiaSmi": {
+      "gpus": [
+        {
+          "name": "Tesla T4",
+          "driverVersion": "580.178.04",
+          "memoryTotal": "15360 MiB"
+        },
+        {
+          "name": "Tesla T4",
+          "driverVersion": "580.178.04",
+          "memoryTotal": "15360 MiB"
+        }
+      ]
+    },
+    "cpuCount": 2,
+    "totalMemoryGB": 31.35
+  },
+  "model": {
+    "id": "gpt2",
+    "adapter": "gpt2",
+    "class": "GPT2LMHeadModel",
+    "paramCount": 124439808,
+    "dtype": "torch.float32",
+    "localFilesOnly": false
+  },
+  "benchmarks": {
+    "shortPrompt": {
+      "promptHead": "The capital of France is",
+      "tokenCount": 5,
+      "runs": 24,
+      "seconds": 0.229,
+      "promptsPerSecond": 104.797,
+      "tokensPerSecond": 523.985
+    },
+    "longPrompt": {
+      "promptHead": "The genetic code laboratory records how a langua",
+      "tokenCount": 59,
+      "runs": 8,
+      "seconds": 0.0815,
+      "promptsPerSecond": 98.177,
+      "tokensPerSecond": 5792.415
+    }
+  },
+  "determinism": {
+    "maxAbsLogitDiff": 0.0,
+    "threshold": 1e-05,
+    "passed": true
+  },
+  "hookCheck": {
+    "supported": true,
+    "module": "transformer.h[6].mlp",
+    "outputShape": [
+      1,
+      5,
+      768
+    ],
+    "outputDevice": "cuda:0",
+    "finite": true,
+    "passed": true
+  },
+  "claimBoundary": "This report validates one host for live lane execution: model load, forward-pass throughput at the recorded prompt lengths, same-device logit determinism, and forward-hook capture. It does not claim lane gate outcomes, cross-device numeric equality, or any benchmark comparison beyond the numbers recorded here."
+}

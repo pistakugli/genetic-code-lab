@@ -302,6 +302,153 @@ class OODParaphraseTests(unittest.TestCase):
                 for error in verify_case_report(report, "gpt2", "gpt2"))
         )
 
+    def test_artifact_verifier_does_not_recheck_one_case_transfer_prompts_against_later_cases(
+        self,
+    ) -> None:
+        """Regression: per-case scoping of replacement-transfer records.
+
+        A valid two-case report where each case's held-out transfer items carry
+        that same case's paraphrase prompts must verify clean. The pre-fix
+        verifier accumulated ``replacement_transfer_records`` across cases and
+        re-checked earlier cases' transfer prompts against later cases' held-out
+        prompts, fabricating "transfer prompt does not match the held-out family
+        input" errors for internally consistent artifacts (seen on the recorded
+        Mistral-7B OOD lane).
+        """
+        family_names = [family for family, _ in OOD_CAPITAL_PROMPT_TEMPLATES]
+        cases = []
+        for subject, answer in (("France", "Paris"), ("Germany", "Berlin")):
+            paraphrases = [
+                {
+                    "profile": "ood",
+                    "family": family,
+                    "prompt": f"Which city is the capital of {subject}? ({family})",
+                    "tokenCount": 7,
+                    "targetLogitDrop": 2.0,
+                    "ratioToOriginal": 1.0,
+                    "pass": True,
+                }
+                for family in family_names
+            ]
+            paraphrases[0]["pass"] = False
+            failed_prompt = paraphrases[0]["prompt"]
+            cases.append({
+                "subject": subject,
+                "answer": answer,
+                "status": "passed",
+                "originalReplay": {
+                    "targetLogitDrop": 2.0,
+                    "absoluteReplayError": 0.0,
+                    "pass": True,
+                },
+                "paraphrases": paraphrases,
+                "paraphraseRescue": {
+                    "attempted": 1,
+                    "found": 1,
+                    "items": [{
+                        "prompt": failed_prompt,
+                        "family": family_names[0],
+                        "replacementPathSearch": {
+                            "prompt": failed_prompt,
+                            "status": "passed",
+                            "found": True,
+                            "searchLayers": [1, 2],
+                            "mlpInterventions": [{"layer": 2, "neuron": 8}],
+                            "attentionInterventions": [{"layer": 1, "head": 0}],
+                            "targetLogitDrop": 0.4,
+                            "pathActivationDelta": 0.2,
+                            "pathMarginOverControlP95": 0.1,
+                            "searchScope": "local loaded layers",
+                            "crossFamilyTransfer": {
+                                "status": "passed",
+                                "sourceFamily": family_names[0],
+                                "sourcePrompt": failed_prompt,
+                                "discoveryTargetLogitDrop": 0.4,
+                                "minTargetLogitDrop": 0.1,
+                                "minDropRatio": 0.1,
+                                "expectedHeldoutFamilyCount": 5,
+                                "items": [
+                                    {
+                                        "family": item["family"],
+                                        "prompt": item["prompt"],
+                                        "tokenCount": item["tokenCount"],
+                                        "targetLogitDrop": 0.4,
+                                        "ratioToDiscovery": 1.0,
+                                        "pass": True,
+                                    }
+                                    for item in paraphrases[1:]
+                                ],
+                                "summary": {
+                                    "attempted": 5,
+                                    "passed": 5,
+                                    "passRate": 1.0,
+                                },
+                            },
+                        },
+                    }],
+                },
+                "layerControls": {"items": [{"shift": 1}], "pass": True},
+            })
+        family_summary = {
+            family: {
+                "count": 2,
+                "passed": 0 if index == 0 else 2,
+                "passRate": 0.0 if index == 0 else 1.0,
+                "meanDropRatio": 1.0,
+                "meanTokenCount": 7.0,
+            }
+            for index, family in enumerate(family_names)
+        }
+        report = {
+            "kind": "gpt2-live-ordered-path-ood-stress",
+            "synthetic": False,
+            "surrogate": False,
+            "model": {"id": "gpt2", "adapter": "gpt2", "device": "cuda"},
+            "config": {
+                "caseCount": 2,
+                "paraphraseCount": len(family_names),
+                "paraphraseProfile": "ood",
+                "minParaphrasePassRate": 0.66,
+                "minOriginalDrop": 0.1,
+                "minParaphraseDropRatio": 0.1,
+                "minLayerSpecificityRate": 0.8,
+                "replacementPathSearchEnabled": True,
+                "replacementPathTransferEnabled": True,
+            },
+            "summary": {
+                "pass": True,
+                "caseCount": 2,
+                "passedCases": 2,
+                "originalReplayPassRate": 1.0,
+                "paraphraseProfile": "ood",
+                "paraphrasePassRate": 10 / 12,
+                "paraphraseFamilySummary": family_summary,
+                "layerSpecificityRate": 1.0,
+                "maxReplayError": 0.0,
+                "replacementPathSearch": {"attempted": 2, "passed": 2},
+                "replacementPathTransfer": {"attempted": 10, "passed": 10},
+            },
+            "cases": cases,
+            "claimBoundary": {
+                "provesIfPasses": "Configured causal replay only.",
+                "doesNotProve": "Arbitrary prompt stability.",
+            },
+        }
+        self.assertEqual(verify_case_report(report, "gpt2", "gpt2"), [])
+        # A genuinely wrong cross-case transfer prompt (Germany's prompt inside
+        # France's transfer items) must still be rejected after the fix.
+        france_transfer_items = (
+            report["cases"][0]["paraphraseRescue"]["items"][0]
+            ["replacementPathSearch"]["crossFamilyTransfer"]["items"]
+        )
+        france_transfer_items[0]["prompt"] = (
+            report["cases"][1]["paraphrases"][1]["prompt"]
+        )
+        self.assertTrue(
+            any("transfer prompt does not match the held-out family input" in error
+                for error in verify_case_report(report, "gpt2", "gpt2"))
+        )
+
     def test_markdown_report_exposes_rescue_results_and_scope(self) -> None:
         make_markdown = load_stability_module().make_markdown
         report = {

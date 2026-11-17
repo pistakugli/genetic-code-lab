@@ -1,0 +1,2633 @@
+{
+  "schemaVersion": 1,
+  "kind": "gpt-neox-live-ordered-path-ood-stress",
+  "synthetic": false,
+  "surrogate": false,
+  "generatedAt": "2026-11-16T11:41:18.747675Z",
+  "model": {
+    "id": "EleutherAI/pythia-70m-deduped",
+    "class": "GPTNeoXForCausalLM",
+    "modelType": "gpt_neox",
+    "layers": 6,
+    "heads": 8,
+    "hiddenSize": 512,
+    "device": "cuda",
+    "localFilesOnly": false,
+    "adapter": "gpt-neox",
+    "activationFamily": "gelu"
+  },
+  "sourceReport": "/tmp/genetic-code-lab/benchmarks/release/nn-live-pythia-ordered-residual-path-circuit-finder/pythia-70m-20-facts-ordered-residual-path/report.json",
+  "config": {
+    "subjects": [
+      "Austria",
+      "Japan",
+      "Norway",
+      "Russia",
+      "Spain"
+    ],
+    "caseCount": 5,
+    "paraphraseCount": 6,
+    "paraphraseProfile": "ood",
+    "layerShifts": [
+      -2,
+      -1,
+      1,
+      2
+    ],
+    "minLayerControlCount": 2,
+    "minOriginalDrop": 0.05,
+    "minParaphraseDropRatio": 0.1,
+    "minParaphrasePassRate": 0.66,
+    "minLayerMargin": 0.001,
+    "minLayerSpecificityRate": 0.8,
+    "maxReplayError": 1e-05,
+    "replacementPathSearchEnabled": true,
+    "replacementPathTransferEnabled": true,
+    "replacementCandidateCount": 10,
+    "replacementMaxPairAttempts": 32,
+    "replacementMaxSetAttempts": 24,
+    "whyReportEnabled": true
+  },
+  "summary": {
+    "pass": false,
+    "caseCount": 5,
+    "passedCases": 1,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "ood",
+    "paraphrasePassRate": 0.43333333333333335,
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 5,
+        "passed": 2,
+        "passRate": 0.4,
+        "meanDropRatio": 0.1,
+        "meanTokenCount": 20.0
+      },
+      "embedded-question": {
+        "count": 5,
+        "passed": 1,
+        "passRate": 0.2,
+        "meanDropRatio": 0.1,
+        "meanTokenCount": 19.0
+      },
+      "imperative": {
+        "count": 5,
+        "passed": 5,
+        "passRate": 1.0,
+        "meanDropRatio": 5.9,
+        "meanTokenCount": 10.0
+      },
+      "possessive-question": {
+        "count": 5,
+        "passed": 2,
+        "passRate": 0.4,
+        "meanDropRatio": 0.3,
+        "meanTokenCount": 7.0
+      },
+      "sentence-completion": {
+        "count": 5,
+        "passed": 2,
+        "passRate": 0.4,
+        "meanDropRatio": 0.3,
+        "meanTokenCount": 17.0
+      },
+      "service-question": {
+        "count": 5,
+        "passed": 1,
+        "passRate": 0.2,
+        "meanDropRatio": 0.0,
+        "meanTokenCount": 9.0
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0,
+    "failedSubjects": [
+      "Spain",
+      "Japan",
+      "Norway",
+      "Austria"
+    ],
+    "replacementPathSearch": {
+      "attempted": 8,
+      "passed": 0
+    },
+    "replacementPathTransfer": {
+      "attempted": 0,
+      "passed": 0
+    },
+    "whyReport": {
+      "caseCount": 4,
+      "rescueCount": 8,
+      "layerShiftOnlyRecoveries": 2,
+      "replacementFoundCount": 0,
+      "breakKinds": {
+        "sign-flip": 3,
+        "magnitude-collapse": 5
+      },
+      "replacementChangeKinds": {},
+      "paraphraseBreakCount": 17,
+      "paraphraseBreakKinds": {
+        "sign-flip": 5,
+        "magnitude-collapse": 12
+      },
+      "rescueSoughtCount": 8
+    }
+  },
+  "cases": [
+    {
+      "subject": "Spain",
+      "answer": "Madrid",
+      "target": {
+        "tokenId": 21924,
+        "token": " Madrid"
+      },
+      "paraphraseRescue": {
+        "attempted": 2,
+        "found": 1,
+        "items": [
+          {
+            "prompt": "Which city serves as the capital of Spain?",
+            "family": "service-question",
+            "brokenDrop": -1.0,
+            "found": true,
+            "bestLayerShift": 1,
+            "bestDrop": 1.0,
+            "attempts": [
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 1.0
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": 0.0
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "Which city serves as the capital of Spain?",
+              "status": "failed",
+              "found": false,
+              "failureReason": null,
+              "selectionMode": "ordered-rescue-best-margin-pair",
+              "readTokenIndex": 8,
+              "searchLayers": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "mlpInterventions": [
+                {
+                  "layer": 5,
+                  "neuron": 1132,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                }
+              ],
+              "attentionInterventions": [
+                {
+                  "layer": 1,
+                  "head": 4,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                },
+                {
+                  "layer": 1,
+                  "head": 0,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                }
+              ],
+              "targetLogitDrop": 5.0,
+              "pathActivationDelta": 1.59375,
+              "pathMarginOverControlP95": 1.59375,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "not_applicable",
+                "reason": "replacement_path_not_found",
+                "sourceFamily": "service-question",
+                "expectedHeldoutFamilyCount": 5,
+                "items": [],
+                "summary": {
+                  "attempted": 0,
+                  "passed": 0,
+                  "passRate": null
+                }
+              }
+            }
+          },
+          {
+            "prompt": "What city is Spain's capital?",
+            "family": "possessive-question",
+            "brokenDrop": 0.0,
+            "found": false,
+            "bestLayerShift": 1,
+            "bestDrop": 0.0,
+            "attempts": [
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": 0.0
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "What city is Spain's capital?",
+              "status": "failed",
+              "found": false,
+              "failureReason": "ordered path requires selected MLP and attention interventions",
+              "selectionMode": null,
+              "readTokenIndex": 6,
+              "searchLayers": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "mlpInterventions": [],
+              "attentionInterventions": [],
+              "targetLogitDrop": 0.0,
+              "pathActivationDelta": null,
+              "pathMarginOverControlP95": null,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "not_applicable",
+                "reason": "replacement_path_not_found",
+                "sourceFamily": "possessive-question",
+                "expectedHeldoutFamilyCount": 5,
+                "items": [],
+                "summary": {
+                  "attempted": 0,
+                  "passed": 0,
+                  "passRate": null
+                }
+              }
+            }
+          }
+        ]
+      },
+      "status": "failed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 0,
+            "head": 6,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 3,
+            "neuron": 983,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 21924,
+          "token": " Madrid"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 2.0,
+        "reportedTargetLogitDrop": 2.0,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Spain?",
+          "tokenCount": 9,
+          "targetLogitDrop": -1.0,
+          "ratioToOriginal": -0.5,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Spain's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Spain.",
+          "tokenCount": 10,
+          "targetLogitDrop": 15.0,
+          "ratioToOriginal": 7.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Spain?",
+          "tokenCount": 19,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Spain is",
+          "tokenCount": 17,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+          "tokenCount": 20,
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 0.5,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 2,
+        "passRate": 0.3333333333333333,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 7.5,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.5,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": -1.0
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.0,
+        "marginOverBestPositiveNeighbor": 2.0,
+        "pass": true
+      },
+      "whyReport": {
+        "subject": "Spain",
+        "rescueCount": 2,
+        "layerShiftOnlyRecoveries": 1,
+        "replacementFoundCount": 0,
+        "breakKinds": {
+          "sign-flip": 1,
+          "magnitude-collapse": 1
+        },
+        "replacementChangeKinds": {},
+        "paraphraseBreakCount": 4,
+        "paraphraseBreakKinds": {
+          "sign-flip": 1,
+          "magnitude-collapse": 3
+        },
+        "rescueSoughtCount": 2,
+        "whereEffectWent": {
+          "layerSets": [],
+          "directions": []
+        },
+        "items": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of Spain?",
+            "break": {
+              "kind": "sign-flip",
+              "brokenTargetLogitDrop": -1.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": -0.5,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components raises the target logit under this phrasing, so the original path is not carrying the behaviour; the recorded components are counterproductive here."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                1,
+                2
+              ],
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 1.0,
+              "recovered": true,
+              "interpretation": "Shifting the same components across neighbouring layers recovers the effect, so the break is a layer misplacement."
+            },
+            "replacementPath": {
+              "found": false,
+              "attempted": true,
+              "selectionMode": "ordered-rescue-best-margin-pair",
+              "targetLogitDrop": 5.0,
+              "pathChange": {
+                "sourceLayers": [
+                  0,
+                  3
+                ],
+                "replacementLayers": [
+                  1,
+                  5
+                ],
+                "layerOverlap": [],
+                "meanLayerDelta": 1.5,
+                "direction": "later",
+                "sourceMlpComponents": [
+                  [
+                    3,
+                    983
+                  ]
+                ],
+                "replacementMlpComponents": [
+                  [
+                    5,
+                    1132
+                  ]
+                ],
+                "sourceAttentionComponents": [
+                  [
+                    0,
+                    6
+                  ]
+                ],
+                "replacementAttentionComponents": [
+                  [
+                    1,
+                    0
+                  ],
+                  [
+                    1,
+                    4
+                  ]
+                ],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 2,
+                "sourceAblatePositions": [
+                  4
+                ],
+                "replacementAblatePositions": [
+                  8
+                ],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "not_applicable",
+              "sourceFamily": "service-question",
+              "attempted": 0,
+              "passed": 0,
+              "passRate": null,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the service-question phrasing of the Spain prompt the original path (MLP L3 n983 + attention L0 h6) broke as a sign-flip: the remapped replay drop was -1.0000 against 2.0000 on the source prompt. A layer shift of 1 alone recovered the effect. The replacement search did not find a passing path.",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          },
+          {
+            "family": "possessive-question",
+            "prompt": "What city is Spain's capital?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                1,
+                2
+              ],
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0,
+              "recovered": false,
+              "interpretation": "Shifting the same components across the configured layers never recovers the effect, so the break is not a layer misplacement of the same components."
+            },
+            "replacementPath": {
+              "found": false,
+              "attempted": true,
+              "selectionMode": null,
+              "targetLogitDrop": 0.0,
+              "pathChange": {
+                "sourceLayers": [
+                  0,
+                  3
+                ],
+                "replacementLayers": [],
+                "layerOverlap": [],
+                "meanLayerDelta": null,
+                "direction": "same",
+                "sourceMlpComponents": [
+                  [
+                    3,
+                    983
+                  ]
+                ],
+                "replacementMlpComponents": [],
+                "sourceAttentionComponents": [
+                  [
+                    0,
+                    6
+                  ]
+                ],
+                "replacementAttentionComponents": [],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 2,
+                "sourceAblatePositions": [
+                  4
+                ],
+                "replacementAblatePositions": [],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "not_applicable",
+              "sourceFamily": "possessive-question",
+              "attempted": 0,
+              "passed": 0,
+              "passRate": null,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the possessive-question phrasing of the Spain prompt the original path (MLP L3 n983 + attention L0 h6) broke as a magnitude-collapse: the remapped replay drop was 0.0000 against 2.0000 on the source prompt. Replaying the same components shifted across layers (1, 2) reached at best 0.0000, so the effect did not simply move with those components. The replacement search did not find a passing path (ordered path requires selected MLP and attention interventions).",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          }
+        ],
+        "paraphraseBreaks": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of Spain?",
+            "break": {
+              "kind": "sign-flip",
+              "brokenTargetLogitDrop": -1.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": -0.5,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components raises the target logit under this phrasing, so the original path is not carrying the behaviour; the recorded components are counterproductive here."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": true,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 1.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "possessive-question",
+            "prompt": "What city is Spain's capital?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "embedded-question",
+            "prompt": "I am checking a country profile. Could you tell me which city is the capital of Spain?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "sentence-completion",
+            "prompt": "Complete this sentence with a city name: The city that is the capital of Spain is",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          }
+        ]
+      }
+    },
+    {
+      "subject": "Japan",
+      "answer": "Tokyo",
+      "target": {
+        "tokenId": 17413,
+        "token": " Tokyo"
+      },
+      "paraphraseRescue": {
+        "attempted": 2,
+        "found": 0,
+        "items": [
+          {
+            "prompt": "Which city serves as the capital of Japan?",
+            "family": "service-question",
+            "brokenDrop": 0.0,
+            "found": false,
+            "bestLayerShift": 1,
+            "bestDrop": 0.0,
+            "attempts": [
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": 0.0
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "Which city serves as the capital of Japan?",
+              "status": "failed",
+              "found": false,
+              "failureReason": null,
+              "selectionMode": "ordered-rescue-best-margin-pair",
+              "readTokenIndex": 8,
+              "searchLayers": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "mlpInterventions": [
+                {
+                  "layer": 3,
+                  "neuron": 92,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                }
+              ],
+              "attentionInterventions": [
+                {
+                  "layer": 0,
+                  "head": 0,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                },
+                {
+                  "layer": 2,
+                  "head": 1,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                }
+              ],
+              "targetLogitDrop": 0.0,
+              "pathActivationDelta": 0.9941482543945312,
+              "pathMarginOverControlP95": 0.9941482543945312,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "not_applicable",
+                "reason": "replacement_path_not_found",
+                "sourceFamily": "service-question",
+                "expectedHeldoutFamilyCount": 5,
+                "items": [],
+                "summary": {
+                  "attempted": 0,
+                  "passed": 0,
+                  "passRate": null
+                }
+              }
+            }
+          },
+          {
+            "prompt": "I am checking a country profile. Could you tell me which city is the capital of Japan?",
+            "family": "embedded-question",
+            "brokenDrop": 0.0,
+            "found": false,
+            "bestLayerShift": 1,
+            "bestDrop": 0.0,
+            "attempts": [
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -1.0
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "I am checking a country profile. Could you tell me which city is the capital of Japan?",
+              "status": "failed",
+              "found": false,
+              "failureReason": "ordered path requires selected MLP and attention interventions",
+              "selectionMode": null,
+              "readTokenIndex": 18,
+              "searchLayers": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "mlpInterventions": [],
+              "attentionInterventions": [],
+              "targetLogitDrop": 0.0,
+              "pathActivationDelta": null,
+              "pathMarginOverControlP95": null,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "not_applicable",
+                "reason": "replacement_path_not_found",
+                "sourceFamily": "embedded-question",
+                "expectedHeldoutFamilyCount": 5,
+                "items": [],
+                "summary": {
+                  "attempted": 0,
+                  "passed": 0,
+                  "passRate": null
+                }
+              }
+            }
+          }
+        ]
+      },
+      "status": "failed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 0,
+            "head": 6,
+            "ablateTokenPositions": [
+              4
+            ]
+          },
+          {
+            "layer": 2,
+            "head": 1,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 3,
+            "neuron": 92,
+            "ablateTokenPositions": [
+              4
+            ]
+          },
+          {
+            "layer": 3,
+            "neuron": 1348,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 17413,
+          "token": " Tokyo"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 2.0,
+        "reportedTargetLogitDrop": 2.0,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Japan?",
+          "tokenCount": 9,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Japan's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 0.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Japan.",
+          "tokenCount": 10,
+          "targetLogitDrop": 16.0,
+          "ratioToOriginal": 8.0,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Japan?",
+          "tokenCount": 19,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Japan is",
+          "tokenCount": 17,
+          "targetLogitDrop": -1.0,
+          "ratioToOriginal": -0.5,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Japan?",
+          "tokenCount": 20,
+          "targetLogitDrop": -1.0,
+          "ratioToOriginal": -0.5,
+          "pass": false
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 2,
+        "passRate": 0.3333333333333333,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.5,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 8.0,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.5,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": -1.0
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.0,
+        "marginOverBestPositiveNeighbor": 2.0,
+        "pass": true
+      },
+      "whyReport": {
+        "subject": "Japan",
+        "rescueCount": 2,
+        "layerShiftOnlyRecoveries": 0,
+        "replacementFoundCount": 0,
+        "breakKinds": {
+          "magnitude-collapse": 2
+        },
+        "replacementChangeKinds": {},
+        "paraphraseBreakCount": 4,
+        "paraphraseBreakKinds": {
+          "magnitude-collapse": 2,
+          "sign-flip": 2
+        },
+        "rescueSoughtCount": 2,
+        "whereEffectWent": {
+          "layerSets": [],
+          "directions": []
+        },
+        "items": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of Japan?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                1,
+                2
+              ],
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0,
+              "recovered": false,
+              "interpretation": "Shifting the same components across the configured layers never recovers the effect, so the break is not a layer misplacement of the same components."
+            },
+            "replacementPath": {
+              "found": false,
+              "attempted": true,
+              "selectionMode": "ordered-rescue-best-margin-pair",
+              "targetLogitDrop": 0.0,
+              "pathChange": {
+                "sourceLayers": [
+                  0,
+                  2,
+                  3
+                ],
+                "replacementLayers": [
+                  0,
+                  2,
+                  3
+                ],
+                "layerOverlap": [
+                  0,
+                  2,
+                  3
+                ],
+                "meanLayerDelta": 0.0,
+                "direction": "same",
+                "sourceMlpComponents": [
+                  [
+                    3,
+                    92
+                  ],
+                  [
+                    3,
+                    1348
+                  ]
+                ],
+                "replacementMlpComponents": [
+                  [
+                    3,
+                    92
+                  ]
+                ],
+                "sourceAttentionComponents": [
+                  [
+                    0,
+                    6
+                  ],
+                  [
+                    2,
+                    1
+                  ]
+                ],
+                "replacementAttentionComponents": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    2,
+                    1
+                  ]
+                ],
+                "mlpOverlap": [
+                  [
+                    3,
+                    92
+                  ]
+                ],
+                "attentionOverlap": [
+                  [
+                    2,
+                    1
+                  ]
+                ],
+                "componentOverlapCount": 2,
+                "sourceComponentCount": 4,
+                "sourceAblatePositions": [
+                  4
+                ],
+                "replacementAblatePositions": [
+                  8
+                ],
+                "changeKind": "component-retention",
+                "interpretation": "The replacement path reuses measured source components in overlapping layers."
+              }
+            },
+            "transfer": {
+              "status": "not_applicable",
+              "sourceFamily": "service-question",
+              "attempted": 0,
+              "passed": 0,
+              "passRate": null,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the service-question phrasing of the Japan prompt the original path (MLP L3 n92, L3 n1348 + attention L0 h6, L2 h1) broke as a magnitude-collapse: the remapped replay drop was 0.0000 against 2.0000 on the source prompt. Replaying the same components shifted across layers (1, 2) reached at best 0.0000, so the effect did not simply move with those components. The replacement search did not find a passing path.",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          },
+          {
+            "family": "embedded-question",
+            "prompt": "I am checking a country profile. Could you tell me which city is the capital of Japan?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                1,
+                2
+              ],
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0,
+              "recovered": false,
+              "interpretation": "Shifting the same components across the configured layers never recovers the effect, so the break is not a layer misplacement of the same components."
+            },
+            "replacementPath": {
+              "found": false,
+              "attempted": true,
+              "selectionMode": null,
+              "targetLogitDrop": 0.0,
+              "pathChange": {
+                "sourceLayers": [
+                  0,
+                  2,
+                  3
+                ],
+                "replacementLayers": [],
+                "layerOverlap": [],
+                "meanLayerDelta": null,
+                "direction": "same",
+                "sourceMlpComponents": [
+                  [
+                    3,
+                    92
+                  ],
+                  [
+                    3,
+                    1348
+                  ]
+                ],
+                "replacementMlpComponents": [],
+                "sourceAttentionComponents": [
+                  [
+                    0,
+                    6
+                  ],
+                  [
+                    2,
+                    1
+                  ]
+                ],
+                "replacementAttentionComponents": [],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 4,
+                "sourceAblatePositions": [
+                  4
+                ],
+                "replacementAblatePositions": [],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "not_applicable",
+              "sourceFamily": "embedded-question",
+              "attempted": 0,
+              "passed": 0,
+              "passRate": null,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the embedded-question phrasing of the Japan prompt the original path (MLP L3 n92, L3 n1348 + attention L0 h6, L2 h1) broke as a magnitude-collapse: the remapped replay drop was 0.0000 against 2.0000 on the source prompt. Replaying the same components shifted across layers (1, 2) reached at best 0.0000, so the effect did not simply move with those components. The replacement search did not find a passing path (ordered path requires selected MLP and attention interventions).",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          }
+        ],
+        "paraphraseBreaks": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of Japan?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "embedded-question",
+            "prompt": "I am checking a country profile. Could you tell me which city is the capital of Japan?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "sentence-completion",
+            "prompt": "Complete this sentence with a city name: The city that is the capital of Japan is",
+            "break": {
+              "kind": "sign-flip",
+              "brokenTargetLogitDrop": -1.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": -0.5,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components raises the target logit under this phrasing, so the original path is not carrying the behaviour; the recorded components are counterproductive here."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "context-prefixed-question",
+            "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Japan?",
+            "break": {
+              "kind": "sign-flip",
+              "brokenTargetLogitDrop": -1.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": -0.5,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components raises the target logit under this phrasing, so the original path is not carrying the behaviour; the recorded components are counterproductive here."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          }
+        ]
+      }
+    },
+    {
+      "subject": "Russia",
+      "answer": "Moscow",
+      "target": {
+        "tokenId": 16496,
+        "token": " Moscow"
+      },
+      "paraphraseRescue": {
+        "attempted": 0,
+        "found": 0,
+        "items": []
+      },
+      "status": "passed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 2,
+            "head": 3,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 5,
+            "neuron": 1132,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 16496,
+          "token": " Moscow"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 2.0,
+        "reportedTargetLogitDrop": 2.0,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Russia?",
+          "tokenCount": 9,
+          "targetLogitDrop": 3.0,
+          "ratioToOriginal": 1.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Russia's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 2.0,
+          "ratioToOriginal": 1.0,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Russia.",
+          "tokenCount": 10,
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 0.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Russia?",
+          "tokenCount": 19,
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 0.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Russia is",
+          "tokenCount": 17,
+          "targetLogitDrop": 3.0,
+          "ratioToOriginal": 1.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Russia?",
+          "tokenCount": 20,
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 0.5,
+          "pass": true
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 6,
+        "passRate": 1.0,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.0,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.5,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 1.5,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": -2,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": -1,
+            "targetLogitDrop": 1.0
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 1.0,
+        "marginOverBestPositiveNeighbor": 1.0,
+        "pass": true
+      }
+    },
+    {
+      "subject": "Norway",
+      "answer": "Oslo",
+      "target": {
+        "tokenId": 43516,
+        "token": " Oslo"
+      },
+      "paraphraseRescue": {
+        "attempted": 2,
+        "found": 0,
+        "items": [
+          {
+            "prompt": "Which city serves as the capital of Norway?",
+            "family": "service-question",
+            "brokenDrop": -1.0,
+            "found": false,
+            "bestLayerShift": 1,
+            "bestDrop": 0.0,
+            "attempts": [
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -1.0
+              },
+              {
+                "layerShift": 3,
+                "targetLogitDrop": 0.0
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "Which city serves as the capital of Norway?",
+              "status": "failed",
+              "found": false,
+              "failureReason": "ordered path requires selected MLP and attention interventions",
+              "selectionMode": null,
+              "readTokenIndex": 8,
+              "searchLayers": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "mlpInterventions": [],
+              "attentionInterventions": [],
+              "targetLogitDrop": 0.0,
+              "pathActivationDelta": null,
+              "pathMarginOverControlP95": null,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "not_applicable",
+                "reason": "replacement_path_not_found",
+                "sourceFamily": "service-question",
+                "expectedHeldoutFamilyCount": 5,
+                "items": [],
+                "summary": {
+                  "attempted": 0,
+                  "passed": 0,
+                  "passRate": null
+                }
+              }
+            }
+          },
+          {
+            "prompt": "What city is Norway's capital?",
+            "family": "possessive-question",
+            "brokenDrop": 0.0,
+            "found": false,
+            "bestLayerShift": 1,
+            "bestDrop": 0.0,
+            "attempts": [
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -1.0
+              },
+              {
+                "layerShift": 3,
+                "targetLogitDrop": 0.0
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "What city is Norway's capital?",
+              "status": "failed",
+              "found": false,
+              "failureReason": "ordered path requires selected MLP and attention interventions",
+              "selectionMode": null,
+              "readTokenIndex": 6,
+              "searchLayers": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "mlpInterventions": [],
+              "attentionInterventions": [],
+              "targetLogitDrop": 0.0,
+              "pathActivationDelta": null,
+              "pathMarginOverControlP95": null,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "not_applicable",
+                "reason": "replacement_path_not_found",
+                "sourceFamily": "possessive-question",
+                "expectedHeldoutFamilyCount": 5,
+                "items": [],
+                "summary": {
+                  "attempted": 0,
+                  "passed": 0,
+                  "passRate": null
+                }
+              }
+            }
+          }
+        ]
+      },
+      "status": "failed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 0,
+            "head": 6,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 1,
+            "neuron": 1023,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 43516,
+          "token": " Oslo"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 2.0,
+        "reportedTargetLogitDrop": 2.0,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Norway?",
+          "tokenCount": 9,
+          "targetLogitDrop": -1.0,
+          "ratioToOriginal": -0.5,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Norway's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Norway.",
+          "tokenCount": 10,
+          "targetLogitDrop": 14.0,
+          "ratioToOriginal": 7.0,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Norway?",
+          "tokenCount": 19,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Norway is",
+          "tokenCount": 17,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Norway?",
+          "tokenCount": 20,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 1,
+        "passRate": 0.16666666666666666,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 7.0,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.5,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": -1.0
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.0,
+        "marginOverBestPositiveNeighbor": 2.0,
+        "pass": true
+      },
+      "whyReport": {
+        "subject": "Norway",
+        "rescueCount": 2,
+        "layerShiftOnlyRecoveries": 0,
+        "replacementFoundCount": 0,
+        "breakKinds": {
+          "sign-flip": 1,
+          "magnitude-collapse": 1
+        },
+        "replacementChangeKinds": {},
+        "paraphraseBreakCount": 5,
+        "paraphraseBreakKinds": {
+          "sign-flip": 1,
+          "magnitude-collapse": 4
+        },
+        "rescueSoughtCount": 2,
+        "whereEffectWent": {
+          "layerSets": [],
+          "directions": []
+        },
+        "items": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of Norway?",
+            "break": {
+              "kind": "sign-flip",
+              "brokenTargetLogitDrop": -1.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": -0.5,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components raises the target logit under this phrasing, so the original path is not carrying the behaviour; the recorded components are counterproductive here."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                1,
+                2,
+                3
+              ],
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0,
+              "recovered": false,
+              "interpretation": "Shifting the same components across the configured layers never recovers the effect, so the break is not a layer misplacement of the same components."
+            },
+            "replacementPath": {
+              "found": false,
+              "attempted": true,
+              "selectionMode": null,
+              "targetLogitDrop": 0.0,
+              "pathChange": {
+                "sourceLayers": [
+                  0,
+                  1
+                ],
+                "replacementLayers": [],
+                "layerOverlap": [],
+                "meanLayerDelta": null,
+                "direction": "same",
+                "sourceMlpComponents": [
+                  [
+                    1,
+                    1023
+                  ]
+                ],
+                "replacementMlpComponents": [],
+                "sourceAttentionComponents": [
+                  [
+                    0,
+                    6
+                  ]
+                ],
+                "replacementAttentionComponents": [],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 2,
+                "sourceAblatePositions": [
+                  4
+                ],
+                "replacementAblatePositions": [],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "not_applicable",
+              "sourceFamily": "service-question",
+              "attempted": 0,
+              "passed": 0,
+              "passRate": null,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the service-question phrasing of the Norway prompt the original path (MLP L1 n1023 + attention L0 h6) broke as a sign-flip: the remapped replay drop was -1.0000 against 2.0000 on the source prompt. Replaying the same components shifted across layers (1, 2, 3) reached at best 0.0000, so the effect did not simply move with those components. The replacement search did not find a passing path (ordered path requires selected MLP and attention interventions).",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          },
+          {
+            "family": "possessive-question",
+            "prompt": "What city is Norway's capital?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                1,
+                2,
+                3
+              ],
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0,
+              "recovered": false,
+              "interpretation": "Shifting the same components across the configured layers never recovers the effect, so the break is not a layer misplacement of the same components."
+            },
+            "replacementPath": {
+              "found": false,
+              "attempted": true,
+              "selectionMode": null,
+              "targetLogitDrop": 0.0,
+              "pathChange": {
+                "sourceLayers": [
+                  0,
+                  1
+                ],
+                "replacementLayers": [],
+                "layerOverlap": [],
+                "meanLayerDelta": null,
+                "direction": "same",
+                "sourceMlpComponents": [
+                  [
+                    1,
+                    1023
+                  ]
+                ],
+                "replacementMlpComponents": [],
+                "sourceAttentionComponents": [
+                  [
+                    0,
+                    6
+                  ]
+                ],
+                "replacementAttentionComponents": [],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 2,
+                "sourceAblatePositions": [
+                  4
+                ],
+                "replacementAblatePositions": [],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "not_applicable",
+              "sourceFamily": "possessive-question",
+              "attempted": 0,
+              "passed": 0,
+              "passRate": null,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the possessive-question phrasing of the Norway prompt the original path (MLP L1 n1023 + attention L0 h6) broke as a magnitude-collapse: the remapped replay drop was 0.0000 against 2.0000 on the source prompt. Replaying the same components shifted across layers (1, 2, 3) reached at best 0.0000, so the effect did not simply move with those components. The replacement search did not find a passing path (ordered path requires selected MLP and attention interventions).",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          }
+        ],
+        "paraphraseBreaks": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of Norway?",
+            "break": {
+              "kind": "sign-flip",
+              "brokenTargetLogitDrop": -1.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": -0.5,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components raises the target logit under this phrasing, so the original path is not carrying the behaviour; the recorded components are counterproductive here."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "possessive-question",
+            "prompt": "What city is Norway's capital?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "embedded-question",
+            "prompt": "I am checking a country profile. Could you tell me which city is the capital of Norway?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "sentence-completion",
+            "prompt": "Complete this sentence with a city name: The city that is the capital of Norway is",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "context-prefixed-question",
+            "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Norway?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          }
+        ]
+      }
+    },
+    {
+      "subject": "Austria",
+      "answer": "Vienna",
+      "target": {
+        "tokenId": 26229,
+        "token": " Vienna"
+      },
+      "paraphraseRescue": {
+        "attempted": 2,
+        "found": 1,
+        "items": [
+          {
+            "prompt": "Which city serves as the capital of Austria?",
+            "family": "service-question",
+            "brokenDrop": -1.0,
+            "found": true,
+            "bestLayerShift": 1,
+            "bestDrop": 1.0,
+            "attempts": [
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 1.0
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": -1.0
+              },
+              {
+                "layerShift": 3,
+                "targetLogitDrop": 0.0
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "Which city serves as the capital of Austria?",
+              "status": "failed",
+              "found": false,
+              "failureReason": null,
+              "selectionMode": "ordered-rescue-best-margin-pair",
+              "readTokenIndex": 8,
+              "searchLayers": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "mlpInterventions": [
+                {
+                  "layer": 5,
+                  "neuron": 1476,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                }
+              ],
+              "attentionInterventions": [
+                {
+                  "layer": 3,
+                  "head": 2,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                },
+                {
+                  "layer": 2,
+                  "head": 3,
+                  "ablateTokenPositions": [
+                    8
+                  ]
+                }
+              ],
+              "targetLogitDrop": 1.0,
+              "pathActivationDelta": 5.91796875,
+              "pathMarginOverControlP95": 5.7686279296875,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "not_applicable",
+                "reason": "replacement_path_not_found",
+                "sourceFamily": "service-question",
+                "expectedHeldoutFamilyCount": 5,
+                "items": [],
+                "summary": {
+                  "attempted": 0,
+                  "passed": 0,
+                  "passRate": null
+                }
+              }
+            }
+          },
+          {
+            "prompt": "What city is Austria's capital?",
+            "family": "possessive-question",
+            "brokenDrop": 0.0,
+            "found": false,
+            "bestLayerShift": 1,
+            "bestDrop": 0.0,
+            "attempts": [
+              {
+                "layerShift": 1,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 2,
+                "targetLogitDrop": 0.0
+              },
+              {
+                "layerShift": 3,
+                "targetLogitDrop": 0.0
+              }
+            ],
+            "searchScope": "layer-shifted replay of the same path",
+            "replacementPathSearch": {
+              "prompt": "What city is Austria's capital?",
+              "status": "failed",
+              "found": false,
+              "failureReason": "ordered path requires selected MLP and attention interventions",
+              "selectionMode": null,
+              "readTokenIndex": 6,
+              "searchLayers": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "mlpInterventions": [],
+              "attentionInterventions": [],
+              "targetLogitDrop": 0.0,
+              "pathActivationDelta": null,
+              "pathMarginOverControlP95": null,
+              "searchScope": "all MLP neurons and attention heads in the source and configured rescue-shift layers",
+              "crossFamilyTransfer": {
+                "status": "not_applicable",
+                "reason": "replacement_path_not_found",
+                "sourceFamily": "possessive-question",
+                "expectedHeldoutFamilyCount": 5,
+                "items": [],
+                "summary": {
+                  "attempted": 0,
+                  "passed": 0,
+                  "passRate": null
+                }
+              }
+            }
+          }
+        ]
+      },
+      "status": "failed",
+      "sourceCircuit": {
+        "attention": [
+          {
+            "layer": 0,
+            "head": 6,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "mlp": [
+          {
+            "layer": 1,
+            "neuron": 699,
+            "ablateTokenPositions": [
+              4
+            ]
+          }
+        ],
+        "target": {
+          "tokenId": 26229,
+          "token": " Vienna"
+        }
+      },
+      "originalReplay": {
+        "readTokenIndex": 4,
+        "targetLogitDrop": 2.0,
+        "reportedTargetLogitDrop": 2.0,
+        "absoluteReplayError": 0.0,
+        "pass": true
+      },
+      "paraphrases": [
+        {
+          "profile": "ood",
+          "family": "service-question",
+          "prompt": "Which city serves as the capital of Austria?",
+          "tokenCount": 9,
+          "targetLogitDrop": -1.0,
+          "ratioToOriginal": -0.5,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "possessive-question",
+          "prompt": "What city is Austria's capital?",
+          "tokenCount": 7,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "imperative",
+          "prompt": "Give the name of the capital city of Austria.",
+          "tokenCount": 10,
+          "targetLogitDrop": 13.0,
+          "ratioToOriginal": 6.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "embedded-question",
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Austria?",
+          "tokenCount": 19,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        },
+        {
+          "profile": "ood",
+          "family": "sentence-completion",
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Austria is",
+          "tokenCount": 17,
+          "targetLogitDrop": 1.0,
+          "ratioToOriginal": 0.5,
+          "pass": true
+        },
+        {
+          "profile": "ood",
+          "family": "context-prefixed-question",
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Austria?",
+          "tokenCount": 20,
+          "targetLogitDrop": 0.0,
+          "ratioToOriginal": 0.0,
+          "pass": false
+        }
+      ],
+      "paraphraseSummary": {
+        "count": 6,
+        "passed": 2,
+        "passRate": 0.3333333333333333,
+        "families": {
+          "context-prefixed-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 20.0
+          },
+          "embedded-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 19.0
+          },
+          "imperative": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 6.5,
+            "meanTokenCount": 10.0
+          },
+          "possessive-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": 0.0,
+            "meanTokenCount": 7.0
+          },
+          "sentence-completion": {
+            "count": 1,
+            "passed": 1,
+            "passRate": 1.0,
+            "meanDropRatio": 0.5,
+            "meanTokenCount": 17.0
+          },
+          "service-question": {
+            "count": 1,
+            "passed": 0,
+            "passRate": 0.0,
+            "meanDropRatio": -0.5,
+            "meanTokenCount": 9.0
+          }
+        }
+      },
+      "layerControls": {
+        "items": [
+          {
+            "shift": 1,
+            "targetLogitDrop": 0.0
+          },
+          {
+            "shift": 2,
+            "targetLogitDrop": 0.0
+          }
+        ],
+        "requestedShifts": [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        "validControlCount": 2,
+        "minLayerControlCount": 2,
+        "bestPositiveNeighborTargetLogitDrop": 0.0,
+        "marginOverBestPositiveNeighbor": 2.0,
+        "pass": true
+      },
+      "whyReport": {
+        "subject": "Austria",
+        "rescueCount": 2,
+        "layerShiftOnlyRecoveries": 1,
+        "replacementFoundCount": 0,
+        "breakKinds": {
+          "sign-flip": 1,
+          "magnitude-collapse": 1
+        },
+        "replacementChangeKinds": {},
+        "paraphraseBreakCount": 4,
+        "paraphraseBreakKinds": {
+          "sign-flip": 1,
+          "magnitude-collapse": 3
+        },
+        "rescueSoughtCount": 2,
+        "whereEffectWent": {
+          "layerSets": [],
+          "directions": []
+        },
+        "items": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of Austria?",
+            "break": {
+              "kind": "sign-flip",
+              "brokenTargetLogitDrop": -1.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": -0.5,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components raises the target logit under this phrasing, so the original path is not carrying the behaviour; the recorded components are counterproductive here."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                1,
+                2,
+                3
+              ],
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 1.0,
+              "recovered": true,
+              "interpretation": "Shifting the same components across neighbouring layers recovers the effect, so the break is a layer misplacement."
+            },
+            "replacementPath": {
+              "found": false,
+              "attempted": true,
+              "selectionMode": "ordered-rescue-best-margin-pair",
+              "targetLogitDrop": 1.0,
+              "pathChange": {
+                "sourceLayers": [
+                  0,
+                  1
+                ],
+                "replacementLayers": [
+                  2,
+                  3,
+                  5
+                ],
+                "layerOverlap": [],
+                "meanLayerDelta": 2.8333333333333335,
+                "direction": "later",
+                "sourceMlpComponents": [
+                  [
+                    1,
+                    699
+                  ]
+                ],
+                "replacementMlpComponents": [
+                  [
+                    5,
+                    1476
+                  ]
+                ],
+                "sourceAttentionComponents": [
+                  [
+                    0,
+                    6
+                  ]
+                ],
+                "replacementAttentionComponents": [
+                  [
+                    2,
+                    3
+                  ],
+                  [
+                    3,
+                    2
+                  ]
+                ],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 2,
+                "sourceAblatePositions": [
+                  4
+                ],
+                "replacementAblatePositions": [
+                  8
+                ],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "not_applicable",
+              "sourceFamily": "service-question",
+              "attempted": 0,
+              "passed": 0,
+              "passRate": null,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the service-question phrasing of the Austria prompt the original path (MLP L1 n699 + attention L0 h6) broke as a sign-flip: the remapped replay drop was -1.0000 against 2.0000 on the source prompt. A layer shift of 1 alone recovered the effect. The replacement search did not find a passing path.",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          },
+          {
+            "family": "possessive-question",
+            "prompt": "What city is Austria's capital?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "layerShiftRescue": {
+              "attemptedShifts": [
+                1,
+                2,
+                3
+              ],
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0,
+              "recovered": false,
+              "interpretation": "Shifting the same components across the configured layers never recovers the effect, so the break is not a layer misplacement of the same components."
+            },
+            "replacementPath": {
+              "found": false,
+              "attempted": true,
+              "selectionMode": null,
+              "targetLogitDrop": 0.0,
+              "pathChange": {
+                "sourceLayers": [
+                  0,
+                  1
+                ],
+                "replacementLayers": [],
+                "layerOverlap": [],
+                "meanLayerDelta": null,
+                "direction": "same",
+                "sourceMlpComponents": [
+                  [
+                    1,
+                    699
+                  ]
+                ],
+                "replacementMlpComponents": [],
+                "sourceAttentionComponents": [
+                  [
+                    0,
+                    6
+                  ]
+                ],
+                "replacementAttentionComponents": [],
+                "mlpOverlap": [],
+                "attentionOverlap": [],
+                "componentOverlapCount": 0,
+                "sourceComponentCount": 2,
+                "sourceAblatePositions": [
+                  4
+                ],
+                "replacementAblatePositions": [],
+                "changeKind": "component-rebinding",
+                "interpretation": "The replacement path uses components that do not overlap the source circuit."
+              }
+            },
+            "transfer": {
+              "status": "not_applicable",
+              "sourceFamily": "possessive-question",
+              "attempted": 0,
+              "passed": 0,
+              "passRate": null,
+              "failingFamilies": []
+            },
+            "whyStatement": "Under the possessive-question phrasing of the Austria prompt the original path (MLP L1 n699 + attention L0 h6) broke as a magnitude-collapse: the remapped replay drop was 0.0000 against 2.0000 on the source prompt. Replaying the same components shifted across layers (1, 2, 3) reached at best 0.0000, so the effect did not simply move with those components. The replacement search did not find a passing path (ordered path requires selected MLP and attention interventions).",
+            "claimBoundary": "This entry explains where the measured target-logit causal effect moved between two recorded prompts of one subject. It is not semantic proof of what the components compute, not proof of a unique circuit, and not evidence about families, subjects, or models beyond those measured here."
+          }
+        ],
+        "paraphraseBreaks": [
+          {
+            "family": "service-question",
+            "prompt": "Which city serves as the capital of Austria?",
+            "break": {
+              "kind": "sign-flip",
+              "brokenTargetLogitDrop": -1.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": -0.5,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components raises the target logit under this phrasing, so the original path is not carrying the behaviour; the recorded components are counterproductive here."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": true,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 1.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "possessive-question",
+            "prompt": "What city is Austria's capital?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": true,
+            "layerShiftRescue": {
+              "recovered": false,
+              "bestLayerShift": 1,
+              "bestShiftedTargetLogitDrop": 0.0
+            },
+            "replacementSought": true,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "embedded-question",
+            "prompt": "I am checking a country profile. Could you tell me which city is the capital of Austria?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          },
+          {
+            "family": "context-prefixed-question",
+            "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Austria?",
+            "break": {
+              "kind": "magnitude-collapse",
+              "brokenTargetLogitDrop": 0.0,
+              "originalTargetLogitDrop": 2.0,
+              "ratioToOriginal": 0.0,
+              "minOriginalDrop": 0.05,
+              "minParaphraseDropRatio": 0.1,
+              "interpretation": "Ablating the original components leaves the target logit almost unchanged under this phrasing, so the original path has lost its measured causal effect."
+            },
+            "rescueSought": false,
+            "layerShiftRescue": null,
+            "replacementSought": false,
+            "claimBoundary": "This entry classifies one measured replay from the recorded drops. It is not a semantic claim about the family, and it says nothing about prompts, subjects, or models that were not measured."
+          }
+        ]
+      }
+    }
+  ],
+  "claimBoundary": {
+    "provesIfPasses": "The exact discovered circuit interventions replay on the source prompts, preserve target-causal effects across the configured standard or held-out OOD paraphrase families, and outperform neighboring-layer shifted controls for the configured real-model cases.",
+    "doesNotProve": "This does not prove neuron identity across model families, semantic equivalence of internal circuits, full-model circuit recovery, semantic validity beyond the curated capital-question templates, or arbitrary prompt stability."
+  }
+}

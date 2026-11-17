@@ -1,0 +1,143 @@
+{
+  "kind": "gcl-kaggle-qwen-ood-lane-run",
+  "variant": "ood-replacement-transfer-qwen-2.5-1.5b-2026-11-17",
+  "pinnedRepoCommit": "5fdcf36ea421ad04c1f5080e64533093a39ef139",
+  "verifierFixApplied": {
+    "description": "per-case reset of replacement_transfer_records in verify_ordered_path_ood_stress.py (cross-case accumulation defect found by the Mistral-7B lane); identical to the recorded fix applied by the mistral v2 kernel",
+    "sha256": "feec699719caee6d97aad8dd08feaec18eb5daa770bb56a4eb657bb20de3706a",
+    "changesVerificationOnly": true
+  },
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "adapter": "qwen2-swiglu",
+  "circuitFinder": {
+    "tool": "tools/llm-reader-gpt2-ordered-residual-path-sweep.py",
+    "subjects": [
+      "France",
+      "Germany",
+      "Spain",
+      "Japan",
+      "Italy",
+      "Portugal",
+      "Greece",
+      "Norway",
+      "Russia",
+      "Austria",
+      "Netherlands"
+    ],
+    "caseCount": 12,
+    "minValidCases": 8,
+    "layers": "10,16,22",
+    "runnerExitStatus": 1,
+    "summary": {
+      "pass": false,
+      "validCases": 11,
+      "passedCases": 9,
+      "failedCases": 2,
+      "passRate": 0.8181818181818182,
+      "combinedGraphPassRate": 1.0,
+      "medianSelectedPathActivationDelta": 0.14971387386322021,
+      "p10SelectedPathActivationDelta": 0.0,
+      "medianControlPathP95ActivationDelta": 0.06075114645063869,
+      "medianOrderedPathLiftOverControlP95": 6.8772905613795015,
+      "medianCombinedTargetLogitDrop": 1.02490234375,
+      "failedSubjects": [
+        "Greece",
+        "Netherlands"
+      ],
+      "skippedCases": 0
+    },
+    "report": "qwen-2.5-1.5b-circuit-finder-input-2026-11-17/report.json"
+  },
+  "lane": {
+    "tool": "tools/llm-reader-ordered-path-stability.py",
+    "subjects": [
+      "France",
+      "Germany",
+      "Spain",
+      "Japan"
+    ],
+    "caseCount": 4,
+    "paraphraseProfile": "ood",
+    "maxReplayErrorTolerance": 1e-05,
+    "maxReplayErrorToleranceRationale": "same-host strict gate: the circuit-finder input and the OOD replay run on the same T4 kernel, so no cross-host tolerance is introduced",
+    "runnerExitStatus": 0,
+    "wrapExitStatus": 0,
+    "suiteVerifierExit": 0
+  },
+  "verifyErrors": [],
+  "caseSummary": {
+    "pass": true,
+    "caseCount": 4,
+    "passedCases": 4,
+    "originalReplayPassRate": 1.0,
+    "paraphraseProfile": "ood",
+    "paraphrasePassRate": 1.0,
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 1.1787713618610665,
+        "meanTokenCount": 20.0
+      },
+      "embedded-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.38418045128273104,
+        "meanTokenCount": 19.0
+      },
+      "imperative": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.5543771665221258,
+        "meanTokenCount": 10.0
+      },
+      "possessive-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.7250273050921637,
+        "meanTokenCount": 7.0
+      },
+      "sentence-completion": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 1.3254233976783147,
+        "meanTokenCount": 17.0
+      },
+      "service-question": {
+        "count": 4,
+        "passed": 4,
+        "passRate": 1.0,
+        "meanDropRatio": 0.9894599872368777,
+        "meanTokenCount": 9.0
+      }
+    },
+    "layerSpecificityRate": 1.0,
+    "maxReplayError": 0.0,
+    "failedSubjects": [],
+    "replacementPathSearch": {
+      "attempted": 0,
+      "passed": 0
+    },
+    "replacementPathTransfer": {
+      "attempted": 0,
+      "passed": 0
+    },
+    "whyReport": {
+      "caseCount": 0,
+      "rescueCount": 0,
+      "layerShiftOnlyRecoveries": 0,
+      "replacementFoundCount": 0,
+      "breakKinds": {},
+      "replacementChangeKinds": {},
+      "paraphraseBreakCount": 0,
+      "paraphraseBreakKinds": {},
+      "rescueSoughtCount": 0
+    }
+  },
+  "elapsedSeconds": 1918.3
+}
