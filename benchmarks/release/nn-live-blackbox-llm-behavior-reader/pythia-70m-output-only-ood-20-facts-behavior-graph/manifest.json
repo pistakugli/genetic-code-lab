@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-19T16:54:16.729Z",
+  "lane": "nn-live-blackbox-llm-behavior-reader",
+  "variant": "pythia-70m-output-only-ood-20-facts-behavior-graph",
+  "status": "fail",
+  "command": {
+    "argv": [
+      "/home/z/my-project/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/z/my-project/genetic-code-lab/scripts/benchmark-nn-live-blackbox-pythia-behavior-reader-ood.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blackbox-pythia-behavior-reader:ood",
+    "cwd": "/home/z/my-project/genetic-code-lab",
+    "node": "v24.22.3"
+  },
+  "env": {},
+  "git": {
+    "commit": "38dbf0128fdb6e3b7e7d73915f32567c7f78ed9c",
+    "statusShort": "M package.json\n M tools/llm-reader-blackbox-behavior.py\n?? benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-ood-20-facts-behavior-graph/\n?? benchmarks/release/nn-live-blackbox-llm-behavior-reader/pythia-70m-output-only-ood-20-facts-behavior-graph/\n?? scripts/benchmark-nn-live-blackbox-llm-behavior-reader-ood.ts\n?? scripts/benchmark-nn-live-blackbox-pythia-behavior-reader-ood.ts",
+    "uncommittedDiffSha256": "2e8cef412b3b69e84d3228eef5d304712ec88db4dd16380adaf37de467d206dd"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/pythia-70m-output-only-ood-20-facts-behavior-graph/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/pythia-70m-output-only-ood-20-facts-behavior-graph/report.md",
+    "manifest": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/pythia-70m-output-only-ood-20-facts-behavior-graph/manifest.json"
+  },
+  "summary": {
+    "pass": false,
+    "validCases": 18,
+    "passedCases": 7,
+    "failedCases": 11,
+    "skippedCases": 2,
+    "passRate": 0.3888888888888889,
+    "queryCount": 360,
+    "medianTargetRank": 95.5,
+    "maxTargetRank": 730,
+    "medianSubjectSpecificityLift": 2,
+    "minSubjectSpecificityLift": 0.35000000000000053,
+    "medianAnswerSpecificityMargin": 0.5,
+    "minAnswerSpecificityMargin": -1,
+    "medianRelationTemplateMargin": 0,
+    "minRelationTemplateMargin": -1.5,
+    "medianParaphraseRetentionRate": 0.41666666666666663,
+    "thresholds": {
+      "minValidCases": 18,
+      "minPassRate": 1,
+      "maxTargetRank": 100,
+      "minSubjectLift": 0.05,
+      "minAnswerSpecificityMargin": 0.02,
+      "minRelationTemplateMargin": 0.02,
+      "minParaphraseRetentionRate": 0.5
+    },
+    "paraphraseProfile": "ood",
+    "paraphraseFamilies": [
+      "context-prefixed-question",
+      "embedded-question",
+      "imperative",
+      "possessive-question",
+      "sentence-completion",
+      "service-question"
+    ],
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 18,
+        "retained": 2,
+        "retentionRate": 0.1111111111111111,
+        "meanMargin": -1.2222222222222223,
+        "minMargin": -3,
+        "medianTargetRank": 1466,
+        "maxTargetRank": 6091
+      },
+      "embedded-question": {
+        "count": 18,
+        "retained": 4,
+        "retentionRate": 0.2222222222222222,
+        "meanMargin": -1.1111111111111112,
+        "minMargin": -3,
+        "medianTargetRank": 4518,
+        "maxTargetRank": 15038
+      },
+      "imperative": {
+        "count": 18,
+        "retained": 9,
+        "retentionRate": 0.5,
+        "meanMargin": 0.5,
+        "minMargin": -2,
+        "medianTargetRank": 452,
+        "maxTargetRank": 2443
+      },
+      "possessive-question": {
+        "count": 18,
+        "retained": 17,
+        "retentionRate": 0.9444444444444444,
+        "meanMargin": 1.7777777777777777,
+        "minMargin": -1,
+        "medianTargetRank": 21,
+        "maxTargetRank": 86
+      },
+      "sentence-completion": {
+        "count": 18,
+        "retained": 11,
+        "retentionRate": 0.6111111111111112,
+        "meanMargin": 0.8888888888888888,
+        "minMargin": -1,
+        "medianTargetRank": 14,
+        "maxTargetRank": 67
+      },
+      "service-question": {
+        "count": 18,
+        "retained": 3,
+        "retentionRate": 0.16666666666666666,
+        "meanMargin": -0.16666666666666666,
+        "minMargin": -3,
+        "medianTargetRank": 883.5,
+        "maxTargetRank": 7542
+      }
+    }
+  },
+  "notes": [
+    "Output/logit-only whole-model factual behavior reader on Pythia-70m-deduped (GPT-NeoX family), OOD paraphrase profile.",
+    "Solver receives prompt strings, target token ids, and next-token logits only.",
+    "No weights, hooks, hidden activations, source ids, or ablation hooks are used by the solver.",
+    "Paraphrase protocol: the fixed six answer-blind OOD families; every family prompt is scored and kept with no margin-based selection.",
+    "Full 20-fact pool; two Pythia-70m non-single-token answers (Canberra, Brasilia) are skipped and recorded."
+  ]
+}

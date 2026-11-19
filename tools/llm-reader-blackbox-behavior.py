@@ -19,6 +19,7 @@ from multiprocessing.connection import Connection
 from transformers.utils import logging as transformers_logging
 
 from llm_reader.blackbox_decision import analyze_next_token_decision, trace_greedy_generation
+from llm_reader.ood_paraphrases import ood_paraphrase_cases_for_fact
 from llm_reader.blackbox_decompiler import (
     _training_formulations,
     encode_prompt,
@@ -94,6 +95,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--only-subjects", default="")
     parser.add_argument("--control-count", type=int, default=8)
     parser.add_argument("--paraphrase-count", type=int, default=3)
+    parser.add_argument(
+        "--paraphrase-profile",
+        choices=["standard", "ood"],
+        default="standard",
+        help=(
+            "paraphrase protocol: 'standard' uses same-relation completion templates "
+            "selected by margin; 'ood' scores every fixed answer-blind OOD family "
+            "prompt with no selection, so the protocol cannot cherry-pick an easy phrasing"
+        ),
+    )
     parser.add_argument("--wrong-answer-count", type=int, default=4)
     parser.add_argument("--max-target-rank", type=int, default=100)
     parser.add_argument("--min-pass-rate", type=float, default=1.0)
@@ -475,15 +486,36 @@ def analyze_case(
         for prompt in relation_control_prompts(fact["subject"])
     ]
 
-    paraphrase_candidates = [
-        score_prompt(oracle_query, prompt, target_token_id, answer_pool)
-        for prompt in paraphrase_prompts(fact["subject"], max(args.paraphrase_count, 10))
-    ]
-    paraphrases = sorted(
-        paraphrase_candidates,
-        key=lambda item: float(item["answerPoolMargin"]),
-        reverse=True,
-    )[: max(0, args.paraphrase_count)]
+    if args.paraphrase_profile == "ood":
+        # Fixed answer-blind OOD family protocol: every family prompt is scored and
+        # kept; there is no margin-based selection, so the gate cannot cherry-pick
+        # an easy phrasing. The templates never contain the answer; enforced here.
+        ood_cases = ood_paraphrase_cases_for_fact(fact, int(args.paraphrase_count))
+        for prompt_case in ood_cases:
+            if str(fact["answer"]).casefold() in str(prompt_case["prompt"]).casefold():
+                raise ValueError(
+                    f"OOD paraphrase prompt leaks the answer for {fact['subject']}: "
+                    f"{prompt_case['prompt']}"
+                )
+        paraphrase_candidates = [
+            {
+                **score_prompt(oracle_query, prompt_case["prompt"], target_token_id, answer_pool),
+                "profile": "ood",
+                "family": str(prompt_case["family"]),
+            }
+            for prompt_case in ood_cases
+        ]
+        paraphrases = list(paraphrase_candidates)
+    else:
+        paraphrase_candidates = [
+            score_prompt(oracle_query, prompt, target_token_id, answer_pool)
+            for prompt in paraphrase_prompts(fact["subject"], max(args.paraphrase_count, 10))
+        ]
+        paraphrases = sorted(
+            paraphrase_candidates,
+            key=lambda item: float(item["answerPoolMargin"]),
+            reverse=True,
+        )[: max(0, args.paraphrase_count)]
 
     wrong_pool = [item for item in answer_pool if item["answer"] != fact["answer"]]
     rng.shuffle(wrong_pool)
@@ -562,6 +594,42 @@ def analyze_case(
     }
 
 
+def paraphrase_family_summary(cases: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """Aggregate answer-blind OOD paraphrase retention per family over all cases.
+
+    Retention keeps the standard-profile semantics: a paraphrase is retained
+    when the target answer keeps a strictly positive answer-pool margin under
+    the new phrasing. No selection is applied: every family prompt of every
+    valid case is aggregated, so the family table restates the whole recorded
+    population instead of a chosen subset.
+    """
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for case in cases:
+        if not case.get("valid"):
+            continue
+        for item in case.get("paraphrases", []) or []:
+            family = str(item.get("family", "")).strip()
+            if not family:
+                continue
+            grouped.setdefault(family, []).append(item)
+    summary: Dict[str, Dict[str, Any]] = {}
+    for family in sorted(grouped):
+        rows = grouped[family]
+        margins = [float(row["answerPoolMargin"]) for row in rows]
+        ranks = [int(row["targetRank"]) for row in rows]
+        retained = sum(1 for value in margins if value > 0.0)
+        summary[family] = {
+            "count": len(rows),
+            "retained": retained,
+            "retentionRate": retained / len(rows),
+            "meanMargin": sum(margins) / len(margins),
+            "minMargin": min(margins),
+            "medianTargetRank": median([float(value) for value in ranks]) if ranks else None,
+            "maxTargetRank": max(ranks) if ranks else None,
+        }
+    return summary
+
+
 def summarize(cases: List[Dict[str, Any]], query_count: int, args: argparse.Namespace) -> Dict[str, Any]:
     valid = [case for case in cases if case.get("valid")]
     passed = [case for case in valid if case.get("pass")]
@@ -575,7 +643,7 @@ def summarize(cases: List[Dict[str, Any]], query_count: int, args: argparse.Name
         len(valid) >= int(args.min_valid_cases)
         and pass_rate >= float(args.min_pass_rate)
     )
-    return {
+    summary = {
         "pass": pass_summary,
         "validCases": len(valid),
         "passedCases": len(passed),
@@ -602,6 +670,19 @@ def summarize(cases: List[Dict[str, Any]], query_count: int, args: argparse.Name
             "minParaphraseRetentionRate": float(args.min_paraphrase_retention_rate),
         },
     }
+    if str(getattr(args, "paraphrase_profile", "standard")) == "ood":
+        summary["paraphraseProfile"] = "ood"
+        summary["paraphraseFamilies"] = sorted(
+            {
+                str(item.get("family", ""))
+                for case in cases
+                if case.get("valid")
+                for item in case.get("paraphrases", []) or []
+                if item.get("family")
+            }
+        )
+        summary["paraphraseFamilySummary"] = paraphrase_family_summary(cases)
+    return summary
 
 
 def write_markdown(path: str, report: Dict[str, Any]) -> None:
@@ -637,11 +718,39 @@ def write_markdown(path: str, report: Dict[str, Any]) -> None:
         f"- minRelationTemplateMargin: `{summary['minRelationTemplateMargin']}`",
         f"- medianParaphraseRetentionRate: `{summary['medianParaphraseRetentionRate']}`",
         "",
+    ]
+    if summary.get("paraphraseProfile") == "ood":
+        lines.extend([
+            f"- paraphraseProfile: `{summary['paraphraseProfile']}`",
+            "",
+            "## Paraphrase family results",
+            "",
+            "Answer-blind OOD paraphrase families. A family item is retained when the",
+            "target answer keeps a strictly positive answer-pool margin under the new",
+            "phrasing. Every family prompt of every valid case is listed; there is no",
+            "selection, so the table restates the whole recorded population.",
+            "",
+            "| family | count | retained | retention rate | mean margin | min margin | median target rank | max target rank |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|",
+        ])
+        for family, row in summary.get("paraphraseFamilySummary", {}).items():
+            median_rank = row.get("medianTargetRank")
+            max_rank = row.get("maxTargetRank")
+            lines.append(
+                f"| {family} | {row['count']} | {row['retained']} | "
+                f"{float(row['retentionRate']):.3f} | "
+                f"{float(row['meanMargin']):.6f} | "
+                f"{float(row['minMargin']):.6f} | "
+                f"{'n/a' if median_rank is None else f'{float(median_rank):.1f}'} | "
+                f"{'n/a' if max_rank is None else int(max_rank)} |"
+            )
+        lines.append("")
+    lines.extend([
         "## Case Summary",
         "",
         "| subject | answer | pass | rank | subjectLift | answerMargin | relationTemplateMargin | paraphraseRetention |",
         "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
-    ]
+    ])
     for case in report["cases"]:
         if not case.get("valid"):
             lines.append(f"| {case.get('subject')} | {case.get('answer')} | skip | - | - | - | - |")

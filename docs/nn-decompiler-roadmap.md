@@ -582,9 +582,22 @@ The next production path is:
    - LLaMA/Mistral adapters must prove SwiGLU MLP/value-gate handling without
      weakening graph controls, query budgets, or claim boundaries.
 5. Expand the output/logit-only behavior rail
-   - Current status: DONE for first GPT-2 10-fact output-only behavior gate.
-   - Next gates: larger fact set, OOD paraphrase families, and Pythia/LLaMA/
-     Mistral parity through the same prompt-to-logits-only solver boundary.
+   - Current status: DONE for first GPT-2 10-fact output-only behavior gate;
+     DONE for the larger-fact-set and OOD-paraphrase-family gates and for
+     Pythia-70m family parity (`--paraphrase-profile ood` in
+     `tools/llm-reader-blackbox-behavior.py`: the fixed six answer-blind OOD
+     families, every family prompt scored and kept with no margin-based
+     selection, per-family retention aggregated over all cases). GPT-2 passes
+     the full 20-fact pool OOD profile (19 valid facts, all pass, family
+     retention 0.947-1.0); Pythia-70m records an honest family-level failure
+     (7/18 cases pass; question-style families collapse to 2-4/18 while
+     possessive-question retains 17/18 - the same family-relative template
+     dependence the hook-based OOD replacement lane measured, now recorded
+     from the logit-only boundary). Evidence in
+     `benchmarks/release/nn-live-blackbox-llm-behavior-reader/` and
+     `docs/research/2026-11-20-output-only-ood-behavior-parity.md`.
+   - Next gates: LLaMA/Mistral instruct-family parity through the same
+     prompt-to-logits-only solver boundary (Kaggle T4 GPU lane).
    - This rail must not receive hooks, hidden activations, weights, source ids,
      or intervention handles.
 6. Scale the fact set

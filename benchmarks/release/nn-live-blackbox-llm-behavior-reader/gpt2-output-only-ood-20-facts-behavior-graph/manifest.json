@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-19T16:53:57.766Z",
+  "lane": "nn-live-blackbox-llm-behavior-reader",
+  "variant": "gpt2-output-only-ood-20-facts-behavior-graph",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "/home/z/my-project/genetic-code-lab/node_modules/.bin/ts-node",
+      "/home/z/my-project/genetic-code-lab/scripts/benchmark-nn-live-blackbox-llm-behavior-reader-ood.ts"
+    ],
+    "npmLifecycleEvent": "benchmark:nn-live-blackbox-llm-behavior-reader:ood",
+    "cwd": "/home/z/my-project/genetic-code-lab",
+    "node": "v24.22.3"
+  },
+  "env": {},
+  "git": {
+    "commit": "38dbf0128fdb6e3b7e7d73915f32567c7f78ed9c",
+    "statusShort": "M package.json\n M tools/llm-reader-blackbox-behavior.py\n?? benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-ood-20-facts-behavior-graph/\n?? scripts/benchmark-nn-live-blackbox-llm-behavior-reader-ood.ts\n?? scripts/benchmark-nn-live-blackbox-pythia-behavior-reader-ood.ts",
+    "uncommittedDiffSha256": "2e8cef412b3b69e84d3228eef5d304712ec88db4dd16380adaf37de467d206dd"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-ood-20-facts-behavior-graph/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-ood-20-facts-behavior-graph/report.md",
+    "manifest": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-ood-20-facts-behavior-graph/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "validCases": 19,
+    "passedCases": 19,
+    "failedCases": 0,
+    "skippedCases": 1,
+    "passRate": 1,
+    "queryCount": 380,
+    "medianTargetRank": 7,
+    "maxTargetRank": 23,
+    "medianSubjectSpecificityLift": 7.648689270019532,
+    "minSubjectSpecificityLift": 4.280092620849611,
+    "medianAnswerSpecificityMargin": 2.58935546875,
+    "minAnswerSpecificityMargin": 0.27651214599609375,
+    "medianRelationTemplateMargin": 2.3717803955078125,
+    "minRelationTemplateMargin": 0.67193603515625,
+    "medianParaphraseRetentionRate": 1,
+    "thresholds": {
+      "minValidCases": 19,
+      "minPassRate": 1,
+      "maxTargetRank": 100,
+      "minSubjectLift": 0.05,
+      "minAnswerSpecificityMargin": 0.02,
+      "minRelationTemplateMargin": 0.02,
+      "minParaphraseRetentionRate": 0.5
+    },
+    "paraphraseProfile": "ood",
+    "paraphraseFamilies": [
+      "context-prefixed-question",
+      "embedded-question",
+      "imperative",
+      "possessive-question",
+      "sentence-completion",
+      "service-question"
+    ],
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 19,
+        "retained": 19,
+        "retentionRate": 1,
+        "meanMargin": 2.5112007542660364,
+        "minMargin": 0.91497802734375,
+        "medianTargetRank": 12,
+        "maxTargetRank": 49
+      },
+      "embedded-question": {
+        "count": 19,
+        "retained": 19,
+        "retentionRate": 1,
+        "meanMargin": 2.0802845201994242,
+        "minMargin": 0.5211029052734375,
+        "medianTargetRank": 16,
+        "maxTargetRank": 38
+      },
+      "imperative": {
+        "count": 19,
+        "retained": 19,
+        "retentionRate": 1,
+        "meanMargin": 1.717127749794408,
+        "minMargin": 0.43338775634765625,
+        "medianTargetRank": 108,
+        "maxTargetRank": 201
+      },
+      "possessive-question": {
+        "count": 19,
+        "retained": 19,
+        "retentionRate": 1,
+        "meanMargin": 2.738973517166941,
+        "minMargin": 1.053741455078125,
+        "medianTargetRank": 7,
+        "maxTargetRank": 35
+      },
+      "sentence-completion": {
+        "count": 19,
+        "retained": 18,
+        "retentionRate": 0.9473684210526315,
+        "meanMargin": 4.318450927734375,
+        "minMargin": -0.46825408935546875,
+        "medianTargetRank": 2,
+        "maxTargetRank": 43
+      },
+      "service-question": {
+        "count": 19,
+        "retained": 18,
+        "retentionRate": 0.9473684210526315,
+        "meanMargin": 1.864438910233347,
+        "minMargin": -0.39550018310546875,
+        "medianTargetRank": 31,
+        "maxTargetRank": 62
+      }
+    }
+  },
+  "notes": [
+    "Output/logit-only whole-model factual behavior reader, OOD paraphrase profile.",
+    "Solver receives prompt strings, target token ids, and next-token logits only.",
+    "No weights, hooks, hidden activations, source ids, or ablation hooks are used by the solver.",
+    "Paraphrase protocol: the fixed six answer-blind OOD families (service-question, possessive-question, imperative, embedded-question, sentence-completion, context-prefixed-question); every family prompt is scored and kept with no margin-based selection.",
+    "Full 20-fact pool; one GPT-2 non-single-token answer (Brasilia) is skipped and recorded."
+  ]
+}
