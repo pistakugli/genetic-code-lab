@@ -609,6 +609,17 @@ The next production path is:
    - This rail must not receive hooks, hidden activations, weights, source ids,
      or intervention handles.
 6. Scale the fact set
+   - Current status: DONE for the first scale gate - LLaMA-3.2-3B-Instruct
+     4-bit 50-fact ordered-residual-path discovery on Kaggle T4
+     (`llama-3.2-3b-50-facts-ordered-residual-path`: the recorded 20-fact
+     configuration with only case-count/min-valid-cases scaled 20 -> 50
+     through the full 90-entry FACTS corpus; 50/50 valid facts pass with 28
+     skipped recorded as tokenizer multi-token answers; every threshold,
+     layer plan, control seed, and claim boundary unchanged; on-kernel
+     consistency recompute plus local re-verification with an independent
+     tokenizer-scan expectation both passed). Evidence in
+     `benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/`
+     and `docs/research/2026-11-20-llama-50-facts-ordered-residual-path.md`.
    - Run the same graph search over larger factual sets and then larger local
      transformer models only after adapter parity, GPT-2 graph hardening, and
      path recovery gates hold.
