@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-19T17:35:18.103728Z",
+  "lane": "nn-live-blackbox-llm-behavior-reader",
+  "variant": "mistral-7b-4bit-output-only-ood-20-facts",
+  "status": "pass",
+  "command": {
+    "kernelSlug": "kuglipista/gcl-black-box-ood-parity-llama-3-2-mistral-7b",
+    "kernelVersion": 4,
+    "argv": [
+      "python3",
+      "tools/llm-reader-blackbox-behavior.py",
+      "--model unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+      "--case-count 20",
+      "--min-valid-cases 9",
+      "--paraphrase-count 6",
+      "--paraphrase-profile ood",
+      "--device cuda",
+      "--load-in-4bit"
+    ],
+    "note": "produced by the Kaggle GPU kernel; see kernel-run-info.json"
+  },
+  "env": {
+    "gpu": "Tesla T4",
+    "torch": "2.11.0+cu130",
+    "pinnedDeps": [
+      "transformers==5.5.0",
+      "accelerate==1.13.0",
+      "bitsandbytes==0.49.2"
+    ]
+  },
+  "git": {
+    "commit": "1c98d5a340ed8996b51dafae05b31948f6ff8e33",
+    "statusShort": "M tools/llm-reader-blackbox-behavior.py\n?? scripts/gpu/kaggle/blackbox-ood-parity/\n?? scripts/integrate-blackbox-ood-parity.py",
+    "uncommittedDiffSha256": "332159bb7b70d56166024ca619016d46a3975186a0a0e3e1347ca264cd49b080"
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/mistral-7b-4bit-output-only-ood-20-facts/report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/mistral-7b-4bit-output-only-ood-20-facts/report.md",
+    "manifest": "benchmarks/release/nn-live-blackbox-llm-behavior-reader/mistral-7b-4bit-output-only-ood-20-facts/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "validCases": 9,
+    "passedCases": 9,
+    "failedCases": 0,
+    "skippedCases": 11,
+    "passRate": 1.0,
+    "queryCount": 180,
+    "medianTargetRank": 1.0,
+    "maxTargetRank": 1,
+    "medianSubjectSpecificityLift": 9.900390625,
+    "minSubjectSpecificityLift": 7.707812500000001,
+    "medianAnswerSpecificityMargin": 8.375,
+    "minAnswerSpecificityMargin": 7.4375,
+    "medianRelationTemplateMargin": 8.21875,
+    "minRelationTemplateMargin": 6.0625,
+    "medianParaphraseRetentionRate": 1.0,
+    "thresholds": {
+      "minValidCases": 9,
+      "minPassRate": 1.0,
+      "maxTargetRank": 100,
+      "minSubjectLift": 0.05,
+      "minAnswerSpecificityMargin": 0.02,
+      "minRelationTemplateMargin": 0.02,
+      "minParaphraseRetentionRate": 0.5
+    },
+    "paraphraseProfile": "ood",
+    "paraphraseFamilies": [
+      "context-prefixed-question",
+      "embedded-question",
+      "imperative",
+      "possessive-question",
+      "sentence-completion",
+      "service-question"
+    ],
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 7.555555555555555,
+        "minMargin": 5.375,
+        "medianTargetRank": 2.0,
+        "maxTargetRank": 2
+      },
+      "embedded-question": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 8.550347222222221,
+        "minMargin": 6.1875,
+        "medianTargetRank": 3.0,
+        "maxTargetRank": 3
+      },
+      "imperative": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 9.487847222222221,
+        "minMargin": 7.1875,
+        "medianTargetRank": 2.0,
+        "maxTargetRank": 3
+      },
+      "possessive-question": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 7.71875,
+        "minMargin": 5.6875,
+        "medianTargetRank": 2.0,
+        "maxTargetRank": 2
+      },
+      "sentence-completion": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 6.611111111111111,
+        "minMargin": 5.25,
+        "medianTargetRank": 3.0,
+        "maxTargetRank": 6
+      },
+      "service-question": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 8.67361111111111,
+        "minMargin": 5.9375,
+        "medianTargetRank": 2.0,
+        "maxTargetRank": 2
+      }
+    }
+  },
+  "notes": [
+    "Output/logit-only whole-model factual behavior reader on the quantized unsloth instruct provider, OOD paraphrase profile, full 20-fact pool.",
+    "Solver receives prompt strings, target token ids, and next-token logits only; no weights, hooks, hidden activations, source ids, or ablation handles.",
+    "Paraphrase protocol: the fixed six answer-blind OOD families; every family prompt is scored and kept with no margin-based selection.",
+    "Produced on Kaggle T4 by kernel kuglipista/gcl-black-box-ood-parity-llama-3-2-mistral-7b v4 against dataset kuglipista/gcl-blackbox-ood-input (repo commit 1c98d5a + --load-in-4bit); on-kernel consistency recompute passed (family table, case aggregates, access audit, model identity).",
+    "Skipped facts are recorded, not dropped: 11 case(s) with non-single-token answers for this tokenizer."
+  ]
+}

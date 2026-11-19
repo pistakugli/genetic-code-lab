@@ -596,8 +596,16 @@ The next production path is:
      from the logit-only boundary). Evidence in
      `benchmarks/release/nn-live-blackbox-llm-behavior-reader/` and
      `docs/research/2026-11-20-output-only-ood-behavior-parity.md`.
-   - Next gates: LLaMA/Mistral instruct-family parity through the same
-     prompt-to-logits-only solver boundary (Kaggle T4 GPU lane).
+   - Next gates: DONE for LLaMA-3.2 / Mistral-7B instruct-family parity on
+     Kaggle T4 through the same prompt-to-logits-only solver boundary
+     (kernel `kuglipista/gcl-black-box-ood-parity-llama-3-2-mistral-7b` v4:
+     `--load-in-4bit` through the bitsandbytes provider matching the recorded
+     family artifacts; LLaMA-3.2-3B 4-bit passes 19/19 valid facts with
+     family retention 19/19 in every family and rank-1 answers everywhere;
+     Mistral-7B-Instruct v0.3 4-bit passes 9/9 valid facts, family retention
+     9/9, rank-1 answers; 11 non-single-token answers are skipped and
+     recorded; on-kernel consistency recompute of the family table, case
+     aggregates, access audit, and model identity passed for both).
    - This rail must not receive hooks, hidden activations, weights, source ids,
      or intervention handles.
 6. Scale the fact set

@@ -113,6 +113,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-paraphrase-retention-rate", type=float, default=0.50)
     parser.add_argument("--control-seed", type=int, default=260709)
     parser.add_argument("--device", choices=["cpu", "cuda", "auto"], default="cpu")
+    parser.add_argument(
+        "--load-in-4bit",
+        action="store_true",
+        help=(
+            "load the model through the bitsandbytes 4-bit provider (CUDA only); "
+            "used for the quantized unsloth providers so the logit-only oracle matches "
+            "the recorded family artifacts"
+        ),
+    )
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--output-json")
     parser.add_argument("--output-md")
@@ -197,13 +206,33 @@ def resolve_device(value: str) -> str:
 class BlackBoxNextTokenOracle:
     """The only model-facing object. The reader below receives logits only."""
 
-    def __init__(self, model_id: str, *, local_files_only: bool, device: str) -> None:
+    def __init__(
+        self,
+        model_id: str,
+        *,
+        local_files_only: bool,
+        device: str,
+        load_in_4bit: bool = False,
+    ) -> None:
         self.model_id = model_id
         self.device = torch.device(device)
+        self.load_in_4bit = bool(load_in_4bit)
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, local_files_only=local_files_only)
-        self.model = AutoModelForCausalLM.from_pretrained(model_id, local_files_only=local_files_only)
+        if self.load_in_4bit:
+            if str(device) != "cuda":
+                raise RuntimeError("--load-in-4bit requires CUDA (bitsandbytes 4-bit kernels).")
+            from transformers import BitsAndBytesConfig
+
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                local_files_only=local_files_only,
+                quantization_config=BitsAndBytesConfig(load_in_4bit=True),
+            )
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained(model_id, local_files_only=local_files_only)
         self.model.eval()
-        self.model.to(self.device)
+        if not self.load_in_4bit:
+            self.model.to(self.device)
         self.query_count = 0
         self.local_files_only = bool(local_files_only)
 
@@ -228,13 +257,16 @@ class BlackBoxNextTokenOracle:
 
     def identity(self) -> Dict[str, Any]:
         config = getattr(self.model, "config", None)
-        return {
+        info = {
             "id": self.model_id,
             "class": self.model.__class__.__name__,
             "modelType": getattr(config, "model_type", None),
             "device": str(self.device),
             "localFilesOnly": self.local_files_only,
         }
+        if self.load_in_4bit:
+            info["quantized"] = True
+        return info
 
 
 def _blackbox_oracle_worker(
@@ -1216,7 +1248,12 @@ def main() -> int:
     if not args.output_json or not args.output_md:
         raise ValueError("--output-json and --output-md are required in facts mode.")
     device = resolve_device(args.device)
-    oracle = BlackBoxNextTokenOracle(args.model, local_files_only=args.local_files_only, device=device)
+    oracle = BlackBoxNextTokenOracle(
+        args.model,
+        local_files_only=args.local_files_only,
+        device=device,
+        load_in_4bit=bool(args.load_in_4bit),
+    )
     facts = select_facts(args)
     answer_pool = build_answer_pool(oracle.tokenizer, FACTS)
     if not answer_pool:

@@ -1,0 +1,2537 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-19T17:31:51.260212Z",
+  "lane": "nn-live-blackbox-llm-behavior-reader",
+  "variant": "gpt2-output-only-factual-behavior",
+  "model": {
+    "id": "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",
+    "class": "MistralForCausalLM",
+    "modelType": "mistral",
+    "device": "cuda",
+    "localFilesOnly": true,
+    "quantized": true
+  },
+  "runtime": {
+    "python": "3.13.16",
+    "torch": "2.11.0+cu130",
+    "transformers": "5.5.0",
+    "cudaAvailable": true
+  },
+  "access": {
+    "solverAccess": "prompt-to-next-token-logits-only",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "activationsUsedBySolver": false,
+    "postHocWitnessOnly": true,
+    "allowedSolverObservation": "prompt string, target token id, next-token logits returned by oracle"
+  },
+  "summary": {
+    "pass": true,
+    "validCases": 9,
+    "passedCases": 9,
+    "failedCases": 0,
+    "skippedCases": 11,
+    "passRate": 1.0,
+    "queryCount": 180,
+    "medianTargetRank": 1.0,
+    "maxTargetRank": 1,
+    "medianSubjectSpecificityLift": 9.900390625,
+    "minSubjectSpecificityLift": 7.707812500000001,
+    "medianAnswerSpecificityMargin": 8.375,
+    "minAnswerSpecificityMargin": 7.4375,
+    "medianRelationTemplateMargin": 8.21875,
+    "minRelationTemplateMargin": 6.0625,
+    "medianParaphraseRetentionRate": 1.0,
+    "thresholds": {
+      "minValidCases": 9,
+      "minPassRate": 1.0,
+      "maxTargetRank": 100,
+      "minSubjectLift": 0.05,
+      "minAnswerSpecificityMargin": 0.02,
+      "minRelationTemplateMargin": 0.02,
+      "minParaphraseRetentionRate": 0.5
+    },
+    "paraphraseProfile": "ood",
+    "paraphraseFamilies": [
+      "context-prefixed-question",
+      "embedded-question",
+      "imperative",
+      "possessive-question",
+      "sentence-completion",
+      "service-question"
+    ],
+    "paraphraseFamilySummary": {
+      "context-prefixed-question": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 7.555555555555555,
+        "minMargin": 5.375,
+        "medianTargetRank": 2.0,
+        "maxTargetRank": 2
+      },
+      "embedded-question": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 8.550347222222221,
+        "minMargin": 6.1875,
+        "medianTargetRank": 3.0,
+        "maxTargetRank": 3
+      },
+      "imperative": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 9.487847222222221,
+        "minMargin": 7.1875,
+        "medianTargetRank": 2.0,
+        "maxTargetRank": 3
+      },
+      "possessive-question": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 7.71875,
+        "minMargin": 5.6875,
+        "medianTargetRank": 2.0,
+        "maxTargetRank": 2
+      },
+      "sentence-completion": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 6.611111111111111,
+        "minMargin": 5.25,
+        "medianTargetRank": 3.0,
+        "maxTargetRank": 6
+      },
+      "service-question": {
+        "count": 9,
+        "retained": 9,
+        "retentionRate": 1.0,
+        "meanMargin": 8.67361111111111,
+        "minMargin": 5.9375,
+        "medianTargetRank": 2.0,
+        "maxTargetRank": 2
+      }
+    }
+  },
+  "cases": [
+    {
+      "subject": "France",
+      "answer": "Paris",
+      "targetTokenId": 6233,
+      "targetToken": "Paris",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of France is",
+        "targetLogit": 13.5,
+        "targetRank": 1,
+        "answerPoolMargin": 8.1875
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": 4.90625,
+          "targetRank": 329,
+          "answerPoolMargin": -9.21875
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": 5.46875,
+          "targetRank": 243,
+          "answerPoolMargin": -8.71875
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": 5.25,
+          "targetRank": 297,
+          "answerPoolMargin": -7.4375
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 4.09375,
+          "targetRank": 630,
+          "answerPoolMargin": -0.8125
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 4.5625,
+          "targetRank": 435,
+          "answerPoolMargin": -0.15625
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": 3.828125,
+          "targetRank": 495,
+          "answerPoolMargin": 0.71875
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": 3.4375,
+          "targetRank": 911,
+          "answerPoolMargin": -9.875
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": 4.28125,
+          "targetRank": 530,
+          "answerPoolMargin": -9.21875
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of France is",
+          "targetLogit": 3.25,
+          "targetRank": 571,
+          "answerPoolMargin": 4.46875
+        },
+        {
+          "prompt": "The main language of France is",
+          "targetLogit": 7.5625,
+          "targetRank": 43,
+          "answerPoolMargin": 9.3203125
+        },
+        {
+          "prompt": "The largest city in France is",
+          "targetLogit": 14.0625,
+          "targetRank": 1,
+          "answerPoolMargin": 10.734375
+        },
+        {
+          "prompt": "The weather in France is",
+          "targetLogit": 2.09375,
+          "targetRank": 1981,
+          "answerPoolMargin": 2.67578125
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of France?",
+          "targetLogit": 13.8125,
+          "targetRank": 2,
+          "answerPoolMargin": 8.90625,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is France's capital?",
+          "targetLogit": 13.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 8.4375,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of France.",
+          "targetLogit": 14.375,
+          "targetRank": 2,
+          "answerPoolMargin": 10.0,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of France?",
+          "targetLogit": 12.9375,
+          "targetRank": 3,
+          "answerPoolMargin": 8.75,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of France is",
+          "targetLogit": 12.25,
+          "targetRank": 2,
+          "answerPoolMargin": 6.96875,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of France?",
+          "targetLogit": 13.5,
+          "targetRank": 2,
+          "answerPoolMargin": 7.25,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of France?",
+          "targetLogit": 13.8125,
+          "targetRank": 2,
+          "answerPoolMargin": 8.90625,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is France's capital?",
+          "targetLogit": 13.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 8.4375,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of France.",
+          "targetLogit": 14.375,
+          "targetRank": 2,
+          "answerPoolMargin": 10.0,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of France?",
+          "targetLogit": 12.9375,
+          "targetRank": 3,
+          "answerPoolMargin": 8.75,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of France is",
+          "targetLogit": 12.25,
+          "targetRank": 2,
+          "answerPoolMargin": 6.96875,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of France?",
+          "targetLogit": 13.5,
+          "targetRank": 2,
+          "answerPoolMargin": 7.25,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Vienna",
+          "tokenId": 26524,
+          "token": "Vienna",
+          "logit": 3.65625,
+          "rank": 831
+        },
+        {
+          "answer": "Beijing",
+          "tokenId": 27880,
+          "token": "Beijing",
+          "logit": 1.4921875,
+          "rank": 2502
+        },
+        {
+          "answer": "Stockholm",
+          "tokenId": 26297,
+          "token": "Stockholm",
+          "logit": 0.8984375,
+          "rank": 3278
+        },
+        {
+          "answer": "Moscow",
+          "tokenId": 18061,
+          "token": "Moscow",
+          "logit": 2.4375,
+          "rank": 1568
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "France"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Paris"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 7.775,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 8.59375,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 8.1875,
+        "subjectSpecificityLift": 7.775,
+        "relationTemplateMargin": 8.59375,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": 0.41249999999999953,
+        "relationControlP95TargetLogit": 13.087499999999999
+      }
+    },
+    {
+      "subject": "Germany",
+      "answer": "Berlin",
+      "targetTokenId": 9198,
+      "targetToken": "Berlin",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Germany is",
+        "targetLogit": 14.125,
+        "targetRank": 1,
+        "answerPoolMargin": 8.53125
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": 4.09375,
+          "targetRank": 637,
+          "answerPoolMargin": -9.40625
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": 4.40625,
+          "targetRank": 497,
+          "answerPoolMargin": -9.78125
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": 4.125,
+          "targetRank": 623,
+          "answerPoolMargin": -8.5625
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 1.796875,
+          "targetRank": 2265,
+          "answerPoolMargin": -3.109375
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 4.71875,
+          "targetRank": 396,
+          "answerPoolMargin": 0.15625
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": 2.4375,
+          "targetRank": 1101,
+          "answerPoolMargin": -1.390625
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": 2.59375,
+          "targetRank": 1459,
+          "answerPoolMargin": -10.71875
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": 4.375,
+          "targetRank": 496,
+          "answerPoolMargin": -9.125
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Germany is",
+          "targetLogit": 2.96875,
+          "targetRank": 676,
+          "answerPoolMargin": 3.83984375
+        },
+        {
+          "prompt": "The main language of Germany is",
+          "targetLogit": 5.375,
+          "targetRank": 136,
+          "answerPoolMargin": 5.2509765625
+        },
+        {
+          "prompt": "The largest city in Germany is",
+          "targetLogit": 13.1875,
+          "targetRank": 1,
+          "answerPoolMargin": 7.75
+        },
+        {
+          "prompt": "The weather in Germany is",
+          "targetLogit": 1.9375,
+          "targetRank": 2182,
+          "answerPoolMargin": 1.82275390625
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of Germany?",
+          "targetLogit": 14.5,
+          "targetRank": 1,
+          "answerPoolMargin": 8.875,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Germany's capital?",
+          "targetLogit": 13.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 7.8125,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Germany.",
+          "targetLogit": 15.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 10.09375,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Germany?",
+          "targetLogit": 13.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 8.625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Germany is",
+          "targetLogit": 12.75,
+          "targetRank": 2,
+          "answerPoolMargin": 6.53125,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Germany?",
+          "targetLogit": 13.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 6.8125,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of Germany?",
+          "targetLogit": 14.5,
+          "targetRank": 1,
+          "answerPoolMargin": 8.875,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Germany's capital?",
+          "targetLogit": 13.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 7.8125,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Germany.",
+          "targetLogit": 15.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 10.09375,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Germany?",
+          "targetLogit": 13.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 8.625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Germany is",
+          "targetLogit": 12.75,
+          "targetRank": 2,
+          "answerPoolMargin": 6.53125,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Germany?",
+          "targetLogit": 13.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 6.8125,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Tokyo",
+          "tokenId": 20655,
+          "token": "Tokyo",
+          "logit": 2.46875,
+          "rank": 1448
+        },
+        {
+          "answer": "Madrid",
+          "tokenId": 15102,
+          "token": "Madrid",
+          "logit": 1.734375,
+          "rank": 2139
+        },
+        {
+          "answer": "Rome",
+          "tokenId": 11595,
+          "token": "Rome",
+          "logit": 3.0,
+          "rank": 1078
+        },
+        {
+          "answer": "Vienna",
+          "tokenId": 26524,
+          "token": "Vienna",
+          "logit": 5.59375,
+          "rank": 209
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Germany"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Berlin"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 8.916406250000001,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 8.21875,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 8.53125,
+        "subjectSpecificityLift": 8.916406250000001,
+        "relationTemplateMargin": 8.21875,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -0.38515625000000075,
+        "relationControlP95TargetLogit": 12.015624999999996
+      }
+    },
+    {
+      "subject": "Italy",
+      "answer": "Rome",
+      "targetTokenId": 11595,
+      "targetToken": "Rome",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Italy is",
+        "targetLogit": 14.1875,
+        "targetRank": 1,
+        "answerPoolMargin": 8.71875
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": 5.3125,
+          "targetRank": 294,
+          "answerPoolMargin": -8.1875
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": 3.0,
+          "targetRank": 1078,
+          "answerPoolMargin": -11.125
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": 3.796875,
+          "targetRank": 760,
+          "answerPoolMargin": -8.890625
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 3.4375,
+          "targetRank": 959,
+          "answerPoolMargin": -1.46875
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 3.3125,
+          "targetRank": 944,
+          "answerPoolMargin": -1.40625
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": 2.328125,
+          "targetRank": 1180,
+          "answerPoolMargin": -1.5
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": 1.703125,
+          "targetRank": 2270,
+          "answerPoolMargin": -11.609375
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": 2.0625,
+          "targetRank": 1874,
+          "answerPoolMargin": -11.4375
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Italy is",
+          "targetLogit": 1.5703125,
+          "targetRank": 1505,
+          "answerPoolMargin": 2.16015625
+        },
+        {
+          "prompt": "The main language of Italy is",
+          "targetLogit": 2.359375,
+          "targetRank": 721,
+          "answerPoolMargin": 2.347412109375
+        },
+        {
+          "prompt": "The largest city in Italy is",
+          "targetLogit": 13.5,
+          "targetRank": 1,
+          "answerPoolMargin": 7.71875
+        },
+        {
+          "prompt": "The weather in Italy is",
+          "targetLogit": 1.515625,
+          "targetRank": 2542,
+          "answerPoolMargin": 1.52667236328125
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of Italy?",
+          "targetLogit": 14.5625,
+          "targetRank": 2,
+          "answerPoolMargin": 9.71875,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Italy's capital?",
+          "targetLogit": 14.125,
+          "targetRank": 2,
+          "answerPoolMargin": 8.34375,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Italy.",
+          "targetLogit": 14.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 9.625,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Italy?",
+          "targetLogit": 12.9375,
+          "targetRank": 3,
+          "answerPoolMargin": 9.015625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Italy is",
+          "targetLogit": 11.75,
+          "targetRank": 4,
+          "answerPoolMargin": 6.0,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Italy?",
+          "targetLogit": 13.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 8.6875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of Italy?",
+          "targetLogit": 14.5625,
+          "targetRank": 2,
+          "answerPoolMargin": 9.71875,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Italy's capital?",
+          "targetLogit": 14.125,
+          "targetRank": 2,
+          "answerPoolMargin": 8.34375,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Italy.",
+          "targetLogit": 14.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 9.625,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Italy?",
+          "targetLogit": 12.9375,
+          "targetRank": 3,
+          "answerPoolMargin": 9.015625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Italy is",
+          "targetLogit": 11.75,
+          "targetRank": 4,
+          "answerPoolMargin": 6.0,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Italy?",
+          "targetLogit": 13.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 8.6875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Vienna",
+          "tokenId": 26524,
+          "token": "Vienna",
+          "logit": 4.375,
+          "rank": 508
+        },
+        {
+          "answer": "Tokyo",
+          "tokenId": 20655,
+          "token": "Tokyo",
+          "logit": 2.484375,
+          "rank": 1444
+        },
+        {
+          "answer": "Paris",
+          "tokenId": 6233,
+          "token": "Paris",
+          "logit": 5.46875,
+          "rank": 243
+        },
+        {
+          "answer": "Moscow",
+          "tokenId": 18061,
+          "token": "Moscow",
+          "logit": 2.359375,
+          "rank": 1544
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Italy"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Rome"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 10.146875,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 8.8515625,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 8.71875,
+        "subjectSpecificityLift": 10.146875,
+        "relationTemplateMargin": 8.8515625,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -1.428125,
+        "relationControlP95TargetLogit": 11.828906249999996
+      }
+    },
+    {
+      "subject": "Spain",
+      "answer": "Madrid",
+      "targetTokenId": 15102,
+      "targetToken": "Madrid",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Spain is",
+        "targetLogit": 12.6875,
+        "targetRank": 1,
+        "answerPoolMargin": 7.4375
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": 2.09375,
+          "targetRank": 1868,
+          "answerPoolMargin": -11.40625
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": 1.734375,
+          "targetRank": 2139,
+          "answerPoolMargin": -12.390625
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": 3.15625,
+          "targetRank": 1018,
+          "answerPoolMargin": -11.03125
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 4.90625,
+          "targetRank": 392,
+          "answerPoolMargin": 0.8125
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 2.4375,
+          "targetRank": 1525,
+          "answerPoolMargin": -2.28125
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": 0.333984375,
+          "targetRank": 3484,
+          "answerPoolMargin": -3.494140625
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": 0.390625,
+          "targetRank": 4072,
+          "answerPoolMargin": -12.921875
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": 0.2333984375,
+          "targetRank": 4255,
+          "answerPoolMargin": -13.2666015625
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Spain is",
+          "targetLogit": 2.09375,
+          "targetRank": 1112,
+          "answerPoolMargin": 3.2890625
+        },
+        {
+          "prompt": "The main language of Spain is",
+          "targetLogit": 4.53125,
+          "targetRank": 230,
+          "answerPoolMargin": 4.3046875
+        },
+        {
+          "prompt": "The largest city in Spain is",
+          "targetLogit": 12.9375,
+          "targetRank": 1,
+          "answerPoolMargin": 6.78125
+        },
+        {
+          "prompt": "The weather in Spain is",
+          "targetLogit": 1.859375,
+          "targetRank": 2129,
+          "answerPoolMargin": 2.119140625
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of Spain?",
+          "targetLogit": 13.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 8.40625,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Spain's capital?",
+          "targetLogit": 14.25,
+          "targetRank": 1,
+          "answerPoolMargin": 7.34375,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Spain.",
+          "targetLogit": 14.625,
+          "targetRank": 3,
+          "answerPoolMargin": 9.6875,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Spain?",
+          "targetLogit": 13.1875,
+          "targetRank": 3,
+          "answerPoolMargin": 8.8125,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Spain is",
+          "targetLogit": 11.75,
+          "targetRank": 3,
+          "answerPoolMargin": 5.25,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+          "targetLogit": 12.875,
+          "targetRank": 2,
+          "answerPoolMargin": 7.21875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of Spain?",
+          "targetLogit": 13.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 8.40625,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Spain's capital?",
+          "targetLogit": 14.25,
+          "targetRank": 1,
+          "answerPoolMargin": 7.34375,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Spain.",
+          "targetLogit": 14.625,
+          "targetRank": 3,
+          "answerPoolMargin": 9.6875,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Spain?",
+          "targetLogit": 13.1875,
+          "targetRank": 3,
+          "answerPoolMargin": 8.8125,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Spain is",
+          "targetLogit": 11.75,
+          "targetRank": 3,
+          "answerPoolMargin": 5.25,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Spain?",
+          "targetLogit": 12.875,
+          "targetRank": 2,
+          "answerPoolMargin": 7.21875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Paris",
+          "tokenId": 6233,
+          "token": "Paris",
+          "logit": 5.25,
+          "rank": 297
+        },
+        {
+          "answer": "Vienna",
+          "tokenId": 26524,
+          "token": "Vienna",
+          "logit": 3.375,
+          "rank": 959
+        },
+        {
+          "answer": "Berlin",
+          "tokenId": 9198,
+          "token": "Berlin",
+          "logit": 4.125,
+          "rank": 623
+        },
+        {
+          "answer": "Moscow",
+          "tokenId": 18061,
+          "token": "Moscow",
+          "logit": 2.9375,
+          "rank": 1207
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Spain"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Madrid"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 7.707812500000001,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 7.875,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 7.4375,
+        "subjectSpecificityLift": 7.707812500000001,
+        "relationTemplateMargin": 7.875,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -0.2703125000000015,
+        "relationControlP95TargetLogit": 11.676562499999996
+      }
+    },
+    {
+      "subject": "Portugal",
+      "answer": "Lisbon",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Greece",
+      "answer": "Athens",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Egypt",
+      "answer": "Cairo",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Japan",
+      "answer": "Tokyo",
+      "targetTokenId": 20655,
+      "targetToken": "Tokyo",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Japan is",
+        "targetLogit": 13.3125,
+        "targetRank": 1,
+        "answerPoolMargin": 9.5
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": 2.609375,
+          "targetRank": 1438,
+          "answerPoolMargin": -10.890625
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": 2.46875,
+          "targetRank": 1448,
+          "answerPoolMargin": -11.65625
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": 2.484375,
+          "targetRank": 1444,
+          "answerPoolMargin": -11.703125
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": 2.171875,
+          "targetRank": 1805,
+          "answerPoolMargin": -10.515625
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 1.125,
+          "targetRank": 3130,
+          "answerPoolMargin": -3.78125
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 2.75,
+          "targetRank": 1301,
+          "answerPoolMargin": -1.96875
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": 1.8046875,
+          "targetRank": 1616,
+          "answerPoolMargin": -2.0234375
+        },
+        {
+          "prompt": "The capital of China is",
+          "targetLogit": 5.3125,
+          "targetRank": 276,
+          "answerPoolMargin": -8.1875
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Japan is",
+          "targetLogit": 4.71875,
+          "targetRank": 245,
+          "answerPoolMargin": 6.375
+        },
+        {
+          "prompt": "The main language of Japan is",
+          "targetLogit": 7.0625,
+          "targetRank": 50,
+          "answerPoolMargin": 8.7734375
+        },
+        {
+          "prompt": "The largest city in Japan is",
+          "targetLogit": 13.5625,
+          "targetRank": 1,
+          "answerPoolMargin": 10.265625
+        },
+        {
+          "prompt": "The weather in Japan is",
+          "targetLogit": 2.4375,
+          "targetRank": 1623,
+          "answerPoolMargin": 3.31640625
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of Japan?",
+          "targetLogit": 14.6875,
+          "targetRank": 1,
+          "answerPoolMargin": 10.125,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Japan's capital?",
+          "targetLogit": 14.4375,
+          "targetRank": 1,
+          "answerPoolMargin": 9.21875,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Japan.",
+          "targetLogit": 14.625,
+          "targetRank": 2,
+          "answerPoolMargin": 10.0625,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Japan?",
+          "targetLogit": 13.6875,
+          "targetRank": 2,
+          "answerPoolMargin": 9.5625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Japan is",
+          "targetLogit": 11.9375,
+          "targetRank": 4,
+          "answerPoolMargin": 6.96875,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Japan?",
+          "targetLogit": 14.125,
+          "targetRank": 2,
+          "answerPoolMargin": 8.6875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of Japan?",
+          "targetLogit": 14.6875,
+          "targetRank": 1,
+          "answerPoolMargin": 10.125,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Japan's capital?",
+          "targetLogit": 14.4375,
+          "targetRank": 1,
+          "answerPoolMargin": 9.21875,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Japan.",
+          "targetLogit": 14.625,
+          "targetRank": 2,
+          "answerPoolMargin": 10.0625,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Japan?",
+          "targetLogit": 13.6875,
+          "targetRank": 2,
+          "answerPoolMargin": 9.5625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Japan is",
+          "targetLogit": 11.9375,
+          "targetRank": 4,
+          "answerPoolMargin": 6.96875,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Japan?",
+          "targetLogit": 14.125,
+          "targetRank": 2,
+          "answerPoolMargin": 8.6875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Beijing",
+          "tokenId": 27880,
+          "token": "Beijing",
+          "logit": 3.8125,
+          "rank": 736
+        },
+        {
+          "answer": "Rome",
+          "tokenId": 11595,
+          "token": "Rome",
+          "logit": 1.703125,
+          "rank": 2270
+        },
+        {
+          "answer": "Vienna",
+          "tokenId": 26524,
+          "token": "Vienna",
+          "logit": 2.8125,
+          "rank": 1310
+        },
+        {
+          "answer": "Stockholm",
+          "tokenId": 26297,
+          "token": "Stockholm",
+          "logit": 2.375,
+          "rank": 1644
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Japan"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Tokyo"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 11.487890625,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 9.390625,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 9.5,
+        "subjectSpecificityLift": 11.487890625,
+        "relationTemplateMargin": 9.390625,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -1.9878906250000001,
+        "relationControlP95TargetLogit": 12.587499999999999
+      }
+    },
+    {
+      "subject": "China",
+      "answer": "Beijing",
+      "targetTokenId": 27880,
+      "targetToken": "Beijing",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of China is",
+        "targetLogit": 13.5,
+        "targetRank": 1,
+        "answerPoolMargin": 8.1875
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": 1.4921875,
+          "targetRank": 2502,
+          "answerPoolMargin": -12.0078125
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": 2.71875,
+          "targetRank": 1258,
+          "answerPoolMargin": -11.40625
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": 1.640625,
+          "targetRank": 2280,
+          "answerPoolMargin": -12.546875
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": 1.96875,
+          "targetRank": 1992,
+          "answerPoolMargin": -10.71875
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 0.486328125,
+          "targetRank": 4147,
+          "answerPoolMargin": -4.419921875
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 1.1640625,
+          "targetRank": 2886,
+          "answerPoolMargin": -3.5546875
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": 1.625,
+          "targetRank": 1758,
+          "answerPoolMargin": -2.203125
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": 3.8125,
+          "targetRank": 736,
+          "answerPoolMargin": -9.5
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of China is",
+          "targetLogit": 4.1875,
+          "targetRank": 341,
+          "answerPoolMargin": 5.4140625
+        },
+        {
+          "prompt": "The main language of China is",
+          "targetLogit": 6.625,
+          "targetRank": 69,
+          "answerPoolMargin": 6.53173828125
+        },
+        {
+          "prompt": "The largest city in China is",
+          "targetLogit": 11.8125,
+          "targetRank": 2,
+          "answerPoolMargin": 4.59375
+        },
+        {
+          "prompt": "The weather in China is",
+          "targetLogit": 2.96875,
+          "targetRank": 1326,
+          "answerPoolMargin": 3.46875
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of China?",
+          "targetLogit": 13.8125,
+          "targetRank": 2,
+          "answerPoolMargin": 8.0,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is China's capital?",
+          "targetLogit": 13.1875,
+          "targetRank": 2,
+          "answerPoolMargin": 6.875,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of China.",
+          "targetLogit": 14.0625,
+          "targetRank": 3,
+          "answerPoolMargin": 9.4375,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of China?",
+          "targetLogit": 12.6875,
+          "targetRank": 3,
+          "answerPoolMargin": 8.03125,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of China is",
+          "targetLogit": 11.625,
+          "targetRank": 5,
+          "answerPoolMargin": 6.625,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of China?",
+          "targetLogit": 13.3125,
+          "targetRank": 2,
+          "answerPoolMargin": 7.875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of China?",
+          "targetLogit": 13.8125,
+          "targetRank": 2,
+          "answerPoolMargin": 8.0,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is China's capital?",
+          "targetLogit": 13.1875,
+          "targetRank": 2,
+          "answerPoolMargin": 6.875,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of China.",
+          "targetLogit": 14.0625,
+          "targetRank": 3,
+          "answerPoolMargin": 9.4375,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of China?",
+          "targetLogit": 12.6875,
+          "targetRank": 3,
+          "answerPoolMargin": 8.03125,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of China is",
+          "targetLogit": 11.625,
+          "targetRank": 5,
+          "answerPoolMargin": 6.625,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of China?",
+          "targetLogit": 13.3125,
+          "targetRank": 2,
+          "answerPoolMargin": 7.875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Tokyo",
+          "tokenId": 20655,
+          "token": "Tokyo",
+          "logit": 5.3125,
+          "rank": 276
+        },
+        {
+          "answer": "Rome",
+          "tokenId": 11595,
+          "token": "Rome",
+          "logit": 2.0625,
+          "rank": 1874
+        },
+        {
+          "answer": "Vienna",
+          "tokenId": 26524,
+          "token": "Vienna",
+          "logit": 2.40625,
+          "rank": 1567
+        },
+        {
+          "answer": "Paris",
+          "tokenId": 6233,
+          "token": "Paris",
+          "logit": 4.28125,
+          "rank": 530
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "China"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Beijing"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 10.863671875000001,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 7.9375,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 8.1875,
+        "subjectSpecificityLift": 10.863671875000001,
+        "relationTemplateMargin": 7.9375,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -2.6761718750000005,
+        "relationControlP95TargetLogit": 11.034374999999997
+      }
+    },
+    {
+      "subject": "Russia",
+      "answer": "Moscow",
+      "targetTokenId": 18061,
+      "targetToken": "Moscow",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Russia is",
+        "targetLogit": 13.1875,
+        "targetRank": 1,
+        "answerPoolMargin": 8.375
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": 2.4375,
+          "targetRank": 1568,
+          "answerPoolMargin": -11.0625
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": 3.0625,
+          "targetRank": 1042,
+          "answerPoolMargin": -11.0625
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": 2.359375,
+          "targetRank": 1544,
+          "answerPoolMargin": -11.828125
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": 2.9375,
+          "targetRank": 1207,
+          "answerPoolMargin": -9.75
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 0.35546875,
+          "targetRank": 4381,
+          "answerPoolMargin": -4.55078125
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 1.9140625,
+          "targetRank": 1997,
+          "answerPoolMargin": -2.8046875
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": 3.109375,
+          "targetRank": 755,
+          "answerPoolMargin": -0.71875
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": 3.453125,
+          "targetRank": 904,
+          "answerPoolMargin": -9.859375
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Russia is",
+          "targetLogit": 4.25,
+          "targetRank": 280,
+          "answerPoolMargin": 4.60546875
+        },
+        {
+          "prompt": "The main language of Russia is",
+          "targetLogit": 5.0,
+          "targetRank": 134,
+          "answerPoolMargin": 5.75
+        },
+        {
+          "prompt": "The largest city in Russia is",
+          "targetLogit": 13.3125,
+          "targetRank": 1,
+          "answerPoolMargin": 8.21875
+        },
+        {
+          "prompt": "The weather in Russia is",
+          "targetLogit": 3.609375,
+          "targetRank": 1002,
+          "answerPoolMargin": 3.234375
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of Russia?",
+          "targetLogit": 13.1875,
+          "targetRank": 2,
+          "answerPoolMargin": 8.59375,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Russia's capital?",
+          "targetLogit": 12.875,
+          "targetRank": 2,
+          "answerPoolMargin": 6.90625,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Russia.",
+          "targetLogit": 13.6875,
+          "targetRank": 3,
+          "answerPoolMargin": 9.765625,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Russia?",
+          "targetLogit": 12.375,
+          "targetRank": 3,
+          "answerPoolMargin": 8.0625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Russia is",
+          "targetLogit": 10.875,
+          "targetRank": 6,
+          "answerPoolMargin": 5.71875,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Russia?",
+          "targetLogit": 13.5,
+          "targetRank": 2,
+          "answerPoolMargin": 7.6875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of Russia?",
+          "targetLogit": 13.1875,
+          "targetRank": 2,
+          "answerPoolMargin": 8.59375,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Russia's capital?",
+          "targetLogit": 12.875,
+          "targetRank": 2,
+          "answerPoolMargin": 6.90625,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Russia.",
+          "targetLogit": 13.6875,
+          "targetRank": 3,
+          "answerPoolMargin": 9.765625,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Russia?",
+          "targetLogit": 12.375,
+          "targetRank": 3,
+          "answerPoolMargin": 8.0625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Russia is",
+          "targetLogit": 10.875,
+          "targetRank": 6,
+          "answerPoolMargin": 5.71875,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Russia?",
+          "targetLogit": 13.5,
+          "targetRank": 2,
+          "answerPoolMargin": 7.6875,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Beijing",
+          "tokenId": 27880,
+          "token": "Beijing",
+          "logit": 3.109375,
+          "rank": 1157
+        },
+        {
+          "answer": "Madrid",
+          "tokenId": 15102,
+          "token": "Madrid",
+          "logit": 1.7578125,
+          "rank": 2278
+        },
+        {
+          "answer": "Rome",
+          "tokenId": 11595,
+          "token": "Rome",
+          "logit": 2.859375,
+          "rank": 1321
+        },
+        {
+          "answer": "Vienna",
+          "tokenId": 26524,
+          "token": "Vienna",
+          "logit": 4.5,
+          "rank": 532
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Russia"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Moscow"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 9.823828125,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 7.875,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 8.375,
+        "subjectSpecificityLift": 9.823828125,
+        "relationTemplateMargin": 7.875,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -1.448828125000001,
+        "relationControlP95TargetLogit": 12.065624999999997
+      }
+    },
+    {
+      "subject": "Canada",
+      "answer": "Ottawa",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Australia",
+      "answer": "Canberra",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Brazil",
+      "answer": "Brasilia",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Sweden",
+      "answer": "Stockholm",
+      "targetTokenId": 26297,
+      "targetToken": "Stockholm",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Sweden is",
+        "targetLogit": 13.75,
+        "targetRank": 1,
+        "answerPoolMargin": 10.046875
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": 0.8984375,
+          "targetRank": 3278,
+          "answerPoolMargin": -12.6015625
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": 1.78125,
+          "targetRank": 2077,
+          "answerPoolMargin": -12.34375
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": 1.203125,
+          "targetRank": 2798,
+          "answerPoolMargin": -12.984375
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": 2.28125,
+          "targetRank": 1693,
+          "answerPoolMargin": -10.40625
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 1.5859375,
+          "targetRank": 2508,
+          "answerPoolMargin": -3.3203125
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 2.5625,
+          "targetRank": 1425,
+          "answerPoolMargin": -2.15625
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": -0.419921875,
+          "targetRank": 4923,
+          "answerPoolMargin": -4.248046875
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": 2.375,
+          "targetRank": 1644,
+          "answerPoolMargin": -10.9375
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Sweden is",
+          "targetLogit": 5.375,
+          "targetRank": 165,
+          "answerPoolMargin": 7.34375
+        },
+        {
+          "prompt": "The main language of Sweden is",
+          "targetLogit": 6.125,
+          "targetRank": 92,
+          "answerPoolMargin": 7.2890625
+        },
+        {
+          "prompt": "The largest city in Sweden is",
+          "targetLogit": 14.3125,
+          "targetRank": 1,
+          "answerPoolMargin": 9.75
+        },
+        {
+          "prompt": "The weather in Sweden is",
+          "targetLogit": 2.46875,
+          "targetRank": 1703,
+          "answerPoolMargin": 2.0078125
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of Sweden?",
+          "targetLogit": 14.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 9.5,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Sweden's capital?",
+          "targetLogit": 14.5625,
+          "targetRank": 2,
+          "answerPoolMargin": 8.84375,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Sweden.",
+          "targetLogit": 14.5,
+          "targetRank": 2,
+          "answerPoolMargin": 9.53125,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Sweden?",
+          "targetLogit": 13.75,
+          "targetRank": 2,
+          "answerPoolMargin": 9.90625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Sweden is",
+          "targetLogit": 12.6875,
+          "targetRank": 2,
+          "answerPoolMargin": 8.09375,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Sweden?",
+          "targetLogit": 13.5625,
+          "targetRank": 2,
+          "answerPoolMargin": 8.40625,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of Sweden?",
+          "targetLogit": 14.4375,
+          "targetRank": 2,
+          "answerPoolMargin": 9.5,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Sweden's capital?",
+          "targetLogit": 14.5625,
+          "targetRank": 2,
+          "answerPoolMargin": 8.84375,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Sweden.",
+          "targetLogit": 14.5,
+          "targetRank": 2,
+          "answerPoolMargin": 9.53125,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Sweden?",
+          "targetLogit": 13.75,
+          "targetRank": 2,
+          "answerPoolMargin": 9.90625,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Sweden is",
+          "targetLogit": 12.6875,
+          "targetRank": 2,
+          "answerPoolMargin": 8.09375,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Sweden?",
+          "targetLogit": 13.5625,
+          "targetRank": 2,
+          "answerPoolMargin": 8.40625,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Madrid",
+          "tokenId": 15102,
+          "token": "Madrid",
+          "logit": 2.109375,
+          "rank": 1804
+        },
+        {
+          "answer": "Moscow",
+          "tokenId": 18061,
+          "token": "Moscow",
+          "logit": 2.484375,
+          "rank": 1456
+        },
+        {
+          "answer": "Beijing",
+          "tokenId": 27880,
+          "token": "Beijing",
+          "logit": 1.890625,
+          "rank": 2015
+        },
+        {
+          "answer": "Vienna",
+          "tokenId": 26524,
+          "token": "Vienna",
+          "logit": 2.84375,
+          "rank": 1192
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Sweden"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Stockholm"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 12.610546875,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 9.171875,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 10.046875,
+        "subjectSpecificityLift": 12.610546875,
+        "relationTemplateMargin": 9.171875,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -2.5636718750000007,
+        "relationControlP95TargetLogit": 13.084374999999998
+      }
+    },
+    {
+      "subject": "Norway",
+      "answer": "Oslo",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Denmark",
+      "answer": "Copenhagen",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Finland",
+      "answer": "Helsinki",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Poland",
+      "answer": "Warsaw",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    },
+    {
+      "subject": "Austria",
+      "answer": "Vienna",
+      "targetTokenId": 26524,
+      "targetToken": "Vienna",
+      "valid": true,
+      "pass": true,
+      "baseline": {
+        "prompt": "The capital of Austria is",
+        "targetLogit": 13.375,
+        "targetRank": 1,
+        "answerPoolMargin": 8.1875
+      },
+      "subjectControls": [
+        {
+          "prompt": "The capital of France is",
+          "targetLogit": 3.65625,
+          "targetRank": 831,
+          "answerPoolMargin": -9.84375
+        },
+        {
+          "prompt": "The capital of Germany is",
+          "targetLogit": 5.59375,
+          "targetRank": 209,
+          "answerPoolMargin": -8.53125
+        },
+        {
+          "prompt": "The capital of Italy is",
+          "targetLogit": 4.375,
+          "targetRank": 508,
+          "answerPoolMargin": -9.8125
+        },
+        {
+          "prompt": "The capital of Spain is",
+          "targetLogit": 3.375,
+          "targetRank": 959,
+          "answerPoolMargin": -9.3125
+        },
+        {
+          "prompt": "The capital of Portugal is",
+          "targetLogit": 2.578125,
+          "targetRank": 1533,
+          "answerPoolMargin": -2.328125
+        },
+        {
+          "prompt": "The capital of Greece is",
+          "targetLogit": 3.265625,
+          "targetRank": 969,
+          "answerPoolMargin": -1.453125
+        },
+        {
+          "prompt": "The capital of Egypt is",
+          "targetLogit": 1.6328125,
+          "targetRank": 1754,
+          "answerPoolMargin": -2.1953125
+        },
+        {
+          "prompt": "The capital of Japan is",
+          "targetLogit": 2.8125,
+          "targetRank": 1310,
+          "answerPoolMargin": -10.5
+        }
+      ],
+      "relationControls": [
+        {
+          "prompt": "The currency of Austria is",
+          "targetLogit": 4.0625,
+          "targetRank": 347,
+          "answerPoolMargin": 3.36328125
+        },
+        {
+          "prompt": "The main language of Austria is",
+          "targetLogit": 5.625,
+          "targetRank": 121,
+          "answerPoolMargin": 1.4375
+        },
+        {
+          "prompt": "The largest city in Austria is",
+          "targetLogit": 13.5,
+          "targetRank": 1,
+          "answerPoolMargin": 8.375
+        },
+        {
+          "prompt": "The weather in Austria is",
+          "targetLogit": 0.86328125,
+          "targetRank": 3361,
+          "answerPoolMargin": -0.37109375
+        }
+      ],
+      "paraphrases": [
+        {
+          "prompt": "Which city serves as the capital of Austria?",
+          "targetLogit": 13.125,
+          "targetRank": 2,
+          "answerPoolMargin": 5.9375,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Austria's capital?",
+          "targetLogit": 13.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 5.6875,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Austria.",
+          "targetLogit": 13.5,
+          "targetRank": 3,
+          "answerPoolMargin": 7.1875,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Austria?",
+          "targetLogit": 12.375,
+          "targetRank": 3,
+          "answerPoolMargin": 6.1875,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Austria is",
+          "targetLogit": 12.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 7.34375,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Austria?",
+          "targetLogit": 11.875,
+          "targetRank": 2,
+          "answerPoolMargin": 5.375,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "paraphraseCandidates": [
+        {
+          "prompt": "Which city serves as the capital of Austria?",
+          "targetLogit": 13.125,
+          "targetRank": 2,
+          "answerPoolMargin": 5.9375,
+          "profile": "ood",
+          "family": "service-question"
+        },
+        {
+          "prompt": "What city is Austria's capital?",
+          "targetLogit": 13.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 5.6875,
+          "profile": "ood",
+          "family": "possessive-question"
+        },
+        {
+          "prompt": "Give the name of the capital city of Austria.",
+          "targetLogit": 13.5,
+          "targetRank": 3,
+          "answerPoolMargin": 7.1875,
+          "profile": "ood",
+          "family": "imperative"
+        },
+        {
+          "prompt": "I am checking a country profile. Could you tell me which city is the capital of Austria?",
+          "targetLogit": 12.375,
+          "targetRank": 3,
+          "answerPoolMargin": 6.1875,
+          "profile": "ood",
+          "family": "embedded-question"
+        },
+        {
+          "prompt": "Complete this sentence with a city name: The city that is the capital of Austria is",
+          "targetLogit": 12.9375,
+          "targetRank": 2,
+          "answerPoolMargin": 7.34375,
+          "profile": "ood",
+          "family": "sentence-completion"
+        },
+        {
+          "prompt": "For a geography quiz, answer with a city name only. Which city is the capital of Austria?",
+          "targetLogit": 11.875,
+          "targetRank": 2,
+          "answerPoolMargin": 5.375,
+          "profile": "ood",
+          "family": "context-prefixed-question"
+        }
+      ],
+      "wrongAnswerControls": [
+        {
+          "answer": "Rome",
+          "tokenId": 11595,
+          "token": "Rome",
+          "logit": 2.984375,
+          "rank": 1001
+        },
+        {
+          "answer": "Paris",
+          "tokenId": 6233,
+          "token": "Paris",
+          "logit": 3.21875,
+          "rank": 868
+        },
+        {
+          "answer": "Tokyo",
+          "tokenId": 20655,
+          "token": "Tokyo",
+          "logit": 1.296875,
+          "rank": 2513
+        },
+        {
+          "answer": "Moscow",
+          "tokenId": 18061,
+          "token": "Moscow",
+          "logit": 2.0625,
+          "rank": 1692
+        }
+      ],
+      "behaviorGraph": {
+        "nodes": [
+          {
+            "id": "prompt:subject",
+            "type": "input-text",
+            "label": "Austria"
+          },
+          {
+            "id": "prompt:relation",
+            "type": "input-text",
+            "label": "capital-of"
+          },
+          {
+            "id": "output:target",
+            "type": "next-token",
+            "label": "Vienna"
+          }
+        ],
+        "edges": [
+          {
+            "from": "prompt:subject",
+            "to": "output:target",
+            "score": 9.900390625,
+            "method": "same-relation subject-swap output-logit intervention"
+          },
+          {
+            "from": "prompt:relation",
+            "to": "output:target",
+            "score": 6.0625,
+            "method": "capital-relation paraphrase stability over output logits"
+          }
+        ]
+      },
+      "metrics": {
+        "answerSpecificityMargin": 8.1875,
+        "subjectSpecificityLift": 9.900390625,
+        "relationTemplateMargin": 6.0625,
+        "paraphraseRetentionRate": 1.0,
+        "subjectControlP95Margin": -1.7128906250000004,
+        "relationControlP95TargetLogit": 12.318749999999998
+      }
+    },
+    {
+      "subject": "Belgium",
+      "answer": "Brussels",
+      "valid": false,
+      "skipReason": "answer_not_single_token"
+    }
+  ]
+}

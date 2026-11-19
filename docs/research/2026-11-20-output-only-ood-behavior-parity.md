@@ -15,7 +15,11 @@ two gates on GPT-2 and the Pythia-70m family parity, on CPU, in one session:
 - Pythia-70m (`EleutherAI/pythia-70m-deduped`, GPT-NeoX family), same protocol.
 
 The runner records a pass or a fail honestly; the Pythia family failure below
-is a finding, not a rerun target.
+is a finding, not a rerun target. The same session then closed the remaining
+instruct-family gate on Kaggle T4: LLaMA-3.2-3B-Instruct 4-bit and
+Mistral-7B-Instruct v0.3 4-bit through the identical boundary and protocol
+(kernel `kuglipista/gcl-black-box-ood-parity-llama-3-2-mistral-7b` v4,
+dataset `kuglipista/gcl-blackbox-ood-input`).
 
 ## Protocol
 
@@ -83,36 +87,86 @@ and fail the 0.02 relation gate.
 | sentence-completion | 11/18 | 0.611 | 0.889 | -1.000 | 14 |
 | context-prefixed-question | 2/18 | 0.111 | -1.222 | -3.000 | 1466 |
 
+### LLaMA-3.2-3B-Instruct 4-bit: instruct parity pass, top-1 everywhere
+
+19 valid facts, 19 passed (380 oracle queries, 135 s on a Tesla T4,
+`llama-3.2-3b-4bit-output-only-ood-20-facts`). The median baseline target
+rank is 1.0 and the maximum is 1: the capital is the top next-token on
+every measured prompt. Minimum relation-template margin 5.4688 against
+the 0.02 gate; median subject-specificity lift 17.08.
+
+| family | retained | retention rate | mean margin | min margin | median target rank |
+|---|---:|---:|---:|---:|---:|
+| service-question | 19/19 | 1.000 | 8.819 | 6.125 | 1 |
+| possessive-question | 19/19 | 1.000 | 7.868 | 5.125 | 1 |
+| imperative | 19/19 | 1.000 | 7.729 | 5.375 | 1 |
+| embedded-question | 19/19 | 1.000 | 9.209 | 6.438 | 1 |
+| sentence-completion | 19/19 | 1.000 | 7.169 | 5.562 | 3 |
+| context-prefixed-question | 19/19 | 1.000 | 6.890 | 5.250 | 1 |
+
+Every answer-blind OOD family retains 19/19 with a minimum item margin of
+5.125: the weakest single item across all six families is roughly 9x the
+weakest GPT-2 margin and 250x the relation gate.
+
+### Mistral-7B-Instruct v0.3 4-bit: instruct parity pass on a narrower pool
+
+9 valid facts, 9 passed (180 oracle queries, 103 s,
+`mistral-7b-4bit-output-only-ood-20-facts`). Eleven of the twenty answers
+are not single Mistral-7B tokens (Lisbon, Athens, Cairo, Ottawa, Canberra,
+Brasilia, Oslo, Copenhagen, Helsinki, Warsaw, Brussels), so the recorded
+pool is the 9 single-token facts; the skipped facts are recorded, not
+dropped. Median and maximum baseline target rank are both 1; minimum
+relation-template margin 6.0625; median subject-specificity lift 9.90.
+
+| family | retained | retention rate | mean margin | min margin | median target rank |
+|---|---:|---:|---:|---:|---:|
+| service-question | 9/9 | 1.000 | 8.674 | 5.938 | 2 |
+| possessive-question | 9/9 | 1.000 | 7.719 | 5.688 | 2 |
+| imperative | 9/9 | 1.000 | 9.488 | 7.188 | 2 |
+| embedded-question | 9/9 | 1.000 | 8.550 | 6.188 | 3 |
+| sentence-completion | 9/9 | 1.000 | 6.611 | 5.250 | 3 |
+| context-prefixed-question | 9/9 | 1.000 | 7.556 | 5.375 | 2 |
+
 ## Interpretation and claim boundary
 
 Cross-family reading, bounded to what was measured: through the identical
-logit-only boundary and the identical answer-blind family protocol, the base
-web-text-trained GPT-2 keeps a positive answer-pool margin under every OOD
-family for 18/19 facts, while the Pile-trained Pythia-70m retains mainly the
-possessive-question phrasing (17/18) and collapses on the question-style
-families (2-4 of 18). Which template family preserves the answer is
-model-relative, not template-intrinsic - the same conclusion the hook-based
-ordered-path OOD replacement lane measured for Pythia-70m from the
-intervention side (paraphrase pass rate 0.43, service-question 1/5). Two
-access boundaries, one family-level finding, recorded from both sides.
+logit-only boundary and the identical answer-blind family protocol, the
+recorded spectrum is now four families wide. The base web-text-trained GPT-2
+keeps a positive answer-pool margin under every OOD family for 18/19 facts
+(weakest family margins around 1.7, imperative median rank 108). The
+Pile-trained Pythia-70m retains mainly the possessive-question phrasing
+(17/18) and collapses on the question-style families (2-4 of 18), with a
+median baseline rank of 95.5. The two quantized instruct models hold the
+answer at rank 1 under every family with item margins above 5: instruction
+tuning moved the whole distribution, not a template or two. Which template
+family preserves the answer is model-relative, not template-intrinsic - the
+same conclusion the hook-based ordered-path OOD replacement lane measured
+for Pythia-70m from the intervention side (paraphrase pass rate 0.43,
+service-question 1/5). Two access boundaries, one family-level finding,
+recorded from both sides.
 
 The Pythia run also measures the practical floor of the logit-only rail: a
 70M-parameter model whose factual margins are coarse integer logits cannot
 support the 0.02 margin gates for most capital facts regardless of phrasing
 (median baseline rank 95.5 against GPT-2's 7).
 
-This lane does not prove semantic understanding, instruction-following
-ability, circuit identity, robustness beyond the six capital-question
-templates and the selected 20-fact pool, or anything about instruct-tuned
-families; those are the next recorded gate (LLaMA-3.2 / Mistral-7B on Kaggle
-T4 through the same boundary). The family table is a restatement of recorded
-measurements, not a claim about unmeasured subjects or models.
+This lane does not prove semantic understanding, circuit identity, or
+robustness beyond the six capital-question templates, the selected 20-fact
+pool, and the measured models. The GPT-2/Pythia runs were CPU; the two
+instruct-family runs were produced on one Kaggle T4 kernel with an on-kernel
+consistency recompute (family table, case aggregates, access audit, and
+model identity recomputed from the raw case fields) and are recorded with
+kernel-run-info provenance. The family tables are restatements of recorded
+measurements, not claims about unmeasured subjects or models.
 
 ## Artifacts
 
 - GPT-2 OOD report: [`gpt2-output-only-ood-20-facts-behavior-graph/report.json`](../../benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-ood-20-facts-behavior-graph/report.json)
 - Pythia-70m OOD report: [`pythia-70m-output-only-ood-20-facts-behavior-graph/report.json`](../../benchmarks/release/nn-live-blackbox-llm-behavior-reader/pythia-70m-output-only-ood-20-facts-behavior-graph/report.json)
+- LLaMA-3.2-3B 4-bit OOD parity report: [`llama-3.2-3b-4bit-output-only-ood-20-facts/report.json`](../../benchmarks/release/nn-live-blackbox-llm-behavior-reader/llama-3.2-3b-4bit-output-only-ood-20-facts/report.json)
+- Mistral-7B 4-bit OOD parity report: [`mistral-7b-4bit-output-only-ood-20-facts/report.json`](../../benchmarks/release/nn-live-blackbox-llm-behavior-reader/mistral-7b-4bit-output-only-ood-20-facts/report.json)
 - GPT-2 standard reference: [`gpt2-output-only-10-facts-behavior-graph/report.json`](../../benchmarks/release/nn-live-blackbox-llm-behavior-reader/gpt2-output-only-10-facts-behavior-graph/report.json)
-- Runner: [`llm-reader-blackbox-behavior.py`](../../tools/llm-reader-blackbox-behavior.py) (`--paraphrase-profile standard|ood`)
+- Runner: [`llm-reader-blackbox-behavior.py`](../../tools/llm-reader-blackbox-behavior.py) (`--paraphrase-profile standard|ood`, `--load-in-4bit`)
 - OOD family templates: [`llm_reader/ood_paraphrases.py`](../../tools/llm_reader/ood_paraphrases.py)
+- Parity kernel source: [`scripts/gpu/kaggle/blackbox-ood-parity/kernel.py`](../../scripts/gpu/kaggle/blackbox-ood-parity/kernel.py)
 - Cross-family hook-based lane: [`2026-11-17-ood-replacement-transfer-cross-family.md`](2026-11-17-ood-replacement-transfer-cross-family.md)
