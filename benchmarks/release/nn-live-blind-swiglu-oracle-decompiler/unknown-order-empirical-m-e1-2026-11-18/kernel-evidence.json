@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "gcl-kaggle-kernel-evidence",
+  "recordedAt": "2026-11-20T00:00:00.000Z",
+  "note": "Heavy files kept out of git; hashes and Kaggle pointers are the provenance. The verifier recomputes all grades when the teacher-side table is provided from the downloaded kernel output.",
+  "kernels": {
+    "poolSampler": {
+      "slug": "kuglipista/gcl-unknown-order-empirical-pool-sampler",
+      "kernelVersion": 4,
+      "status": "COMPLETE",
+      "lastRunTime": "2026-11-18 19:41 UTC",
+      "repoCommit": "db5f33f3a9ce749fbc6eeed063cbdfad4958aedf",
+      "preregistration": "docs/research/2026-11-19-unknown-order-empirical-swiglu-recovery.md"
+    },
+    "ladder": {
+      "slug": "kuglipista/gcl-unknown-order-ladder-m-e1",
+      "kernelVersion": 5,
+      "status": "COMPLETE",
+      "lastRunTime": "2026-11-18 21:22 UTC",
+      "repoCommit": "db5f33f3a9ce749fbc6eeed063cbdfad4958aedf",
+      "preregistration": "docs/research/2026-11-19-unknown-order-empirical-swiglu-recovery.md"
+    }
+  },
+  "datasets": {
+    "toolsInput": {
+      "slug": "kuglipista/gcl-unknown-order-input",
+      "repoCommit": "b3a906b3fd885390a0b69ddd08cd9f51ade73ddc",
+      "sizeBytes": 184677
+    },
+    "pools": {
+      "slug": "kuglipista/gcl-unknown-order-pools",
+      "sizeBytes": 121568222
+    }
+  },
+  "excludedHeavyFiles": [
+    {
+      "path": "ladder/solver-inputs/empirical-pool.npz",
+      "sizeBytes": 117157876,
+      "sha256": "f6609b48d9c15be7e51b3354763e9b0e31783fa79de1d47e91bfff2fe155ade1",
+      "note": "byte-identical to the recorded pool: the solver-visible copy carries x and split indices only"
+    },
+    {
+      "path": "ladder/teacher-side/eval-responses.npz",
+      "sizeBytes": 181702177,
+      "sha256": "797a245233759a27cce60641f8e581b08a404a3c0cb5af824600a8bea6305e8e",
+      "note": "teacher-side grading tables (selection/validation/OOD x and f); required for the full verifier grading recompute"
+    }
+  ],
+  "download": {
+    "method": "kaggle kernels output kuglipista/gcl-unknown-order-ladder-m-e1",
+    "downloadedAt": "2026-11-20",
+    "localVerification": "tools/llm_reader/verify_unknown_order_empirical.py --case-dir <downloaded>/m-e1/ladder --pool <downloaded pools>/M-E1-empirical-pool.npz --run-info <downloaded>/m-e1/run-info.json --teacher-manifest <downloaded>/m-e1/teacher-manifest.json"
+  }
+}

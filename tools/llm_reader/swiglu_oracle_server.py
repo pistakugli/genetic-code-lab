@@ -145,16 +145,7 @@ def serve(args: argparse.Namespace) -> int:
         server.listen(1)
         connection, _ = server.accept()
         with connection:
-            ready = {
-                "type": "ready",
-                "protocol": "gcl-swiglu-eval-v1",
-                "hiddenSize": metadata["hiddenSize"],
-                "unitCount": metadata["unitCount"],
-                "oracleQuantizationStep": metadata["quantizationStep"],
-                "maxOracleCalls": metadata["maxOracleCalls"],
-                "solverAccess": "opaque-eval-only-oracle",
-                "protocolCapabilities": {"eval": True, "truth": False},
-            }
+            ready = build_ready_frame(metadata, hide_unit_count=bool(getattr(args, "hide_unit_count", False)))
             send_frame(connection, ready)
             transcript = advance_transcript(transcript, ready, b"")
             while True:
@@ -196,6 +187,15 @@ def serve(args: argparse.Namespace) -> int:
                         values = torch.nn.functional.silu(batch @ gate.T) * (batch @ up.T)
                         outputs.append((values @ scales).cpu().numpy())
                 result = np.concatenate(outputs).astype(np.float64)
+                permute_seed = int(getattr(args, "permute_responses_seed", 0) or 0)
+                if permute_seed:
+                    # null-control mode: shuffle the response vector of this request
+                    # with a frozen seed before quantization, turning the oracle into a
+                    # structure-free teacher over the same points. Responses are
+                    # per-request permuted: the same x in a different request gets a
+                    # different response, so no consistent target exists to fit.
+                    rng = np.random.default_rng(permute_seed + query_count)
+                    result = result[rng.permutation(result.shape[0])]
                 quantization_step = float(metadata["quantizationStep"])
                 if quantization_step > 0.0:
                     result = np.round(result / quantization_step) * quantization_step
@@ -225,11 +225,45 @@ def serve(args: argparse.Namespace) -> int:
     return 0 if status == "complete" else 1
 
 
+def build_ready_frame(metadata: dict[str, Any], *, hide_unit_count: bool) -> dict[str, Any]:
+    """Ready frame for the eval-only oracle.
+
+    In unknown-order mode the frame deliberately omits unitCount: the
+    selected-unit count is exactly the structure a blind solver is supposed
+    to infer from oracle behavior, so transmitting it in metadata would void
+    the unknown-order protocol. The protocol tag is switched as well so a
+    standard-mode solver refuses an unknown-order server and vice versa.
+    """
+    ready = {
+        "type": "ready",
+        "protocol": "gcl-swiglu-eval-v1-unknown-order" if hide_unit_count else "gcl-swiglu-eval-v1",
+        "hiddenSize": metadata["hiddenSize"],
+        "oracleQuantizationStep": metadata["quantizationStep"],
+        "maxOracleCalls": metadata["maxOracleCalls"],
+        "solverAccess": "opaque-eval-only-oracle",
+        "protocolCapabilities": {"eval": True, "truth": False},
+    }
+    if not hide_unit_count:
+        ready["unitCount"] = metadata["unitCount"]
+    return ready
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Eval-only isolated real-model SwiGLU oracle")
     parser.add_argument("--manifest-fd", type=int, required=True)
     parser.add_argument("--socket", required=True)
     parser.add_argument("--witness", required=True)
+    parser.add_argument(
+        "--hide-unit-count",
+        action="store_true",
+        help="unknown-order mode: omit unitCount from the ready frame and switch the protocol tag",
+    )
+    parser.add_argument(
+        "--permute-responses-seed",
+        type=int,
+        default=0,
+        help="null-control mode: per-request permutation of the response vector with this frozen seed",
+    )
     return serve(parser.parse_args())
 
 

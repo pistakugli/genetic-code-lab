@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-20T00:00:00.000Z",
+  "lane": "nn-live-blind-swiglu-oracle-decompiler",
+  "variant": "unknown-order-empirical-m-e1-2026-11-18",
+  "status": "pass",
+  "command": {
+    "argv": [
+      "python3",
+      "tools/llm_reader/unknown_order_swiglu_recovery.py",
+      "--output-dir /kaggle/working/m-e1/ladder",
+      "--empirical-pool /kaggle/input/gcl-unknown-order-pools/M-E1-empirical-pool.npz",
+      "--teacher-manifest /kaggle/working/m-e1/teacher-manifest.json",
+      "--ladder 4,5,6,8,10,12,14,16,18,20,24",
+      "--r-threshold 0.05",
+      "--oracle-budget 1500000",
+      "--max-fits 9",
+      "--quantization-step 1e-06",
+      "--solver-timeout 10000",
+      "--fit-train-count 16000"
+    ],
+    "cwd": "/kaggle/working",
+    "python": "3.12.3 (kernel venv)"
+  },
+  "env": {
+    "torch": "2.11.0+cu130",
+    "cudaAvailable": "true",
+    "gpuName": "Tesla T4",
+    "python": "3.13.16",
+    "repoCommit": "db5f33f3a9ce749fbc6eeed063cbdfad4958aedf (ephemeral kernel-side commit; landed in origin/main by this integration)"
+  },
+  "git": {
+    "commit": "see run-info.json",
+    "statusShort": ""
+  },
+  "outputs": {
+    "reportJson": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/unknown-order-empirical-m-e1-2026-11-18/ladder/case-report.json",
+    "reportMarkdown": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/unknown-order-empirical-m-e1-2026-11-18/ladder/case-report.md",
+    "manifest": "benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/unknown-order-empirical-m-e1-2026-11-18/manifest.json"
+  },
+  "summary": {
+    "pass": true,
+    "verdict": "inferred-order",
+    "inferredOrder": 10,
+    "trueM": 6,
+    "orderCorrect": false,
+    "upperRegionNonIdentifiable": true,
+    "fitsRecorded": 7,
+    "elapsedSeconds": 1238.656
+  },
+  "notes": [
+    "First recorded case of the preregistered unknown-order empirical SwiGLU recovery protocol: the solver fits an atom-count ladder against an eval-only oracle whose ready frame carries no unitCount, on the model's recorded empirical MLP-input distribution (216-prompt frozen corpus, 15998 points, 60/20/20 splits), with the teacher manifest delivered to the oracle subprocess by inherited descriptor and the solver strace-audited.",
+    "The ladder's preregistered sufficient rule (relative selection MAE <= 0.05) selects order 10; the hidden true order is 6. Candidates 4-8 sit at r_selection 0.058-0.079 and candidate 6 itself at 0.0697, above the threshold, so the honest verdict is an over-estimate with the upper region (12, 14) non-identifiable within 2x of the first sufficient r. This is a recorded negative finding about order inference at this threshold, not a lane failure: the kernel exits pass because the artifact is complete and independently verifiable, and the case report keeps inferredOrder=10 and trueM=6 side by side.",
+    "Access separation is fully audited per fit: opaque eval-only oracle transport (unix socket), weightsUsedBySolver=false, hooksUsedBySolver=false, sourceIdsUsedBySolver=false, truthRequestCount=0, no teacher manifest fields observed, and the solver-visible pool copy carries x values and split indices only.",
+    "Independent verifier: tools/llm_reader/verify_unknown_order_empirical.py recomputes the selection rule, the upper-region non-identifiability flag, every fit's rSelection/rValidation/rOod/validation metrics from the frozen fits and the recorded teacher-side response tables, the pool sha256, and the teacher-secret consistency. It passes against the downloaded Kaggle kernel output including the heavy files, and structurally against this repo artifact.",
+    "Heavy files (117MB solver-input pool copy, 181MB teacher-side grading tables) stay in the Kaggle kernel output and pools dataset; sha256 provenance in kernel-evidence.json.",
+    "The original preregistration doc (docs/research/2026-11-19-unknown-order-empirical-swiglu-recovery.md) lived only in the ephemeral kernel-side commits (db5f33f, b3a906b) and was never pushed; this integration reconstructs it from the frozen protocol echoes recorded in the kernel sources, sampler manifest, and case report, and discloses the gap."
+  ]
+}

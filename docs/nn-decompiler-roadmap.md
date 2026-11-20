@@ -630,6 +630,26 @@ The next production path is:
    - Run the same graph search over larger factual sets and then larger local
      transformer models only after adapter parity, GPT-2 graph hardening, and
      path recovery gates hold.
+7. Infer the hidden order of a real SwiGLU block on its recorded empirical
+   activation distribution
+   - Current status: FIRST CASE RECORDED, NEGATIVE. The preregistered
+     unknown-order protocol (empirical MLP-input pools over a frozen
+     216-prompt corpus, eval-only oracle whose ready frame carries no
+     unitCount, teacher manifest by inherited descriptor, strace-audited
+     solver, frozen r<=0.05 sufficiency gate on the selection split,
+     independent verifier) ran on Kaggle T4 for case M-E1: Mistral-7B layer
+     1, hidden true order 6, ladder 4..24. The ladder selected order 10
+     (candidate 6 itself sits at r_selection 0.0737 against the 0.05 gate)
+     with the upper region (12, 14) non-identifiable, and OOD relative error
+     stayed 4-9x the in-distribution error for every candidate. Recorded as
+     an honest over-estimate, not order recovery. Evidence in
+     `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/unknown-order-empirical-m-e1-2026-11-18/`
+     and
+     `docs/research/2026-11-19-unknown-order-empirical-swiglu-recovery.md`;
+     the five remaining preregistered cases (M-M15, M-L28, L-E1, L-M14,
+     L-L27) have recorded and validated pools and are the next gates.
+   - No loosening of the frozen threshold to convert the over-estimate into
+     a pass; the stop condition of the direction document applies.
 
 This pivot forbids promoting another single-prompt hook-and-ablate report as an
 innovation. The innovation target is stable automatic graph evidence from a

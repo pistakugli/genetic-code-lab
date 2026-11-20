@@ -207,7 +207,7 @@ def build_oracle_ready_payload(
     return payload
 
 
-def validate_opaque_oracle_metadata(metadata: dict[str, Any]) -> None:
+def validate_opaque_oracle_metadata(metadata: dict[str, Any], *, unknown_order: bool = False) -> None:
     forbidden = {
         "model", "modelType", "layer", "unit", "units", "intermediateSize",
         "device", "blockDevice", "oracleMode", "outputChannel",
@@ -225,6 +225,12 @@ def validate_opaque_oracle_metadata(metadata: dict[str, Any]) -> None:
     if metadata.get("oracleOutputMode") == "full-mlp-vector":
         if "unitCount" in metadata:
             raise RuntimeError("full-module oracle metadata must not expose unitCount")
+    elif unknown_order:
+        # Unknown-order protocol: the selected-unit count is the hidden structure
+        # the solver is supposed to infer, so its presence in ready metadata is a
+        # lane-voiding disclosure, not a convenience.
+        if "unitCount" in metadata:
+            raise RuntimeError("unknown-order oracle must not expose unitCount")
     elif int(metadata.get("unitCount", 0)) <= 0:
         raise RuntimeError("opaque selected-unit oracle metadata requires positive unitCount")
 
@@ -525,7 +531,9 @@ class OracleClient:
         if ready.get("type") != "ready":
             raise RuntimeError(f"oracle did not become ready: {ready}")
         if args.require_opaque_oracle:
-            validate_opaque_oracle_metadata(ready)
+            validate_opaque_oracle_metadata(
+                ready, unknown_order=bool(getattr(args, "unknown_order", False))
+            )
         # A cuda oracle that answers from host tensors is the failure this catches: it produces
         # correct numbers at roughly a tenth of the throughput while holding the card's memory,
         # so nothing downstream reports a problem and the run merely looks slow. The oracle
@@ -696,9 +704,14 @@ class SocketOracleClient:
         ready, payload = recv_frame(self.connection)
         if payload or ready.get("type") != "ready":
             raise RuntimeError(f"invalid opaque oracle ready frame: {ready}")
-        validate_opaque_oracle_metadata(ready)
-        if ready.get("protocol") != "gcl-swiglu-eval-v1":
+        validate_opaque_oracle_metadata(ready, unknown_order=bool(getattr(args, "unknown_order", False)))
+        if ready.get("protocol") not in {"gcl-swiglu-eval-v1", "gcl-swiglu-eval-v1-unknown-order"}:
             raise RuntimeError(f"unsupported opaque oracle protocol: {ready.get('protocol')!r}")
+        if bool(getattr(args, "unknown_order", False)) and ready.get("protocol") != "gcl-swiglu-eval-v1-unknown-order":
+            raise RuntimeError(
+                "unknown-order solver run requires an unknown-order oracle protocol frame, got "
+                f"{ready.get('protocol')!r}"
+            )
         server_budget = int(ready.get("maxOracleCalls", -1))
         if server_budget != self.max_oracle_calls:
             raise RuntimeError(f"oracle budget mismatch: server={server_budget} solver={self.max_oracle_calls}")
@@ -1052,6 +1065,70 @@ def sample_active_region_inputs(
     values = np.vstack(chunks)
     rng.shuffle(values, axis=0)
     return values.astype(np.float32, copy=False)
+
+
+def empirical_sampling_active(args: argparse.Namespace) -> bool:
+    return str(getattr(args, "train_sampling_mode", "") or "").strip().lower() == "empirical"
+
+
+def empirical_pool_inputs(args: argparse.Namespace, split: str, count: int) -> np.ndarray:
+    """Draw `count` recorded empirical-manifold points from a pool split.
+
+    The pool is sampler output (teacher-side recording of real MLP inputs on a
+    frozen prompt corpus); the copy handed to the solver carries x values and
+    the frozen 60/20/20 split indices only, never oracle responses or any
+    teacher manifest field. Drawing is deterministic: each split is permuted
+    once with a seed derived from --seed, so nested counts are consistent
+    subsets of one frozen order and two draws of the same split never overlap
+    accidentally. The validation split is split into a gate half and a
+    fairness half so the fresh-draw fairness scoring stage cannot reuse the
+    graded validation points.
+    """
+    path = str(getattr(args, "empirical_inputs_path", "") or "")
+    if not path:
+        raise RuntimeError("--train-sampling-mode empirical requires --empirical-inputs-path")
+    cache = getattr(args, "_empirical_pool_cache", None)
+    if cache is None:
+        with np.load(path) as pool:
+            x = np.asarray(pool["x"], dtype=np.float32)
+            indices = {
+                name: np.asarray(pool[name], dtype=np.int64)
+                for name in ("train", "selection", "validation")
+            }
+        if x.ndim != 2 or x.shape[0] == 0 or not np.all(np.isfinite(x)):
+            raise RuntimeError(f"empirical pool x table is invalid: shape {x.shape}")
+        seen: set[int] = set()
+        for name, idx in indices.items():
+            if idx.ndim != 1 or idx.size == 0 or idx.min() < 0 or idx.max() >= x.shape[0]:
+                raise RuntimeError(f"empirical pool split {name!r} is invalid for pool shape {x.shape}")
+            overlap = seen.intersection(idx.tolist())
+            if overlap:
+                raise RuntimeError(f"empirical pool splits overlap between {name!r} and an earlier split")
+            seen.update(idx.tolist())
+        cache = (x, indices)
+        setattr(args, "_empirical_pool_cache", cache)
+    x, indices = cache
+    if split == "validation-gate":
+        base = indices["validation"]
+        order = np.random.default_rng(int(args.seed) + 7919).permutation(base)
+        usable = order[: order.size // 2]
+    elif split == "validation-fairness":
+        base = indices["validation"]
+        order = np.random.default_rng(int(args.seed) + 7919).permutation(base)
+        usable = order[order.size // 2:]
+    else:
+        if split not in indices:
+            raise RuntimeError(f"unknown empirical pool split {split!r}")
+        usable = np.random.default_rng(int(args.seed) + 104729).permutation(indices[split])
+    count = int(count)
+    if count <= 0:
+        raise RuntimeError(f"empirical pool draw count must be positive, got {count}")
+    if count > usable.size:
+        raise RuntimeError(
+            f"empirical pool split {split!r} holds {usable.size} usable points, requested {count}; "
+            "lower the corresponding count flag or record a larger pool"
+        )
+    return x[usable[:count]].astype(np.float32, copy=True)
 
 
 def _eigh_preferring_device(matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -10147,8 +10224,11 @@ def independent_reporting_metrics(
     """
     if oracle.query_count + args.validation_count > args.max_oracle_calls:
         return None
-    rng = np.random.default_rng(args.seed + seed_offset)
-    inputs = rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
+    if empirical_sampling_active(args):
+        inputs = empirical_pool_inputs(args, "validation-fairness", int(args.validation_count))
+    else:
+        rng = np.random.default_rng(args.seed + seed_offset)
+        inputs = rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
     targets = oracle.eval(inputs, stage=stage)
     coords = inputs @ basis.T
     return regression_metrics(targets, predict_swiglu(coords, candidate))
@@ -10948,14 +11028,24 @@ def run_solver(args: argparse.Namespace) -> int:
         oracle = create_oracle_client(args, work_dir)
         try:
             dimension = int(oracle.meta["hiddenSize"])
-            unit_count = int(oracle.meta.get("unitCount", 1))
-            log_progress(args, "oracle-ready", dimension=dimension, unitCount=unit_count, layer=oracle.meta.get("layer"))
+            if getattr(args, "unknown_order", False):
+                # Unknown-order protocol: the ready frame carries no unitCount (validated
+                # at connect time), so there is nothing to cross-check --atom-count
+                # against. The count passed in is a ladder hypothesis by design; the
+                # frozen report must label it as a candidate, not a disclosed truth.
+                unit_count = None
+                log_progress(args, "oracle-ready", dimension=dimension, unitCount=None, layer=oracle.meta.get("layer"))
+                if args.atom_count is None:
+                    raise RuntimeError("unknown-order runs require an explicit candidate --atom-count")
+            else:
+                unit_count = int(oracle.meta.get("unitCount", 1))
+                log_progress(args, "oracle-ready", dimension=dimension, unitCount=unit_count, layer=oracle.meta.get("layer"))
+                if args.atom_count is None:
+                    args.atom_count = unit_count
+                if args.atom_count != unit_count:
+                    raise RuntimeError(f"atom_count={args.atom_count} does not match oracle unit_count={unit_count}")
             if args.expected_dimension > 0 and dimension != args.expected_dimension:
                 raise RuntimeError(f"oracle dimension={dimension} does not match expected={args.expected_dimension}")
-            if args.atom_count is None:
-                args.atom_count = unit_count
-            if args.atom_count != unit_count:
-                raise RuntimeError(f"atom_count={args.atom_count} does not match oracle unit_count={unit_count}")
             input_scale_calibration: dict[str, Any] | None = None
             if args.auto_input_scale:
                 input_scale_calibration = calibrate_input_scale(
@@ -11109,14 +11199,17 @@ def run_solver(args: argparse.Namespace) -> int:
                     ) else 1
 
                 train_sampling_mode = args.train_sampling_mode.strip().lower()
-                train_inputs = sample_active_region_inputs(
-                    train_rng,
-                    args.train_count,
-                    basis,
-                    args.input_scale,
-                    train_scale_mixture,
-                    train_sampling_mode,
-                )
+                if train_sampling_mode == "empirical":
+                    train_inputs = empirical_pool_inputs(args, "train", int(args.train_count))
+                else:
+                    train_inputs = sample_active_region_inputs(
+                        train_rng,
+                        args.train_count,
+                        basis,
+                        args.input_scale,
+                        train_scale_mixture,
+                        train_sampling_mode,
+                    )
                 train_targets = oracle.eval(train_inputs)
                 train_coords = train_inputs @ basis.T
                 log_progress(args, "train-sampled", trainCount=int(train_coords.shape[0]), rawOracleCalls=int(oracle.query_count))
@@ -11130,12 +11223,18 @@ def run_solver(args: argparse.Namespace) -> int:
                 )
                 fit_selection_count = max(0, int(args.fit_selection_count))
                 if fit_selection_count > 0:
-                    fit_selection_scale = args.fit_selection_scale if args.fit_selection_scale > 0.0 else args.validation_scale
-                    fit_selection_inputs = validation_rng.normal(
-                        0.0,
-                        fit_selection_scale,
-                        size=(fit_selection_count, dimension),
-                    ).astype(np.float32)
+                    if train_sampling_mode == "empirical":
+                        fit_selection_inputs = empirical_pool_inputs(
+                            args, "selection", int(fit_selection_count)
+                        )
+                        fit_selection_scale = 0.0
+                    else:
+                        fit_selection_scale = args.fit_selection_scale if args.fit_selection_scale > 0.0 else args.validation_scale
+                        fit_selection_inputs = validation_rng.normal(
+                            0.0,
+                            fit_selection_scale,
+                            size=(fit_selection_count, dimension),
+                        ).astype(np.float32)
                     fit_selection_targets = oracle.eval(fit_selection_inputs)
                     fit_selection_coords = fit_selection_inputs @ basis.T
                     log_progress(
@@ -11641,7 +11740,10 @@ def run_solver(args: argparse.Namespace) -> int:
                         if accept_tail_refit:
                             fit = tail_refit
 
-            validation_inputs = validation_rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
+            if empirical_sampling_active(args):
+                validation_inputs = empirical_pool_inputs(args, "validation-gate", int(args.validation_count))
+            else:
+                validation_inputs = validation_rng.normal(0.0, args.validation_scale, size=(args.validation_count, dimension)).astype(np.float32)
             validation_targets = oracle.eval(validation_inputs)
             validation_coords = validation_inputs @ basis.T
             validation_prediction = predict_swiglu(validation_coords, fit)
@@ -14173,7 +14275,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 functional_pass = (
                     passes_metric_thresholds(metrics, args.min_r2, args.max_mae, args.max_worst_error)
                     and oracle.query_count <= args.max_oracle_calls
-                    and args.atom_count == unit_count
+                    and (bool(getattr(args, "unknown_order", False)) or args.atom_count == unit_count)
                     and not forbidden_meta
                     and oracle.meta.get("protocolCapabilities") == {"eval": True, "truth": False}
                     and oracle.truth_request_count == 0
@@ -14184,7 +14286,8 @@ def run_solver(args: argparse.Namespace) -> int:
                     "summary": {
                         "pass": bool(functional_pass),
                         "dimension": int(dimension),
-                        "unitCount": int(unit_count),
+                        "unitCount": (None if getattr(args, "unknown_order", False) else int(unit_count)),
+                        "unknownOrder": bool(getattr(args, "unknown_order", False)),
                         "activeRank": int(args.active_rank),
                         "atomCount": int(args.atom_count),
                         "rawOracleCalls": int(oracle.query_count),
@@ -14393,7 +14496,7 @@ def run_solver(args: argparse.Namespace) -> int:
                 and source_alignment["subspaceMinPrincipalCosine"] >= args.min_subspace_cosine
                 and paired_atom_gate
                 and oracle.query_count <= args.max_oracle_calls
-                and args.atom_count == unit_count
+                and (bool(getattr(args, "unknown_order", False)) or args.atom_count == unit_count)
                 and oracle.meta.get("solverAccess") == "oracle-only"
             )
             report = {
@@ -14405,7 +14508,8 @@ def run_solver(args: argparse.Namespace) -> int:
                     "layer": oracle.meta["layer"],
                     "unit": oracle.meta["unit"],
                     "units": oracle.meta.get("units", [oracle.meta["unit"]]),
-                    "unitCount": unit_count,
+                    "unitCount": (None if getattr(args, "unknown_order", False) else unit_count),
+                    "unknownOrder": bool(getattr(args, "unknown_order", False)),
                     "oracleMode": oracle.meta.get("oracleMode", "selected-unit-sum"),
                     "outputChannel": oracle.meta.get("outputChannel"),
                     "activeRank": args.active_rank,
@@ -14696,6 +14800,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--oracle-write-fd", type=int, default=-1)
     parser.add_argument("--oracle-socket", default="")
     parser.add_argument("--require-opaque-oracle", action="store_true")
+    parser.add_argument(
+        "--unknown-order",
+        action="store_true",
+        help=(
+            "unknown-order mode: the oracle ready frame must not carry unitCount and the "
+            "atom count passed to this run is a candidate hypothesis, not a disclosed truth"
+        ),
+    )
     parser.add_argument("--defer-posthoc-truth", action="store_true")
     parser.add_argument("--frozen-fit-output", default="")
     parser.add_argument("--model", default="unsloth/mistral-7b-instruct-v0.3-bnb-4bit")
@@ -14762,7 +14874,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="required output std as a multiple of the oracle quantization step",
     )
     parser.add_argument("--train-scale-mixture", default="")
-    parser.add_argument("--train-sampling-mode", choices=["gaussian", "full-gaussian", "radial-shell", "active-radial-shell", "sobol-active-gaussian", "gaussian-sobol-active-mix"], default="gaussian")
+    parser.add_argument(
+        "--train-sampling-mode",
+        choices=["gaussian", "full-gaussian", "radial-shell", "active-radial-shell", "sobol-active-gaussian", "gaussian-sobol-active-mix", "empirical"],
+        default="gaussian",
+        help=(
+            "`empirical` fits and validates on recorded real-MLP-input pool points "
+            "(-train/-selection/-validation draws come from the pool instead of Gaussian "
+            "draws); interactive probe phases remain oracle-driven by design"
+        ),
+    )
+    parser.add_argument(
+        "--empirical-inputs-path",
+        default="",
+        help="pool .npz with x values and frozen train/selection/validation split indices (no oracle responses)",
+    )
     parser.add_argument("--validation-scale", type=float, default=0.65)
     parser.add_argument("--train-count", type=int, default=1600)
     parser.add_argument("--validation-count", type=int, default=512)

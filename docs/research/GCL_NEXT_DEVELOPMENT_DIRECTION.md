@@ -1,5 +1,13 @@
 # Recommended next development direction: blind recovery on real activation distributions
 
+> Status update (2026-11-20): the first preregistered case of this direction
+> is recorded - see
+> [`2026-11-19-unknown-order-empirical-swiglu-recovery.md`](2026-11-19-unknown-order-empirical-swiglu-recovery.md).
+> The protocol (hidden unit count, empirical pools, access separation,
+> independent verifier) ran on Kaggle T4 and the honest result is a negative
+> one: the ladder inferred order 10 against a hidden true order of 6 at the
+> frozen threshold. This document stays as the direction's contract.
+
 ## One direction
 
 Develop and evaluate **unknown-order, real-activation-distribution function recovery for selected SwiGLU blocks**.
