@@ -157,6 +157,67 @@ stays non-identifiable across cases, the order-inference claim stops and
 the recorded outcome is function fidelity plus a candid
 non-identifiability statement.
 
+## Batch results: the five remaining cases and the M-E1 null control
+
+All six cases ran in one Kaggle T4 batch kernel
+(`kuglipista/gcl-unknown-order-ladder-batch` v1, 2 h 02 m) under the frozen
+protocol above; every case was independently verified locally (selection
+rule, grades recompute from frozen fits and recorded response tables, pool
+sha256, teacher secret, access audits) before integration.
+
+| case | model / layer | hidden true m | inferred order | upper region | verdict |
+|---|---|---:|---:|---|---|
+| M-E1-null | Mistral-7B / 1 | 6 | 10 | non-identifiable (12, 14) | inferred-order; **null control: no-sufficient-order** |
+| M-M15 | Mistral-7B / 15 | 8 | 18 | — | inferred-order (over) |
+| M-L28 | Mistral-7B / 28 | 12 | none | — | **no-sufficient-order** |
+| L-E1 | LLaMA-3.2-3B / 1 | 6 | 8 | non-identifiable (10, 12) | inferred-order (over) |
+| L-M14 | LLaMA-3.2-3B / 14 | 8 | 16 | non-identifiable (18) | inferred-order (over) |
+| L-L27 | LLaMA-3.2-3B / 27 | 12 | **12** | non-identifiable (14, 16) | inferred-order, **exact** |
+
+Per-case recorded traversals (relative MAE on the selection split, r_eval
+on the validation split, r_ood on the Gaussian secondary set):
+
+- M-E1-null: identical r values to the recorded M-E1 run (deterministic
+  protocol reproduced on fresh hardware) - 4: 0.0794, 5: 0.0696, 6:
+  0.0737, 8: 0.0602, 10: 0.0129, 12: 0.0212, 14: 0.0190; the
+  null-permutation control over the same teacher recorded
+  `no-sufficient-order`, so the sufficiency gate does not fit permuted
+  (structure-free) responses - the protocol's stop-condition control held.
+- M-M15 (true 8): 4: 0.336, 5: 0.294, 6: 0.249, 8: 0.133, 10: 0.074, 12:
+  0.098, 14: 0.061, 16: 0.065, 18: 0.047 - the first sufficient candidate
+  is 18, a 2.25x over-estimate, and the r curve is non-monotone (12 worse
+  than 10).
+- M-L28 (true 12): 4: 0.524, 5: 0.433, 6: 0.441, 8: 0.240, 10: 0.122, 12:
+  0.104, 14: 0.193, 16: 0.192, 18: 0.164 - no candidate clears the 0.05
+  gate; the deep Mistral layer records an honest failure, with OOD relative
+  error 1.2-4.5x on top.
+- L-E1 (true 6): 4: 0.070, 5: 0.096, 6: 0.071, 8: 0.043, 10: 0.034, 12:
+  0.022 - first sufficient 8, over-estimate by 2.
+- L-M14 (true 8): 4: 0.402 ... 14: 0.053, 16: 0.043, 18: 0.028 - first
+  sufficient 16, a 2x over-estimate.
+- L-L27 (true 12): 4: 0.120, 5: 0.074, 6: 0.060, 8: 0.066, 10: 0.089, 12:
+  0.036, 14: 0.029, 16: 0.025 - first sufficient **12, the hidden true
+  order**, the one exact inference of the campaign; 14 and 16 are also
+  sufficient (the recorded non-identifiable upper region).
+
+### Interpretation across the campaign
+
+One of six cases inferred the hidden order exactly (L-L27); four
+over-estimated (by +2 to +10 atoms); the deepest Mistral layer failed to
+find any sufficient order at the frozen threshold. The over-estimates
+concentrate where the r curve is shallow or non-monotone around the true
+order (M-M15, L-M14), and the exact hit occurred where the first sufficient
+rung was also the sharpest drop (L-L27: 0.089 at 10 to 0.036 at 12). The
+null-permutation control produced no-sufficient-order on the one teacher
+it was run against, so the gate is not fitting noise - the failures are
+failures of order identifiability at this threshold, not of the
+experimental machinery. Per the preregistered stop condition: the
+order-inference claim remains unsupported at r <= 0.05; what the campaign
+records honestly is a family/layer-dependent identifiability profile
+(mild over-estimate at layer 1, worse mid-layer, exact once, hard failure
+at the deepest Mistral layer) plus function fidelity that stays
+manifold-local everywhere (r_ood 1.2-9x r_in on every sufficient fit).
+
 ## Artifacts and evidence
 
 - Case report: [`ladder/case-report.json`](../../benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/unknown-order-empirical-m-e1-2026-11-18/ladder/case-report.json)
@@ -171,4 +232,7 @@ non-identifiability statement.
 - Verifier tests: [`tests/test_unknown_order_empirical.py`](../../tests/test_unknown_order_empirical.py)
 - Pool-sampler kernel source: [`scripts/gpu/kaggle/unknown-order-pool-sampler/kernel.py`](../../scripts/gpu/kaggle/unknown-order-pool-sampler/kernel.py)
 - M-E1 ladder kernel source: [`scripts/gpu/kaggle/unknown-order-ladder-m-e1/kernel.py`](../../scripts/gpu/kaggle/unknown-order-ladder-m-e1/kernel.py)
-- Kaggle kernels: `kuglipista/gcl-unknown-order-empirical-pool-sampler` (v4, COMPLETE), `kuglipista/gcl-unknown-order-ladder-m-e1` (v5, COMPLETE); input dataset `kuglipista/gcl-unknown-order-input` (repo snapshot `b3a906b`), pools dataset `kuglipista/gcl-unknown-order-pools`.
+- Kaggle kernels: `kuglipista/gcl-unknown-order-empirical-pool-sampler` (v4, COMPLETE), `kuglipista/gcl-unknown-order-ladder-m-e1` (v5, COMPLETE), `kuglipista/gcl-unknown-order-ladder-batch` (v1, COMPLETE, all six cases + null control); input dataset `kuglipista/gcl-unknown-order-input` (repo snapshot `b3a906b`), pools dataset `kuglipista/gcl-unknown-order-pools` (v2, all six validated pools).
+- Batch case artifacts: `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/unknown-order-empirical-{m-e1-null,m-m15,l-l28,l-e1,l-m14,l-l27}-2026-11-20/` (case report, fits, run-info, teacher manifest, kernel-evidence, pool provenance each).
+- Batch integration script: [`scripts/gpu/integrate-unknown-order-batch.py`](../../scripts/gpu/integrate-unknown-order-batch.py).
+- Batch kernel source: [`scripts/gpu/kaggle/unknown-order-ladder-batch/kernel.py`](../../scripts/gpu/kaggle/unknown-order-ladder-batch/kernel.py).

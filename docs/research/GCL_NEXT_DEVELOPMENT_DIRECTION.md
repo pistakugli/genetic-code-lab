@@ -1,12 +1,15 @@
 # Recommended next development direction: blind recovery on real activation distributions
 
-> Status update (2026-11-20): the first preregistered case of this direction
+> Status update (2026-11-20): the preregistered campaign of this direction
 > is recorded - see
 > [`2026-11-19-unknown-order-empirical-swiglu-recovery.md`](2026-11-19-unknown-order-empirical-swiglu-recovery.md).
-> The protocol (hidden unit count, empirical pools, access separation,
-> independent verifier) ran on Kaggle T4 and the honest result is a negative
-> one: the ladder inferred order 10 against a hidden true order of 6 at the
-> frozen threshold. This document stays as the direction's contract.
+> All six cases (Mistral-7B and LLaMA-3.2-3B, layers 1/15/28 and 1/14/27,
+> hidden orders 6/8/12) ran on Kaggle T4 under the frozen protocol with
+> hidden unit counts, empirical pools, access separation, and the
+> independent verifier. The honest result: one exact order inference
+> (L-L27), four over-estimates, one hard failure (M-L28), and a validated
+> null-permutation control. The order-inference claim remains unsupported
+> at the frozen threshold; this document stays as the direction's contract.
 
 ## One direction
 

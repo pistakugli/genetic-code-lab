@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "blind-swiglu-frozen-recovery",
+  "summary": {
+    "pass": false,
+    "dimension": 3072,
+    "unitCount": null,
+    "unknownOrder": true,
+    "activeRank": 32,
+    "atomCount": 16,
+    "rawOracleCalls": 936977,
+    "metrics": {
+      "mae": 0.00030735277466349204,
+      "mse": 2.4544825495751207e-07,
+      "r2": 0.9992323581627216,
+      "worstError": 0.0052260367863423895
+    },
+    "selectedGradientEnergyRatio": 0.9999999167529011
+  },
+  "frozenRecovery": {
+    "path": "/kaggle/working/L-L27/ladder/fits/m16/frozen-recovery.npz",
+    "sha256": "734c33db458c88c9d6f9cb7babb54e56f64ae59bdfc7f77b827e9c00701e8b89",
+    "frozenAfterValidation": true
+  },
+  "accessAudit": {
+    "solverAccess": "opaque-eval-only-oracle",
+    "externalOracleTransport": true,
+    "oracleTransport": "unix-binary-v1",
+    "weightsUsedBySolver": false,
+    "hooksUsedBySolver": false,
+    "sourceIdsUsedBySolver": false,
+    "teacherManifestFieldsObserved": [],
+    "truthCapabilityAvailable": false,
+    "truthRequestCount": 0,
+    "fitSnapshotUsedBySolver": false,
+    "nonlinearInitialFitUsed": false,
+    "queryTranscriptSha256": "0b13b65c3d76ecc6589ae068390cddd26dc99ba2102627b10e16f68801f37e24"
+  },
+  "solver": {
+    "kind": "blind-active-subspace-explicit-swiglu-sum",
+    "recoveryPath": "asymptotic-cold-start",
+    "fitMode": "asymptotic-structure-cold-start",
+    "fitRestarts": 0,
+    "fitRandomRestarts": 0,
+    "gradientMode": "symmetric-multiscale-coordinate",
+    "gradientWitnessCount": 130,
+    "asymptoticStructure": {
+      "coldStart": true,
+      "stitched": true,
+      "clusterCount": 16,
+      "sourceFallbackAtoms": []
+    }
+  }
+}

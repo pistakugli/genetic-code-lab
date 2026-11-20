@@ -632,24 +632,30 @@ The next production path is:
      path recovery gates hold.
 7. Infer the hidden order of a real SwiGLU block on its recorded empirical
    activation distribution
-   - Current status: FIRST CASE RECORDED, NEGATIVE. The preregistered
+   - Current status: CAMPAIGN RECORDED, MOSTLY NEGATIVE. The preregistered
      unknown-order protocol (empirical MLP-input pools over a frozen
      216-prompt corpus, eval-only oracle whose ready frame carries no
      unitCount, teacher manifest by inherited descriptor, strace-audited
      solver, frozen r<=0.05 sufficiency gate on the selection split,
-     independent verifier) ran on Kaggle T4 for case M-E1: Mistral-7B layer
-     1, hidden true order 6, ladder 4..24. The ladder selected order 10
-     (candidate 6 itself sits at r_selection 0.0737 against the 0.05 gate)
-     with the upper region (12, 14) non-identifiable, and OOD relative error
-     stayed 4-9x the in-distribution error for every candidate. Recorded as
-     an honest over-estimate, not order recovery. Evidence in
-     `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/unknown-order-empirical-m-e1-2026-11-18/`
+     independent verifier) ran on Kaggle T4 for all six preregistered cases
+     (Mistral-7B layers 1/15/28, LLaMA-3.2-3B layers 1/14/27; true orders
+     6/8/12) plus the null-permutation control. One case inferred the exact
+     hidden order (L-L27: inferred 12 of 12); four over-estimated (M-E1 10
+     of 6, L-E1 8 of 6, L-M14 16 of 8, M-M15 18 of 8); the deepest Mistral
+     layer (M-L28) recorded no sufficient order at all; and the
+     null-permutation control on M-E1 recorded no-sufficient-order, so the
+     gate does not fit structure-free responses. Per the preregistered stop
+     condition the order-inference claim stays unsupported at r<=0.05; the
+     recorded finding is a layer/family-dependent identifiability profile
+     with manifold-local function fidelity (r_ood 1.2-9x r_in on every
+     sufficient fit). Evidence in
+     `benchmarks/release/nn-live-blind-swiglu-oracle-decompiler/unknown-order-empirical-*/`
      and
-     `docs/research/2026-11-19-unknown-order-empirical-swiglu-recovery.md`;
-     the five remaining preregistered cases (M-M15, M-L28, L-E1, L-M14,
-     L-L27) have recorded and validated pools and are the next gates.
-   - No loosening of the frozen threshold to convert the over-estimate into
-     a pass; the stop condition of the direction document applies.
+     `docs/research/2026-11-19-unknown-order-empirical-swiglu-recovery.md`.
+   - No loosening of the frozen threshold to convert the over-estimates into
+     passes; the next move is identifiability diagnostics (why the r curve is
+     non-monotone around the true order mid-layer) or a tighter fit regime,
+     not a re-run with a friendlier gate.
 
 This pivot forbids promoting another single-prompt hook-and-ablate report as an
 innovation. The innovation target is stable automatic graph evidence from a

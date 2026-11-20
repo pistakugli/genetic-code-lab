@@ -58,5 +58,18 @@ sufficient within 2x (non-identifiable upper region). Verdict
 `inferred-order`, recorded as an honest over-estimate against the hidden
 order, not order recovery. The verifier passes against the downloaded
 kernel output including the heavy response tables and structurally against
-the repo artifact. The five remaining cases have validated pools recorded
-and are the next gates.
+the repo artifact.
+
+The batch kernel (`scripts/gpu/kaggle/unknown-order-ladder-batch/kernel.py`,
+Kaggle `gcl-unknown-order-ladder-batch` v1, 2 h 02 m) then completed the
+campaign: the five freshly preregistered cases plus the M-E1
+null-permutation control. L-L27 inferred the exact hidden order (12 of 12);
+L-E1 over-estimated (8 of 6), L-M14 over-estimated (16 of 8), M-M15
+over-estimated (18 of 8), M-L28 recorded no sufficient order at all, and
+the M-E1 null control recorded no-sufficient-order (the gate does not fit
+permuted responses). Every case was verified by
+`tools/llm_reader/verify_unknown_order_empirical.py` before integration
+(`scripts/gpu/integrate-unknown-order-batch.py`); roadmap item 7 and the
+capability matrix record the campaign as mostly negative under the frozen
+threshold, per the preregistered stop condition.
+
