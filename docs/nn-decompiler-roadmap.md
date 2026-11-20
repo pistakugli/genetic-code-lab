@@ -609,17 +609,24 @@ The next production path is:
    - This rail must not receive hooks, hidden activations, weights, source ids,
      or intervention handles.
 6. Scale the fact set
-   - Current status: DONE for the first scale gate - LLaMA-3.2-3B-Instruct
-     4-bit 50-fact ordered-residual-path discovery on Kaggle T4
-     (`llama-3.2-3b-50-facts-ordered-residual-path`: the recorded 20-fact
-     configuration with only case-count/min-valid-cases scaled 20 -> 50
-     through the full 90-entry FACTS corpus; 50/50 valid facts pass with 28
-     skipped recorded as tokenizer multi-token answers; every threshold,
-     layer plan, control seed, and claim boundary unchanged; on-kernel
-     consistency recompute plus local re-verification with an independent
-     tokenizer-scan expectation both passed). Evidence in
-     `benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/`
-     and `docs/research/2026-11-20-llama-50-facts-ordered-residual-path.md`.
+   - Current status: DONE for the first two scale gates, one Kaggle T4 kernel
+     per family, both through the full 90-entry FACTS corpus with every
+     threshold, layer plan, control seed, rescue budget, and claim boundary
+     unchanged from the recorded family artifacts - only
+     case-count/min-valid-cases scaled. LLaMA-3.2-3B-Instruct 4-bit 20 -> 50
+     (`llama-3.2-3b-50-facts-ordered-residual-path`: 50/50 valid facts pass,
+     28 skipped recorded as tokenizer multi-token answers, 3 h 01 min);
+     Mistral-7B-Instruct v0.3 4-bit 10 -> 20 under this family's stricter
+     1.0/1.0 pass gates (`mistral-7b-instruct-v0.3-20-facts-ordered-residual-path`:
+     20/20 valid facts pass, 57 skipped recorded, 2 h 55 min). Both scans
+     reach past the capital head of the corpus into world-knowledge facts
+     (Jupiter, Sun, ice, February are recorded passing cases) with no
+     protocol change; on-kernel consistency recompute plus local
+     re-verification with an independent tokenizer-scan expectation passed
+     for both. Evidence in
+     `benchmarks/release/nn-live-llama-swiglu-ordered-residual-path-circuit-finder/`,
+     `benchmarks/release/nn-live-mistral-swiglu-ordered-residual-path-circuit-finder/`,
+     and `docs/research/2026-11-20-ordered-path-fact-set-scale.md`.
    - Run the same graph search over larger factual sets and then larger local
      transformer models only after adapter parity, GPT-2 graph hardening, and
      path recovery gates hold.

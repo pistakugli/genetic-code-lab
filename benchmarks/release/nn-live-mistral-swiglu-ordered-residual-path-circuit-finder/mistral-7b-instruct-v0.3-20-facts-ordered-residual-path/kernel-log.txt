@@ -1,0 +1,127 @@
+[{"stream_name":"stdout","time":1.140345782,"data":"[dataset] /kaggle/input listing:\n"}
+,{"stream_name":"stdout","time":1.507369117,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm-reader-gpt2-attention-path-sweep.py\n"}
+,{"stream_name":"stdout","time":1.5073986000000001,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm-reader-gpt2-combined-circuit-sweep.py\n"}
+,{"stream_name":"stdout","time":1.507403601,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm-reader-gpt2-factual-sweep.py\n"}
+,{"stream_name":"stdout","time":1.507407411,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm-reader-gpt2-live.py\n"}
+,{"stream_name":"stdout","time":1.5074110520000001,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm-reader-gpt2-ordered-residual-path-sweep.py\n"}
+,{"stream_name":"stdout","time":1.507414749,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm_reader/__init__.py\n"}
+,{"stream_name":"stdout","time":1.5074184229999998,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm_reader/adapters/__init__.py\n"}
+,{"stream_name":"stdout","time":1.5074220889999999,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm_reader/adapters/base.py\n"}
+,{"stream_name":"stdout","time":1.507425724,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm_reader/adapters/gpt2.py\n"}
+,{"stream_name":"stdout","time":1.507429299,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm_reader/adapters/gpt_neox.py\n"}
+,{"stream_name":"stdout","time":1.5074329,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm_reader/adapters/llama_swiglu.py\n"}
+,{"stream_name":"stdout","time":1.507436634,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm_reader/adapters/qwen2_swiglu.py\n"}
+,{"stream_name":"stdout","time":1.507440317,"data":"[dataset] /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm_reader/adapters/registry.py\n"}
+,{"stream_name":"stdout","time":1.50928563,"data":"[dataset] tools dir: /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input\n"}
+,{"stream_name":"stdout","time":8.757681635,"data":"{\n"}
+,{"stream_name":"stdout","time":8.757712716,"data":" \"torch\": \"2.11.0+cu130\",\n"}
+,{"stream_name":"stdout","time":8.757719387,"data":" \"cudaAvailable\": true,\n"}
+,{"stream_name":"stdout","time":8.757723416,"data":" \"gpuName\": \"Tesla T4\",\n"}
+,{"stream_name":"stdout","time":8.757729682,"data":" \"gpuCount\": 2,\n"}
+,{"stream_name":"stdout","time":8.757733592,"data":" \"python\": \"3.13.16\",\n"}
+,{"stream_name":"stdout","time":8.757738141,"data":" \"machine\": \"7890ffd10df9\"\n"}
+,{"stream_name":"stdout","time":8.757742787,"data":"}\n"}
+,{"stream_name":"stdout","time":8.757747514,"data":"+ /usr/bin/python3 -m pip install -q transformers==5.5.0 accelerate==1.13.0 bitsandbytes==0.49.2\n"}
+,{"stream_name":"stdout","time":25.826360477,"data":"pip exit=0\n"}
+,{"stream_name":"stdout","time":25.826580439,"data":"+ /usr/bin/python3 -c from huggingface_hub import snapshot_download; snapshot_download('unsloth/mistral-7b-instruct-v0.3-bnb-4bit'); print('downloaded')\n"}
+,{"stream_name":"stderr","time":26.985884946,"data":"\rFetching 10 files:   0%|          | 0/10 [00:00\u003c?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n"}
+,{"stream_name":"stderr","time":50.642289885,"data":"\rFetching 10 files:  10%|█         | 1/10 [00:00\u003c00:01,  6.75it/s]\rFetching 10 files:  70%|███████   | 7/10 [00:00\u003c00:00, 29.74it/s]\rFetching 10 files:  90%|█████████ | 9/10 [00:19\u003c00:00, 29.74it/s]\rFetching 10 files: 100%|██████████| 10/10 [00:23\u003c00:00,  3.07s/it]\rFetching 10 files: 100%|██████████| 10/10 [00:23\u003c00:00,  2.37s/it]\n"}
+,{"stream_name":"stdout","time":50.643382515,"data":"downloaded\n"}
+,{"stream_name":"stdout","time":50.71888464,"data":"+ /usr/bin/python3 /kaggle/input/datasets/kuglipista/gcl-mistral-ordered-input/llm-reader-gpt2-ordered-residual-path-sweep.py --adapter mistral-swiglu --model unsloth/mistral-7b-instruct-v0.3-bnb-4bit --case-count 20 --min-valid-cases 20 --mlp-layers 20,24,28,31 --mlp-fallback-layers 16,20,24,28,31 --attention-layers 20,24,28,31 --attention-fallback-layers 16,20,24,28,31 --top-neurons 8 --top-logits 8 --control-count 3 --control-prompt The weather in Berlin is --control-seed 260611 --max-graph-nodes 3 --max-graph-heads 2 --min-pass-rate 1.0 --min-component-pass-rate 1.0 --min-target-drop 0.01 --min-margin-over-control-p95 0.001 --min-path-activation-delta 0.001 --min-path-margin-over-control-p95 0.0001 --ordered-rescue-candidate-count 8 --ordered-rescue-max-pair-attempts 16 --ordered-rescue-set-candidate-count 8 --ordered-rescue-max-set-attempts 96 --wrong-answer-count 2 --attention-max-target-rank 200 --paraphrase-count 1 --negative-fact-count 1 --unrelated-logit-count 4 --no-require-component-hardening --allow-target-causal-mlp-fallback --device cuda --local-files-only --output-json /kaggle/working/artifacts/mistral-7b-instruct-v0.3-20-facts-ordered-residual-path/report.json --output-md /kaggle/working/artifacts/mistral-7b-instruct-v0.3-20-facts-ordered-residual-path/report.md\n"}
+,{"stream_name":"stderr","time":77.237127368,"data":"Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n"}
+,{"stream_name":"stdout","time":920.38666974,"data":"{\"case\": 1, \"subject\": \"France\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 4.0, \"pathMargin\": 3.170312500000001}\n"}
+,{"stream_name":"stdout","time":1140.518406962,"data":"{\"case\": 2, \"subject\": \"Germany\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.1328125, \"pathMargin\": 0.06328125000000001}\n"}
+,{"stream_name":"stdout","time":1368.402417568,"data":"{\"case\": 3, \"subject\": \"Italy\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.390625, \"pathMargin\": 0.14843750000000033}\n"}
+,{"stream_name":"stdout","time":2185.179887868,"data":"{\"case\": 4, \"subject\": \"Spain\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.125, \"pathMargin\": 0.12441385085694492}\n"}
+,{"stream_name":"stdout","time":2185.180438163,"data":"{\"case\": 4, \"subject\": \"Portugal\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":2185.180679776,"data":"{\"case\": 4, \"subject\": \"Greece\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":2185.180908484,"data":"{\"case\": 4, \"subject\": \"Egypt\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":2407.856982128,"data":"{\"case\": 5, \"subject\": \"Japan\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.265625, \"pathMargin\": 0.261572265625}\n"}
+,{"stream_name":"stdout","time":3219.377847965,"data":"{\"case\": 6, \"subject\": \"China\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.078125, \"pathMargin\": 0.03654785156250002}\n"}
+,{"stream_name":"stdout","time":3445.258232178,"data":"{\"case\": 7, \"subject\": \"Russia\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.078125, \"pathMargin\": 0.07037620544433595}\n"}
+,{"stream_name":"stdout","time":3445.258354942,"data":"{\"case\": 7, \"subject\": \"Canada\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":3445.258633918,"data":"{\"case\": 7, \"subject\": \"Australia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":3445.258843253,"data":"{\"case\": 7, \"subject\": \"Brazil\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":3682.451453886,"data":"{\"case\": 8, \"subject\": \"Sweden\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.375, \"pathMargin\": 0.13281250000000033}\n"}
+,{"stream_name":"stdout","time":3682.4517744,"data":"{\"case\": 8, \"subject\": \"Norway\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":3682.452004602,"data":"{\"case\": 8, \"subject\": \"Denmark\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":3682.452224737,"data":"{\"case\": 8, \"subject\": \"Finland\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":3682.452422217,"data":"{\"case\": 8, \"subject\": \"Poland\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":3914.540470564,"data":"{\"case\": 9, \"subject\": \"Hungary\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.4375, \"pathMargin\": 0.40625}\n"}
+,{"stream_name":"stdout","time":4139.026441346,"data":"{\"case\": 10, \"subject\": \"Austria\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.1875, \"pathMargin\": 0.15078125000000003}\n"}
+,{"stream_name":"stdout","time":4139.026742307,"data":"{\"case\": 10, \"subject\": \"Belgium\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":4952.791307002,"data":"{\"case\": 11, \"subject\": \"Netherlands\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.296875, \"pathMargin\": 0.0289062500000003}\n"}
+,{"stream_name":"stdout","time":5179.817818602,"data":"{\"case\": 12, \"subject\": \"Ireland\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.09375, \"pathMargin\": 0.06406250000000002}\n"}
+,{"stream_name":"stdout","time":5179.8180294,"data":"{\"case\": 12, \"subject\": \"Turkey\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5179.818291968,"data":"{\"case\": 12, \"subject\": \"Iran\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5179.818504731,"data":"{\"case\": 12, \"subject\": \"Iraq\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5179.81872967,"data":"{\"case\": 12, \"subject\": \"Syria\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5179.818924427,"data":"{\"case\": 12, \"subject\": \"Jordan\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.385207765,"data":"{\"case\": 13, \"subject\": \"Israel\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.3125, \"pathMargin\": 0.05205078125000029}\n"}
+,{"stream_name":"stdout","time":5990.385538982,"data":"{\"case\": 13, \"subject\": \"Saudi Arabia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.385732158,"data":"{\"case\": 13, \"subject\": \"Pakistan\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.385967035,"data":"{\"case\": 13, \"subject\": \"Bangladesh\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.386131412,"data":"{\"case\": 13, \"subject\": \"Thailand\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.386304002,"data":"{\"case\": 13, \"subject\": \"Vietnam\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.38647384,"data":"{\"case\": 13, \"subject\": \"Indonesia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.386653511,"data":"{\"case\": 13, \"subject\": \"Philippines\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.386818126,"data":"{\"case\": 13, \"subject\": \"South Korea\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.386984328,"data":"{\"case\": 13, \"subject\": \"Belarus\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.387156242,"data":"{\"case\": 13, \"subject\": \"Estonia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.387373068,"data":"{\"case\": 13, \"subject\": \"Latvia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.387586467,"data":"{\"case\": 13, \"subject\": \"Lithuania\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.387794931,"data":"{\"case\": 13, \"subject\": \"Romania\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.387986981,"data":"{\"case\": 13, \"subject\": \"Bulgaria\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.38819032,"data":"{\"case\": 13, \"subject\": \"Serbia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.388375044,"data":"{\"case\": 13, \"subject\": \"Croatia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.388589225,"data":"{\"case\": 13, \"subject\": \"Slovakia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":5990.388791391,"data":"{\"case\": 13, \"subject\": \"Czech Republic\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.365818385,"data":"{\"case\": 14, \"subject\": \"Switzerland\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.21875, \"pathMargin\": 0.17343750000000002}\n"}
+,{"stream_name":"stdout","time":6802.36620039,"data":"{\"case\": 14, \"subject\": \"Morocco\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.366437719,"data":"{\"case\": 14, \"subject\": \"Algeria\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.36747909,"data":"{\"case\": 14, \"subject\": \"Tunisia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.367719563,"data":"{\"case\": 14, \"subject\": \"Kenya\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.367908589,"data":"{\"case\": 14, \"subject\": \"Nigeria\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.368087806,"data":"{\"case\": 14, \"subject\": \"Ghana\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.368252637,"data":"{\"case\": 14, \"subject\": \"Senegal\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.368434225,"data":"{\"case\": 14, \"subject\": \"Mali\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.368619205,"data":"{\"case\": 14, \"subject\": \"Niger\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.368833139,"data":"{\"case\": 14, \"subject\": \"Sudan\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.368960597,"data":"{\"case\": 14, \"subject\": \"Uganda\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.369145834,"data":"{\"case\": 14, \"subject\": \"Tanzania\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":6802.3693168,"data":"{\"case\": 14, \"subject\": \"Rwanda\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.009510746,"data":"{\"case\": 15, \"subject\": \"Chile\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.125, \"pathMargin\": 0.109375}\n"}
+,{"stream_name":"stdout","time":7645.010143957,"data":"{\"case\": 15, \"subject\": \"Peru\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.010329705,"data":"{\"case\": 15, \"subject\": \"Colombia\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.01058006,"data":"{\"case\": 15, \"subject\": \"Venezuela\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.010764322,"data":"{\"case\": 15, \"subject\": \"Cuba\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.010944168,"data":"{\"case\": 15, \"subject\": \"Jamaica\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.01110334,"data":"{\"case\": 15, \"subject\": \"Uruguay\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.011265421,"data":"{\"case\": 15, \"subject\": \"Paraguay\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.011448593,"data":"{\"case\": 15, \"subject\": \"Ecuador\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.011655524,"data":"{\"case\": 15, \"subject\": \"largest planet\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7645.011811515,"data":"{\"case\": 15, \"subject\": \"smallest planet\", \"status\": \"skipped\", \"combined\": null, \"pathDelta\": 0.0, \"pathMargin\": 0.0}\n"}
+,{"stream_name":"stdout","time":7876.397540881,"data":"{\"case\": 16, \"subject\": \"nearest star\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.1171875, \"pathMargin\": 0.012500000000000067}\n"}
+,{"stream_name":"stdout","time":8686.071435199,"data":"{\"case\": 17, \"subject\": \"grass color\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.09375, \"pathMargin\": 0.09374572075903416}\n"}
+,{"stream_name":"stdout","time":8909.943784697,"data":"{\"case\": 18, \"subject\": \"opposite of hot\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.703125, \"pathMargin\": 0.6427734375}\n"}
+,{"stream_name":"stdout","time":9711.188677606,"data":"{\"case\": 19, \"subject\": \"number after nine\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.90625, \"pathMargin\": 0.86796875}\n"}
+,{"stream_name":"stdout","time":10528.307062466,"data":"{\"case\": 20, \"subject\": \"month after January\", \"status\": \"passed\", \"combined\": \"passed\", \"pathDelta\": 0.25, \"pathMargin\": 0.22982769012451174}\n"}
+,{"stream_name":"stdout","time":10528.36917254,"data":"{\n"}
+,{"stream_name":"stdout","time":10528.369204541,"data":"  \"pass\": true,\n"}
+,{"stream_name":"stdout","time":10528.369209772,"data":"  \"validCases\": 20,\n"}
+,{"stream_name":"stdout","time":10528.369214422,"data":"  \"passedCases\": 20,\n"}
+,{"stream_name":"stdout","time":10528.369219056,"data":"  \"passRate\": 1.0,\n"}
+,{"stream_name":"stdout","time":10528.369223868,"data":"  \"reportJson\": \"/kaggle/working/artifacts/mistral-7b-instruct-v0.3-20-facts-ordered-residual-path/report.json\",\n"}
+,{"stream_name":"stdout","time":10528.369228601,"data":"  \"reportMarkdown\": \"/kaggle/working/artifacts/mistral-7b-instruct-v0.3-20-facts-ordered-residual-path/report.md\"\n"}
+,{"stream_name":"stdout","time":10528.369234124,"data":"}\n"}
+,{"stream_name":"stdout","time":10532.511102929,"data":"[mistral-20] exit=0 elapsed=10482s\n"}
+,{"stream_name":"stdout","time":10532.521061123,"data":"GCL_MISTRAL_20_FACTS_ORDERED_PATH_SUMMARY {\"runnerExit\": 0, \"summaryPass\": true, \"validCases\": 20, \"passedCases\": 20, \"skippedCases\": 57, \"elapsedSeconds\": 10482}\n"}
+,{"stream_name":"stdout","time":10532.521084271,"data":"[mistral-20] ARTIFACT_CONSISTENT (summary pass=True)\n"}
+,{"stream_name":"stdout","time":10532.521089812,"data":"GCL_MISTRAL_20_FACTS_ORDERED_PATH_PASS\n"}
+,{"stream_name":"stderr","time":10535.184832518,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":10535.184867503,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":10535.430862585,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":10535.430891869,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":10536.230061248,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":10537.29434593,"data":"[NbConvertApp] Writing 352332 bytes to __results__.html\n"}
+]
